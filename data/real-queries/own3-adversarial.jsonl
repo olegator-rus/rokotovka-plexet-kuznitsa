@@ -1,0 +1,330 @@
+{"query": "бессрочная подписка касперский", "want": ["kaspersky-endpoint-security", "kaspersky-small-office-security", "kaspersky-internet-security", "kaspersky-standard", "kaspersky-plus", "kaspersky-premium"], "note": "подписка ≠ бессрочно: сообщение о снятии", "cls": "contradict"}
+{"query": "office для дома на 500 пк", "want": ["office-2021", "office-2024", "microsoft-365-business", "microsoft-365-home"], "note": "домашний офис на 500 ПК: противоречие, ждём M365 Business или сообщение", "cls": "contradict"}
+{"query": "windows 11 home для бизнеса на 100 пк", "want": ["windows-11-pro", "windows-11-home", "windows-10-pro"], "note": "", "cls": "contradict"}
+{"query": "бесплатный антивирус", "want": ["cat:antivirus-business", "cat:antivirus-home"], "note": "бесплатного нет — ближайшее или сообщение", "cls": "contradict"}
+{"query": "1с бухгалтерия подписка на 1 месяц", "want": ["1c-accounting"], "note": "1С бессрочная", "cls": "contradict"}
+{"query": "ноутбук 32 дюйма", "want": ["cat:laptops"], "note": "нет такой диагонали — снятие с сообщением", "cls": "contradict"}
+{"query": "монитор 27 дюймов 4k", "want": ["cat:monitors"], "note": "4K нет — сообщение", "cls": "contradict"}
+{"query": "autocad бессрочная лицензия", "want": ["autodesk-autocad", "autodesk-autocad-lt"], "note": "AutoCAD только подписка", "cls": "contradict"}
+{"query": "photoshop бессрочно", "want": ["adobe-photoshop"], "note": "только подписка", "cls": "contradict"}
+{"query": "фотошоп для дома на 500 пк", "want": ["adobe-photoshop"], "note": "для дома ≠ категория антивирусов", "cls": "contradict"}
+{"query": "windows server 2022 на 1 ядро", "want": ["windows-server-2022"], "note": "", "cls": "contradict"}
+{"query": "ибп 10000 вт", "want": ["cat:ups"], "note": "максимум 5400 Вт", "cls": "contradict"}
+{"query": "коммутатор 8 портов poe", "want": ["cat:switches"], "note": "", "cls": "contradict"}
+{"query": "ноутбук i9 64 гб", "want": ["cat:laptops"], "note": "", "cls": "contradict"}
+{"query": "dell latitude 64 гб", "want": ["dell-latitude-5540"], "note": "", "cls": "contradict"}
+{"query": "ssd 8 тб", "want": ["cat:server-storage"], "note": "", "cls": "contradict"}
+{"query": "память ddr3", "want": ["cat:server-memory"], "note": "DDR3 нет — сообщение", "cls": "contradict"}
+{"query": "монитор 240 гц", "want": ["cat:monitors"], "note": "макс 165", "cls": "contradict"}
+{"query": "ноутбук 13 дюймов", "want": ["cat:laptops"], "note": "", "cls": "contradict"}
+{"query": "kaspersky premium для бизнеса на 200 узлов", "want": ["kaspersky-endpoint-security", "kaspersky-premium"], "note": "", "cls": "contradict"}
+{"query": "отечественный microsoft office", "want": ["office-2021", "office-2024", "microsoft-365-business", "microsoft-365-home", "myoffice-standard", "r7-office-professional"], "note": "противоречие: MS не отечественный", "cls": "contradict"}
+{"query": "астра линукс в реестре не российская", "want": ["astra-linux-se"], "note": "", "cls": "contradict"}
+{"query": "продление новой лицензии касперский", "want": ["kaspersky-endpoint-security", "kaspersky-small-office-security", "kaspersky-internet-security", "kaspersky-standard", "kaspersky-plus", "kaspersky-premium"], "note": "", "cls": "contradict"}
+{"query": "windows 11 pro бессрочная подписка на год", "want": ["windows-11-pro"], "note": "", "cls": "contradict"}
+{"query": "антивирус не касперский", "want": ["drweb-enterprise-security-suite", "drweb-security-space", "eset-protect", "eset-nod32-antivirus", "eset-smart-security-premium"], "note": "должны быть и Dr.Web, и ESET", "cls": "negation"}
+{"query": "антивирус кроме касперского", "want": ["drweb-enterprise-security-suite", "drweb-security-space", "eset-protect", "eset-nod32-antivirus", "eset-smart-security-premium"], "note": "", "cls": "negation"}
+{"query": "антивирус без касперского", "want": ["drweb-enterprise-security-suite", "drweb-security-space", "eset-protect", "eset-nod32-antivirus", "eset-smart-security-premium"], "note": "", "cls": "negation"}
+{"query": "антивирус для бизнеса не kaspersky", "want": ["drweb-enterprise-security-suite", "eset-protect"], "note": "", "cls": "negation"}
+{"query": "офис без microsoft", "want": ["myoffice-standard", "r7-office-professional"], "note": "", "cls": "negation"}
+{"query": "офис не майкрософт", "want": ["myoffice-standard", "r7-office-professional"], "note": "", "cls": "negation"}
+{"query": "офисный пакет кроме microsoft", "want": ["myoffice-standard", "r7-office-professional"], "note": "", "cls": "negation"}
+{"query": "ноутбук не lenovo", "want": ["dell-latitude-5540", "hp-probook-450-g10", "huawei-matebook-d16", "aquarius-cmp-ns685"], "note": "", "cls": "negation"}
+{"query": "монитор кроме dell", "want": ["hp-e24-g5", "huawei-mateview-se", "lenovo-l27i-40", "samsung-odyssey-g5"], "note": "", "cls": "negation"}
+{"query": "сервер не dell", "want": ["hpe-proliant-dl380-gen10", "hpe-proliant-dl380-gen11", "yadro-vegman-r220-g2"], "note": "", "cls": "negation"}
+{"query": "операционная система не windows", "want": ["astra-linux-se", "red-os", "alt-os"], "note": "", "cls": "negation"}
+{"query": "ос кроме windows", "want": ["astra-linux-se", "red-os", "alt-os"], "note": "", "cls": "negation"}
+{"query": "pdf редактор без adobe", "want": ["abbyy-finereader-pdf", "contentreader-pdf"], "note": "", "cls": "negation"}
+{"query": "удаленный доступ не teamviewer", "want": ["anydesk", "assistant"], "note": "", "cls": "negation"}
+{"query": "cad кроме autodesk", "want": ["kompas-3d", "nanocad", "renga"], "note": "", "cls": "negation"}
+{"query": "российский антивирус не касперский", "want": ["drweb-enterprise-security-suite", "drweb-security-space"], "note": "", "cls": "negation"}
+{"query": "отечественный офис не р7", "want": ["myoffice-standard"], "note": "", "cls": "negation"}
+{"query": "ноутбук без ос", "want": ["cat:laptops"], "note": "без ОС — атрибут, не отрицание товара", "cls": "negation"}
+{"query": "ноутбук без windows", "want": ["cat:laptops"], "note": "", "cls": "negation"}
+{"query": "1с без итс", "want": ["1c-accounting", "1c-client-license", "1c-server", "1c-trade-management"], "note": "", "cls": "negation"}
+{"query": "антивирус не для дома", "want": ["cat:antivirus-business"], "note": "", "cls": "negation"}
+{"query": "антивирус не dr.web и не eset", "want": ["kaspersky-endpoint-security", "kaspersky-small-office-security", "kaspersky-internet-security", "kaspersky-standard", "kaspersky-plus", "kaspersky-premium"], "note": "двойное исключение", "cls": "negation"}
+{"query": "коммутатор без poe", "want": ["cat:switches"], "note": "", "cls": "negation"}
+{"query": "kaspersky без продления", "want": ["kaspersky-endpoint-security", "kaspersky-small-office-security", "kaspersky-internet-security", "kaspersky-standard", "kaspersky-plus", "kaspersky-premium"], "note": "новая лицензия", "cls": "negation"}
+{"query": "ноутбук не дороже 100000", "want": ["cat:laptops"], "note": "", "cls": "negation"}
+{"query": "видеосвязь не zoom", "want": ["trueconf-server", "yandex-360"], "note": "", "cls": "negation"}
+{"query": "не windows", "want": ["astra-linux-se", "red-os", "alt-os"], "note": "", "cls": "negation"}
+{"query": "оперативная память от 16 до 32 гб", "want": ["cat:server-memory"], "note": "диапазон: только 16 и 32", "cls": "numbers"}
+{"query": "ssd от 500 гб до 1 тб", "want": ["cat:server-storage"], "note": "960 ГБ", "cls": "numbers"}
+{"query": "монитор от 24 до 27 дюймов", "want": ["cat:monitors"], "note": "", "cls": "numbers"}
+{"query": "ноутбук до 80000 рублей", "want": ["cat:laptops"], "note": "", "cls": "numbers"}
+{"query": "ноутбук дешевле 50 тыс", "want": ["cat:laptops"], "note": "", "cls": "numbers"}
+{"query": "антивирус до 5000 руб", "want": ["cat:antivirus-business", "cat:antivirus-home"], "note": "", "cls": "numbers"}
+{"query": "ибп от 2000 вт", "want": ["cat:ups"], "note": "", "cls": "numbers"}
+{"query": "ssd 2тб", "want": ["cat:server-storage"], "note": "1,92 ТБ ближайший", "cls": "numbers"}
+{"query": "диск 8tb", "want": ["seagate-exos", "dell-server-drives"], "note": "", "cls": "numbers"}
+{"query": "касперский на 1 000 пользователей", "want": ["kaspersky-endpoint-security"], "note": "пробел в числе", "cls": "numbers"}
+{"query": "kaspersky на 1000 узлов", "want": ["kaspersky-endpoint-security"], "note": "", "cls": "numbers"}
+{"query": "антивирус на полгода", "want": ["cat:antivirus-business", "cat:antivirus-home"], "note": "6 мес", "cls": "numbers"}
+{"query": "касперский на 3 мес", "want": ["kaspersky-endpoint-security", "kaspersky-small-office-security", "kaspersky-internet-security", "kaspersky-standard", "kaspersky-plus", "kaspersky-premium"], "note": "", "cls": "numbers"}
+{"query": "kaspersky на 2 года", "want": ["kaspersky-endpoint-security", "kaspersky-small-office-security", "kaspersky-internet-security", "kaspersky-standard", "kaspersky-plus", "kaspersky-premium"], "note": "", "cls": "numbers"}
+{"query": "windows 10 на 10 пк", "want": ["windows-10-pro"], "note": "версия ≠ количество", "cls": "numbers"}
+{"query": "office 2019 на 19 пк", "want": ["office-2021", "office-2024", "microsoft-365-business", "microsoft-365-home"], "note": "2019 нет — ближайшая версия; 19 — количество", "cls": "numbers"}
+{"query": "office 2021 на 21 пк", "want": ["office-2021"], "note": "", "cls": "numbers"}
+{"query": "office 2024 на 2024 пк", "want": ["office-2024"], "note": "", "cls": "numbers"}
+{"query": "windows 11 на 11 компьютеров", "want": ["windows-11-pro", "windows-11-home"], "note": "", "cls": "numbers"}
+{"query": "windows 11 pro 5 шт", "want": ["windows-11-pro"], "note": "", "cls": "numbers"}
+{"query": "1с на 5 пользователей", "want": ["1c-client-license"], "note": "", "cls": "numbers"}
+{"query": "1с 8.3 на 10 рабочих мест", "want": ["1c-client-license"], "note": "8.3 — версия", "cls": "numbers"}
+{"query": "windows server на 32 ядра", "want": ["windows-server-2025", "windows-server-2022"], "note": "", "cls": "numbers"}
+{"query": "компас 3d v23 на 3 места", "want": ["kompas-3d"], "note": "", "cls": "numbers"}
+{"query": "astra linux 1.8 на 30 арм", "want": ["astra-linux-se"], "note": "", "cls": "numbers"}
+{"query": "dr.web на 15 пк", "want": ["drweb-enterprise-security-suite", "drweb-security-space"], "note": "", "cls": "numbers"}
+{"query": "eset на 7 устройств", "want": ["eset-protect", "eset-nod32-antivirus", "eset-smart-security-premium"], "note": "", "cls": "numbers"}
+{"query": "kaspersky premium 3 устройства", "want": ["kaspersky-premium"], "note": "", "cls": "numbers"}
+{"query": "veeam 10 экземпляров", "want": ["veeam-backup"], "note": "", "cls": "numbers"}
+{"query": "trueconf на 50 подключений", "want": ["trueconf-server"], "note": "", "cls": "numbers"}
+{"query": "cal 2025 на 25 пользователей", "want": ["windows-server-cal-2025", "rds-cal-2025"], "note": "", "cls": "numbers"}
+{"query": "сервер 128 гб ram", "want": ["cat:server-systems"], "note": "", "cls": "numbers"}
+{"query": "сервер 256гб", "want": ["cat:server-systems"], "note": "", "cls": "numbers"}
+{"query": "ноутбук 16gb ram 512gb ssd", "want": ["cat:laptops"], "note": "", "cls": "numbers"}
+{"query": "монитор 2560x1440", "want": ["dell-u2724d", "samsung-odyssey-g5"], "note": "", "cls": "numbers"}
+{"query": "монитор 1920 на 1080", "want": ["cat:monitors"], "note": "", "cls": "numbers"}
+{"query": "ибп 3 квт", "want": ["cat:ups"], "note": "", "cls": "numbers"}
+{"query": "ибп 3000 ва", "want": ["ippon-innova-rt-ii", "eaton-9sx"], "note": "", "cls": "numbers"}
+{"query": "коммутатор 48 портов", "want": ["eltex-mes2300", "huawei-s5735", "hpe-aruba-cx6100"], "note": "", "cls": "numbers"}
+{"query": "антивирус на 0 пк", "want": ["cat:antivirus-business", "cat:antivirus-home"], "note": "мусорное количество", "cls": "numbers"}
+{"query": "антивирус на 1000000 пк", "want": ["cat:antivirus-business", "cat:antivirus-home"], "note": "", "cls": "numbers"}
+{"query": "лицензия касперский на 1,5 года", "want": ["kaspersky-endpoint-security", "kaspersky-small-office-security", "kaspersky-internet-security", "kaspersky-standard", "kaspersky-plus", "kaspersky-premium"], "note": "", "cls": "numbers"}
+{"query": "microsoft 365 на 12 месяцев", "want": ["microsoft-365-business", "microsoft-365-home"], "note": "", "cls": "numbers"}
+{"query": "kaspersky 1 год 1 пк", "want": ["kaspersky-endpoint-security", "kaspersky-small-office-security", "kaspersky-internet-security", "kaspersky-standard", "kaspersky-plus", "kaspersky-premium"], "note": "", "cls": "numbers"}
+{"query": "1с 10 лицензий", "want": ["1c-client-license"], "note": "", "cls": "numbers"}
+{"query": "сервер 2 процессора", "want": ["cat:server-systems"], "note": "", "cls": "numbers"}
+{"query": "windows server 2025 на 2025 пользователей", "want": ["windows-server-2025", "windows-server-cal-2025"], "note": "", "cls": "numbers"}
+{"query": "касперский на 36 месяцев", "want": ["kaspersky-endpoint-security", "kaspersky-small-office-security", "kaspersky-internet-security", "kaspersky-standard", "kaspersky-plus", "kaspersky-premium"], "note": "", "cls": "numbers"}
+{"query": "антивирус на неделю", "want": ["cat:antivirus-business", "cat:antivirus-home"], "note": "", "cls": "numbers"}
+{"query": "касперский 50пк", "want": ["kaspersky-endpoint-security"], "note": "", "cls": "numbers"}
+{"query": "касперский 50 шт", "want": ["kaspersky-endpoint-security"], "note": "", "cls": "numbers"}
+{"query": "kaspersky 10-15 пк", "want": ["kaspersky-endpoint-security", "kaspersky-small-office-security"], "note": "диапазон количества", "cls": "numbers"}
+{"query": "kaspersky на сто пк", "want": ["kaspersky-endpoint-security"], "note": "число словами", "cls": "numbers"}
+{"query": "касперский на пять компьютеров", "want": ["kaspersky-small-office-security", "kaspersky-endpoint-security", "kaspersky-standard"], "note": "", "cls": "numbers"}
+{"query": "windows 7", "want": ["windows-11-pro", "windows-11-home", "windows-10-pro"], "note": "нет — ближайшая", "cls": "numbers"}
+{"query": "office 2016", "want": ["office-2021", "office-2024", "microsoft-365-business", "microsoft-365-home"], "note": "нет — ближайшая", "cls": "numbers"}
+{"query": "kaspersky или dr.web", "want": ["kaspersky-endpoint-security", "kaspersky-small-office-security", "kaspersky-internet-security", "kaspersky-standard", "kaspersky-plus", "kaspersky-premium", "drweb-enterprise-security-suite", "drweb-security-space"], "note": "в топ-3 оба вендора", "cls": "compare-forms"}
+{"query": "касперский или доктор веб", "want": ["kaspersky-endpoint-security", "kaspersky-small-office-security", "kaspersky-internet-security", "kaspersky-standard", "kaspersky-plus", "kaspersky-premium", "drweb-enterprise-security-suite", "drweb-security-space"], "note": "", "cls": "compare-forms"}
+{"query": "eset vs kaspersky", "want": ["kaspersky-endpoint-security", "kaspersky-small-office-security", "kaspersky-internet-security", "kaspersky-standard", "kaspersky-plus", "kaspersky-premium", "eset-protect", "eset-nod32-antivirus", "eset-smart-security-premium"], "note": "", "cls": "compare-forms"}
+{"query": "autocad или компас", "want": ["autodesk-autocad", "kompas-3d"], "note": "", "cls": "compare-forms"}
+{"query": "photoshop или affinity", "want": ["adobe-photoshop", "affinity-photo"], "note": "", "cls": "compare-forms"}
+{"query": "anydesk или teamviewer", "want": ["anydesk", "teamviewer"], "note": "", "cls": "compare-forms"}
+{"query": "dell или hp ноутбук", "want": ["dell-latitude-5540", "hp-probook-450-g10"], "note": "", "cls": "compare-forms"}
+{"query": "р7 или мойофис", "want": ["myoffice-standard", "r7-office-professional"], "note": "", "cls": "compare-forms"}
+{"query": "что лучше veeam или кибер бэкап", "want": ["veeam-backup", "cyber-backup"], "note": "", "cls": "compare-forms"}
+{"query": "zoom или trueconf", "want": ["zoom-workplace", "trueconf-server"], "note": "", "cls": "compare-forms"}
+{"query": "windows или astra", "want": ["windows-11-pro", "windows-11-home", "windows-10-pro", "astra-linux-se"], "note": "", "cls": "compare-forms"}
+{"query": "касперским", "want": ["kaspersky-endpoint-security", "kaspersky-small-office-security", "kaspersky-internet-security", "kaspersky-standard", "kaspersky-plus", "kaspersky-premium"], "note": "падеж", "cls": "compare-forms"}
+{"query": "касперском", "want": ["kaspersky-endpoint-security", "kaspersky-small-office-security", "kaspersky-internet-security", "kaspersky-standard", "kaspersky-plus", "kaspersky-premium"], "note": "", "cls": "compare-forms"}
+{"query": "касперскому", "want": ["kaspersky-endpoint-security", "kaspersky-small-office-security", "kaspersky-internet-security", "kaspersky-standard", "kaspersky-plus", "kaspersky-premium"], "note": "", "cls": "compare-forms"}
+{"query": "доктором вебом", "want": ["drweb-enterprise-security-suite", "drweb-security-space"], "note": "", "cls": "compare-forms"}
+{"query": "автокадом", "want": ["autodesk-autocad", "autodesk-autocad-lt"], "note": "", "cls": "compare-forms"}
+{"query": "автокаде", "want": ["autodesk-autocad", "autodesk-autocad-lt"], "note": "", "cls": "compare-forms"}
+{"query": "фотошопом", "want": ["adobe-photoshop"], "note": "", "cls": "compare-forms"}
+{"query": "виндой", "want": ["windows-11-pro", "windows-11-home", "windows-10-pro"], "note": "", "cls": "compare-forms"}
+{"query": "винде 11", "want": ["windows-11-pro", "windows-11-home", "windows-10-pro"], "note": "", "cls": "compare-forms"}
+{"query": "офисом 2021", "want": ["office-2021"], "note": "", "cls": "compare-forms"}
+{"query": "компасом", "want": ["kompas-3d"], "note": "", "cls": "compare-forms"}
+{"query": "kasperskiy", "want": ["kaspersky-endpoint-security", "kaspersky-small-office-security", "kaspersky-internet-security", "kaspersky-standard", "kaspersky-plus", "kaspersky-premium"], "note": "транслит", "cls": "compare-forms"}
+{"query": "kasperskii antivirus", "want": ["kaspersky-endpoint-security", "kaspersky-small-office-security", "kaspersky-internet-security", "kaspersky-standard", "kaspersky-plus", "kaspersky-premium"], "note": "", "cls": "compare-forms"}
+{"query": "avtokad", "want": ["autodesk-autocad", "autodesk-autocad-lt"], "note": "", "cls": "compare-forms"}
+{"query": "fotoshop", "want": ["adobe-photoshop"], "note": "", "cls": "compare-forms"}
+{"query": "vindovs 11", "want": ["windows-11-pro", "windows-11-home", "windows-10-pro"], "note": "", "cls": "compare-forms"}
+{"query": "ofis 2021", "want": ["office-2021"], "note": "", "cls": "compare-forms"}
+{"query": "noutbuk lenovo", "want": ["lenovo-thinkpad-e14-gen5", "lenovo-thinkpad-t14-gen4"], "note": "", "cls": "compare-forms"}
+{"query": "1s buhgalteriya", "want": ["1c-accounting"], "note": "", "cls": "compare-forms"}
+{"query": "astra linuks", "want": ["astra-linux-se"], "note": "", "cls": "compare-forms"}
+{"query": "dr veb", "want": ["drweb-enterprise-security-suite", "drweb-security-space"], "note": "", "cls": "compare-forms"}
+{"query": "rfcgthcrbq", "want": ["kaspersky-endpoint-security", "kaspersky-small-office-security", "kaspersky-internet-security", "kaspersky-standard", "kaspersky-plus", "kaspersky-premium"], "note": "касперский в англ. раскладке", "cls": "compare-forms"}
+{"query": "фтешмшкгы", "want": ["cat:antivirus-business", "cat:antivirus-home"], "note": "antivirus в рус. раскладке", "cls": "compare-forms"}
+{"query": "цштвщцы 11", "want": ["windows-11-pro", "windows-11-home", "windows-10-pro"], "note": "windows в рус. раскладке", "cls": "compare-forms"}
+{"query": "щаашсу 2021", "want": ["office-2021"], "note": "office в рус. раскладке", "cls": "compare-forms"}
+{"query": "fdnjrfl", "want": ["autodesk-autocad", "autodesk-autocad-lt"], "note": "автокад в англ. раскладке", "cls": "compare-forms"}
+{"query": "каспрский антивирс", "want": ["kaspersky-endpoint-security", "kaspersky-small-office-security", "kaspersky-internet-security", "kaspersky-standard", "kaspersky-plus", "kaspersky-premium"], "note": "2 опечатки", "cls": "compare-forms"}
+{"query": "вендовс сервар", "want": ["windows-server-2025", "windows-server-2022"], "note": "", "cls": "compare-forms"}
+{"query": "автокат лицензя", "want": ["autodesk-autocad", "autodesk-autocad-lt"], "note": "", "cls": "compare-forms"}
+{"query": "фотошп подпска", "want": ["adobe-photoshop"], "note": "", "cls": "compare-forms"}
+{"query": "нотбук леново", "want": ["lenovo-thinkpad-e14-gen5", "lenovo-thinkpad-t14-gen4"], "note": "", "cls": "compare-forms"}
+{"query": "монитр делл", "want": ["dell-p2425h", "dell-p2725h", "dell-u2724d"], "note": "", "cls": "compare-forms"}
+{"query": "микрософт офсе", "want": ["office-2021", "office-2024", "microsoft-365-business", "microsoft-365-home"], "note": "", "cls": "compare-forms"}
+{"query": "бухгалтерея 1с", "want": ["1c-accounting"], "note": "", "cls": "compare-forms"}
+{"query": "коммутатр ельтекс", "want": ["eltex-mes2300"], "note": "", "cls": "compare-forms"}
+{"query": "антивирус доктор вэб", "want": ["drweb-enterprise-security-suite", "drweb-security-space"], "note": "э/е", "cls": "compare-forms"}
+{"query": "ноутбук dell 14 дюймов", "want": ["dell-latitude-5540", "cat:laptops"], "note": "у Dell только 15,6", "cls": "hardware"}
+{"query": "lenovo thinkpad 15.6", "want": ["lenovo-thinkpad-e14-gen5", "lenovo-thinkpad-t14-gen4"], "note": "у Lenovo 14", "cls": "hardware"}
+{"query": "сервер yadro 64 гб", "want": ["yadro-vegman-r220-g2"], "note": "", "cls": "hardware"}
+{"query": "монитор samsung ips", "want": ["samsung-odyssey-g5"], "note": "VA", "cls": "hardware"}
+{"query": "монитор huawei 27", "want": ["huawei-mateview-se"], "note": "", "cls": "hardware"}
+{"query": "ибп eaton 1000 вт", "want": ["eaton-9sx"], "note": "", "cls": "hardware"}
+{"query": "коммутатор d-link 10g", "want": ["dlink-dgs-1210"], "note": "", "cls": "hardware"}
+{"query": "память hpe ddr4 64 гб", "want": ["hpe-smart-memory-ddr4"], "note": "есть", "cls": "hardware"}
+{"query": "ssd samsung 1.92 тб", "want": ["samsung-pm893"], "note": "", "cls": "hardware"}
+{"query": "ноутбук amd ryzen", "want": ["cat:laptops"], "note": "нет AMD", "cls": "hardware"}
+{"query": "сервер amd epyc", "want": ["cat:server-systems"], "note": "", "cls": "hardware"}
+{"query": "ноутбук aquarius 32 гб", "want": ["aquarius-cmp-ns685"], "note": "", "cls": "hardware"}
+{"query": "монитор dell 4k", "want": ["dell-u2724d", "dell-p2725h", "dell-p2425h"], "note": "", "cls": "hardware"}
+{"query": "сервер hpe ddr5", "want": ["hpe-proliant-dl380-gen11"], "note": "", "cls": "hardware"}
+{"query": "сервер dell ddr5", "want": ["dell-poweredge-r740", "dell-poweredge-r750"], "note": "у Dell DDR4", "cls": "hardware"}
+{"query": "ноутбук core i7 32 гб 1 тб", "want": ["lenovo-thinkpad-t14-gen4", "dell-latitude-5540"], "note": "есть", "cls": "hardware"}
+{"query": "коммутатор poe 48 портов", "want": ["huawei-s5735", "hpe-aruba-cx6100"], "note": "", "cls": "hardware"}
+{"query": "коммутатор l3", "want": ["cat:switches"], "note": "все L2/L2+", "cls": "hardware"}
+{"query": "ибп line-interactive", "want": ["ippon-smart-power-pro-ii"], "note": "", "cls": "hardware"}
+{"query": "ибп онлайн 6 ква", "want": ["ippon-innova-rt-ii"], "note": "", "cls": "hardware"}
+{"query": "nvme 3.84", "want": ["hpe-server-drives"], "note": "", "cls": "hardware"}
+{"query": "жесткий диск sas 2.4 тб", "want": ["dell-server-drives", "hpe-server-drives"], "note": "", "cls": "hardware"}
+{"query": "как вернуть лицензию", "want": "nonproduct", "note": "", "cls": "nonproduct"}
+{"query": "доставка", "want": "nonproduct", "note": "", "cls": "nonproduct"}
+{"query": "счет-фактура", "want": "nonproduct", "note": "", "cls": "nonproduct"}
+{"query": "сколько стоит доставка в казань", "want": "nonproduct", "note": "", "cls": "nonproduct"}
+{"query": "как оплатить по безналу", "want": "nonproduct", "note": "", "cls": "nonproduct"}
+{"query": "контакты менеджера", "want": "nonproduct", "note": "", "cls": "nonproduct"}
+{"query": "возврат товара", "want": "nonproduct", "note": "", "cls": "nonproduct"}
+{"query": "акт выполненных работ", "want": "nonproduct", "note": "", "cls": "nonproduct"}
+{"query": "реквизиты", "want": "nonproduct", "note": "", "cls": "nonproduct"}
+{"query": "где мой заказ", "want": "nonproduct", "note": "", "cls": "nonproduct"}
+{"query": "режим работы", "want": "nonproduct", "note": "", "cls": "nonproduct"}
+{"query": "привет", "want": "nonproduct", "note": "", "cls": "nonproduct"}
+{"query": "помогите", "want": "nonproduct", "note": "", "cls": "nonproduct"}
+{"query": "спасибо", "want": "nonproduct", "note": "", "cls": "nonproduct"}
+{"query": "договор поставки", "want": "nonproduct", "note": "", "cls": "nonproduct"}
+{"query": "работаете ли с ндс", "want": "nonproduct", "note": "", "cls": "nonproduct"}
+{"query": "как активировать ключ", "want": "nonproduct", "note": "", "cls": "nonproduct"}
+{"query": "отследить посылку", "want": "nonproduct", "note": "", "cls": "nonproduct"}
+{"query": "оплата картой", "want": "nonproduct", "note": "", "cls": "nonproduct"}
+{"query": "закрывающие документы", "want": "nonproduct", "note": "", "cls": "nonproduct"}
+{"query": "asdf", "want": "nonproduct", "note": "мусор: пусто или честное «нет», без случайной выдачи", "cls": "garbage"}
+{"query": "???", "want": "nonproduct", "note": "мусор: пусто или честное «нет», без случайной выдачи", "cls": "garbage"}
+{"query": "123", "want": "nonproduct", "note": "мусор: пусто или честное «нет», без случайной выдачи", "cls": "garbage"}
+{"query": "🔥🔥🔥", "want": "nonproduct", "note": "мусор: пусто или честное «нет», без случайной выдачи", "cls": "garbage"}
+{"query": "💻", "want": "nonproduct", "note": "мусор: пусто или честное «нет», без случайной выдачи", "cls": "garbage"}
+{"query": "'; DROP TABLE products; --", "want": "nonproduct", "note": "мусор: пусто или честное «нет», без случайной выдачи", "cls": "garbage"}
+{"query": "SELECT * FROM catalog WHERE 1=1", "want": "nonproduct", "note": "мусор: пусто или честное «нет», без случайной выдачи", "cls": "garbage"}
+{"query": "<script>alert(1)</script>", "want": "nonproduct", "note": "мусор: пусто или честное «нет», без случайной выдачи", "cls": "garbage"}
+{"query": "a", "want": "nonproduct", "note": "мусор: пусто или честное «нет», без случайной выдачи", "cls": "garbage"}
+{"query": "...", "want": "nonproduct", "note": "мусор: пусто или честное «нет», без случайной выдачи", "cls": "garbage"}
+{"query": "%%%%", "want": "nonproduct", "note": "мусор: пусто или честное «нет», без случайной выдачи", "cls": "garbage"}
+{"query": "null", "want": "nonproduct", "note": "мусор: пусто или честное «нет», без случайной выдачи", "cls": "garbage"}
+{"query": "undefined", "want": "nonproduct", "note": "мусор: пусто или честное «нет», без случайной выдачи", "cls": "garbage"}
+{"query": "{{7*7}}", "want": "nonproduct", "note": "мусор: пусто или честное «нет», без случайной выдачи", "cls": "garbage"}
+{"query": "ааааааааа", "want": "nonproduct", "note": "мусор: пусто или честное «нет», без случайной выдачи", "cls": "garbage"}
+{"query": "qwerty", "want": "nonproduct", "note": "мусор: пусто или честное «нет», без случайной выдачи", "cls": "garbage"}
+{"query": "0", "want": "nonproduct", "note": "мусор: пусто или честное «нет», без случайной выдачи", "cls": "garbage"}
+{"query": "-1", "want": "nonproduct", "note": "мусор: пусто или честное «нет», без случайной выдачи", "cls": "garbage"}
+{"query": "99999999999999999999999", "want": "nonproduct", "note": "мусор: пусто или честное «нет», без случайной выдачи", "cls": "garbage"}
+{"query": "test", "want": "nonproduct", "note": "мусор: пусто или честное «нет», без случайной выдачи", "cls": "garbage"}
+{"query": "касперский касперский касперский касперский касперский касперский касперский касперский касперский касперский касперский касперский касперский касперский касперский касперский касперский касперский касперский касперский касперский касперский касперский касперский касперский касперский касперский касперский касперский касперский касперский касперский касперский касперский касперский касперский касперский касперский касперский касперский касперский касперский касперский касперский касперский касперский касперский касперский касперский касперский ", "want": "nonproduct", "note": "мусор: пусто или честное «нет», без случайной выдачи", "cls": "garbage"}
+{"query": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx", "want": "nonproduct", "note": "мусор: пусто или честное «нет», без случайной выдачи", "cls": "garbage"}
+{"query": "​", "want": "nonproduct", "note": "мусор: пусто или честное «нет», без случайной выдачи", "cls": "garbage"}
+{"query": "ыыы", "want": "nonproduct", "note": "мусор: пусто или честное «нет», без случайной выдачи", "cls": "garbage"}
+{"query": "1с!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!", "want": ["1c-accounting", "1c-client-license", "1c-its", "1c-server", "1c-roznica"], "note": "1С с мусорной пунктуацией", "cls": "garbage"}
+{"query": "КАСПЕРСКИЙ", "want": ["kaspersky-endpoint-security", "kaspersky-small-office-security", "kaspersky-internet-security", "kaspersky-standard", "kaspersky-plus", "kaspersky-premium"], "note": "", "cls": "case-yo"}
+{"query": "WINDOWS 11 PRO", "want": ["windows-11-pro"], "note": "", "cls": "case-yo"}
+{"query": "ОфИс 2021", "want": ["office-2021"], "note": "", "cls": "case-yo"}
+{"query": "астра орел", "want": ["astra-linux-se"], "note": "ё/е: Орёл", "cls": "case-yo"}
+{"query": "астра орёл", "want": ["astra-linux-se"], "note": "", "cls": "case-yo"}
+{"query": "офис для дома и учебы", "want": ["office-2021"], "note": "учёба", "cls": "case-yo"}
+{"query": "жесткий диск", "want": ["seagate-exos", "dell-server-drives", "hpe-server-drives"], "note": "", "cls": "case-yo"}
+{"query": "жёсткий диск", "want": ["seagate-exos", "dell-server-drives", "hpe-server-drives"], "note": "", "cls": "case-yo"}
+{"query": "Р7-ОФИС", "want": ["r7-office-professional"], "note": "", "cls": "case-yo"}
+{"query": "компас 3д", "want": ["kompas-3d"], "note": "", "cls": "case-yo"}
+{"query": "КОМПАС-3D", "want": ["kompas-3d"], "note": "", "cls": "case-yo"}
+{"query": "Кибер Бэкап", "want": ["cyber-backup"], "note": "", "cls": "case-yo"}
+{"query": "кибер бекап", "want": ["cyber-backup"], "note": "", "cls": "case-yo"}
+{"query": "ЭЛЬТЕКС", "want": ["eltex-mes2300"], "note": "", "cls": "case-yo"}
+{"query": "элтекс", "want": ["eltex-mes2300"], "note": "", "cls": "case-yo"}
+{"query": "дрвеб", "want": ["drweb-enterprise-security-suite", "drweb-security-space"], "note": "", "cls": "slang"}
+{"query": "дорвеб", "want": ["drweb-enterprise-security-suite", "drweb-security-space"], "note": "", "cls": "slang"}
+{"query": "виндус 11", "want": ["windows-11-pro", "windows-11-home", "windows-10-pro"], "note": "", "cls": "slang"}
+{"query": "винда 11 прошка", "want": ["windows-11-pro"], "note": "", "cls": "slang"}
+{"query": "ноут леново", "want": ["lenovo-thinkpad-e14-gen5", "lenovo-thinkpad-t14-gen4"], "note": "", "cls": "slang"}
+{"query": "ноуты для офиса", "want": ["cat:laptops"], "note": "", "cls": "slang"}
+{"query": "бук dell", "want": ["dell-latitude-5540"], "note": "", "cls": "slang"}
+{"query": "моник 27", "want": ["cat:monitors"], "note": "", "cls": "slang"}
+{"query": "свитч на 24 порта", "want": ["cat:switches"], "note": "", "cls": "slang"}
+{"query": "свич poe", "want": ["cat:switches"], "note": "", "cls": "slang"}
+{"query": "бесперебойник", "want": ["cat:ups"], "note": "", "cls": "slang"}
+{"query": "бесперебойник 3 ква", "want": ["cat:ups"], "note": "", "cls": "slang"}
+{"query": "упс для сервера", "want": ["cat:ups"], "note": "", "cls": "slang"}
+{"query": "оперативка для сервера", "want": ["cat:server-memory"], "note": "", "cls": "slang"}
+{"query": "оператива ddr4", "want": ["cat:server-memory"], "note": "", "cls": "slang"}
+{"query": "ссд 960", "want": ["cat:server-storage"], "note": "", "cls": "slang"}
+{"query": "хард 8 тб", "want": ["seagate-exos", "dell-server-drives"], "note": "", "cls": "slang"}
+{"query": "винт для сервера", "want": ["cat:server-storage"], "note": "", "cls": "slang"}
+{"query": "1ска бухгалтерия", "want": ["1c-accounting"], "note": "", "cls": "slang"}
+{"query": "одинэска на 5 мест", "want": ["1c-client-license", "1c-accounting"], "note": "", "cls": "slang"}
+{"query": "пдфка редактор", "want": ["cat:office-pdf"], "note": "", "cls": "slang"}
+{"query": "фш подписка", "want": ["adobe-photoshop"], "note": "", "cls": "slang"}
+{"query": "идея ультимейт", "want": ["intellij-idea"], "note": "", "cls": "slang"}
+{"query": "джетбрейнс", "want": ["jetbrains-all-products", "intellij-idea", "pycharm"], "note": "", "cls": "slang"}
+{"query": "постгря", "want": ["postgres-pro"], "note": "", "cls": "slang"}
+{"query": "крипта про", "want": ["cryptopro-csp"], "note": "", "cls": "slang"}
+{"query": "криптопро", "want": ["cryptopro-csp"], "note": "", "cls": "slang"}
+{"query": "эцп", "want": ["cryptopro-csp"], "note": "", "cls": "slang"}
+{"query": "секретнет", "want": ["secret-net-studio"], "note": "", "cls": "slang"}
+{"query": "кибербекап", "want": ["cyber-backup"], "note": "", "cls": "slang"}
+{"query": "вим бэкап", "want": ["veeam-backup"], "note": "", "cls": "slang"}
+{"query": "хайпер-в", "want": ["windows-server-2025", "windows-server-2022", "cat:virtualization"], "note": "", "cls": "slang"}
+{"query": "впн", "want": "absent", "note": "", "cls": "slang"}
+{"query": "фаервол", "want": ["pt-application-firewall"], "note": "", "cls": "slang"}
+{"query": "иллюстр", "want": ["adobe-illustrator"], "note": "", "cls": "slang"}
+{"query": "корелдро", "want": ["coreldraw-graphics-suite"], "note": "", "cls": "slang"}
+{"query": "эксельчик", "want": ["office-2021", "office-2024", "microsoft-365-business", "microsoft-365-home"], "note": "", "cls": "slang"}
+{"query": "ворд и эксель", "want": ["office-2021", "office-2024", "microsoft-365-business", "microsoft-365-home"], "note": "", "cls": "slang"}
+{"query": "тимс", "want": ["microsoft-365-business"], "note": "", "cls": "slang"}
+{"query": "скайп", "want": "absent", "note": "", "cls": "slang"}
+{"query": "зумчик", "want": ["zoom-workplace"], "note": "", "cls": "slang"}
+{"query": "яндекс почта для бизнеса", "want": ["yandex-360"], "note": "", "cls": "slang"}
+{"query": "ред ос", "want": ["red-os"], "note": "", "cls": "slang"}
+{"query": "альтлинукс", "want": ["alt-os"], "note": "", "cls": "slang"}
+{"query": "макспатрол", "want": ["maxpatrol-vm"], "note": "", "cls": "slang"}
+{"query": "инфовотч", "want": ["infowatch-traffic-monitor"], "note": "", "cls": "slang"}
+{"query": "абби", "want": ["abbyy-finereader-pdf"], "note": "", "cls": "slang"}
+{"query": "визуалка", "want": ["visual-studio"], "note": "", "cls": "slang"}
+{"query": "вмварь", "want": ["vmware-vsphere"], "note": "", "cls": "slang"}
+{"query": "проксмокс", "want": "absent", "note": "", "cls": "slang"}
+{"query": "эникейщику антивирус", "want": ["cat:antivirus-business", "cat:antivirus-home"], "note": "", "cls": "slang"}
+{"query": "винсерв 2025", "want": ["windows-server-2025"], "note": "", "cls": "slang"}
+{"query": "чем отличается windows 11 home от pro", "want": ["windows-11-home", "windows-11-pro"], "note": "", "cls": "misc-intent"}
+{"query": "нужна ли cal для windows server 2025", "want": ["windows-server-cal-2025", "windows-server-2025"], "note": "", "cls": "misc-intent"}
+{"query": "гарантия на ноутбук dell", "want": ["dell-latitude-5540", "dell-prosupport"], "note": "", "cls": "misc-intent"}
+{"query": "лицензия для школы", "want": ["myoffice-standard", "kaspersky-endpoint-security"], "note": "образовательные варианты есть", "cls": "misc-intent"}
+{"query": "всё для бухгалтера", "want": ["1c-accounting"], "note": "", "cls": "misc-intent"}
+{"query": "антивирус для linux", "want": ["cat:antivirus-business", "cat:antivirus-home"], "note": "", "cls": "misc-intent"}
+{"query": "антивирус для android", "want": ["cat:antivirus-business", "cat:antivirus-home"], "note": "", "cls": "misc-intent"}
+{"query": "майнкрафт", "want": "absent", "note": "", "cls": "misc-intent"}
+{"query": "iphone 15", "want": "absent", "note": "", "cls": "misc-intent"}
+{"query": "принтер hp", "want": "absent", "note": "", "cls": "misc-intent"}
+{"query": "мышка", "want": "absent", "note": "", "cls": "misc-intent"}
+{"query": "1с для торговли", "want": ["1c-trade-management", "1c-roznica"], "note": "", "cls": "misc-intent"}
+{"query": "программа для чертежей", "want": ["autodesk-autocad", "autodesk-autocad-lt", "kompas-3d", "nanocad"], "note": "", "cls": "misc-intent"}
+{"query": "программа для распознавания текста", "want": ["abbyy-finereader-pdf"], "note": "", "cls": "misc-intent"}
+{"query": "сканер уязвимостей", "want": ["maxpatrol-vm"], "note": "", "cls": "misc-intent"}
+{"query": "dlp система", "want": ["infowatch-traffic-monitor"], "note": "", "cls": "misc-intent"}
+{"query": "резервное копирование для 1с", "want": ["cat:backup"], "note": "", "cls": "misc-intent"}
+{"query": "ноутбук для дома", "want": ["cat:laptops"], "note": "", "cls": "extra"}
+{"query": "windows для дома", "want": ["windows-11-home", "windows-11-pro"], "note": "«для дома» → категория антивирусов, Windows пропадает", "cls": "extra"}
+{"query": "1с для дома", "want": ["1c-accounting", "1c-client-license"], "note": "", "cls": "extra"}
+{"query": "office для бизнеса", "want": ["office-2021", "office-2024", "microsoft-365-business", "microsoft-365-home"], "note": "", "cls": "extra"}
+{"query": "windows 11 для бизнеса", "want": ["windows-11-pro"], "note": "", "cls": "extra"}
+{"query": "ssd 1 тб", "want": ["cat:server-storage"], "note": "960 ГБ должен попасть", "cls": "extra"}
+{"query": "ибп 3000 вт", "want": ["ippon-innova-rt-ii", "eaton-9sx"], "note": "2700 Вт", "cls": "extra"}
+{"query": "ноутбук 15 дюймов", "want": ["cat:laptops"], "note": "15,6\"", "cls": "extra"}
+{"query": "ssd 4тб", "want": ["hpe-server-drives"], "note": "3,84 ТБ", "cls": "extra"}
+{"query": "ибп 5000 вт", "want": ["ippon-innova-rt-ii"], "note": "5400 Вт", "cls": "extra"}
+{"query": "ибп для сервера", "want": ["cat:ups"], "note": "", "cls": "extra"}
+{"query": "диск для сервера", "want": ["cat:server-storage"], "note": "", "cls": "extra"}
+{"query": "монитор 2k", "want": ["dell-u2724d", "samsung-odyssey-g5"], "note": "", "cls": "extra"}
+{"query": "kaspersky или drweb", "want": ["kaspersky-endpoint-security", "kaspersky-small-office-security", "kaspersky-internet-security", "kaspersky-standard", "kaspersky-plus", "kaspersky-premium", "drweb-enterprise-security-suite", "drweb-security-space"], "note": "в топ-3 оба", "cls": "extra"}
+{"query": "kaspersky или dr web", "want": ["kaspersky-endpoint-security", "kaspersky-small-office-security", "kaspersky-internet-security", "kaspersky-standard", "kaspersky-plus", "kaspersky-premium", "drweb-enterprise-security-suite", "drweb-security-space"], "note": "", "cls": "extra"}
+{"query": "dr.web или kaspersky", "want": ["kaspersky-endpoint-security", "kaspersky-small-office-security", "kaspersky-internet-security", "kaspersky-standard", "kaspersky-plus", "kaspersky-premium", "drweb-enterprise-security-suite", "drweb-security-space"], "note": "", "cls": "extra"}
+{"query": "office или р7", "want": ["office-2021", "office-2024", "microsoft-365-business", "microsoft-365-home", "myoffice-standard", "r7-office-professional"], "note": "оба", "cls": "extra"}
+{"query": "word или р7", "want": ["office-2021", "office-2024", "microsoft-365-business", "microsoft-365-home", "myoffice-standard", "r7-office-professional"], "note": "", "cls": "extra"}
+{"query": "кибер бэкап или veeam", "want": ["cyber-backup", "veeam-backup"], "note": "", "cls": "extra"}
+{"query": "антивирус кроме dr.web", "want": ["kaspersky-endpoint-security", "kaspersky-small-office-security", "kaspersky-internet-security", "kaspersky-standard", "kaspersky-plus", "kaspersky-premium", "eset-protect", "eset-nod32-antivirus", "eset-smart-security-premium"], "note": "исключение Dr.Web", "cls": "extra"}
+{"query": "антивирус для бизнеса не dr.web", "want": ["kaspersky-endpoint-security", "eset-protect"], "note": "", "cls": "extra"}
+{"query": "антивирус не eset", "want": ["kaspersky-endpoint-security", "kaspersky-small-office-security", "kaspersky-internet-security", "kaspersky-standard", "kaspersky-plus", "kaspersky-premium", "drweb-enterprise-security-suite", "drweb-security-space"], "note": "", "cls": "extra"}
+{"query": "office 2021 не для дома", "want": ["office-2021"], "note": "", "cls": "extra"}
+{"query": "альт линукс", "want": ["alt-os"], "note": "", "cls": "extra"}
+{"query": "альт рабочая станция", "want": ["alt-os"], "note": "", "cls": "extra"}

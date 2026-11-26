@@ -365,6 +365,11 @@ func knownWord(t string, lx *searchLexicon, rules *searchRules) bool {
 	return true
 }
 
+// minLayoutWord — короче слово само по себе не переводится: двухбуквенное почти всегда что-то значит
+// в обеих раскладках («фш» — сленг для Photoshop, а не «ai»). Во фразе, где большинство слов уже
+// переведено, короткие переводятся вместе с ними.
+const minLayoutWord = 3
+
 // fixLayoutWith — слово переводится по таблице клавиш, только если результат известен, а исходное — нет.
 // Если так переведена большая часть слов запроса, остальные слова той же раскладки тоже переводятся:
 // «rfcgthcrbq fynbdbhec» — фраза целиком.
@@ -373,7 +378,7 @@ func fixLayoutWith(tokens []string, lx *searchLexicon, rules *searchRules, res *
 	switched, candidates := 0, 0
 	for i, t := range tokens {
 		to, ok := switchLayout(t)
-		if !ok || isProtectedToken(t) && !hasLetterOnly(t) {
+		if !ok || isProtectedToken(t) && !hasLetterOnly(t) || len([]rune(t)) < minLayoutWord {
 			continue
 		}
 		candidates++
