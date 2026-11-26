@@ -99,6 +99,40 @@ test.describe('Контур доводки: три раздела', () => {
     await expect(page).toHaveURL(/tab=theory$/)
   })
 
+  // Ссылки «в поиск с трассой» здесь не кликаются: каждый клик пишет живое событие поиска.
+  test('«Теоретические основы»: содержание ведёт к разделам, адрес не меняется, ссылки — в поиск с трассой', async ({
+    page,
+  }) => {
+    await page.goto('/proofs?tab=theory')
+    const toc = page.getByRole('navigation', { name: 'Содержание' })
+    await expect(toc).toBeVisible()
+    const items = toc.getByRole('button')
+    await expect(items).toHaveCount(21)
+    // Каждой строке содержания — раздел с тем же заголовком.
+    await expect(page.getByRole('heading', { level: 3 })).toHaveCount(22) // 21 раздел + «Содержание»
+    const target = page.getByRole('heading', { level: 3, name: 'Слияние RRF: из двух списков — один' })
+    await expect(target).not.toBeInViewport()
+    await toc.getByRole('button', { name: 'Слияние RRF: из двух списков — один' }).click()
+    await expect(target).toBeInViewport()
+    await expect(target).toBeFocused()
+    await expect(page).toHaveURL(/tab=theory$/)
+    await page.getByRole('button', { name: 'К содержанию' }).nth(1).click()
+    await expect(toc).toBeInViewport()
+    const links = page.locator('.theory a[href^="/search"]')
+    expect(await links.count()).toBeGreaterThan(10)
+    for (const href of await links.evaluateAll((els) => els.map((e) => e.getAttribute('href') ?? '')))
+      expect(href).toMatch(/^\/search\?q=[^&]+&trace=1$/)
+    // Ссылки на соседние вкладки остаются в «Доказательствах».
+    await expect(page.locator('.theory a[href^="/proofs?tab="]').first()).toBeVisible()
+  })
+
+  test('«Теоретические основы» на 360 px: без горизонтальной прокрутки', async ({ page }) => {
+    await page.setViewportSize({ width: 360, height: 780 })
+    await page.goto('/proofs?tab=theory')
+    await expect(page.getByRole('navigation', { name: 'Содержание' })).toBeVisible()
+    await noOverflow(page, 'Теоретические основы 360')
+  })
+
   test('старые адреса — на новые места', async ({ page }) => {
     const cases: [string, RegExp][] = [
       ['/analytics', /\/searchops\?tab=failed$/],
