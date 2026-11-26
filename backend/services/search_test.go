@@ -129,7 +129,8 @@ func TestSearchB2DenseSkipped(t *testing.T) {
 func TestSearchB3Steps(t *testing.T) {
 	env := imported(t, true)
 	resp := search(t, env, "", "касперский", "")
-	if resp.Config != "B3" || resp.Trace.Config != "B3" || resp.Trace.EffectiveConfig != "B3" {
+	// По умолчанию — витрина live: пайплайн B3 на действующих правилах (без базы — версия 1, то есть B3).
+	if resp.Config != "live" || resp.Trace.Config != "live" || resp.Trace.EffectiveConfig != "B3" {
 		t.Fatalf("конфигурация по умолчанию: %s / %+v", resp.Config, resp.Trace)
 	}
 	_, by := stepsByName(t, resp.Trace)

@@ -80,12 +80,31 @@ func TestComputeEffect(t *testing.T) {
 		t.Fatalf("сценарии: %+v", res)
 	}
 	base := res.Scenarios[1]
-	want := 5.0 * 0.6 * 0.6667 * 0.75 * 0.5 // поиски/мес × доля проблемных × поправка × спасённые × заказ
+	// поиски/мес × доля проблемных × поправка × спасённые × конверсия успешного × понижающий коэффициент (0,3)
+	want := 5.0 * 0.6 * 0.6667 * 0.75 * 0.5 * 0.3
 	if base.ID != "base" || math.Abs(base.OrdersMonth-want) > 0.06 || math.Abs(base.RevenueRubMonth-base.OrdersMonth*12990) > 12990*0.06 {
 		t.Fatalf("базовый: %+v, ждали %.3f заказа", base, want)
 	}
 	if !(res.Scenarios[0].OrdersMonth <= base.OrdersMonth && base.OrdersMonth <= res.Scenarios[2].OrdersMonth) {
 		t.Fatalf("вилка не упорядочена: %+v", res.Scenarios)
+	}
+	// Вероятность заказа спасённого поиска не выше измеренной конверсии успешного ни в одном сценарии.
+	for _, sc := range res.Scenarios {
+		if sc.OrderProb > 0.5+1e-9 || sc.RescueFactor > 1 || sc.Uplift == nil {
+			t.Fatalf("сценарий выше конверсии успешного: %+v", sc)
+		}
+	}
+	if p := by["rescue_factor"]; p.Source != "assumed" || p.Value != 0.3 {
+		t.Fatalf("понижающий коэффициент: %+v", p)
+	}
+	// Оптимистичный коэффициент × 1,5 упирается в 1: вероятность = конверсии успешного, не больше.
+	one := 1.0
+	hi := computeEffect(searches, []domain.BehaviorEvent{order, click}, evals, price, EffectRequest{Days: 30, RescueFactor: &one})
+	if sc := hi.Scenarios[2]; sc.RescueFactor != 1 || sc.OrderProb != 0.5 {
+		t.Fatalf("потолок вероятности: %+v", sc)
+	}
+	if len(hi.Warnings) == 0 {
+		t.Fatalf("базовый прирост > 50 %% без предупреждения: %+v", hi.Scenarios[1])
 	}
 
 	// Допущения из запроса — source=request; без прогона оценки — сценариев нет и сказано почему.

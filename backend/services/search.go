@@ -73,7 +73,7 @@ func (s *Services) SearchWith(ctx context.Context, requestID string, req in.Sear
 	defer cancel()
 	st := s.catalog.Load()
 	effective := cfg
-	if cfg == domain.ConfigB3 || cfg == domain.ConfigB4 {
+	if cfg == domain.ConfigB3 || cfg == domain.ConfigB4 || cfg == domain.ConfigLive {
 		if st != nil && st.lex != nil {
 			return s.searchB3(ctx, requestID, req, cfg, limit, st, opts, started)
 		}
@@ -197,15 +197,18 @@ func validateSearch(req *in.SearchRequest) (string, int, error) {
 		bad = append(bad, errs.FieldError{Field: "query", Code: errs.CodeOutOfRange, Message: fmt.Sprintf("Запрос длиннее %d символов", maxQueryRunes)})
 	}
 	cfg := strings.ToUpper(strings.TrimSpace(req.Config))
-	if cfg == "" {
+	switch cfg {
+	case "":
 		cfg = domain.DefaultSearchConfig
+	case strings.ToUpper(domain.ConfigLive):
+		cfg = domain.ConfigLive
 	}
-	known := false
+	known := cfg == domain.ConfigLive
 	for _, c := range domain.SearchConfigs {
 		known = known || c == cfg
 	}
 	if !known {
-		bad = append(bad, errs.FieldError{Field: "config", Code: errs.CodeInvalidFormat, Message: "Конфигурация — одна из B0–B4"})
+		bad = append(bad, errs.FieldError{Field: "config", Code: errs.CodeInvalidFormat, Message: "Конфигурация — live или одна из B0–B4"})
 	}
 	limit := req.Limit
 	switch {

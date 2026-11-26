@@ -1,20 +1,17 @@
 <script setup lang="ts">
-// Таблица проблемных запросов менеджера e-com: запрос, частота, что произошло, почему,
-// что делать. Запрос — ссылка в «Поиск» с открытой трассой; предложение — в очередь SearchOps.
-import { computed, onMounted, ref, shallowRef } from 'vue'
+// Таблица проблемных запросов менеджера e-com. «За период» — исторические
+// журналы старого поиска магазина; «Сейчас» — что отвечает действующий поиск (GET /api/analytics/current,
+// поиск без записи в журнал); «Вывод агента» — из предложения или итога кластера последних запусков (сервер).
+// Запрос — ссылка в «Поиск» с открытой трассой; предложение — в очередь SearchOps, итог — в ленту запуска.
+import { computed, ref, shallowRef, watch } from 'vue'
 import { RouterLink } from 'vue-router'
-import { getProposals, getRuns } from '@/api/agent'
-import type { Proposal, ProblemQuery } from '@/api/types'
+import { getProblemsNow } from '@/api/analytics'
+import type { ProblemNow, ProblemQuery } from '@/api/types'
 import type { Explanation } from '@/components/common/ExplainDialog.vue'
 import { formatInt, plural } from '@/lib/format'
-import {
-  diagnosisLabel,
-  findProposalForQuery,
-  proposalStatus,
-  proposalsByQuery,
-} from '@/lib/proposals'
+import { diagnosisLabel, proposalStatus } from '@/lib/proposals'
 
-const props = defineProps<{ problems: ProblemQuery[] }>()
+const props = defineProps<{ problems: ProblemQuery[]; days: number; periodLabel: string }>()
 const emit = defineEmits<{ explain: [e: Explanation] }>()
 
 const OUTCOME_HOW: Record<string, string> = {
@@ -23,50 +20,73 @@ const OUTCOME_HOW: Record<string, string> = {
   reformulated: 'Чаще всего покупатель в течение минуты без клика вводил другой запрос.',
 }
 
-// Предложения агента по запросам: сервер аналитики пока не связывает их сам — сводим по запросам кластера.
-const index = shallowRef(new Map<string, Proposal>())
-/** Кластеры, которые агент разобрал и закрыл без предложения: подпись кластера → диагноз. */
-const closed = shallowRef(new Map<string, string>())
-onMounted(async () => {
-  const [queue, runs] = await Promise.allSettled([getProposals(), getRuns()])
-  // Без очереди или списка запусков таблица остаётся как есть: «ждёт разбора агентом».
-  if (queue.status === 'fulfilled') index.value = proposalsByQuery(queue.value.items ?? [])
-  if (runs.status === 'fulfilled') {
-    const m = new Map<string, string>()
-    const ordered = [...(runs.value.items ?? [])].sort((a, b) =>
-      String(b.started_at).localeCompare(String(a.started_at)),
-    )
-    for (const r of ordered)
-      for (const c of r.episode?.clusters ?? [])
-        if (c.outcome === 'closed' && !m.has(c.label.toLowerCase()))
-          m.set(c.label.toLowerCase(), c.diagnosis)
-    closed.value = m
-  }
-})
-
-const closedOf = (p: ProblemQuery) => closed.value.get(p.query.trim().toLowerCase()) ?? null
-
-function proposalOf(p: ProblemQuery): Proposal | null {
-  const byQuery = findProposalForQuery(index.value, p.query)
-  if (p.proposal_id) return byQuery?.id === p.proposal_id ? byQuery : null
-  return byQuery
-}
-
-function proposalLink(p: ProblemQuery) {
-  const id = p.proposal_id ?? proposalOf(p)?.id
-  return id ? { path: '/searchops', query: { tab: 'queue', status: 'all', p: id } } : null
-}
-
 const FIRST = 15
 const showAll = ref(false)
 const rows = computed(() => (showAll.value ? props.problems : props.problems.slice(0, FIRST)))
 
+// «Сейчас»: таблица не ждёт поисков — колонка заполняется отдельным запросом.
+const now = shallowRef(new Map<string, ProblemNow>())
+const nowStatus = ref<'idle' | 'loading' | 'ready' | 'error'>('idle')
+const nowRules = ref<number | null>(null)
+let ctrl: AbortController | null = null
+async function loadNow() {
+  const limit = rows.value.length
+  if (!limit) return
+  ctrl?.abort()
+  const c = new AbortController()
+  ctrl = c
+  nowStatus.value = 'loading'
+  try {
+    const res = await getProblemsNow(props.days, limit, { signal: c.signal })
+    if (ctrl !== c) return
+    now.value = new Map(res.items.map((i) => [i.query, i]))
+    nowRules.value = res.rules_version
+    nowStatus.value = 'ready'
+  } catch (e) {
+    if (e instanceof DOMException && e.name === 'AbortError') return
+    nowStatus.value = 'error'
+  }
+}
+watch([() => props.days, () => props.problems, showAll], () => void loadNow(), { immediate: true })
+
+function nowText(n: ProblemNow): string {
+  if (n.error) return 'поиск не ответил'
+  if (n.total === 0) return 'пусто'
+  const items = `${formatInt(n.total)} ${plural(n.total, ['товар', 'товара', 'товаров'])}`
+  if (n.not_in_catalog) return `нет в каталоге · ${items} аналогов`
+  return n.exact ? `${items} · точное первым` : items
+}
+const nowTone = (n: ProblemNow) =>
+  n.error || n.total === 0 ? 'problems__bad' : n.not_in_catalog ? 'problems__warn' : 'problems__ok'
+
+function verdictText(p: ProblemQuery): string {
+  const a = p.agent
+  if (!a) return p.diagnosis || 'не разобрано'
+  if (a.code === 'proposal' && a.diagnosis) return diagnosisLabel(a.diagnosis)
+  return a.label
+}
+
+function runLink(p: ProblemQuery) {
+  const a = p.agent
+  if (!a?.run_id) return null
+  return {
+    path: `/searchops/runs/${a.run_id}`,
+    query: a.cluster_id ? { cluster: a.cluster_id } : {},
+  }
+}
+
+function proposalLink(p: ProblemQuery) {
+  return p.proposal_id
+    ? { path: '/searchops', query: { tab: 'queue', status: 'all', p: p.proposal_id } }
+    : null
+}
+
 function explainFreq(p: ProblemQuery) {
   emit('explain', {
     title: `«${p.query}»`,
-    value: `${formatInt(p.freq)} ${plural(p.freq, ['поиск', 'поиска', 'поисков'])}`,
+    value: `${formatInt(p.freq)} ${plural(p.freq, ['поиск', 'поиска', 'поисков'])} за ${props.periodLabel}`,
     what: OUTCOME_HOW[p.outcome] ?? `Чаще всего: ${p.outcome_label}.`,
-    how: 'Частота — поиски за период с этим нормализованным текстом. Неудача — пустая выдача, поиск без клика или переформулировка; в таблицу попадают запросы с неудачами, частые сверху.',
+    how: 'Частота и неудачи — по журналам за период (в основном это старый поиск магазина до внедрения). Неудача — пустая выдача, поиск без клика или переформулировка. Колонка «Сейчас» — тот же запрос через действующий поиск сегодня, без записи в журнал.',
     rows: [
       { label: 'Неудачных поисков', value: formatInt(p.failures) },
       { label: 'Пустая выдача', value: formatInt(p.empty) },
@@ -83,7 +103,13 @@ function explainFreq(p: ProblemQuery) {
   <section class="problems" aria-labelledby="problems-title">
     <div class="problems__head">
       <h2 id="problems-title" class="t-h2">Проблемные запросы</h2>
-      <span class="t-xs t-muted">клик по запросу — поиск с трассой</span>
+      <span class="t-xs t-muted">
+        «За период» — журналы старого поиска; «Сейчас» — действующий поиск<template
+          v-if="nowRules !== null"
+        >
+          (правила v{{ nowRules }})</template
+        >; клик по запросу — поиск с трассой
+      </span>
     </div>
     <p v-if="problems.length === 0" class="panel problems__empty">
       Проблемных запросов за период нет: пустых выдач, поисков без клика и переформулировок не было.
@@ -94,8 +120,9 @@ function explainFreq(p: ProblemQuery) {
           <tr>
             <th scope="col">Запрос</th>
             <th scope="col" class="num">Поисков</th>
-            <th scope="col">Что произошло</th>
-            <th scope="col">Почему</th>
+            <th scope="col">За период</th>
+            <th scope="col">Сейчас</th>
+            <th scope="col">Вывод агента</th>
             <th scope="col">Что делать</th>
           </tr>
         </thead>
@@ -118,28 +145,58 @@ function explainFreq(p: ProblemQuery) {
             </td>
             <td>
               <span class="badge">{{ p.outcome_label || p.outcome }}</span>
-              <span class="t-xs t-muted t-num problems__fail">
-                неудачных {{ formatInt(p.failures) }} из {{ formatInt(p.freq) }}
+              <span class="t-xs t-muted t-num problems__sub">
+                неудачных {{ formatInt(p.failures) }} из {{ formatInt(p.freq) }} за период
               </span>
             </td>
-            <td v-if="proposalOf(p)">{{ diagnosisLabel(proposalOf(p)!.diagnosis) }}</td>
-            <td v-else-if="closedOf(p)">{{ diagnosisLabel(closedOf(p)!) }}</td>
-            <td v-else :class="{ 't-muted': !p.diagnosis || p.diagnosis === 'не разобрано' }">
-              {{ p.diagnosis || 'не разобрано' }}
+            <td class="problems__now">
+              <template v-if="now.get(p.query)">
+                <span :class="['t-sm', 't-num', nowTone(now.get(p.query)!)]">{{
+                  nowText(now.get(p.query)!)
+                }}</span>
+                <span
+                  v-if="now.get(p.query)!.top_title"
+                  class="t-xs t-muted problems__sub problems__clip"
+                  :title="now.get(p.query)!.top_title"
+                  >{{ now.get(p.query)!.top_title }}</span
+                >
+              </template>
+              <span v-else-if="nowStatus === 'loading'" class="t-xs t-muted">проверяем…</span>
+              <button
+                v-else-if="nowStatus === 'error'"
+                type="button"
+                class="link t-xs"
+                @click="loadNow()"
+              >
+                не проверено — повторить
+              </button>
+              <span v-else class="t-xs t-muted">—</span>
+            </td>
+            <td :class="{ 't-muted': !p.agent || p.agent.code === 'unseen' }">
+              <span class="t-sm">{{ verdictText(p) }}</span>
+              <span
+                v-if="p.agent?.note"
+                class="t-xs t-muted problems__sub problems__clip"
+                :title="p.agent.note"
+                >{{ p.agent.note }}</span
+              >
             </td>
             <td>
               <span v-if="proposalLink(p)" class="problems__todo">
                 <RouterLink :to="proposalLink(p)!" class="link">Предложение агента</RouterLink>
                 <span
-                  v-if="proposalOf(p)"
-                  :class="['badge', 'badge--tone', proposalStatus(proposalOf(p)!.status).tone]"
-                  >{{ proposalStatus(proposalOf(p)!.status).label }}</span
+                  v-if="p.proposal_status"
+                  :class="['badge', 'badge--tone', proposalStatus(p.proposal_status).tone]"
+                  >{{ proposalStatus(p.proposal_status).label }}</span
                 >
               </span>
-              <span v-else-if="closedOf(p)" class="t-muted">
-                агент разобрал: правкой правил не решается
+              <RouterLink v-else-if="runLink(p)" :to="runLink(p)!" class="link t-sm">
+                {{ p.agent?.code === 'queued' ? 'в очереди запуска' : 'Лента агента' }}
+              </RouterLink>
+              <span v-else-if="p.agent?.code === 'mostly_ok'" class="t-muted t-sm">
+                не требуется
               </span>
-              <span v-else class="t-muted">ждёт разбора агентом</span>
+              <span v-else class="t-muted t-sm">ждёт разбора агентом</span>
             </td>
           </tr>
         </tbody>
@@ -170,9 +227,24 @@ function explainFreq(p: ProblemQuery) {
   padding: var(--space-4);
   color: var(--text-2);
 }
-.problems__fail {
+.problems__sub {
   display: block;
   margin-top: 2px;
+}
+.problems__clip {
+  max-width: 13rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.problems__ok {
+  color: var(--status-accepted);
+}
+.problems__warn {
+  color: var(--status-pending);
+}
+.problems__bad {
+  color: var(--danger);
 }
 .data-table td:first-child {
   min-width: 12rem;

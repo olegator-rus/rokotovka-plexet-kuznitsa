@@ -45,6 +45,19 @@ type searchLexicon struct {
 	renewals map[string][]string
 	// baseAliases — алиасы снимка: правила версии 1.
 	baseAliases []domain.Alias
+	// translit — транслит слова → слово каталога другим письмом: «лт» → lt (AutoCAD LT), «antivirus» →
+	// антивирус. Только однозначные ключи.
+	translit map[string]string
+	// categoryWords — основа значимого слова названия категории → категория (однозначно в пределах корня).
+	categoryWords map[string]string
+	// categoryWordText — основа → слово названия категории целиком.
+	categoryWordText map[string]string
+	// wordVendors — слово названия семейства → вендоры семейств с этим словом.
+	wordVendors map[string]map[string]bool
+	// familyCap — сколько мест закрывает самая крупная лицензия семейства; -1 — продаётся поштучно.
+	familyCap map[string]int
+	// consumer — домашняя линейка: категория или семейство «для дома», либо лицензии только на 1–3 устройства.
+	consumer map[string]bool
 }
 
 // familyLink — связанное семейство и пояснение связи из справочника.
@@ -204,6 +217,9 @@ func newSearchLexicon(s *domain.CatalogSnapshot) *searchLexicon {
 	for w := range lexStopWords {
 		lx.known[w] = true
 	}
+	lx.buildTranslit()
+	lx.buildCategoryWords(s.Categories)
+	lx.buildScale()
 	return lx
 }
 

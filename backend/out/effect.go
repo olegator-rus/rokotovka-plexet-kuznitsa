@@ -20,6 +20,8 @@ type Effect struct {
 	Scenarios []EffectScenario `json:"scenarios"`
 	// Missing — чего не хватает для расчёта (по-русски); пусто — всё посчитано.
 	Missing []string `json:"missing"`
+	// Warnings — проверка правдоподобия: базовый сценарий даёт больше +50 % к текущим заказам поиска.
+	Warnings []string `json:"warnings"`
 }
 
 // EffectInputs — измеренное: журналы поиска за период и прогон оценки.
@@ -35,6 +37,8 @@ type EffectInputs struct {
 	Orders          int `json:"orders"`
 	// SearchOrderRate — конверсия поиска в заказ (заказы / поиски).
 	SearchOrderRate *float64 `json:"search_order_rate"`
+	// OrdersMonth — поиски с заказом, приведённые к 30 дням: база для прироста сценариев.
+	OrdersMonth float64 `json:"orders_month"`
 	// Rescued — доля спасённых: среди поисков отложенной недели, где B0 не дал релевантного в топ-10, — доля, где
 	// его дал B3 (и B4 — если вклад агента засчитан).
 	Rescued *EffectRescued `json:"rescued"`
@@ -79,7 +83,7 @@ type EffectRescued struct {
 
 // EffectParam — допущение: значение, откуда оно и подпись.
 type EffectParam struct {
-	Key   string  `json:"key"`   // session_factor | order_prob | avg_check_rub
+	Key   string  `json:"key"`   // session_factor | order_prob | rescue_factor | avg_check_rub
 	Label string  `json:"label"` // подпись поля
 	Value float64 `json:"value"`
 	// Default — значение по умолчанию (измеренное или принятое), Source — откуда значение: measured (из
@@ -96,12 +100,16 @@ type EffectScenario struct {
 	Label string `json:"label"`
 	// Как сценарий отличается от базового.
 	Rule string `json:"rule"`
-	// RescuedShare, OrderProb — значения, подставленные в формулу.
+	// RescuedShare, RescueFactor — значения, подставленные в формулу; OrderProb — вероятность заказа спасённого
+	// поиска = конверсия успешного × RescueFactor (не выше конверсии).
 	RescuedShare float64 `json:"rescued_share"`
+	RescueFactor float64 `json:"rescue_factor"`
 	OrderProb    float64 `json:"order_prob"`
 	// ProblemSessionsMonth — проблемные поиски в месяц с поправкой на сессии.
 	ProblemSessionsMonth float64 `json:"problem_sessions_month"`
 	RescuedMonth         float64 `json:"rescued_month"`
 	OrdersMonth          float64 `json:"orders_month"`
 	RevenueRubMonth      float64 `json:"revenue_rub_month"`
+	// Uplift — заказы сценария / текущие заказы поиска в месяц; nil — заказов не было.
+	Uplift *float64 `json:"uplift"`
 }

@@ -68,3 +68,18 @@ func (h *Handler) Analytics(c *fiber.Ctx) error {
 	}
 	return c.JSON(resp)
 }
+
+// AnalyticsCurrent — GET /api/analytics/current?days=&limit=: текущая выдача по проблемным запросам периода
+// (поиск без записи в журнал на действующих правилах).
+func (h *Handler) AnalyticsCurrent(c *fiber.Ctx) error {
+	var bad []errs.FieldError
+	days, limit := queryInt(c, "days", &bad), queryInt(c, "limit", &bad)
+	if len(bad) > 0 {
+		return errs.NewValidationError(errs.MsgInvalidFields).WithDetails(bad...)
+	}
+	resp, err := h.services.ProblemsNow(c.UserContext(), days, limit)
+	if err != nil {
+		return err
+	}
+	return c.JSON(resp)
+}

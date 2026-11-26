@@ -95,6 +95,9 @@ func (s *Services) Analytics(ctx context.Context, days int, role string) (*out.A
 		}
 		linkProposals(resp, ps)
 	}
+	if err := s.agentVerdicts(ctx, resp); err != nil {
+		return nil, err
+	}
 	if role == "head" {
 		eff, err := s.effect(ctx, EffectRequest{Days: days}, sum)
 		if err != nil {

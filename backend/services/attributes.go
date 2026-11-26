@@ -109,7 +109,7 @@ func extractAttrs(tokens []string) queryAttrs {
 			if strings.HasPrefix(next, "рабоч") {
 				if m, ok := metricOf(at(i + 2)); ok && m != "" {
 					a.setQuantity(num, m, at(i+2), i, i+1, i+2)
-					a.consume(i-1, "на")
+					a.consume(tokens, i-1, "на")
 					i += 2
 					continue
 				}
@@ -117,20 +117,20 @@ func extractAttrs(tokens []string) queryAttrs {
 				if strings.HasPrefix(at(i+2), "мест") {
 					a.consumed[i+2] = true
 				}
-				a.consume(i-1, "на")
+				a.consume(tokens, i-1, "на")
 				i++
 				continue
 			}
 			if u := durationUnit(next); u > 0 {
 				a.duration = num * u
 				a.consumed[i], a.consumed[i+1] = true, true
-				a.consume(i-1, "на")
+				a.consume(tokens, i-1, "на")
 				i++
 				continue
 			}
 			if m, ok := metricOf(next); ok && !(m == domain.MetricServer && at(i-1) != "на") {
 				a.setQuantity(num, m, next, i, i+1)
-				a.consume(i-1, "на")
+				a.consume(tokens, i-1, "на")
 				i++
 				continue
 			}
@@ -141,7 +141,7 @@ func extractAttrs(tokens []string) queryAttrs {
 		case durationUnit(t) == 12 && t == "год" && (at(i-1) == "на" || at(i-1) == "лицензия"):
 			a.duration = 12
 			a.consumed[i] = true
-			a.consume(i-1, "на")
+			a.consume(tokens, i-1, "на")
 		case strings.HasPrefix(t, "продл"):
 			a.renewal = true
 			a.consumed[i] = true
@@ -156,12 +156,12 @@ func extractAttrs(tokens []string) queryAttrs {
 		case isOriginWord(t):
 			a.origin = "ru"
 			a.consumed[i] = true
-			a.consume(i-1, "в")
+			a.consume(tokens, i-1, "в")
 		case analogWords[t]:
 			a.analog = true
 			a.consumed[i] = true
 			if t == "заменить" {
-				a.consume(i-1, "чем")
+				a.consume(tokens, i-1, "чем")
 			}
 		case strings.HasPrefix(t, "сервер") && (at(i-1) == "на" || at(i-1) == "для"):
 			a.serverPref = true
@@ -173,9 +173,10 @@ func extractAttrs(tokens []string) queryAttrs {
 	return a
 }
 
-func (a *queryAttrs) consume(i int, word string) {
-	_ = word
-	if i >= 0 {
+// consume — служебное слово перед атрибутом («на 10 пк», «в реестре»): уходит в атрибут, только если это оно.
+// Раньше слово не сверялось, и «видеоконференции российские» теряло «видеоконференции».
+func (a *queryAttrs) consume(tokens []string, i int, word string) {
+	if i >= 0 && i < len(tokens) && tokens[i] == word {
 		a.consumed[i] = true
 	}
 }

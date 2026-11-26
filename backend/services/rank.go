@@ -1,6 +1,7 @@
 package services
 
 import (
+	"fmt"
 	"sort"
 
 	"kuznica/api/domain"
@@ -48,6 +49,21 @@ const (
 	rejectDenseScore = "dense_score_too_low"
 	rejectQuantity   = "license_quantity_mismatch"
 	rejectCategory   = "category_mismatch"
+	// rejectAbsentDense — товара нет в каталоге, аналог допускается только очень близкий по смыслу.
+	rejectAbsentDense = "absent_not_close"
+	// rejectAbsentTail — товара нет: показываются только пять ближайших аналогов.
+	rejectAbsentTail = "absent_tail"
+	// rejectTail — хвост выдачи: другая категория и скор заметно ниже первой позиции.
+	rejectTail = "tail_low_relevance"
+	// rejectNoise — запрос без смысла (разметка, шум) или не о товаре: товары не показываются.
+	rejectNoise = "noise_query"
+)
+
+// tailRatio — позиция другой категории, чей итоговый скор ниже этой доли скора первой позиции, — шум хвоста.
+// Внутри того же раздела каталога (офисные пакеты и PDF) порог строже — tailRatioSameRoot.
+const (
+	tailRatio         = 0.7
+	tailRatioSameRoot = 0.5
 )
 
 var groupOrder = map[string]int{domain.GroupExact: 0, domain.GroupMatch: 1, domain.GroupAnalog: 2}
@@ -67,6 +83,29 @@ type rankCtx struct {
 	refCats map[string]bool
 	// productRel — релевантность позиции из слияния (0 — поиск её не нашёл).
 	productRel map[string]float64
+	// business — запрос бизнес-масштаба: количество от 10 или клиент-организация (smb, enterprise, gov).
+	// Тогда домашние линейки стоят ниже бизнес-линеек (familyHit.scale).
+	business bool
+	// textTop — семейства из первых textTopN мест текстового поиска.
+	textTop map[string]bool
+}
+
+// textTopN — сколько первых мест BM25 считаются совпадением по названию (не отсекаются категорией).
+const textTopN = 3
+
+// businessQuantity — с какого количества лицензий запрос считается бизнес-закупкой.
+const businessQuantity = 10
+
+// businessSegments — сегменты клиента-организации.
+var businessSegments = setOf("smb", "enterprise", "gov")
+
+// isBusinessQuery — запрос бизнес-масштаба: явное количество от businessQuantity или клиент-организация с
+// общим запросом («продлить антивирус»). Если продукт назван («касперский премиум»), сегмент порядок не меняет.
+func isBusinessQuery(a queryAttrs, e queryEntities, segment string) bool {
+	if a.quantity >= businessQuantity {
+		return true
+	}
+	return businessSegments[segment] && len(e.vendors) == 0 && len(e.families) == 0 && e.parsedFamily == ""
 }
 
 // rejectReason — нарушенное обязательное условие позиции; "" — допустима.
@@ -175,6 +214,12 @@ type familyHit struct {
 	tier int
 	// signals — почему семейство стоит выше (в трассу).
 	signals []string
+	// scale — 0: домашняя линейка в запросе бизнес-масштаба (ниже), 1 — остальное.
+	scale int
+	// exactQty — 1: лицензия головы ровно на запрошенное количество («Р7-Офис на 30 мест» на «офис на 30 мест»):
+	// выше позиций, которые закрывают количество поштучно. Условие «учтено строго» — и в порядке выдачи.
+	// Для одного места не действует: поштучная лицензия на 1 место — то же самое.
+	exactQty int
 }
 
 // buildFamily — семейство из всех его позиций: недопустимые уходят в отказы, лучшая по соответствию —
@@ -236,7 +281,15 @@ func (rc rankCtx) assignGroup(fh *familyHit) {
 		return
 	}
 	fh.tier, fh.signals = rc.tierOf(fh.id)
-	named := contains(rc.ent.families, fh.id) || contains(rc.ent.vendors, rc.lx.familyVendor[fh.id])
+	fh.scale, fh.exactQty = 1, 0
+	if n := rc.attrs.quantity; n > 1 && fh.head.LicenseQuantity != nil && *fh.head.LicenseQuantity == n && !isPerUnit(fh.head) {
+		fh.exactQty = 1
+	}
+	if rc.business && rc.lx.consumer[fh.id] {
+		fh.scale = 0
+		fh.signals = append(fh.signals, signalConsumerScale)
+	}
+	named := rc.exactNamed(fh.id)
 	switch {
 	case named && fh.headOK:
 		fh.group = domain.GroupExact
@@ -247,10 +300,33 @@ func (rc rankCtx) assignGroup(fh *familyHit) {
 	}
 }
 
+// exactNamed — семейство названо в запросе для группы exact: вендор назван, семейство названо целиком, его
+// назвал разбор или совпало слово названия, которое есть только у одного вендора («windows», «1с»). Слово
+// нескольких вендоров («офис» → office: Microsoft Office и Kaspersky Small Office) точным совпадением не
+// считается: иначе «офис на 30 мест» ставил Office LTSC на 1 ПК над Р7-Офис на 30 мест (QA M3).
+func (rc rankCtx) exactNamed(fid string) bool {
+	if contains(rc.ent.vendors, rc.lx.familyVendor[fid]) || contains(rc.ent.named, fid) || rc.ent.parsedFamily == fid {
+		return true
+	}
+	if !contains(rc.ent.families, fid) {
+		return false
+	}
+	for _, t := range rc.ent.entityTokens {
+		for _, w := range wordsOf(t) {
+			if rc.lx.familyWords[fid][w] && len(rc.lx.wordVendors[w]) == 1 {
+				return true
+			}
+		}
+	}
+	return false
+}
+
 // Сигналы позиции в трассе (trace.items[].signals).
 const (
 	signalNamedFamily = "named_family"
 	signalRenewalPath = "renewal_path"
+	// signalConsumerScale — домашняя линейка ниже бизнес-линеек: количество от 10 или клиент-организация.
+	signalConsumerScale = "consumer_scale"
 )
 
 // tierOf — ступень семейства внутри группы. Семейство, названное в запросе целиком («kaspersky internet
@@ -341,11 +417,38 @@ func (rc rankCtx) dropOtherCategories(fams []*familyHit, rejected *[]domain.Reje
 	}
 	out := fams[:0]
 	for _, fh := range fams {
-		if in(fh) {
-			out = append(out, fh)
+		if in(fh) || rc.textTop[fh.id] {
+			out = append(out, fh) // категория — по словам, но название совпало с запросом: «Альт Виртуализация»
 			continue
 		}
 		addRejected(rejected, fh.head.ProductID, rejectCategory, "в запросе названа категория «"+rc.lx.categoryName[c]+"»")
+	}
+	return out
+}
+
+// dropTail — шум хвоста («винда 11 про» → Acrobat Pro, Zoom Pro): позиция другой категории, чем первая, со
+// скором ниже tailRatio от первой, уходит в отказы с причиной. Аналоги и запрос аналога не трогаются.
+func (rc rankCtx) dropTail(fams []*familyHit, rejected *[]domain.RejectedHit) []*familyHit {
+	if len(fams) < 2 || rc.attrs.analog || fams[0].group == domain.GroupAnalog {
+		return fams
+	}
+	top := fams[0]
+	cat, vendor := rc.lx.familyCat[top.id], rc.lx.familyVendor[top.id]
+	out := fams[:1]
+	for _, fh := range fams[1:] {
+		c := rc.lx.familyCat[fh.id]
+		ratio := tailRatio
+		if rc.lx.categoryRoot[c] == rc.lx.categoryRoot[cat] {
+			ratio = tailRatioSameRoot // соседняя категория того же раздела — только явно слабое
+		}
+		keep := fh.group == domain.GroupAnalog || c == cat || rc.lx.familyVendor[fh.id] == vendor ||
+			contains(rc.ent.families, fh.id) || contains(rc.ent.vendors, rc.lx.familyVendor[fh.id])
+		if !keep && fh.final < ratio*top.final {
+			addRejected(rejected, fh.head.ProductID, rejectTail,
+				fmt.Sprintf("другая категория и вендор, скор %.2f < %.2f × %.2f первой позиции", fh.final, ratio, top.final))
+			continue
+		}
+		out = append(out, fh)
 	}
 	return out
 }
@@ -386,6 +489,12 @@ func sortFamilies(fs []*familyHit) {
 		}
 		if fs[i].tier != fs[j].tier {
 			return fs[i].tier > fs[j].tier
+		}
+		if fs[i].scale != fs[j].scale {
+			return fs[i].scale > fs[j].scale
+		}
+		if fs[i].exactQty != fs[j].exactQty {
+			return fs[i].exactQty > fs[j].exactQty
 		}
 		if fs[i].final != fs[j].final {
 			return fs[i].final > fs[j].final

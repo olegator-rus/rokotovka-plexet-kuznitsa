@@ -6,7 +6,7 @@ import { getMeta } from '@/api/meta'
 import type { ConfigId, Meta, MetaClient } from '@/api/types'
 import type { ApiError } from '@/lib/apiError'
 import { isApiError } from '@/lib/apiError'
-import { SEARCH_CONFIGS_FALLBACK } from '@/lib/configs'
+import { SEARCH_CONFIGS_FALLBACK, withDefaultConfig } from '@/lib/configs'
 import { isSessionToken } from '@/lib/events'
 import { pendingCount } from '@/lib/proposals'
 import { type RoleId, isRoleId } from '@/lib/roles'
@@ -57,7 +57,10 @@ export const useAppStore = defineStore('app', () => {
   })
   const defaultConfig = computed<ConfigId>(() => meta.value?.default_config ?? 'B3')
   const configs = computed<readonly ConfigId[]>(() =>
-    meta.value?.configs?.length ? meta.value.configs : SEARCH_CONFIGS_FALLBACK,
+    withDefaultConfig(
+      meta.value?.configs?.length ? meta.value.configs : SEARCH_CONFIGS_FALLBACK,
+      defaultConfig.value,
+    ),
   )
 
   let inflight: Promise<void> | null = null

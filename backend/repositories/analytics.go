@@ -53,3 +53,22 @@ func (r *Repos) BehaviorEventsSince(ctx context.Context, since time.Time) ([]dom
 	err := r.db.WithContext(ctx).Where("created_at >= ?", since).Order("created_at, id").Find(&rows).Error
 	return rows, err
 }
+
+// RunCluster — кластер запуска агента и время запуска (вывод агента у проблемного запроса).
+type RunCluster struct {
+	domain.IssueCluster
+	RunStartedAt time.Time
+}
+
+// RecentIssueClusters — кластеры последних runs запусков агента: новые запуски первыми, внутри запуска — по
+// месту в очереди.
+func (r *Repos) RecentIssueClusters(ctx context.Context, runs int) ([]RunCluster, error) {
+	if !r.Enabled() {
+		return nil, ErrNoDatabase
+	}
+	var rows []RunCluster
+	err := r.db.WithContext(ctx).Raw(`SELECT c.*, r.started_at AS run_started_at FROM issue_clusters c
+JOIN (SELECT id, started_at FROM agent_runs ORDER BY started_at DESC LIMIT ?) r ON r.id = c.run_id
+ORDER BY r.started_at DESC, c.rank, c.label`, runs).Scan(&rows).Error
+	return rows, err
+}

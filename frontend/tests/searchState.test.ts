@@ -129,3 +129,21 @@ test('buildSearchRequest: тело по контракту', () => {
   assert.equal(guest.config, 'B0')
   assert.equal(guest.limit, 5)
 })
+
+test('витрина по умолчанию — live: ?config=live читается, переключатель ставит live первым', async () => {
+  const { withDefaultConfig } = await import('../src/lib/configs.ts')
+  assert.equal(parseSearchQuery({ q: 'зуп', config: 'live' }).config, 'live')
+  assert.deepEqual(withDefaultConfig(['B0', 'B1', 'B2', 'B3', 'B4'], 'live'), [
+    'live',
+    'B0',
+    'B1',
+    'B2',
+    'B3',
+    'B4',
+  ])
+  assert.deepEqual(withDefaultConfig(['B0', 'B3'], 'B3'), ['B0', 'B3'])
+  assert.equal(
+    buildSearchRequest(emptyState(), { sessionId: 's', defaultConfig: 'live' }).config,
+    'live',
+  )
+})

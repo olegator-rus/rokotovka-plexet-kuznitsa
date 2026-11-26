@@ -26,6 +26,7 @@ func RegisterRoutes(app *fiber.App, h *Handler) {
 	api.Get("/evaluations", h.Evaluations)
 	api.Post("/evaluations/run", h.RunEvaluation)
 	api.Get("/analytics", h.Analytics)
+	api.Get("/analytics/current", h.AnalyticsCurrent)
 
 	// Агент SearchOps, очередь предложений, версии правил.
 	api.Post("/agent/runs", h.StartAgentRun)

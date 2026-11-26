@@ -236,6 +236,36 @@ paths:
             application/json:
               schema: { $ref: "#/components/schemas/Analytics" }
         "422": { $ref: "#/components/responses/Error" }
+  /api/analytics/current:
+    get:
+      tags: [Аналитика]
+      summary: Что действующий поиск отвечает на проблемные запросы сейчас
+      description: |
+        Берёт самые частые проблемные запросы за период (как в `GET /api/analytics`) и прогоняет каждый через
+        действующий поиск — пайплайн B3 на последней принятой версии правил (конфигурация `live`). Поиск идёт без
+        записи в журнал: проверка не попадает в аналитику и стоимость. Ответ по запросу кешируется на 10 минут
+        для той же версии правил и каталога (`cached: true`). Ошибка поиска по одному запросу не роняет ответ:
+        у строки заполняется `error`. Колонка «Сейчас» рядом с «За период» показывает, решена ли проблема уже
+        после принятых правок.
+      operationId: analyticsCurrent
+      parameters:
+        - { name: days, in: query, schema: { type: integer, minimum: 1, maximum: 365, default: 30 } }
+        - { name: limit, in: query, description: Сколько проблемных запросов проверить, schema: { type: integer, minimum: 1, maximum: 50, default: 15 } }
+      responses:
+        "200":
+          description: Текущая выдача по проблемным запросам
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ProblemsNow" }
+              example:
+                days: 30
+                rules_version: 2
+                catalog_version: mock-1
+                checked_at: "2026-05-27T04:50:00Z"
+                items:
+                  - { query: продлить антивирус, total: 11, not_in_catalog: false, cached: false }
+        "401": { $ref: "#/components/responses/Error" }
+        "422": { $ref: "#/components/responses/Error" }
   /api/effect:
     get:
       tags: [Аналитика]
@@ -253,7 +283,8 @@ paths:
       parameters:
         - { name: days, in: query, schema: { type: integer, minimum: 1, maximum: 365, default: 30 } }
         - { name: session_factor, in: query, description: "Поправка на сессии (0..1]", schema: { type: number } }
-        - { name: order_prob, in: query, description: "Вероятность заказа спасённого поиска (0..1]", schema: { type: number } }
+        - { name: order_prob, in: query, description: "Конверсия успешного поиска в заказ (0..1] — потолок вероятности заказа спасённого", schema: { type: number } }
+        - { name: rescue_factor, in: query, description: "Понижающий коэффициент для спасённого поиска (0..1], по умолчанию 0,3 (допущение)", schema: { type: number } }
         - { name: avg_check_rub, in: query, description: "Средний чек, ₽", schema: { type: number } }
       responses:
         "200":
@@ -700,7 +731,7 @@ components:
         query: { type: string, maxLength: 200 }
         client_id: { type: string, description: "guest или id покупателя; влияет на контекст ранжирования, в модель не уходит" }
         session_id: { type: string, description: "Токен из meta.session; иной — поиск пишется без сессии" }
-        config: { type: string, enum: [B0, B1, B2, B3, B4], default: B3 }
+        config: { type: string, enum: [live, B0, B1, B2, B3, B4], default: live, description: "live — витрина на действующей версии правил; B0–B4 — лестница оценки" }
         as_typed: { type: boolean, description: Искать как набрано, без исправления }
         removed_chips:
           type: array
@@ -860,15 +891,54 @@ components:
               proposal_id: { type: [string, "null"], description: Предложение агента по кластеру этого запроса }
               proposal_status: { type: [string, "null"], enum: [pending, accepted, rejected, rolled_back, stale, null] }
               proposal_diagnosis: { oneOf: [{ $ref: "#/components/schemas/Diagnosis" }, { type: "null" }] }
+              agent: { $ref: "#/components/schemas/AgentVerdict" }
         sources: { type: object, additionalProperties: { type: integer } }
         effect:
           oneOf:
             - { $ref: "#/components/schemas/Effect" }
             - { type: "null" }
+    AgentVerdict:
+      type: object
+      description: Вывод агента по проблемному запросу — из его предложения или итога кластера последних запусков
+      properties:
+        code:
+          type: string
+          enum: [proposal, answers, closed, no_offer, earlier, queued, mostly_ok, unseen]
+          description: |
+            proposal — есть предложение; answers — действующий поиск уже отвечает; closed — разобран, правкой правил
+            не решается; no_offer — спрос без предложения в каталоге; earlier — разобран в прежних запусках;
+            queued — агент видел кластер, но не дошёл; mostly_ok — агент не брал: запрос чаще заканчивается кликом;
+            unseen — агент кластер не видел.
+        label: { type: string }
+        note: { type: string, description: Пояснение агента (итог кластера) }
+        diagnosis: { type: string, description: Код диагноза, если был }
+        run_id: { type: string }
+        cluster_id: { type: string }
+        cluster_label: { type: string }
+    ProblemsNow:
+      type: object
+      properties:
+        days: { type: integer }
+        rules_version: { type: integer, description: Версия правил, на которой проверяли }
+        catalog_version: { type: string }
+        checked_at: { type: string, format: date-time }
+        items:
+          type: array
+          items:
+            type: object
+            properties:
+              query: { type: string }
+              total: { type: integer, description: Сколько товаров в выдаче }
+              exact: { type: boolean, description: Первым стоит точный товар }
+              not_in_catalog: { type: boolean, description: Поиск ответил «нет в каталоге» (аналоги или пусто) }
+              top_title: { type: string }
+              route: { type: string, enum: [A, B, C, D] }
+              cached: { type: boolean, description: Ответ из кэша проверки (10 мин) }
+              error: { type: string, description: Заполнено, если поиск по этому запросу не ответил }
     EffectParam:
       type: object
       properties:
-        key: { type: string, enum: [session_factor, order_prob, avg_check_rub] }
+        key: { type: string, enum: [session_factor, order_prob, rescue_factor, avg_check_rub] }
         label: { type: string }
         value: { type: number }
         default: { type: number }
@@ -931,11 +1001,14 @@ components:
               rule: { type: string }
               rescued_share: { type: number }
               order_prob: { type: number }
+              rescue_factor: { type: number }
+              uplift: { type: [number, "null"] }
               problem_sessions_month: { type: number }
               rescued_month: { type: number }
               orders_month: { type: number }
               revenue_rub_month: { type: number }
         missing: { type: array, items: { type: string }, description: Чего не хватает для расчёта }
+        warnings: { type: array, items: { type: string }, description: Базовый прирост больше +50 % к текущим заказам }
     Costs:
       type: object
       properties:

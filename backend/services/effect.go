@@ -22,30 +22,43 @@ import (
 // B0 → B3; вклад агента — B3 → B4, только если все принятые правки B4 сделаны запусками после разреза журнала
 // (иначе 0 с причиной). Допущения можно переопределить параметрами запроса; откуда взято каждое значение — в source.
 //
-//	заказы/мес = поиски/мес × доля проблемных × поправка на сессии × доля спасённых × вероятность заказа
+//	вероятность заказа спасённого = конверсия успешного поиска × понижающий коэффициент (≤ конверсии)
+//	заказы/мес = поиски/мес × доля проблемных × поправка на сессии × доля спасённых × вероятность заказа спасённого
 //	₽/мес      = заказы/мес × средний чек
 //
-// Сценарии отличаются долей спасённых (границы 95% интервала Уилсона) и вероятностью заказа (×0,5 / ×1 / ×1,5).
+// Почему понижающий коэффициент: «спасён» на реплее значит «подходящий товар в топ-10», а не «покупатель
+// купил»; часть покупателей с неудачным поиском уже ушла или купила иначе. Без него базовый сценарий давал +261 заказ
+// при 245 текущих — удвоение, которому никто не поверит. Коэффициент — подписанное допущение (assumed), не замер;
+// вероятность заказа спасённого поиска никогда не выше измеренной конверсии успешного.
+// Сценарии отличаются долей спасённых (границы 95% интервала Уилсона) и коэффициентом (×0,5 / ×1 / ×1,5, не больше 1).
 
 // EffectRequest — параметры вилки; nil — значение по умолчанию (измеренное, если есть данные).
 type EffectRequest struct {
 	Days          int
 	SessionFactor *float64
 	OrderProb     *float64
-	AvgCheckRub   *float64
+	// RescueFactor — понижающий коэффициент для спасённого поиска (0..1].
+	RescueFactor *float64
+	AvgCheckRub  *float64
 }
 
 const (
 	effectNote = "Сценарная оценка на тестовых данных. Фактический эффект измеряется A/B-тестом в пилоте"
 	// effectFormula — формула для экрана.
 	effectFormula = "заказы в месяц = поиски в месяц × доля проблемных × поправка на сессии × доля спасённых × " +
-		"вероятность заказа; рубли в месяц = заказы × средний чек"
-	effectFormulaKeys = "orders_month = searches_month × problem_share × session_factor × rescued_share × order_prob; " +
-		"revenue_rub_month = orders_month × avg_check_rub"
+		"конверсия успешного поиска × понижающий коэффициент; рубли в месяц = заказы × средний чек"
+	effectFormulaKeys = "orders_month = searches_month × problem_share × session_factor × rescued_share × " +
+		"order_prob × rescue_factor; revenue_rub_month = orders_month × avg_check_rub"
 	// Принятые значения, когда замера нет.
 	assumedSessionFactor = 1.0
 	assumedOrderProb     = 0.1
 	assumedAvgCheckRub   = 15000
+	// assumedRescueFactor — понижающий коэффициент: спасённый поиск заказывает в 0,3 раза реже успешного.
+	// Допущение до A/B-теста в пилоте; редактируется на экране.
+	assumedRescueFactor = 0.3
+	// upliftWarn — прирост к текущим заказам поиска, выше которого базовый сценарий помечается как
+	// неправдоподобный (предупреждение, без подрезки).
+	upliftWarn = 0.5
 	// effectSet — набор, на котором меряется доля спасённых: реплей отложенной недели.
 	effectSet = domain.EvalSetHoldoutWeek
 	monthDays = 30
@@ -57,9 +70,9 @@ var effectScenarios = []struct {
 	orderMul        float64
 	bound           int // -1 нижняя граница, 0 точка, +1 верхняя
 }{
-	{"conservative", "Консервативный", "доля спасённых — нижняя граница 95% интервала, вероятность заказа × 0,5", 0.5, -1},
+	{"conservative", "Консервативный", "доля спасённых — нижняя граница 95% интервала, понижающий коэффициент × 0,5", 0.5, -1},
 	{"base", "Базовый", "измеренные значения и допущения как есть", 1, 0},
-	{"optimistic", "Оптимистичный", "доля спасённых — верхняя граница 95% интервала, вероятность заказа × 1,5 (не больше 1)", 1.5, 1},
+	{"optimistic", "Оптимистичный", "доля спасённых — верхняя граница 95% интервала, понижающий коэффициент × 1,5 (не больше 1)", 1.5, 1},
 }
 
 // Effect — GET /api/effect.
@@ -83,6 +96,7 @@ func (s *Services) effect(ctx context.Context, req EffectRequest, sum *repositor
 	}
 	share("session_factor", req.SessionFactor)
 	share("order_prob", req.OrderProb)
+	share("rescue_factor", req.RescueFactor)
 	if v := req.AvgCheckRub; v != nil && (*v <= 0 || *v > 1e9 || math.IsNaN(*v)) {
 		bad = append(bad, errs.FieldError{Field: "avg_check_rub", Code: errs.CodeOutOfRange, Message: "Средний чек — больше 0 ₽"})
 	}
@@ -343,12 +357,13 @@ func effectFromLogs(m effectLogs, rescued *out.EffectRescued, req EffectRequest)
 		days = analyticsDefaultDays
 	}
 	res := &out.Effect{Note: effectNote, Formula: effectFormula, FormulaKeys: effectFormulaKeys,
-		Assumptions: []out.EffectParam{}, Scenarios: []out.EffectScenario{}, Missing: []string{}}
+		Assumptions: []out.EffectParam{}, Scenarios: []out.EffectScenario{}, Missing: []string{}, Warnings: []string{}}
 	in := &res.Measured
 	in.Searches, in.ProblemSearches, in.ProblemSessions, in.Orders = m.searches, m.problems, m.problemSessions, m.orders
 	in.SearchesMonth = math.Round(float64(m.searches)*monthDays/float64(days)*10) / 10
 	in.ProblemShare = share(m.problems, m.searches)
 	in.SearchOrderRate = share(m.orders, m.searches)
+	in.OrdersMonth = math.Round(float64(m.orders)*monthDays/float64(days)*10) / 10
 	in.Rescued = rescued
 
 	param := func(key, label, unit, hint string, measured *float64, assumed float64, override *float64) out.EffectParam {
@@ -375,13 +390,17 @@ func effectFromLogs(m effectLogs, rescued *out.EffectRescued, req EffectRequest)
 	sf := param("session_factor", "Поправка на сессии", "доля",
 		"Один покупатель повторяет неудачный поиск в одной сессии: считаем сессии, а не поиски. Замер — проблемные сессии / проблемные поиски",
 		sessionFactor, assumedSessionFactor, req.SessionFactor)
-	op := param("order_prob", "Вероятность заказа спасённого поиска", "доля",
-		"Спасённый поиск ведёт себя как успешный. Замер — доля сессий с кликом из поиска, закончившихся заказом",
+	op := param("order_prob", "Конверсия успешного поиска в заказ", "доля",
+		"Потолок для спасённого поиска. Замер — доля сессий с кликом из поиска, закончившихся заказом",
 		orderProb, assumedOrderProb, req.OrderProb)
+	rf := param("rescue_factor", "Понижающий коэффициент для спасённого поиска", "доля",
+		"Допущение, не замер: «спасён» на реплее — подходящий товар в топ-10, а не покупка; часть покупателей уже ушла. "+
+			"Вероятность заказа спасённого = конверсия успешного × коэффициент, не выше конверсии",
+		nil, assumedRescueFactor, req.RescueFactor)
 	ac := param("avg_check_rub", "Средний чек", "₽",
 		"Замер — средняя цена позиций в заказах из журнала по ценам каталога",
 		avgCheck, assumedAvgCheckRub, req.AvgCheckRub)
-	res.Assumptions = append(res.Assumptions, sf, op, ac)
+	res.Assumptions = append(res.Assumptions, sf, op, rf, ac)
 
 	if m.searches == 0 {
 		res.Missing = append(res.Missing, "нет поисков за период — нечего масштабировать")
@@ -401,14 +420,24 @@ func effectFromLogs(m effectLogs, rescued *out.EffectRescued, req EffectRequest)
 		case 1:
 			rs = in.Rescued.CIHigh
 		}
-		prob := math.Min(1, op.Value*sc.orderMul)
+		factor := math.Min(1, rf.Value*sc.orderMul)
+		prob := op.Value * factor // не выше конверсии успешного поиска
 		rescued := problemSessions * rs
 		orders := rescued * prob
-		res.Scenarios = append(res.Scenarios, out.EffectScenario{
-			ID: sc.id, Label: sc.label, Rule: sc.rule, RescuedShare: rs, OrderProb: evalRound4(prob),
-			ProblemSessionsMonth: math.Round(problemSessions*10) / 10, RescuedMonth: math.Round(rescued*10) / 10,
-			OrdersMonth: math.Round(orders*10) / 10, RevenueRubMonth: math.Round(orders * ac.Value),
-		})
+		scn := out.EffectScenario{
+			ID: sc.id, Label: sc.label, Rule: sc.rule, RescuedShare: rs, RescueFactor: evalRound4(factor),
+			OrderProb: evalRound4(prob), ProblemSessionsMonth: math.Round(problemSessions*10) / 10,
+			RescuedMonth: math.Round(rescued*10) / 10, OrdersMonth: math.Round(orders*10) / 10,
+			RevenueRubMonth: math.Round(orders * ac.Value),
+		}
+		if in.OrdersMonth > 0 {
+			scn.Uplift = evalPtr(evalRound4(orders / in.OrdersMonth))
+		}
+		if sc.id == "base" && scn.Uplift != nil && *scn.Uplift > upliftWarn {
+			res.Warnings = append(res.Warnings, fmt.Sprintf("Базовый сценарий даёт +%.0f %% к текущим заказам из поиска — "+
+				"больше половины; проверьте допущения (коэффициент, конверсию)", *scn.Uplift*100))
+		}
+		res.Scenarios = append(res.Scenarios, scn)
 	}
 	return res
 }

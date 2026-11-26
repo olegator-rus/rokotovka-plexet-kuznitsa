@@ -63,6 +63,50 @@ type ProblemQuery struct {
 	ProposalStatus *string `json:"proposal_status"`
 	// ProposalDiagnosis — диагноз агента (код ALIAS_GAP…); diagnosis выше остаётся подписью журнала.
 	ProposalDiagnosis *string `json:"proposal_diagnosis"`
+	// Agent — вывод агента по запросу: из предложения или итога кластера последних запусков.
+	Agent AgentVerdict `json:"agent"`
+}
+
+// AgentVerdict — вывод агента у проблемного запроса.
+type AgentVerdict struct {
+	// Code: proposal (есть предложение) | answers (действующий поиск уже отвечает) | closed (разобран, правкой
+	// правил не решается) | no_offer (спрос без предложения в каталоге) | earlier (разобран в прежних запусках) |
+	// queued (агент видел кластер, но до него не дошёл) | mostly_ok (агент не брал: запрос чаще заканчивается
+	// кликом) | unseen (агент кластер не видел).
+	Code  string `json:"code"`
+	Label string `json:"label"`
+	// Note — пояснение агента (итог кластера); Diagnosis — код диагноза, если был.
+	Note      string `json:"note,omitempty"`
+	Diagnosis string `json:"diagnosis,omitempty"`
+	// RunID, ClusterID, ClusterLabel — где агент это решил (лента запуска).
+	RunID        string `json:"run_id,omitempty"`
+	ClusterID    string `json:"cluster_id,omitempty"`
+	ClusterLabel string `json:"cluster_label,omitempty"`
+}
+
+// ProblemsNowResponse — GET /api/analytics/current: что отвечает действующий поиск на проблемные запросы
+// сейчас (поиск без записи в журнал, действующие правила).
+type ProblemsNowResponse struct {
+	Days           int          `json:"days"`
+	RulesVersion   int          `json:"rules_version"`
+	CatalogVersion string       `json:"catalog_version"`
+	CheckedAt      time.Time    `json:"checked_at"`
+	Items          []ProblemNow `json:"items"`
+}
+
+// ProblemNow — текущая выдача по одному проблемному запросу.
+type ProblemNow struct {
+	Query string `json:"query"`
+	Total int    `json:"total"`
+	// Exact — первым стоит точный товар (группа exact); NotInCatalog — поиск сказал «нет в каталоге»
+	// (показаны аналоги или ничего).
+	Exact        bool   `json:"exact"`
+	NotInCatalog bool   `json:"not_in_catalog"`
+	TopTitle     string `json:"top_title"`
+	Route        string `json:"route"`
+	// Cached — ответ из кэша проверки (10 мин, та же версия правил и каталога).
+	Cached bool   `json:"cached"`
+	Error  string `json:"error,omitempty"`
 }
 
 // LogImportResult — импорт исторических логов.

@@ -69,6 +69,10 @@ const (
 	changeLayout = "layout"
 	changeTypo   = "typo"
 	changeAlias  = "alias"
+	// changeTranslit — слово каталога, набранное другим письмом («лт» → lt); changePrefix — недописанное
+	// слово («win»): ищется по началу слова (title.ngram), полное слово — расширение и подсказка.
+	changeTranslit = "translit"
+	changePrefix   = "prefix"
 )
 
 // normResult — итог нормализации.
@@ -84,6 +88,8 @@ type normResult struct {
 	// «офис» → office, но «Р7-Офис» тоже должен находиться).
 	aliasHits  []domain.Alias
 	expansions []string
+	// prefixes — недописанное слово → слово каталога, которое с него начинается.
+	prefixes map[string]string
 	// protected — защищённые токены (версии, артикулы, коды): не исправляются.
 	protected map[string]bool
 }
@@ -115,7 +121,7 @@ func isProtectedToken(t string) bool {
 // normalizeFull — нормализация запроса по словарю каталога lx и правилам rules. asTyped — без раскладки
 // и опечаток.
 func normalizeFull(q string, lx *searchLexicon, rules *searchRules, asTyped bool) normResult {
-	res := normResult{changes: []domain.Change{}, protected: map[string]bool{}}
+	res := normResult{changes: []domain.Change{}, protected: map[string]bool{}, prefixes: map[string]string{}}
 	clean := foldText(q)
 	if clean != q {
 		res.changes = append(res.changes, domain.Change{Kind: changeClean, From: q, To: clean})
@@ -154,11 +160,59 @@ func normalizeFull(q string, lx *searchLexicon, rules *searchRules, asTyped bool
 		res.correction = &correctionInfo{from: strings.Join(original, " "), to: res.corrected,
 			confidence: confidenceHigh, applied: true}
 	}
+	if lx != nil && !asTyped {
+		tokens = completeWords(tokens, original, lx, rules, &res)
+	}
 	if rules != nil {
 		tokens = applyAliases(tokens, rules, &res)
 	}
 	res.tokens = tokens
 	return res
+}
+
+// completeWords — неизвестное слово, которое в каталоге пишется другим письмом, заменяется («лт» → lt,
+// «antivirus» → антивирус: смешанный язык не делает запрос «товаром не из каталога»). Неизвестное слово, с
+// которого начинается слово названий («win» → windows), остаётся как набрано — его находит поиск по началу
+// слова, а полное слово идёт расширением и подсказкой «Возможно, вы искали». Как алиасы, это не исправление:
+// плашки «Показаны результаты по…» нет.
+func completeWords(tokens, original []string, lx *searchLexicon, rules *searchRules, res *normResult) []string {
+	for i, t := range tokens {
+		if res.protected[t] || isProtectedToken(t) || lexStopWords[t] || knownWord(t, lx, rules) {
+			continue
+		}
+		if to := lx.translitOf(t); to != "" {
+			res.changes = append(res.changes, domain.Change{Kind: changeTranslit, From: t, To: to})
+			tokens[i] = to
+			continue
+		}
+		if c := res.correction; c != nil && !c.applied {
+			if ws := strings.Fields(c.to); i < len(ws) && i < len(original) && ws[i] != original[i] {
+				continue // у слова уже есть исправление средней уверенности
+			}
+		}
+		if i != len(tokens)-1 || !othersKnown(tokens, i, lx, rules) {
+			continue // недописанным бывает только последнее слово, и остальные слова запроса понятны
+		}
+		if to := lx.prefixOf(t); to != "" {
+			res.changes = append(res.changes, domain.Change{Kind: changePrefix, From: t, To: to})
+			res.prefixes[t] = to
+			res.expansions = append(res.expansions, to)
+			if i < len(original) && original[i] == t {
+				res.suggest(original, i, to)
+			}
+		}
+	}
+	return tokens
+}
+
+// othersKnown — все слова запроса, кроме i-го, известны (или служебные, или коды).
+func othersKnown(tokens []string, i int, lx *searchLexicon, rules *searchRules) bool {
+	for j, t := range tokens {
+		if j != i && !lexStopWords[t] && !isProtectedToken(t) && !knownWord(t, lx, rules) {
+			return false
+		}
+	}
+	return true
 }
 
 // suggest — исправление средней уверенности: выдача по исходному, в плашке — «Возможно, вы искали».

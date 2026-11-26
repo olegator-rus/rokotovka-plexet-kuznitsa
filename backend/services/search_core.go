@@ -65,8 +65,8 @@ type SearchOptions struct {
 	NoLog bool
 }
 
-// rulesFor — словари для конфигурации: B1–B3 — версия 1 (исходные словари каталога), B4 — последняя
-// принятая версия; override — снимок песочницы.
+// rulesFor — словари для конфигурации: B1–B3 — версия 1 (исходные словари каталога), B4 и live (витрина) —
+// последняя принятая версия; override — снимок песочницы.
 func (s *Services) rulesFor(ctx context.Context, cfg string, lx *searchLexicon, override *domain.RulesSnapshot) *searchRules {
 	if override != nil {
 		r, err := rulesFromSnapshot(override)
@@ -76,7 +76,7 @@ func (s *Services) rulesFor(ctx context.Context, cfg string, lx *searchLexicon, 
 		zap.L().Warn("поиск: снимок правил не разобран — исходные словари", zap.Error(err))
 	}
 	base := newSearchRules(1, lx.baseAliases)
-	if cfg != domain.ConfigB4 || !s.repos.Enabled() {
+	if cfg != domain.ConfigB4 && cfg != domain.ConfigLive || !s.repos.Enabled() {
 		return base
 	}
 	if c := s.core.latest.Load(); c != nil && c.lexOf == lx && time.Since(c.at) < rulesTTL {
@@ -107,6 +107,11 @@ type queryEntities struct {
 	named     []string
 	reference []string
 	category  string
+	// categoryByWords — категория найдена по словам названия категории или назначения («чертежи»), а не
+	// алиасом: маршрут она не меняет (иначе запрос назначения уходит с маршрута C без реранкера).
+	categoryByWords bool
+	// purposeWords — слова категорий за словами назначения запроса.
+	purposeWords []string
 	// unknown — значимые слова, которых нет ни в каталоге, ни в словарях.
 	unknown []string
 	// latinUnknown — среди непонятных есть латинское слово: скорее всего, это название продукта.
@@ -122,6 +127,10 @@ type queryEntities struct {
 	vendorTokens map[string]bool
 	// textTokens — слова для текстового поиска (без атрибутов и слов намерения).
 	textTokens []string
+	// parsedFamily — семейство, которое назвал разбор маршрута D (правила его не нашли).
+	parsedFamily string
+	// entityTokens — значимые слова запроса и полные слова недописанных: по ним ищутся семейства.
+	entityTokens []string
 }
 
 // nonProductStems — вопросы не о товаре: документы, доставка, оплата, заказ.
@@ -158,7 +167,7 @@ func findEntities(nr normResult, attrs queryAttrs, lx *searchLexicon, rules *sea
 			e.nonProduct = true
 		}
 		e.significant++
-		if !knownWord(t, lx, rules) && !medium[t] {
+		if !knownWord(t, lx, rules) && !medium[t] && nr.prefixes[t] == "" {
 			e.unknown = append(e.unknown, t)
 			for _, r := range t {
 				if r >= 'a' && r <= 'z' {
@@ -177,7 +186,11 @@ func findEntities(nr normResult, attrs queryAttrs, lx *searchLexicon, rules *sea
 		if !lexStopWords[t] {
 			entityTokens = append(entityTokens, t)
 		}
+		if p := nr.prefixes[t]; p != "" {
+			entityTokens = append(entityTokens, p)
+		}
 	}
+	e.entityTokens = entityTokens
 	e.vendors = lx.matchVendors(entityTokens, rules)
 	e.vendorTokens = map[string]bool{}
 	for _, t := range entityTokens {
@@ -201,6 +214,10 @@ func findEntities(nr normResult, attrs queryAttrs, lx *searchLexicon, rules *sea
 				e.category = a.TargetID
 			}
 		}
+	}
+	if e.category == "" {
+		e.category, e.purposeWords = lx.categoryOf(entityTokens)
+		e.categoryByWords = e.category != ""
 	}
 	e.families = lx.matchFamilies(entityTokens)
 	for _, f := range e.families {
@@ -274,12 +291,18 @@ func routeSignals(nr normResult, attrs queryAttrs, ent queryEntities) (string, [
 			norm[c.Kind] = true
 		}
 	}
-	for _, k := range []string{changeLayout, changeTypo, changeAlias} {
+	for _, k := range []string{changeLayout, changeTypo, changeAlias, changeTranslit, changePrefix} {
 		if norm[k] {
 			signals = append(signals, k+"_hit")
 		}
 	}
-	if len(attrs.found) > 0 || attrs.quantity > 0 || attrs.renewal || attrs.origin != "" || attrs.licType != "" || attrs.duration > 0 {
+	found := 0
+	for _, f := range attrs.found {
+		if f.Field != fieldCategory || !ent.categoryByWords {
+			found++
+		}
+	}
+	if found > 0 || attrs.quantity > 0 || attrs.renewal || attrs.origin != "" || attrs.licType != "" || attrs.duration > 0 {
 		signals = append(signals, "attributes")
 	}
 	if len(signals) > 0 {
@@ -370,6 +393,7 @@ func mergeParsed(in domain.Intent, attrs *queryAttrs, ent *queryEntities, lx *se
 			}
 		} else if len(ent.families) == 0 {
 			ent.families = []string{f}
+			ent.parsedFamily = f
 		}
 		ent.unknown = nil
 	}
@@ -452,6 +476,9 @@ func (e queryEntities) absent() bool {
 	}
 	if e.latinUnknown {
 		return true
+	}
+	if e.category != "" {
+		return false // названа задача («созваниваться», «чертежи»): ищем по категории, а не объявляем отсутствие
 	}
 	return !e.abbrev && len(e.unknown)*2 > e.significant
 }

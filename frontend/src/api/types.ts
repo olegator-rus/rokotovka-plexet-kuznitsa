@@ -2,7 +2,8 @@
 // поле меняется сначала там, потом здесь. Необязательные блоки ответа (`correction`, `clarify`, `empty`,
 // `llm`) сервер может не прислать или прислать null — типы допускают оба варианта.
 
-export type ConfigId = 'B0' | 'B1' | 'B2' | 'B3' | 'B4'
+/** live — витрина: B3 на действующей (последней принятой) версии правил; лестница оценки — B0–B4. */
+export type ConfigId = 'live' | 'B0' | 'B1' | 'B2' | 'B3' | 'B4'
 export type LlmMode = 'on' | 'off'
 export type ClientSegment = 'smb' | 'enterprise' | 'gov' | 'individual'
 
@@ -486,6 +487,94 @@ export interface ProblemQuery {
   diagnosis: string
   /** Предложение агента по запросу — появится с SearchOps. */
   proposal_id?: string | null
+  proposal_status?: string | null
+  proposal_diagnosis?: string | null
+  /** Вывод агента: из предложения или итога кластера последних запусков. */
+  agent?: AgentVerdict
+}
+
+export type AgentVerdictCode =
+  'proposal' | 'answers' | 'closed' | 'no_offer' | 'earlier' | 'queued' | 'mostly_ok' | 'unseen'
+
+export interface AgentVerdict {
+  code: AgentVerdictCode | string
+  label: string
+  note?: string
+  diagnosis?: string
+  run_id?: string
+  cluster_id?: string
+  cluster_label?: string
+}
+
+/** GET /api/analytics/current: текущая выдача по проблемным запросам (поиск без журнала, действующие правила). */
+export interface ProblemNow {
+  query: string
+  total: number
+  exact: boolean
+  not_in_catalog: boolean
+  top_title: string
+  route: string
+  cached: boolean
+  error?: string
+}
+
+export interface ProblemsNowResponse {
+  days: number
+  rules_version: number
+  catalog_version: string
+  checked_at: string
+  items: ProblemNow[]
+}
+
+// ── Вилка эффекта: GET /api/effect (backend/out/effect.go) ──
+
+export interface EffectParam {
+  key: 'session_factor' | 'order_prob' | 'rescue_factor' | 'avg_check_rub' | string
+  label: string
+  value: number
+  default: number
+  source: 'measured' | 'assumed' | 'request' | string
+  unit: string
+  hint: string
+}
+
+export interface EffectScenario {
+  id: 'conservative' | 'base' | 'optimistic' | string
+  label: string
+  rule: string
+  rescued_share: number
+  rescue_factor: number
+  order_prob: number
+  problem_sessions_month: number
+  rescued_month: number
+  orders_month: number
+  revenue_rub_month: number
+  /** Заказы сценария / текущие заказы поиска в месяц; null — заказов не было. */
+  uplift: number | null
+}
+
+export interface EffectResponse {
+  days: number
+  from: string
+  to: string
+  note: string
+  formula: string
+  formula_keys: string
+  measured: {
+    searches: number
+    searches_month: number
+    problem_searches: number
+    problem_share: number | null
+    problem_sessions: number
+    orders: number
+    search_order_rate: number | null
+    orders_month: number
+    rescued: EffectRescued | null
+  }
+  assumptions: EffectParam[]
+  scenarios: EffectScenario[]
+  missing: string[]
+  warnings: string[]
 }
 
 export interface AnalyticsResponse {
@@ -498,6 +587,8 @@ export interface AnalyticsResponse {
   problems: ProblemQuery[]
   /** Откуда события: live и mock_log (импорт исторических логов). */
   sources: Record<string, number>
+  /** Только role=head: вилка эффекта с допущениями по умолчанию. */
+  effect?: EffectResponse | null
 }
 
 // ── «Экономика»: GET /api/costs?limit=&offset= (backend/out/costs.go) ──

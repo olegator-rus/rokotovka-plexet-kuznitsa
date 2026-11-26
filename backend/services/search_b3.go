@@ -31,9 +31,17 @@ func (s *Services) searchB3(ctx context.Context, requestID string, req in.Search
 	st *catalogState, opts SearchOptions, started time.Time) (*out.SearchResponse, error) {
 	lx := st.lex
 	rules := s.rulesFor(ctx, cfg, lx, opts.Rules)
+	effective := cfg
+	if cfg == domain.ConfigLive {
+		// Витрина: на правилах версии 1 это B3, с принятыми правками агента — B4.
+		effective = domain.ConfigB3
+		if rules.version > 1 {
+			effective = domain.ConfigB4
+		}
+	}
 	trace := &domain.Trace{
 		RequestID: requestID, Route: domain.RouteNormalized, ParseSource: domain.ParseRules, Config: cfg,
-		EffectiveConfig: cfg, RulesVersion: rules.version, CatalogVersion: st.version,
+		EffectiveConfig: effective, RulesVersion: rules.version, CatalogVersion: st.version,
 		Items: []domain.TraceItem{}, Rejected: []domain.RejectedHit{},
 	}
 	resp := &out.SearchResponse{
@@ -145,6 +153,11 @@ func (s *Services) searchB3(ctx context.Context, requestID string, req in.Search
 		denseText = "отечественное " + denseText
 	}
 	expansions := strings.TrimSpace(strings.Join(nr.expansions, " ") + " " + strings.Join(vendorWords, " "))
+	if ent.categoryByWords && trace.Route == domain.RouteIntent {
+		// Задача названа словами («созваниваться», «чертежи»): название категории — расширение текстового
+		// поиска и смысла запроса, иначе длинная формулировка находит офисные пакеты по «50» и «российская».
+		expansions = strings.TrimSpace(expansions + " " + strings.Join(ent.purposeWords, " "))
+	}
 
 	denseCh := make(chan retrieval, 1)
 	filters := strictFilters(attrs, ent)
@@ -181,12 +194,17 @@ func (s *Services) searchB3(ctx context.Context, requestID string, req in.Search
 	// business: допустимость → порог → группы → скор
 	t = time.Now()
 	rc := s.rankContext(st, lx, req.ClientID, attrs, ent)
+	for _, h := range bm.step.Top {
+		if h.Rank <= textTopN {
+			rc.textTop[lx.docs[h.ProductID].FamilyID] = true
+		}
+	}
 	absent := ent.absent()
 	minDense := denseOnlyMin
 	if ent.abbrev {
 		minDense = abbrevDenseMin
 	}
-	noLetters := !hasLetters(resp.Normalized)
+	noLetters := !hasLetters(resp.Normalized) || looksLikeMarkup(req.Query)
 	for _, tok := range nr.tokens {
 		noLetters = noLetters && !looksLikeSKU(tok)
 	}
@@ -222,6 +240,8 @@ func (s *Services) searchB3(ctx context.Context, requestID string, req in.Search
 			continue
 		}
 		if absent && denseScore[f.ProductID] < absentDenseMin {
+			addRejected(&trace.Rejected, f.ProductID, rejectAbsentDense,
+				fmt.Sprintf("товара нет в каталоге, аналог — только близкий по смыслу: скор %.3f < %.3f", denseScore[f.ProductID], absentDenseMin))
 			continue
 		}
 		if rel > byFamily[d.FamilyID] {
@@ -245,7 +265,10 @@ func (s *Services) searchB3(ctx context.Context, requestID string, req in.Search
 	}
 	switch {
 	case noLetters || ent.nonProduct:
-		// Шум и вопросы не о товаре: ни товаров, ни аналогов.
+		// Шум и вопросы не о товаре: ни товаров, ни аналогов. Найденное поиском — в отказы с причиной.
+		for _, f := range ranked {
+			addRejected(&trace.Rejected, f.ProductID, rejectNoise, "запрос без смысла или не о товаре — товары не показываются")
+		}
 	case attrs.analog && len(ent.reference) > 0:
 		// Просят замену: аналоги референса из справочника; сам референс не показывается.
 		for _, ref := range ent.reference {
@@ -287,8 +310,9 @@ func (s *Services) searchB3(ctx context.Context, requestID string, req in.Search
 			addFamily(f, rel, group)
 		}
 	}
-	fams = rc.dropQuantityMisfits(fams, &trace.Rejected)
+	// Категория раньше количества: «видеоконференции на 50» — TrueConf (до 25) остаётся, офисный пакет на 50 — нет.
 	fams = rc.dropOtherCategories(fams, &trace.Rejected)
+	fams = rc.dropQuantityMisfits(fams, &trace.Rejected)
 	rerankStep := skipped(domain.StepRerank, rerankAnalogs)
 	if !(attrs.analog && len(ent.reference) > 0) {
 		rerankStep = s.rerankFamilies(ctx, resp.Normalized, trace.Route, fams)
@@ -298,12 +322,17 @@ func (s *Services) searchB3(ctx context.Context, requestID string, req in.Search
 		rc.score(fh)
 	}
 	sortFamilies(fams)
+	fams = rc.dropTail(fams, &trace.Rejected)
 	if absent && len(fams) > 5 {
+		for _, fh := range fams[5:] {
+			addRejected(&trace.Rejected, fh.head.ProductID, rejectAbsentTail, "товара нет в каталоге — показаны пять ближайших аналогов")
+		}
 		fams = fams[:5]
 	}
 
 	// Лестница: пусто, а семейство названо — аналоги из справочника.
-	if len(fams) == 0 && !absent && !noLetters && len(ent.families) > 0 && !attrs.analog {
+	// Аналоги только для осмысленного запроса: есть хоть одно значимое слово, известное каталогу.
+	if len(fams) == 0 && !absent && !noLetters && len(ent.families) > 0 && !attrs.analog && ent.significant > len(ent.unknown) {
 		for _, f := range ent.families {
 			for _, sub := range lx.substitutes[f] {
 				addFamily(sub, analogBaseRel, domain.GroupAnalog)
@@ -379,7 +408,8 @@ func (s *Services) searchB3(ctx context.Context, requestID string, req in.Search
 // rankContext — контекст клиента для ранжирования.
 func (s *Services) rankContext(st *catalogState, lx *searchLexicon, clientID string, attrs queryAttrs, ent queryEntities) rankCtx {
 	rc := rankCtx{lx: lx, attrs: attrs, ent: ent, purchased: map[string]bool{}, purchasedQty: map[string]int{},
-		boughtVendors: map[string]bool{}, productRel: map[string]float64{}, refCats: map[string]bool{}}
+		boughtVendors: map[string]bool{}, productRel: map[string]float64{}, refCats: map[string]bool{},
+		business: isBusinessQuery(attrs, ent, st.segment(clientID)), textTop: map[string]bool{}}
 	for _, f := range ent.reference {
 		rc.refCats[lx.familyCat[f]] = true
 	}
@@ -431,7 +461,7 @@ func relaxedMessages(rc rankCtx, fams []*familyHit) []out.Relaxed {
 	}
 	if a.quantity > 0 && !some(func(d indexDoc) bool { return quantityOK(d, a.quantity) }) {
 		res = append(res, out.Relaxed{Field: domain.FieldLicenseQuantity,
-			Message: fmt.Sprintf("Лицензий ровно на %s нет, показаны другие количества", quantityLabel(a.quantity, a.metric))})
+			Message: fmt.Sprintf("Позиций ровно на %s нет, показаны другие количества", quantityLabel(a.quantity, a.metric))})
 	}
 	// Поштучные позиции с другой метрикой допускаются (rejectReason, dropQuantityMisfits) — покупателю об этом
 	// говорится прямо, а не молча.
@@ -458,6 +488,11 @@ func removedSet(rs []in.RemovedChip) map[string]map[string]bool {
 		m[r.Field][r.Value] = true
 	}
 	return m
+}
+
+// looksLikeMarkup — в запросе разметка или код («<script>…</script>», «{…}»): это не поиск товара.
+func looksLikeMarkup(q string) bool {
+	return strings.ContainsAny(q, "<>{}")
 }
 
 func hasLetters(s string) bool {

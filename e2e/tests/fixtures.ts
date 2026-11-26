@@ -99,7 +99,14 @@ export interface SearchBody {
   chips: { field: string; value: string; label: string; strict: boolean }[]
   correction?: { from: string; to: string; applied: boolean }
   empty?: { message: string; show_manager: boolean }
-  trace: { route: string; parse_source: string; cost_rub: number; rules_version: number }
+  trace: {
+    route: string
+    parse_source: string
+    cost_rub: number
+    rules_version: number
+    config?: string
+    rejected?: { product_id: string; reason: string }[]
+  }
 }
 
 /** Открыть «Поиск» и дождаться готовой страницы (строка в фокусе, мета загружена). */

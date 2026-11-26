@@ -198,6 +198,8 @@ const sourcesLine = computed(() => {
         v-if="role === 'head'"
         :tiles="data.tiles"
         :period-label="periodLabel"
+        :days="Number(days)"
+        :effect="data.effect ?? null"
         @explain="explain"
       />
       <template v-else>
@@ -216,7 +218,13 @@ const sourcesLine = computed(() => {
         <FunnelBlock v-if="data.funnel?.length" :funnel="data.funnel" @explain="explain" />
       </template>
 
-      <ProblemQueries v-if="role === 'ecom'" :problems="data.problems ?? []" @explain="explain" />
+      <ProblemQueries
+        v-if="role === 'ecom'"
+        :problems="data.problems ?? []"
+        :days="Number(days)"
+        :period-label="periodLabel"
+        @explain="explain"
+      />
       <ProductRole v-else-if="role === 'product'" />
       <ContentRole v-else-if="role === 'content'" />
     </template>

@@ -15,8 +15,12 @@ const (
 // SearchConfigs — все конфигурации по порядку лестницы.
 var SearchConfigs = []string{ConfigB0, ConfigB1, ConfigB2, ConfigB3, ConfigB4}
 
-// DefaultSearchConfig — конфигурация по умолчанию.
-const DefaultSearchConfig = ConfigB3
+// ConfigLive — витрина: пайплайн B3 на действующей (последней принятой) версии правил. В лестницу оценки не
+// входит: по смыслу это B4 «сейчас», а B4 в оценке — замер конкретной версии.
+const ConfigLive = "live"
+
+// DefaultSearchConfig — конфигурация по умолчанию: витрина работает на действующих правилах.
+const DefaultSearchConfig = ConfigLive
 
 // SearchEvent — один поиск: что искали, как обработали, сколько нашли.
 type SearchEvent struct {

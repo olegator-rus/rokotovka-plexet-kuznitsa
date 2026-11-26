@@ -103,7 +103,7 @@ func TestMetaEndpoint(t *testing.T) {
 	if err := json.NewDecoder(resp.Body).Decode(&m); err != nil {
 		t.Fatal(err)
 	}
-	if resp.StatusCode != 200 || m.CatalogVersion != "fixture-1" || len(m.Clients) != 3 || m.DefaultConfig != "B3" || m.LLMMode != "off" {
+	if resp.StatusCode != 200 || m.CatalogVersion != "fixture-1" || len(m.Clients) != 3 || m.DefaultConfig != "live" || m.LLMMode != "off" {
 		t.Fatalf("meta: %d %+v", resp.StatusCode, m)
 	}
 }

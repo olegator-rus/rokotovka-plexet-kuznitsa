@@ -77,6 +77,11 @@ const queueLink = { path: '/searchops', query: { tab: 'queue', role: 'content' }
               <span :class="['badge', 'badge--tone', status(p).tone]">{{ status(p).label }}</span>
             </div>
             <p v-if="p.diagnosis_text" class="t-sm">{{ p.diagnosis_text }}</p>
+            <p v-if="p.diagnosis_text" class="t-xs t-muted">
+              Текст выше — объяснение агента, а не правка. В поисковую копию карточки попадают
+              только слова из запросов ниже («было / предлагается»); характеристики товара агент не
+              добавляет.
+            </p>
             <template v-for="(i, n) in p.patch?.add ?? []" :key="n">
               <dl v-if="beforeAfter(i)" class="content__ba t-sm">
                 <dt class="t-muted">Было</dt>

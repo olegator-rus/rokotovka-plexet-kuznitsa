@@ -49,7 +49,7 @@ func TestMetaClientHints(t *testing.T) {
 		t.Fatalf("подсказки: %v", hints)
 	}
 	m := NewServices(nil, Options{}).Meta()
-	if m.CatalogVersion != "" || m.Clients == nil || len(m.Configs) != 5 || m.DefaultConfig != "B3" || m.LLMMode != "off" {
+	if m.CatalogVersion != "" || m.Clients == nil || len(m.Configs) != 5 || m.DefaultConfig != "live" || m.LLMMode != "off" {
 		t.Fatalf("meta без каталога: %+v", m)
 	}
 }

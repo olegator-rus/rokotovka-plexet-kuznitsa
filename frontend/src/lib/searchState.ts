@@ -6,7 +6,7 @@
 //   &cl=license_metric:device — ответ на уточняющий вопрос (повторяется)
 import type { ChipRef, ConfigId, SearchRequest } from '@/api/types'
 
-export const CONFIG_IDS: readonly ConfigId[] = ['B0', 'B1', 'B2', 'B3', 'B4']
+export const CONFIG_IDS: readonly ConfigId[] = ['live', 'B0', 'B1', 'B2', 'B3', 'B4']
 export const SEARCH_LIMIT = 20
 export const GUEST_CLIENT_ID = 'guest'
 
@@ -61,7 +61,8 @@ export function isConfigId(v: unknown): v is ConfigId {
 }
 
 export function parseSearchQuery(query: RawQuery): SearchState {
-  const configRaw = first(query.config).toUpperCase()
+  const configIn = first(query.config).trim()
+  const configRaw = configIn.toLowerCase() === 'live' ? 'live' : configIn.toUpperCase()
   const client = first(query.client).trim()
   const clarify: Record<string, string> = {}
   for (const pair of all(query.cl).map(parsePair)) if (pair) clarify[pair.field] = pair.value
