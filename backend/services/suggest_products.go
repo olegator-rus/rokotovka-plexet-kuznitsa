@@ -248,10 +248,15 @@ func panelProducts(lx *searchLexicon, r *instantResult, limit int) []out.PanelPr
 				p.DeliveryLine = &l
 			}
 		}
-		if f.skuHit {
+		switch {
+		case f.skuHit:
 			p.VariantsCount = 1
 			p.PriceFromRub = d.PriceRub
-		} else {
+		case !d.PriceOnRequest && d.PriceRub != nil:
+			// Карточка показывает позицию-голову («16 ядер») и в спецификацию кладёт её же: цена — её, а не
+			// минимум семейства (доп. лицензия на 2 ядра, CAL на устройство вместо CAL на пользователя).
+			p.PriceFromRub = d.PriceRub
+		default:
 			p.PriceFromRub = priceFrom(lx, d.FamilyID)
 		}
 		if p.VariantsCount == 0 {
