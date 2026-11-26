@@ -1,6 +1,6 @@
-// Общее состояние оболочки: /api/meta, клиент витрины, «Смотреть как» руководителя, номер сессии вкладки.
+// Общее состояние оболочки: /api/meta, клиент витрины, номер сессии вкладки.
 // Клиент витрины: у покупателя — свой из сессии входа, у гостя — «Гость», выбирать клиента («Смотреть глазами
-// клиента») может только сотрудник. Роль «Аналитики» — из сессии; другую выбирает только руководитель.
+// клиента») может только сотрудник.
 import { defineStore } from 'pinia'
 import { computed, ref } from 'vue'
 import { getProposals } from '@/api/agent'
@@ -11,12 +11,10 @@ import { isApiError } from '@/lib/apiError'
 import { SEARCH_CONFIGS_FALLBACK, withDefaultConfig } from '@/lib/configs'
 import { isSessionToken } from '@/lib/events'
 import { pendingCount } from '@/lib/proposals'
-import { type RoleId, isRoleId } from '@/lib/roles'
 import { GUEST_CLIENT_ID } from '@/lib/searchState'
 import { useAuthStore } from './auth'
 
 const SESSION_KEY = 'plexet.session'
-const ROLE_KEY = 'plexet.role'
 const CLIENT_KEY = 'plexet.client'
 
 /** Без meta в переключателе только гость: других клиентов фронт не выдумывает. */
@@ -59,11 +57,6 @@ export const useAppStore = defineStore('app', () => {
     if (!auth.staff) return GUEST_CLIENT_ID
     return pickedClient.value
   })
-  const savedRole = readStorage(ROLE_KEY)
-  /** «Смотреть как» руководителя; null — своя роль. */
-  const viewAs = ref<RoleId | null>(isRoleId(savedRole) ? savedRole : null)
-  /** Роль блоков «Аналитики»: своя из сессии; руководитель (и служебный доступ) — выбранная. */
-  const role = computed<RoleId>(() => (auth.viewAs ? (viewAs.value ?? auth.ownView) : auth.ownView))
   /** Токен сессии от сервера (GET /api/meta): до ответа meta — сохранённый или пустой. */
   const sessionId = ref<string>(initialSession())
 
@@ -126,24 +119,11 @@ export const useAppStore = defineStore('app', () => {
     writeStorage(CLIENT_KEY, pickedClient.value)
   }
 
-  /** «Смотреть как» — только руководителю. */
-  function setRole(id: RoleId) {
-    if (!auth.viewAs) return
-    viewAs.value = id
-    writeStorage(ROLE_KEY, id)
-  }
-
-  /** Смена входа: выбор клиента и «Смотреть как» прежнего пользователя не переносятся. */
+  /** Смена входа: выбор клиента прежнего пользователя не переносится. */
   function resetForViewer() {
     pickedClient.value = GUEST_CLIENT_ID
-    viewAs.value = null
     pendingProposals.value = null
     writeStorage(CLIENT_KEY, GUEST_CLIENT_ID)
-    try {
-      window.sessionStorage.removeItem(ROLE_KEY)
-    } catch {
-      // Хранилище недоступно — выбор и так живёт до перезагрузки.
-    }
   }
 
   return {
@@ -152,7 +132,6 @@ export const useAppStore = defineStore('app', () => {
     metaError,
     clientId,
     canPickClient,
-    role,
     sessionId,
     clients,
     defaultConfig,
@@ -161,7 +140,6 @@ export const useAppStore = defineStore('app', () => {
     pendingProposals,
     loadPending,
     setClient,
-    setRole,
     resetForViewer,
   }
 })

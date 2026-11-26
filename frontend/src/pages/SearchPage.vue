@@ -36,6 +36,8 @@ import SolutionCard from '@/components/search/SolutionCard.vue'
 import UpgradeCard from '@/components/search/UpgradeCard.vue'
 import AppliedFilters from '@/components/results/AppliedFilters.vue'
 import FamilyCard from '@/components/results/FamilyCard.vue'
+import AnalogOriginal from '@/components/results/AnalogOriginal.vue'
+import HelpAnswer from '@/components/results/HelpAnswer.vue'
 import RefinementChips from '@/components/results/RefinementChips.vue'
 import ResultsFacets from '@/components/results/ResultsFacets.vue'
 import ResultsToolbar from '@/components/results/ResultsToolbar.vue'
@@ -62,6 +64,7 @@ import {
   type SearchState,
 } from '@/lib/searchState'
 import { useAppStore } from '@/stores/app'
+import { useAuthStore } from '@/stores/auth'
 import { useSpecStore } from '@/stores/spec'
 import {
   blockItems,
@@ -71,6 +74,7 @@ import {
   impressionPayload,
 } from '@/lib/companions'
 import { usableFacet, withFilter } from '@/lib/facets'
+import { helpAnswerShown, helpHintShown, specPurchase, supplyShown } from '@/lib/procurement'
 import { type SpecLine, lineFromCompanion, lineFromItem, quantityForItem } from '@/lib/spec'
 import type { SlotChoice } from '@/lib/solution'
 
@@ -85,6 +89,8 @@ const EXAMPLES = [
 const route = useRoute()
 const router = useRouter()
 const app = useAppStore()
+// Контур доводки: переключатель конфигураций B0–B4 — только сотруднику; гость и покупатель ищут на действующей.
+const auth = useAuthStore()
 const { clientId, configs, defaultConfig } = storeToRefs(app)
 const toast = useToast()
 const isDesktop = useMediaQuery(DESKTOP_QUERY)
@@ -356,7 +362,13 @@ function onVariantExpand(item: SearchItem, position: number) {
 }
 
 function onSpecTarget(target: SearchItemBase, position: number) {
-  spec.add(lineFromItem(target, quantityForItem(target, response.value?.chips ?? [])))
+  spec.add(
+    lineFromItem(
+      target,
+      quantityForItem(target, response.value?.chips ?? []),
+      specPurchase(response.value?.purchase),
+    ),
+  )
   trackQuiet('click', { productId: target.product_id, position, payload: { action: 'spec' } })
   toast.add({
     tone: 'ok',
@@ -412,7 +424,13 @@ function openSpecAction() {
 }
 
 function onSpec(item: SearchItem) {
-  spec.add(lineFromItem(item, quantityForItem(item, response.value?.chips ?? [])))
+  spec.add(
+    lineFromItem(
+      item,
+      quantityForItem(item, response.value?.chips ?? []),
+      specPurchase(response.value?.purchase),
+    ),
+  )
   toast.add({
     tone: 'ok',
     title: 'Добавлено в спецификацию',
@@ -596,6 +614,48 @@ function onComplement(type: 'add_to_cart' | 'price_request', c: Complement, inde
 function sendManagerRequest() {
   return track('manager_request', { payload: { query: response.value?.query ?? state.value.q } })
 }
+
+// Контур доводки: справка, поставка отсутствующего товара, «Вы искали» («События»).
+const helpShown = computed(() => helpAnswerShown(response.value))
+const helpHint = computed(() => helpHintShown(response.value))
+const supply = computed(() => supplyShown(response.value))
+const supplySent = ref<string | null>(null)
+const reestrUnconfirmed = computed(() => response.value?.reestr_unconfirmed ?? [])
+const procurementSeen = new Set<string>()
+watch(response, (resp) => {
+  if (!resp) return
+  const rid = resp.request_id
+  if (resp.help && !procurementSeen.has(`help:${rid}`)) {
+    procurementSeen.add(`help:${rid}`)
+    trackQuiet('help_answer_shown', { payload: { help_id: resp.help.id, mode: resp.help.mode } })
+  }
+  if (resp.analog_original && !procurementSeen.has(`orig:${rid}`)) {
+    procurementSeen.add(`orig:${rid}`)
+    trackQuiet('analog_original_shown', { payload: { family_id: resp.analog_original.family_id } })
+  }
+})
+
+function onHelpOpen(help: { id: string; mode: string }) {
+  trackQuiet('help_click', { payload: { help_id: help.id, mode: help.mode } })
+}
+
+async function onSupply() {
+  const resp = response.value
+  if (!resp) return
+  try {
+    await track('supply_request', {
+      payload: { query: resp.query, message: resp.empty?.message ?? '' },
+    })
+    supplySent.value = resp.request_id
+    toast.add({
+      tone: 'ok',
+      title: 'Запрос поставки отправлен',
+      detail: `«${resp.query}» — категорийный менеджер увидит его в SearchOps`,
+    })
+  } catch {
+    toast.add({ tone: 'error', title: 'Запрос не отправлен', detail: 'Повторите через минуту' })
+  }
+}
 </script>
 
 <template>
@@ -611,6 +671,7 @@ function sendManagerRequest() {
         />
         <div class="search-page__controls">
           <ConfigSwitch
+            v-if="auth.staff"
             :configs="configs"
             :model-value="effectiveConfig"
             @update:model-value="onConfig"
@@ -624,7 +685,10 @@ function sendManagerRequest() {
       <SearchError v-else-if="status === 'error' && error" :error="error" @retry="run(state)" />
 
       <template v-else-if="status === 'ready' && response">
-        <h2 v-if="resultsOn" class="search-page__heading" role="status">
+        <h2 v-if="helpShown" class="sr-only" role="status">
+          Ответ справки по запросу «{{ response.query }}»
+        </h2>
+        <h2 v-else-if="resultsOn" class="search-page__heading" role="status">
           {{ resultsHeading(response) }}
           <span v-if="response.trace?.total_ms != null" class="t-sm t-muted">
             · {{ formatMs(response.trace.total_ms) }}
@@ -645,6 +709,8 @@ function sendManagerRequest() {
           @clarify="onClarify"
         />
 
+        <HelpAnswer v-if="helpHint && response.help" :help="response.help" @open="onHelpOpen" />
+
         <ul v-if="relaxed.length" class="search-page__notes">
           <li v-for="r in relaxed" :key="r.field">
             <Info :size="16" aria-hidden="true" />
@@ -664,6 +730,12 @@ function sendManagerRequest() {
           </div>
         </section>
 
+        <HelpAnswer
+          v-else-if="helpShown && response.help"
+          :help="response.help"
+          @open="onHelpOpen"
+        />
+
         <section v-else-if="blocks.absent || blocks.nothing" class="panel search-page__absent">
           <h2 class="t-h2">
             {{
@@ -679,8 +751,32 @@ function sendManagerRequest() {
                 : 'Похожих товаров в каталоге тоже нет. Менеджер подберёт решение или предложит замену.'
             }}
           </p>
-          <div v-if="showManager">
-            <button type="button" class="btn btn--secondary" @click="managerOpen = true">
+          <div v-if="showManager || supply" class="search-page__absent-actions">
+            <template v-if="supply">
+              <span
+                v-if="supplySent === response.request_id"
+                class="t-sm t-muted"
+                role="status"
+                data-testid="supply-sent"
+              >
+                Запрос поставки отправлен
+              </span>
+              <button
+                v-else
+                type="button"
+                class="btn btn--primary"
+                data-testid="supply-request"
+                @click="onSupply"
+              >
+                Запросить поставку
+              </button>
+            </template>
+            <button
+              v-if="showManager"
+              type="button"
+              class="btn btn--secondary"
+              @click="managerOpen = true"
+            >
               <Headset :size="16" aria-hidden="true" />
               Спросить менеджера
             </button>
@@ -745,6 +841,7 @@ function sendManagerRequest() {
                   :selected="state.trace && selected === p.item.product_id"
                   :in-spec="inSpec"
                   :show-compat="hardwareOn"
+                  :purchase="response.purchase"
                   @expand="onVariantExpand"
                   @spec="onSpecTarget"
                   @price-request="(t, pos) => onAction('price_request', t, pos)"
@@ -805,6 +902,7 @@ function sendManagerRequest() {
                   :selected="state.trace && selected === p.item.product_id"
                   :in-spec="inSpec"
                   :show-compat="hardwareOn"
+                  :purchase="response.purchase"
                   @expand="onVariantExpand"
                   @spec="onSpecTarget"
                   @price-request="(t, pos) => onAction('price_request', t, pos)"
@@ -896,8 +994,16 @@ function sendManagerRequest() {
               aria-labelledby="analogs-title"
             >
               <h2 id="analogs-title" class="t-h2">
-                {{ blocks.absent || !blocks.main.length ? 'Похожие по назначению' : 'Аналоги' }}
+                {{
+                  blocks.absent || (!blocks.main.length && !response.analog_original)
+                    ? 'Похожие по назначению'
+                    : 'Аналоги'
+                }}
               </h2>
+              <AnalogOriginal
+                v-if="response.analog_original"
+                :original="response.analog_original"
+              />
               <ol class="search-page__list">
                 <li v-for="p in blocks.analogs" :key="p.item.product_id">
                   <FamilyCard
@@ -924,6 +1030,33 @@ function sendManagerRequest() {
                     @action="onAction"
                     @why="onWhy"
                     @spec="onSpec"
+                  />
+                </li>
+              </ol>
+            </section>
+
+            <section
+              v-if="reestrUnconfirmed.length"
+              class="search-page__section"
+              aria-labelledby="reestr-unknown-title"
+              data-testid="reestr-unconfirmed"
+            >
+              <h2 id="reestr-unknown-title" class="t-h2">Статус не установлен</h2>
+              <p class="t-sm t-muted">
+                Запрос требует реестр российского ПО, а подтверждения записи в данных нет —
+                проверьте у менеджера.
+              </p>
+              <ol class="search-page__list">
+                <li v-for="(it, i) in reestrUnconfirmed" :key="it.product_id">
+                  <FamilyCard
+                    :item="it"
+                    :position="response.items.length + i + 1"
+                    :named="named"
+                    :in-spec="inSpec"
+                    @expand="onVariantExpand"
+                    @spec="onSpecTarget"
+                    @price-request="(t, pos) => onAction('price_request', t, pos)"
+                    @why="onWhy"
                   />
                 </li>
               </ol>
@@ -1073,6 +1206,11 @@ function sendManagerRequest() {
   flex-direction: column;
   gap: var(--space-2);
   padding: var(--space-4) var(--space-5);
+}
+.search-page__absent-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
 }
 .search-page__list {
   display: flex;

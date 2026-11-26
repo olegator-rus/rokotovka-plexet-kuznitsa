@@ -25,13 +25,17 @@ test.describe('Бэк-офис П2 — живой API', () => {
     test.skip(!(await hasP2Api()), 'методов контура коммерции на API пока нет')
   })
 
-  test('F23 live: рычаг, кривая, показатели, диалог применения без применения', async ({ page }) => {
+  test('F23 live: «Политика ранжирования» — рычаг, пример, диалог применения без применения', async ({
+    page,
+  }) => {
     test.setTimeout(120_000)
-    await page.goto('/margin')
+    await page.goto('/searchops?tab=policy')
     const lever = page.getByRole('group', { name: 'Приоритет маржи' })
     await expect(lever.getByRole('button', { name: /действует/ })).toBeVisible()
     // Первая симуляция собирает базовую выдачу (до ~20 с на tune).
-    await expect(page.getByRole('img', { name: /Кривая/ })).toBeVisible({ timeout: 90_000 })
+    await expect(page.getByRole('region', { name: 'Пример: было / стало' })).toBeVisible({
+      timeout: 90_000,
+    })
     await expect(page.getByText(/Оценка на \d+ размеченн/)).toBeVisible()
     await expect(page.getByText('Синтетические данные').first()).toBeVisible()
     await shot(page, 'live-margin-1440')
@@ -39,7 +43,7 @@ test.describe('Бэк-офис П2 — живой API', () => {
     const free = lever.locator('button:not([disabled]):not([data-state="on"])').first()
     await free.click()
     await expect(page).toHaveURL(/w=/)
-    await expect(page.getByRole('button', { name: /^Соответствие в первой десятке:/ })).toBeVisible()
+    await expect(page.getByText(/сменился первый результат:/)).toBeVisible()
     await page.getByRole('button', { name: /^Применить вес/ }).click()
     const dialog = page.getByRole('dialog', { name: /^Применить вес/ })
     await expect(dialog).toContainText('Будет создана политика')
@@ -49,7 +53,7 @@ test.describe('Бэк-офис П2 — живой API', () => {
   })
 
   test('F29 live: справочник связей и версии', async ({ page }) => {
-    await page.goto('/changes?tab=relations')
+    await page.goto('/searchops?tab=changes&view=relations')
     const table = page.getByRole('table', { name: 'Справочник связей' })
     await expect(table).toBeVisible()
     expect(await table.getByRole('row').count()).toBeGreaterThan(1)
@@ -60,7 +64,7 @@ test.describe('Бэк-офис П2 — живой API', () => {
   })
 
   test('F25 live: коммерческая лестница', async ({ page }) => {
-    await page.goto('/compare?tab=commerce')
+    await page.goto('/proofs?tab=compare&view=commerce')
     const table = page.getByRole('table', { name: 'Коммерческая лестница конфигураций' })
     await expect(table).toBeVisible({ timeout: 30_000 })
     await expect(table.getByRole('rowheader', { name: /C0/ })).toBeVisible()
@@ -94,9 +98,9 @@ test.describe('Бэк-офис П2 — живой API', () => {
     test.setTimeout(120_000)
     await page.setViewportSize({ width: 360, height: 780 })
     for (const [url, name] of [
-      ['/margin', 'live-margin-360'],
-      ['/changes?tab=relations', 'live-relations-360'],
-      ['/compare?tab=commerce', 'live-commerce-360'],
+      ['/searchops?tab=policy', 'live-policy-360'],
+      ['/searchops?tab=changes&view=relations', 'live-relations-360'],
+      ['/proofs?tab=compare&view=commerce', 'live-commerce-360'],
     ]) {
       await page.goto(url)
       await expect(page.locator('main h1')).toBeVisible()

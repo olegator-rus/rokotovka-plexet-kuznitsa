@@ -34,6 +34,31 @@ type AgentRun struct {
 	Mode    string          `json:"mode"`
 	Limits  AgentLimits     `json:"limits"`
 	Episode json.RawMessage `json:"episode"`
+	// Контур автономии: запрос «Разобрать» (null — по периоду), режим «только чтение», вход триггера,
+	// последняя редакция плана, бюджет (лимиты и расход), итог по видам, неразобранное.
+	Query       *string         `json:"query"`
+	ReadOnly    bool            `json:"read_only"`
+	Input       json.RawMessage `json:"input"`
+	Plan        json.RawMessage `json:"plan"`
+	Budget      json.RawMessage `json:"budget"`
+	Outcome     RunOutcome      `json:"outcome"`
+	Unprocessed json.RawMessage `json:"unprocessed"`
+	DurationMs  *int64          `json:"duration_ms"`
+}
+
+// RunOutcome — итог запуска для строки «N предложений, M задач, K пропущено по памяти».
+type RunOutcome struct {
+	Proposals     int `json:"proposals"`
+	Tasks         int `json:"tasks"`
+	Rollbacks     int `json:"rollbacks"`
+	Drafts        int `json:"drafts"`
+	SkippedMemory int `json:"skipped_memory"`
+	EffectChecks  int `json:"effect_checks"`
+	Helped        int `json:"helped"`
+	NoEffect      int `json:"no_effect"`
+	Harmed        int `json:"harmed"`
+	Checked       int `json:"checked"`
+	Stale         int `json:"stale"`
 }
 
 // AgentLimits — ограничители запуска (для колонки «шаг N из лимита»).
@@ -119,18 +144,37 @@ type Proposal struct {
 	DecidedReason   *string         `json:"decided_reason"`
 	DecidedComment  *string         `json:"decided_comment"`
 	// StaleReason — почему предложение устарело (status = stale): catalog_changed — сменился каталог,
-	// pre_holdout — запуск до разреза журнала видел отложенную неделю и тексты test; пояснение — в decided_comment.
+	// pre_holdout — запуск до разреза журнала видел отложенную неделю и тексты test; removed_p4 — тип предложения
+	// удалён в контуре доводки; пояснение — в decided_comment.
 	StaleReason   *string         `json:"stale_reason"`
 	ConfigVersion *int            `json:"config_version"`
 	Effect        json.RawMessage `json:"effect"`
 	// CheckQuery — запрос для кнопки «Проверить в поиске».
 	CheckQuery string `json:"check_query"`
 	// Контур коммерции: уровень доказательности E0–E5, техническая корректность verified|unverified|failed,
-	// экономический эффект unknown|estimated|measured, оценка приоритета (null — не посчитана). Пусто у контура поиска.
-	EvidenceLevel   string   `json:"evidence_level"`
-	TechnicalStatus string   `json:"technical_status"`
-	EconomicStatus  string   `json:"economic_status"`
-	PriorityScore   *float64 `json:"priority_score"`
+	// экономический эффект unknown|estimated|measured. Пусто у контура поиска.
+	EvidenceLevel   string `json:"evidence_level"`
+	TechnicalStatus string `json:"technical_status"`
+	EconomicStatus  string `json:"economic_status"`
+	// Контур доводки: причина из семи (services/causes.go) и её владелец; Diagnosis — подпричина. Role
+	// равна Owner: решение принимает владелец причины.
+	Cause      string `json:"cause"`
+	CauseLabel string `json:"cause_label"`
+	Owner      string `json:"owner"`
+	OwnerLabel string `json:"owner_label"`
+	// Контур автономии: триггер запуска, который предложил (manual|schedule|spike|catalog_change; "" — запуск
+	// не найден); задача владельцу (action ticket); откат, предложенный агентом (action rollback).
+	Trigger     string       `json:"trigger"`
+	RunStarted  *time.Time   `json:"run_started_at"`
+	TaskToOwner bool         `json:"task_to_owner"`
+	RollbackOf  *RollbackRef `json:"rollback_of"`
+}
+
+// RollbackRef — какую принятую правку откатывает предложение агента.
+type RollbackRef struct {
+	ProposalID    string `json:"proposal_id"`
+	ConfigVersion *int   `json:"config_version"`
+	Label         string `json:"label"`
 }
 
 // ProposalList — GET /api/proposals.
@@ -159,6 +203,127 @@ type MemoryItem struct {
 // MemoryList — GET /api/agent/memory.
 type MemoryList struct {
 	Items []MemoryItem `json:"items"`
+}
+
+// MemoryDecision — слой «Решения» (GET /api/agent/memory?layer=decisions).
+type MemoryDecision struct {
+	ID           string    `json:"id"`
+	ProposalID   string    `json:"proposal_id"`
+	RunID        *string   `json:"run_id"`
+	Trigger      string    `json:"trigger"`
+	ClusterLabel string    `json:"cluster_label"`
+	ClusterKey   string    `json:"cluster_key"`
+	Diagnosis    string    `json:"diagnosis"`
+	Cause        string    `json:"cause"`
+	CauseLabel   string    `json:"cause_label"`
+	AgentReason  string    `json:"agent_reason"`
+	Proposal     string    `json:"proposal"`
+	Action       string    `json:"action"`
+	Decision     string    `json:"decision"`
+	Reason       string    `json:"reason"`
+	ReasonLabel  string    `json:"reason_label"`
+	Comment      string    `json:"comment"`
+	DecidedBy    string    `json:"decided_by"`
+	DecidedLabel string    `json:"decided_by_label"`
+	TS           time.Time `json:"ts"`
+}
+
+// MemorySuppress — слой «Не предлагать».
+type MemorySuppress struct {
+	ID              string     `json:"id"`
+	ClusterKey      string     `json:"cluster_key"`
+	ClusterLabel    string     `json:"cluster_label"`
+	Scope           string     `json:"scope"`
+	PatchKeys       []string   `json:"patch_keys"`
+	Diagnosis       string     `json:"diagnosis"`
+	Why             string     `json:"why"`
+	Reason          string     `json:"reason"`
+	Comment         string     `json:"comment"`
+	DecidedAt       time.Time  `json:"decided_at"`
+	ProposalID      string     `json:"proposal_id"`
+	RunID           string     `json:"run_id"`
+	ReturnCondition string     `json:"return_condition"`
+	FailuresAt      int        `json:"failures_at"`
+	ReturnFailures  int        `json:"return_failures"`
+	CurrentFailures int        `json:"current_failures"`
+	CatalogAt       string     `json:"catalog_at"`
+	CheckedAt       *time.Time `json:"checked_at"`
+	CheckedRunID    *string    `json:"checked_run_id"`
+	Status          string     `json:"status"`
+	LiftedRunID     *string    `json:"lifted_run_id"`
+	LiftedWhat      string     `json:"lifted_what"`
+	RemovedReason   string     `json:"removed_reason"`
+	RemovedBy       string     `json:"removed_by"`
+	RemovedAt       *time.Time `json:"removed_at"`
+}
+
+// MemoryEpisode — слой «Эпизоды».
+type MemoryEpisode struct {
+	ID           string          `json:"id"`
+	RunID        string          `json:"run_id"`
+	Trigger      string          `json:"trigger"`
+	Kind         string          `json:"kind"`
+	ClusterKey   string          `json:"cluster_key"`
+	ClusterLabel string          `json:"cluster_label"`
+	Outcome      string          `json:"outcome"`
+	Diagnosis    string          `json:"diagnosis"`
+	Cause        string          `json:"cause"`
+	CauseLabel   string          `json:"cause_label"`
+	ProposalID   *string         `json:"proposal_id"`
+	Effect       *string         `json:"effect"`
+	Details      json.RawMessage `json:"details"`
+	Note         string          `json:"note"`
+	TS           time.Time       `json:"ts"`
+}
+
+// MemoryLayer — GET /api/agent/memory?layer=…: одна из трёх вкладок.
+type MemoryLayer struct {
+	Layer     string           `json:"layer"`
+	Decisions []MemoryDecision `json:"decisions,omitempty"`
+	Suppress  []MemorySuppress `json:"suppress,omitempty"`
+	Episodes  []MemoryEpisode  `json:"episodes,omitempty"`
+}
+
+// AgentSettings — GET /api/agent/settings: режим, расписание, пороги триггеров, пул и бюджет.
+type AgentSettings struct {
+	ReadOnly       bool              `json:"read_only"`
+	ModeLabel      string            `json:"mode_label"`
+	Schedule       AgentSchedule     `json:"schedule"`
+	Spike          AgentSpike        `json:"spike"`
+	CatalogTrigger bool              `json:"catalog_trigger"`
+	MaxParallel    int               `json:"max_parallel"`
+	Running        int               `json:"running"`
+	Budget         AgentBudgetLimits `json:"budget"`
+	QueryBudget    AgentBudgetLimits `json:"query_budget"`
+	Line           string            `json:"line"`
+}
+
+// AgentSchedule — расписание ночного разбора.
+type AgentSchedule struct {
+	Enabled  bool       `json:"enabled"`
+	At       string     `json:"at"`
+	Interval string     `json:"interval"`
+	Days     int        `json:"days"`
+	NextAt   *time.Time `json:"next_at"`
+}
+
+// AgentSpike — пороги триггера «всплеск».
+type AgentSpike struct {
+	Enabled     bool    `json:"enabled"`
+	Window      string  `json:"window"`
+	MinSearches int     `json:"min_searches"`
+	EmptyShare  float64 `json:"empty_share"`
+	ReformShare float64 `json:"reform_share"`
+	QueryFreq   int     `json:"query_freq"`
+	Cooldown    string  `json:"cooldown"`
+}
+
+// AgentBudgetLimits — лимиты одного запуска.
+type AgentBudgetLimits struct {
+	Steps       int     `json:"steps"`
+	Tokens      int     `json:"tokens"`
+	CostRub     float64 `json:"cost_rub"`
+	DurationSec int     `json:"duration_sec"`
 }
 
 // ConfigVersion — версия правил.

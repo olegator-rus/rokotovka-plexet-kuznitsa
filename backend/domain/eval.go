@@ -80,7 +80,16 @@ const (
 	EventSourceLive    = "live"     // пишет работающий поиск и POST /api/events
 	EventSourceMockLog = "mock_log" // импорт исторических логов (make import)
 	EventSourceCompare = "compare"  // поиск из вкладки «Один запрос»: не входит в аналитику и стоимость
+	// EventSourceTraffic — генератор mock-трафика стенда (`go run . traffic`, контур автономии): для агента — живой журнал,
+	// в аналитике — отдельный источник (by_source), в стоимость маршрутов (только live) не входит.
+	EventSourceTraffic = "traffic"
 )
+
+// IsLiveSource — запись живого журнала (поиск покупателя или генератор трафика), а не импорт исторических логов.
+// Пустой источник — live (записи до появления поля).
+func IsLiveSource(s string) bool {
+	return s == "" || s == EventSourceLive || s == EventSourceTraffic
+}
 
 // RulesSnapshot — снимок словарей и правил поиска: то, что лежит в config_versions. Песочница агента
 // передаёт его в прогон оценки вместо действующей версии.

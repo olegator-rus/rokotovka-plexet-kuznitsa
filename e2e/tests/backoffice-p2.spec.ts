@@ -1,5 +1,6 @@
-// Бэк-офис контура коммерции: «Маржа», «Изменения» → «Связи», «До / После» → «Коммерция»,
-// карточка relation_patch в очереди SearchOps, 360 px. API контура коммерции подменяется контрактными ответами
+// Бэк-офис контура коммерции в разделах контура доводки: SearchOps → «Политика ранжирования» (один экран без кривой),
+// SearchOps → «Изменения» → «Связи», «Доказательства» → «До / После» → «Коммерция», карточка relation_patch
+// в очереди SearchOps, 360 px. API контура коммерции подменяется контрактными ответами
 // (backoffice-p2-data.ts); E2E_P2_LIVE=1 — живой API. E2E_SCREENS=1 — скриншоты в artifacts/screens/p2/.
 import type { Page } from '@playwright/test'
 import { mockBackofficeP2 } from './backoffice-p2-data'
@@ -12,35 +13,37 @@ const shot = async (page: Page, name: string) => {
 }
 
 test.describe('Бэк-офис П2', () => {
-  test('F23: рычаг маржи — кривая, упор, «было / стало», применение через диалог', async ({
+  test('F23: «Политика ранжирования» — рычаг, упор, один пример «было / стало», защиты, применение через диалог', async ({
     page,
   }) => {
     const posts = await mockBackofficeP2(page)
     await page.goto('/margin')
-    await expect(page.getByRole('heading', { name: 'Маржа', level: 1 })).toBeVisible()
-    await expect(page.getByRole('link', { name: 'Маржа' })).toBeVisible()
+    await expect(page).toHaveURL(/\/searchops\?tab=policy/)
+    await expect(page.getByRole('tab', { name: 'Политика ранжирования' })).toHaveAttribute(
+      'data-state',
+      'active',
+    )
     await expect(page.getByText('Синтетические данные').first()).toBeVisible()
 
     const lever = page.getByRole('group', { name: 'Приоритет маржи' })
     await expect(lever.getByRole('button', { name: /Вес 0,05, действует/ })).toBeVisible()
     await expect(lever.getByRole('button', { name: /0,12, за упором/ })).toBeDisabled()
-    await expect(page.getByRole('img', { name: /Кривая/ })).toBeVisible()
+    await expect(page.getByRole('img', { name: /Кривая/ })).toHaveCount(0)
     await expect(page.getByText('Точные запросы защищены')).toBeVisible()
     await expect(page.getByText(/Оценка на 120 размеченных запросах/)).toBeVisible()
     await expect(page.getByRole('button', { name: /^Применить вес/ })).toBeDisabled()
-    await shot(page, 'backoffice-margin-1440')
+    await shot(page, 'backoffice-policy-1440')
 
     await lever.getByRole('button', { name: /Вес 0,08/ }).click()
     await expect(page).toHaveURL(/w=0\.08/)
     await expect(page.getByText(/Упор\./)).toBeVisible()
-    await expect(
-      page.getByRole('button', { name: /Соответствие в первой десятке: В среднем на 0,2/ }),
-    ).toBeVisible()
-    await expect(page.getByRole('button', { name: /Изменился первый результат: 3 запроса/ })).toBeVisible()
+    await expect(page.getByText(/сменился первый результат: 3 запроса/)).toBeVisible()
 
-    await page.getByRole('button', { name: /антивирус для бизнеса на 50 пк/ }).click()
-    await expect(page.getByText('Было (вес 0,05)')).toBeVisible()
-    await expect(page.getByText('поднялась с 2')).toBeVisible()
+    const example = page.getByRole('region', { name: 'Пример: было / стало' })
+    await expect(example).toContainText('Запрос по артикулу не двигается')
+    await expect(example).toContainText('антивирус для бизнеса на 50 пк')
+    await expect(example.getByText('Было (вес 0,05)')).toBeVisible()
+    await expect(example.getByText('с 2')).toBeVisible()
 
     await page.getByRole('button', { name: 'Применить вес 0,08' }).click()
     const dialog = page.getByRole('dialog', { name: 'Применить вес 0,08?' })
@@ -56,6 +59,7 @@ test.describe('Бэк-офис П2', () => {
   }) => {
     const posts = await mockBackofficeP2(page)
     await page.goto('/changes?tab=relations')
+    await expect(page).toHaveURL(/\/searchops\?tab=changes&view=relations/)
     await expect(page.getByRole('tab', { name: 'Связи' })).toHaveAttribute('data-state', 'active')
     const table = page.getByRole('table', { name: 'Справочник связей' })
     await expect(table.getByRole('row')).toHaveCount(3)
@@ -86,7 +90,7 @@ test.describe('Бэк-офис П2', () => {
     page,
   }) => {
     await mockBackofficeP2(page)
-    await page.goto('/compare?tab=commerce')
+    await page.goto('/proofs?tab=compare&view=commerce')
     const table = page.getByRole('table', { name: 'Коммерческая лестница конфигураций' })
     await expect(table.getByRole('row')).toHaveCount(5)
     await expect(table.getByRole('row', { name: /C3 · \+ политика маржи не готово/ })).toBeVisible()
@@ -111,6 +115,8 @@ test.describe('Бэк-офис П2', () => {
     await page.goto('/searchops?tab=queue')
     const card = page.getByRole('article').filter({ hasText: 'Сломанная связь' })
     await expect(card).toBeVisible()
+    await expect(card.getByTestId('cause')).toHaveText('Ошибка в связи или лицензионном правиле')
+    await expect(card.getByTestId('owner')).toContainText('Лицензионный специалист')
     await expect(card).toContainText('было: дополнение · условно обязательное · совместимость не подтверждена')
     await expect(card).toContainText('Уровень: E2 — документ вендора · сильное')
     await expect(card).toContainText('Техническая корректность: подтверждена')
@@ -120,19 +126,21 @@ test.describe('Бэк-офис П2', () => {
     await expect(card).toContainText('Правило вендора lr-ws-cal')
     await shot(page, 'backoffice-searchops-relation-1440')
 
-    await card.getByRole('button', { name: 'Принять' }).click()
-    const dialog = page.getByRole('dialog', { name: 'Принять правку?' })
+    await card.getByRole('button', { name: 'Утвердить' }).click()
+    const dialog = page.getByRole('dialog', { name: 'Утвердить правку поиска?' })
     await expect(dialog).toContainText('версия справочника связей')
     await dialog.getByRole('button', { name: 'Отмена' }).click()
   })
 
-  test('360 px: «Маржа» и «Связи» без горизонтальной прокрутки страницы', async ({ page }) => {
+  test('360 px: «Политика ранжирования», «Связи» и «Коммерция» без горизонтальной прокрутки страницы', async ({
+    page,
+  }) => {
     await mockBackofficeP2(page)
     await page.setViewportSize({ width: 360, height: 780 })
     for (const [url, name] of [
-      ['/margin', 'backoffice-margin-360'],
-      ['/changes?tab=relations', 'backoffice-relations-360'],
-      ['/compare?tab=commerce', 'backoffice-commerce-360'],
+      ['/searchops?tab=policy', 'backoffice-policy-360'],
+      ['/searchops?tab=changes&view=relations', 'backoffice-relations-360'],
+      ['/proofs?tab=compare&view=commerce', 'backoffice-commerce-360'],
     ]) {
       await page.goto(url)
       await expect(page.locator('main h1')).toBeVisible()

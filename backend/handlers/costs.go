@@ -44,26 +44,6 @@ func (h *Handler) CostsExport(c *fiber.Ctx) error {
 	return c.Send(raw)
 }
 
-// Effect — GET /api/effect?days=&session_factor=&order_prob=&rescue_factor=&avg_check_rub=: вилка эффекта для руководителя.
-func (h *Handler) Effect(c *fiber.Ctx) error {
-	var bad []errs.FieldError
-	req := services.EffectRequest{
-		Days:          queryInt(c, "days", &bad),
-		SessionFactor: queryFloat(c, "session_factor", &bad),
-		OrderProb:     queryFloat(c, "order_prob", &bad),
-		RescueFactor:  queryFloat(c, "rescue_factor", &bad),
-		AvgCheckRub:   queryFloat(c, "avg_check_rub", &bad),
-	}
-	if len(bad) > 0 {
-		return errs.NewValidationError(errs.MsgInvalidFields).WithDetails(bad...)
-	}
-	res, err := h.services.Effect(c.UserContext(), req)
-	if err != nil {
-		return err
-	}
-	return c.JSON(res)
-}
-
 func monthlyParams(c *fiber.Ctx, bad *[]errs.FieldError) services.MonthlyParams {
 	return services.MonthlyParams{
 		ServerRub20k:       queryFloat(c, "server_rub_20k", bad),

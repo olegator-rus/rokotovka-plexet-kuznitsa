@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"slices"
 	"strings"
+	"time"
 
 	"kuznica/api/domain"
 	"kuznica/api/in"
@@ -27,10 +28,10 @@ const (
 )
 
 var proposalStatuses = []string{domain.ProposalPending, domain.ProposalAccepted, domain.ProposalRejected, domain.ProposalRolledBack, domain.ProposalStale}
-var proposalRoles = []string{domain.RoleEcom, domain.RoleProduct, domain.RoleContent}
+var proposalRoles = []string{domain.RoleEcom, domain.RoleProduct, domain.RoleContent, RoleHead}
 
-// Proposals — GET /api/proposals?status=&role=.
-func (s *Services) Proposals(ctx context.Context, status, role string) (*out.ProposalList, error) {
+// Proposals — GET /api/proposals?status=&role=&cause=. role — владелец причины (контур доводки), cause — код причины.
+func (s *Services) Proposals(ctx context.Context, status, role string, cause ...string) (*out.ProposalList, error) {
 	st := s.store()
 	if st == nil {
 		return nil, errs.NewUnavailableError(MsgNoAgentStore)
@@ -40,19 +41,32 @@ func (s *Services) Proposals(ctx context.Context, status, role string) (*out.Pro
 		bad = append(bad, errs.FieldError{Field: "status", Code: errs.CodeInvalidFormat, Message: "Статус — pending, accepted, rejected, rolled_back или stale"})
 	}
 	if role != "" && !slices.Contains(proposalRoles, role) {
-		bad = append(bad, errs.FieldError{Field: "role", Code: errs.CodeInvalidFormat, Message: "Роль — ecom, product или content"})
+		bad = append(bad, errs.FieldError{Field: "role", Code: errs.CodeInvalidFormat, Message: "Роль — ecom, product, content или head"})
+	}
+	causeCode := ""
+	if len(cause) > 0 {
+		causeCode = strings.TrimSpace(cause[0])
+	}
+	if causeCode != "" && !KnownCause(causeCode) {
+		bad = append(bad, errs.FieldError{Field: "cause", Code: errs.CodeInvalidFormat, Message: "Неизвестная причина"})
 	}
 	if len(bad) > 0 {
 		return nil, errs.NewValidationError(errs.MsgInvalidQuery).WithDetails(bad...)
 	}
-	rows, err := st.ListProposals(ctx, status, role)
+	// Владелец считается по диагнозу, а не по колонке role (её писал агент до контура доводки) — фильтр здесь.
+	rows, err := st.ListProposals(ctx, status, "")
 	if err != nil {
 		return nil, err
 	}
-	sortByPriority(rows) // контур коммерции: очередь по оценке приоритета (agent_commerce_stats.go)
 	res := &out.ProposalList{Items: make([]out.Proposal, 0, len(rows))}
+	runs := s.runIndex(ctx)
 	for i := range rows {
-		res.Items = append(res.Items, proposalView(&rows[i]))
+		v := proposalView(&rows[i])
+		withRun(&v, &rows[i], runs)
+		if (role != "" && v.Owner != role) || (causeCode != "" && v.Cause != causeCode) {
+			continue
+		}
+		res.Items = append(res.Items, v)
 	}
 	return res, nil
 }
@@ -64,7 +78,36 @@ func (s *Services) Proposal(ctx context.Context, id string) (*out.Proposal, erro
 		return nil, err
 	}
 	v := proposalView(p)
+	withRun(&v, p, s.runIndex(ctx))
 	return &v, nil
+}
+
+// runRef — триггер и время запуска для «откуда» у предложения.
+type runRef struct {
+	trigger string
+	started time.Time
+}
+
+// runIndex — последние запуски агента: id → триггер и время.
+func (s *Services) runIndex(ctx context.Context) map[uuid.UUID]runRef {
+	res := map[uuid.UUID]runRef{}
+	if st := s.store(); st != nil {
+		if rows, err := st.ListAgentRunsByTrigger(ctx, "", 500); err == nil {
+			for _, r := range rows {
+				res[r.ID] = runRef{trigger: r.Trigger, started: r.StartedAt}
+			}
+		}
+	}
+	return res
+}
+
+// withRun — триггер и время запуска в форме предложения.
+func withRun(v *out.Proposal, p *domain.Proposal, runs map[uuid.UUID]runRef) {
+	if r, ok := runs[p.RunID]; ok {
+		v.Trigger = r.trigger
+		t := r.started
+		v.RunStarted = &t
+	}
 }
 
 func (s *Services) loadProposal(ctx context.Context, id string) (*domain.Proposal, error) {
@@ -104,8 +147,8 @@ func (s *Services) ApproveProposal(ctx context.Context, id string, req in.Approv
 	if p.Action == domain.ActionRelationPatch {
 		return s.approveRelationPatch(ctx, p, comment)
 	}
-	if p.Action == domain.ActionMarginPolicy {
-		return nil, errs.NewValidationError(MsgMarginViaScreen)
+	if p.Action == domain.ActionRollback {
+		return s.approveRollback(ctx, p, comment)
 	}
 	var version *domain.ConfigVersion
 	base, rechecked := 0, false
@@ -136,7 +179,8 @@ func (s *Services) ApproveProposal(ctx context.Context, id string, req in.Approv
 	now := s.now().UTC()
 	p.Status, p.DecidedAt, p.DecidedReason, p.DecidedComment = domain.ProposalAccepted, &now, "accepted", comment
 	dec := &domain.Decision{ProposalID: p.ID, Decision: domain.ProposalAccepted, Reason: "accepted", Comment: comment,
-		ClusterKey: p.ClusterKey, ClusterLabel: p.ClusterLabel, Diagnosis: p.Diagnosis, PatchKeys: p.PatchKeys}
+		ClusterKey: p.ClusterKey, ClusterLabel: p.ClusterLabel, Diagnosis: p.Diagnosis, PatchKeys: p.PatchKeys,
+		DecidedBy: ActorOf(ctx)}
 	ch := &repositories.RulesChange{Proposal: p, Decision: dec, Base: base, Version: version}
 	if err := st.ApplyRulesChange(ctx, ch); err != nil {
 		return nil, rulesError(err)
@@ -237,10 +281,14 @@ func (s *Services) RejectProposal(ctx context.Context, id string, req in.RejectR
 		terms, _ = domain.ToJSONB(ev)
 	}
 	dec := &domain.Decision{ProposalID: p.ID, Decision: domain.ProposalRejected, Reason: reason, Comment: comment,
-		ClusterKey: p.ClusterKey, ClusterLabel: p.ClusterLabel, Diagnosis: p.Diagnosis, Terms: terms, PatchKeys: p.PatchKeys}
+		ClusterKey: p.ClusterKey, ClusterLabel: p.ClusterLabel, Diagnosis: p.Diagnosis, Terms: terms, PatchKeys: p.PatchKeys,
+		DecidedBy: ActorOf(ctx)}
 	if err := s.store().ApplyRulesChange(ctx, &repositories.RulesChange{Proposal: p, Decision: dec}); err != nil {
 		return nil, rulesError(err)
 	}
+	// Память агента: «не предлагать» с условием возврата (контур автономии).
+	dec.CreatedAt = now
+	s.recordSuppress(ctx, p, dec)
 	zap.L().Info("предложение отклонено", zap.String("proposal_id", id), zap.String("reason", reason))
 	return &out.ProposalDecision{Proposal: proposalView(p)}, nil
 }
@@ -291,8 +339,10 @@ func proposalView(p *domain.Proposal) out.Proposal {
 		Role: p.Role, Action: p.Action, Patch: rawOrNull(p.Patch), Evaluation: rawOrNull(p.Evaluation),
 		Evidence: rawOrNull(p.Evidence), HypothesesTried: p.HypothesesTried, BaseVersion: p.BaseVersion, Status: p.Status,
 		CreatedAt: p.CreatedAt, DecidedAt: p.DecidedAt, ConfigVersion: p.ConfigVersion, Effect: rawOrNull(p.Effect),
-		EvidenceLevel: p.EvidenceLevel, TechnicalStatus: p.TechnicalStatus, EconomicStatus: p.EconomicStatus,
-		PriorityScore: p.PriorityScore}
+		EvidenceLevel: p.EvidenceLevel, TechnicalStatus: p.TechnicalStatus, EconomicStatus: p.EconomicStatus}
+	c := CauseOf(p.Diagnosis)
+	v.Cause, v.CauseLabel, v.Owner, v.OwnerLabel = c.Code, c.Label, c.Owner, c.OwnerLabel
+	v.Role = c.Owner
 	if p.DecidedAt != nil {
 		v.DecidedReason, v.DecidedComment = &p.DecidedReason, &p.DecidedComment
 	}
@@ -301,7 +351,19 @@ func proposalView(p *domain.Proposal) out.Proposal {
 		if reason == "" {
 			reason = domain.ProposalStaleReason
 		}
+		if reason == repositories.StaleReasonRemovedP4 && p.DecidedComment == "" {
+			p.DecidedComment = "удалено в контуре доводки"
+		}
 		v.StaleReason = &reason
+	}
+	v.TaskToOwner = p.Action == domain.ActionTicket
+	if p.Action == domain.ActionRollback {
+		var ev struct {
+			RollbackOf    string `json:"rollback_of"`
+			ConfigVersion *int   `json:"config_version"`
+		}
+		_ = json.Unmarshal(p.Evidence, &ev)
+		v.RollbackOf = &out.RollbackRef{ProposalID: ev.RollbackOf, ConfigVersion: ev.ConfigVersion, Label: p.ClusterLabel}
 	}
 	v.Cluster = out.ProposalCluster{Label: p.ClusterLabel, LostDemand: p.LostDemand, Queries: []out.ProposalQuery{}}
 	if p.ClusterID != nil {
@@ -339,4 +401,59 @@ func (s *Services) StaleProposalsOfRuns(ctx context.Context, runs []string, comm
 		return nil, errs.NewUnavailableError(MsgNoAgentStore)
 	}
 	return s.repos.StaleProposalsOfRuns(ctx, prefixes, domain.ProposalStalePreHoldout, strings.TrimSpace(comment))
+}
+
+// approveRollback — принять откат, который агент предложил сам (контур автономии, rollback_proposed_by_agent): обратная
+// правка поверх действующих правил — новая версия (source rollback, автор agent+human), исходная правка → rolled_back.
+// Тот же механизм версий, что ручной откат: история не стирается, откат отката — POST /api/configs/rollback.
+func (s *Services) approveRollback(ctx context.Context, p *domain.Proposal, comment string) (*out.ProposalDecision, error) {
+	var patch RulePatch
+	if err := json.Unmarshal(p.Patch, &patch); err != nil {
+		return nil, errs.NewInternalError("Правка отката не разбирается").WithCause(err)
+	}
+	var ev struct {
+		RollbackOf string `json:"rollback_of"`
+	}
+	_ = json.Unmarshal(p.Evidence, &ev)
+	target, err := uuid.Parse(ev.RollbackOf)
+	if err != nil {
+		return nil, errs.NewInternalError("В предложении отката нет исходной правки")
+	}
+	cur, err := s.activeRules(ctx)
+	if err != nil {
+		return nil, err
+	}
+	next := cur.applyPatch(patch)
+	diff, _ := json.Marshal(rulesDiff(cur, next))
+	pid := p.ID.String()
+	ver := cur.Version + 1
+	now := s.now().UTC()
+	p.ConfigVersion = &ver
+	p.Status, p.DecidedAt, p.DecidedReason, p.DecidedComment = domain.ProposalAccepted, &now, "accepted", comment
+	version := &domain.ConfigVersion{Version: ver, Source: "rollback", Author: "agent+human",
+		Comment: "Откат по предложению агента: " + truncateRunes(p.DiagnosisText, 300), ProposalID: &pid, Rules: next.rulesJSON(), Diff: diff}
+	dec := &domain.Decision{ProposalID: p.ID, Decision: domain.ProposalAccepted, Reason: "accepted", Comment: comment,
+		ClusterKey: p.ClusterKey, ClusterLabel: p.ClusterLabel, Diagnosis: p.Diagnosis, PatchKeys: p.PatchKeys, DecidedBy: ActorOf(ctx)}
+	ch := &repositories.RulesChange{Proposal: p, Decision: dec, Base: cur.Version, Version: version, RollBackProposal: &target}
+	if err := s.store().ApplyRulesChange(ctx, ch); err != nil {
+		return nil, rulesError(err)
+	}
+	s.rulesChanged(ver)
+	zap.L().Info("откат по предложению агента принят", zap.String("proposal_id", pid), zap.String("rolled_back", target.String()),
+		zap.Int("version", ver))
+	return &out.ProposalDecision{Proposal: proposalView(p), ConfigVersion: p.ConfigVersion}, nil
+}
+
+// actorKey — кто принимает решение (роль), для «кто» в памяти решений.
+type actorKey struct{}
+
+// WithActor — роль действующего в контексте запроса (handlers).
+func WithActor(ctx context.Context, role string) context.Context {
+	return context.WithValue(ctx, actorKey{}, role)
+}
+
+// ActorOf — роль из контекста; пусто — не задана (CLI, тесты).
+func ActorOf(ctx context.Context) string {
+	r, _ := ctx.Value(actorKey{}).(string)
+	return r
 }

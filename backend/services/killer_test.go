@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"math"
 	"strings"
 	"testing"
 	"time"
@@ -15,118 +14,8 @@ import (
 	"kuznica/api/in"
 	"kuznica/api/out"
 	"kuznica/api/pkg/errs"
+	"kuznica/api/repositories"
 )
-
-// Вилка эффекта: формула, источники значений, сценарии в порядке консервативный ≤ базовый ≤ оптимистичный.
-func TestComputeEffect(t *testing.T) {
-	at := time.Now().Add(-time.Hour)
-	sess := func(s string) *string { return &s }
-	ev := func(id, q, s string, n int, d time.Duration) domain.SearchEvent {
-		e := domain.SearchEvent{RequestID: id, Query: q, ResultsCount: n, SessionID: sess(s)}
-		e.CreatedAt = at.Add(d)
-		return e
-	}
-	// Сессия 1: два пустых поиска подряд (одна проблемная сессия), сессия 2: успешный поиск с заказом,
-	// сессия 3: успешный поиск с кликом без заказа, сессия 4: выдача без клика.
-	searches := []domain.SearchEvent{
-		ev("r1", "винрар", "s1", 0, 0), ev("r2", "winrar", "s1", 0, 90*time.Second),
-		ev("r3", "касперский", "s2", 5, 0), ev("r4", "1с", "s3", 5, 0), ev("r5", "кис", "s4", 3, 0),
-	}
-	pid := "kis-2dev-1y"
-	order := domain.BehaviorEvent{Type: domain.EventOrder, RequestID: sess("r3"), SessionID: sess("s2"), ProductID: &pid}
-	order.CreatedAt = at.Add(time.Minute)
-	click := domain.BehaviorEvent{Type: domain.EventClick, RequestID: sess("r4"), SessionID: sess("s3")}
-	click.CreatedAt = at.Add(time.Minute)
-	mrr := 0.0
-	b0 := []out.EvalQueryResult{}
-	b3 := []out.EvalQueryResult{}
-	for i := 0; i < 20; i++ {
-		id := string(rune('a' + i))
-		b0 = append(b0, out.EvalQueryResult{ID: id, MRR10: &mrr, HasRelevant: false, Freq: 1})
-		b3 = append(b3, out.EvalQueryResult{ID: id, MRR10: &mrr, HasRelevant: i < 15, Freq: 1}) // спасено 15 из 20
-	}
-	b0 = append(b0, out.EvalQueryResult{ID: "noise", HasRelevant: false}) // без разметки — не считается
-	pq0, _ := json.Marshal(b0)
-	pq3, _ := json.Marshal(b3)
-	evals := []domain.Evaluation{{Config: "B0", RunID: "run0", SetHash: "h", PerQuery: pq0},
-		{Config: "B3", RunID: "run3", SetHash: "h", RulesVersion: 1, PerQuery: pq3}}
-	price := func(string) *float64 { v := 12990.0; return &v }
-
-	res := computeEffect(searches, []domain.BehaviorEvent{order, click}, evals, price, EffectRequest{Days: 30})
-	m := res.Measured
-	if m.Searches != 5 || m.ProblemSearches != 3 || m.ProblemSessions != 2 || m.Orders != 1 {
-		t.Fatalf("замер: %+v", m)
-	}
-	if m.Rescued == nil || m.Rescued.Failed != 20 || m.Rescued.Rescued != 15 || m.Rescued.Share != 0.75 ||
-		!(m.Rescued.CILow < 0.75 && m.Rescued.CIHigh > 0.75) || m.Rescued.Config != "B3" || m.Rescued.Set != "holdout_week" ||
-		m.Rescued.RunBaseline != "run0" || m.Rescued.RunConfig != "run3" || m.Rescued.Source == "" {
-		t.Fatalf("спасённые: %+v", m.Rescued)
-	}
-	by := map[string]out.EffectParam{}
-	for _, p := range res.Assumptions {
-		by[p.Key] = p
-	}
-	// Поправка: 2 проблемные сессии на 3 проблемных поиска; заказ — 1 из 2 сессий с кликом; чек — цена каталога.
-	if p := by["session_factor"]; p.Source != "measured" || math.Abs(p.Value-0.6667) > 1e-4 {
-		t.Fatalf("поправка на сессии: %+v", p)
-	}
-	if p := by["order_prob"]; p.Source != "measured" || p.Value != 0.5 {
-		t.Fatalf("вероятность заказа: %+v", p)
-	}
-	if p := by["avg_check_rub"]; p.Source != "measured" || p.Value != 12990 {
-		t.Fatalf("средний чек: %+v", p)
-	}
-	if len(res.Scenarios) != 3 || res.Note == "" || !strings.Contains(res.Formula, "доля спасённых") {
-		t.Fatalf("сценарии: %+v", res)
-	}
-	base := res.Scenarios[1]
-	// поиски/мес × доля проблемных × поправка × спасённые × конверсия успешного × понижающий коэффициент (0,3)
-	want := 5.0 * 0.6 * 0.6667 * 0.75 * 0.5 * 0.3
-	if base.ID != "base" || math.Abs(base.OrdersMonth-want) > 0.06 || math.Abs(base.RevenueRubMonth-base.OrdersMonth*12990) > 12990*0.06 {
-		t.Fatalf("базовый: %+v, ждали %.3f заказа", base, want)
-	}
-	if !(res.Scenarios[0].OrdersMonth <= base.OrdersMonth && base.OrdersMonth <= res.Scenarios[2].OrdersMonth) {
-		t.Fatalf("вилка не упорядочена: %+v", res.Scenarios)
-	}
-	// Вероятность заказа спасённого поиска не выше измеренной конверсии успешного ни в одном сценарии.
-	for _, sc := range res.Scenarios {
-		if sc.OrderProb > 0.5+1e-9 || sc.RescueFactor > 1 || sc.Uplift == nil {
-			t.Fatalf("сценарий выше конверсии успешного: %+v", sc)
-		}
-	}
-	if p := by["rescue_factor"]; p.Source != "assumed" || p.Value != 0.3 {
-		t.Fatalf("понижающий коэффициент: %+v", p)
-	}
-	// Оптимистичный коэффициент × 1,5 упирается в 1: вероятность = конверсии успешного, не больше.
-	one := 1.0
-	hi := computeEffect(searches, []domain.BehaviorEvent{order, click}, evals, price, EffectRequest{Days: 30, RescueFactor: &one})
-	if sc := hi.Scenarios[2]; sc.RescueFactor != 1 || sc.OrderProb != 0.5 {
-		t.Fatalf("потолок вероятности: %+v", sc)
-	}
-	if len(hi.Warnings) == 0 {
-		t.Fatalf("базовый прирост > 50 %% без предупреждения: %+v", hi.Scenarios[1])
-	}
-
-	// Допущения из запроса — source=request; без прогона оценки — сценариев нет и сказано почему.
-	v := 0.2
-	res = computeEffect(searches, nil, nil, nil, EffectRequest{Days: 30, OrderProb: &v})
-	if len(res.Scenarios) != 0 || len(res.Missing) != 1 || res.Assumptions[1].Source != "request" || res.Assumptions[1].Value != 0.2 ||
-		res.Assumptions[2].Source != "assumed" {
-		t.Fatalf("без прогона: %+v", res)
-	}
-}
-
-func TestEffectValidation(t *testing.T) {
-	svc := NewServices(nil, Options{})
-	bad := 1.5
-	if _, err := svc.Effect(t.Context(), EffectRequest{OrderProb: &bad}); !isStatus(err, 422) {
-		t.Fatalf("доля > 1: %v", err)
-	}
-	res, err := svc.Effect(t.Context(), EffectRequest{})
-	if err != nil || len(res.Scenarios) != 0 || len(res.Missing) != 2 {
-		t.Fatalf("без базы — пусто с причинами: %+v %v", res, err)
-	}
-}
 
 func isStatus(err error, code int) bool {
 	var e *errs.Error
@@ -365,6 +254,19 @@ func TestLinkProposals(t *testing.T) {
 	if resp.Tiles.PendingProposals != 2 || p.ProposalID == nil || *p.ProposalID != pend.ID.String() || *p.ProposalStatus != "pending" ||
 		*p.ProposalDiagnosis != domain.DiagRankingFailure || resp.Problems[1].ProposalID != nil {
 		t.Fatalf("связь с предложениями: %+v", resp)
+	}
+}
+
+// Предложения удалённых в контуре доводки типов (stale, removed_p4) к запросам не привязываются.
+func TestLinkProposalsSkipsRemovedP4(t *testing.T) {
+	q, _ := json.Marshal([]map[string]any{{"text": "kaspersky"}})
+	gone := domain.Proposal{ClusterQueries: q, Status: domain.ProposalStale, Diagnosis: "MARGIN_OPPORTUNITY",
+		DecidedReason: repositories.StaleReasonRemovedP4}
+	_ = gone.BeforeCreate(nil)
+	resp := &out.AnalyticsResponse{Problems: []out.ProblemQuery{{Query: "kaspersky"}}}
+	linkProposals(resp, []domain.Proposal{gone})
+	if resp.Problems[0].ProposalID != nil {
+		t.Fatalf("удалённое предложение привязано: %+v", resp.Problems[0])
 	}
 }
 

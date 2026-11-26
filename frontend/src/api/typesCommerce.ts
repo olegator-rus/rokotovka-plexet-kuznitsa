@@ -2,7 +2,6 @@
 // (backend/out/margin.go, relations.go, commerce_eval.go, agent.go). Отдельный файл, чтобы не пересекаться с типами
 // витрины в types.ts. Необязательные поля сервер может не прислать — экран тогда не показывает строку.
 import type { Proposal } from './types'
-import type { MarginScope } from './typesKiller'
 
 // ── Маржа ──
 
@@ -108,8 +107,6 @@ export interface MarginSimulateResponse {
   duration_ms?: number
   note?: string
   ran_at?: string
-  /** Симуляция по одной категории; null — общий вес. */
-  scope?: MarginScope | null
 }
 
 /** GET /api/margin/simulate/status — базовая выдача собирается (503 у simulate). */

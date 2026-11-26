@@ -13,7 +13,7 @@ import {
   postLogout,
 } from '@/api/auth'
 import { onUnauthorized } from '@/api/http'
-import { type StaffRole, canDecide, canViewAs, isStaff } from '@/lib/auth'
+import { canDecide, isStaff } from '@/lib/auth'
 
 export const GUEST_VIEWER: Viewer = {
   role: 'guest',
@@ -42,13 +42,7 @@ export const useAuthStore = defineStore('auth', () => {
   /** Вошёл по-настоящему (есть сессия), а не гость и не служебный доступ без входа. */
   const signedIn = computed(() => role.value !== 'guest' && role.value !== 'system')
   const demo = computed(() => !!viewer.value.persona)
-  const viewAs = computed(() => canViewAs(role.value))
   const can = (owner: string | null | undefined) => canDecide(role.value, owner)
-  /** Роль блоков «Аналитики» по умолчанию: своя; у служебного доступа — руководитель. */
-  const ownView = computed<StaffRole>(() => {
-    const r = role.value
-    return r === 'ecom' || r === 'product' || r === 'content' ? r : 'head'
-  })
 
   let pending: Promise<void> | null = null
   /** Спросить сервер один раз за загрузку страницы; охрана маршрутов ждёт ответа. */
@@ -123,8 +117,6 @@ export const useAuthStore = defineStore('auth', () => {
     buyer,
     signedIn,
     demo,
-    viewAs,
-    ownView,
     can,
     ensure,
     loadConfig,

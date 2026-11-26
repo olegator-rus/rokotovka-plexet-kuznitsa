@@ -4,7 +4,7 @@ import assert from 'node:assert/strict'
 import type { MarginSimPoint } from '../src/api/typesCommerce.ts'
 import {
   affectedList,
-  curveGeometry,
+  swapExample,
   estimateNote,
   guardIndicators,
   hasMarginData,
@@ -100,44 +100,6 @@ test('было / стало: стрелки у переставленных по
   )
 })
 
-test('кривая: потеря по горизонтали, индекс по вертикали, за упором — disabled', () => {
-  const g = curveGeometry(
-    [pt(0.08, -0.01, 2), pt(0, 0, 1), pt(0.05, -0.005, 1.5), pt(0.12, -0.02, null)],
-    { stop_weight: 0.05 },
-    200,
-    100,
-    10,
-  )
-  assert.deepEqual(
-    g.points.map((p) => p.weight),
-    [0, 0.05, 0.08],
-  )
-  assert.equal(g.points[0].x, 10)
-  assert.equal(g.points[2].x, 190)
-  assert.equal(g.points[0].y, 90)
-  assert.equal(g.points[2].y, 10)
-  assert.deepEqual(
-    g.points.map((p) => p.disabled),
-    [false, false, true],
-  )
-  assert.match(g.path, /^M10 90 L/)
-  assert.equal(curveGeometry([], null, 1, 1, 0).path, '')
-  // Выигрыш качества (delta > 0) — левее нуля; ниже min_weight — тоже за упором.
-  const g2 = curveGeometry(
-    [pt(0, 0.01, 1), pt(0.05, 0, 1.5), pt(0.08, -0.01, 2)],
-    { stop_weight: 0.08, min_weight: 0.03 },
-    200,
-    100,
-    10,
-  )
-  assert.equal(g2.xMin, -0.01)
-  assert.equal(g2.points[1].x, 100)
-  assert.deepEqual(
-    g2.points.map((p) => p.disabled),
-    [true, false, false],
-  )
-})
-
 test('упор: available=false, выше stop_weight, ниже min_weight', () => {
   const sim = { items: [{ weight: 0.12, available: false }], stop_weight: 0.15, min_weight: 0.03 }
   assert.equal(isLocked(0.12, sim), true)
@@ -164,10 +126,14 @@ test('затронутые: причина из флагов сервера', ()
   )
 })
 
-test('кривая: совпадающие точки подписаны один раз', () => {
-  const g = curveGeometry([pt(0, 0, 1), pt(0.03, 0, 1), pt(0.08, -0.01, 2)], null, 200, 100, 10)
-  assert.deepEqual(
-    g.points.map((p) => p.label),
-    ['0,00 · 0,03', null, '0,08'],
-  )
+test('пример политики: обмен двух соседей в первой тройке важнее прочих перестановок', () => {
+  const shuffle = {
+    query: 'антивирус',
+    before: ['a', 'b', 'c'],
+    after: ['c', 'a', 'b'],
+  }
+  const swap = { query: 'офис', before: ['x', 'y', 'z'], after: ['y', 'x', 'z'] }
+  assert.equal(swapExample([shuffle, swap])?.query, 'офис')
+  assert.equal(swapExample([shuffle])?.query, 'антивирус')
+  assert.equal(swapExample([]), null)
 })

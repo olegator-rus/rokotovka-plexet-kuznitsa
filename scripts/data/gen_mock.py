@@ -27,6 +27,7 @@ from defs_queries import DEMO, EXACT, SKU_ITEMS, L
 from defs_queries2 import LICENSE, ANALOG, PURPOSE, RENEWAL, ABSENT, GAP, NON_PRODUCT, NOISE
 import gen_mock_p2
 import gen_mock_p3
+import gen_mock_p4
 
 SEED = 0x1352905
 LOG_START = datetime(2026, 4, 27, tzinfo=timezone.utc)  # 30 дней: 27.04–26.05.2026
@@ -550,6 +551,9 @@ def main():
         aliases, LegacySearch)
     # Контур выдачи: набор префиксов панели и события намерений — отдельным блоком в конце журнала (gen_mock_p3.py).
     prefixes, events3 = gen_mock_p3.extend(SEED, LOG_START, LOG_DAYS, products, queries, events + events2)
+    # Контур доводки: варианты под тип покупки и организации, реестр, справка, набор витрины — в конец (gen_mock_p4.py).
+    relations, extra4 = gen_mock_p4.extend(products, vendors, relations, aliases, gen_mock_p2._rel)
+    extra.update(extra4)
 
     write_json(out / "catalog.json", {**meta2, "products": products})
     write_json(out / "vendors.json", vendors)

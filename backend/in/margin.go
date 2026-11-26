@@ -16,9 +16,6 @@ type MarginPolicyRequest struct {
 	// Categories — веса по категориям; nil — прежние, {} — снять все.
 	Categories map[string]float64 `json:"categories"`
 	Comment    string             `json:"comment"`
-	// ProposalID — применяется предложение агента MARGIN_OPPORTUNITY (открыто в песочнице из очереди): после
-	// записи версии оно становится принятым.
-	ProposalID string `json:"proposal_id"`
 }
 
 // MarginRollbackRequest — POST /api/margin/policy/rollback: новая версия = копия выбранной (0 — исходная 0.05).

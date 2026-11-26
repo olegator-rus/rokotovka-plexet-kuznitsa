@@ -17,8 +17,8 @@ func TestCanDecide(t *testing.T) {
 			}
 		}
 	}
-	for owner, want := range map[string]string{RoleEcom: "Это решение принимает менеджер e-com",
-		RoleProduct: "Это решение принимает продукт-менеджер", RoleContent: "Это решение принимает контент-менеджер",
+	for owner, want := range map[string]string{RoleEcom: "Это решение принимает администратор поиска",
+		RoleProduct: "Это решение принимает категорийный и лицензионный менеджер", RoleContent: "Это решение принимает команда каталога",
 		"": "Это решение принимает руководитель e-com"} {
 		if got := DenyMessage(owner); got != want {
 			t.Errorf("%q: %q", owner, got)
@@ -29,10 +29,11 @@ func TestCanDecide(t *testing.T) {
 	}
 }
 
-// Роль предложения читается из очереди; нет предложения — 404, кривой id — 422.
+// Решает владелец причины предложения (контур доводки), а не записанная роль; нет предложения — 404, кривой id — 422.
 func TestProposalRole(t *testing.T) {
 	s, ms := agentEnv(t, &scriptModel{})
-	p := &domain.Proposal{Role: RoleProduct, Action: domain.ActionRelationPatch, Status: domain.ProposalPending}
+	p := &domain.Proposal{Role: RoleEcom, Diagnosis: domain.DiagBrokenRelation, Action: domain.ActionRelationPatch,
+		Status: domain.ProposalPending}
 	if err := ms.CreateProposal(t.Context(), p); err != nil {
 		t.Fatal(err)
 	}
@@ -44,5 +45,36 @@ func TestProposalRole(t *testing.T) {
 	}
 	if _, err := s.ProposalRole(t.Context(), "01a21227-db17-77c8-a4fb-dbae24688465"); err == nil {
 		t.Error("нет предложения")
+	}
+}
+
+// Семь причин: каждый диагноз — ровно в одной, у каждой владелец из ролей сотрудников; неизвестное — ручной разбор.
+func TestCauses(t *testing.T) {
+	if len(Causes) != 7 {
+		t.Fatalf("причин %d, ждали 7", len(Causes))
+	}
+	seen := map[string]string{}
+	for _, c := range Causes {
+		if !IsStaffRole(c.Owner) || c.OwnerLabel == "" || c.Label == "" {
+			t.Errorf("причина %+v", c)
+		}
+		for _, d := range c.Diagnoses {
+			if prev, ok := seen[d]; ok {
+				t.Errorf("%s в двух причинах: %s и %s", d, prev, c.Code)
+			}
+			seen[d] = c.Code
+		}
+	}
+	for _, d := range domain.Diagnoses {
+		if _, ok := seen[d]; !ok {
+			t.Errorf("диагноз %s без причины", d)
+		}
+	}
+	for d, want := range map[string]string{domain.DiagAliasGap: RoleEcom, domain.DiagRankingFailure: RoleEcom,
+		domain.DiagContentGap: RoleContent, domain.DiagAssortmentGap: RoleProduct, domain.DiagMissingRequired: RoleProduct,
+		domain.DiagNonProduct: RoleEcom, "MISSING_RELATION": RoleHead, "": RoleHead} {
+		if got := OwnerOf(d); got != want {
+			t.Errorf("владелец %q: %q, ждали %q", d, got, want)
+		}
 	}
 }

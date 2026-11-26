@@ -14,7 +14,7 @@ type SearchRequest struct {
 	Clarify      map[string]string `json:"clarify"`
 	Limit        int               `json:"limit"`
 	// Source — откуда поиск: "" или live — покупатель; compare — вкладка «Один запрос» (в журнал пишется,
-	// но в аналитику и стоимость запроса не входит).
+	// но в аналитику и стоимость запроса не входит); traffic — генератор mock-трафика стенда (контур автономии).
 	Source string `json:"source"`
 	// Filters — фасеты контура коммерции; учитываться начнут с треком оборудования.
 	Filters []Filter `json:"filters"`
@@ -50,4 +50,6 @@ type EventRequest struct {
 	Payload   json.RawMessage `json:"payload"`
 	// IntentID — поисковое намерение, обязателен у событий контура выдачи.
 	IntentID string `json:"intent_id"`
+	// Source — "" или live — покупатель; traffic — генератор mock-трафика стенда (контур автономии).
+	Source string `json:"source"`
 }

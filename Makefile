@@ -38,12 +38,14 @@ import: db ## импорт data/mock в Postgres и индекс OpenSearch (в�
 # Набор и конфигурации прогона: make eval SET=tune CONFIGS=B1,B3
 SET ?= test
 CONFIGS ?= B0,B1,B2,B3
+# Набор таблицы вклада компонентов: make eval SET=contribution CONTRIB_SET=tune
+CONTRIB_SET ?= test
 
 audit: db ## аудит данных источника (DATA_SOURCE/DATA_MAPPING): data/AUDIT.md и AUDIT.json, B0/B3 на частых запросах без LLM
 	cd backend && go run . audit
 
 eval: db ## оценка качества: прогон набора SET (test) по CONFIGS (B0–B3) — таблица, evaluations, data/eval/*.json
-	cd backend && go run . eval --set $(SET) --configs $(CONFIGS)
+	cd backend && go run . eval --set $(SET) --configs $(CONFIGS) --contrib-set $(CONTRIB_SET)
 
 # Наборы из журнала в базе: make sets [SETS_ARGS="--days 30 --judge-rub 50 --out ../data/org --force"]
 SETS_ARGS ?=

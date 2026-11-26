@@ -1,6 +1,6 @@
 <script setup lang="ts">
-// Вкладка «Очередь»: предложения по оценке приоритета, затем по потерянному спросу; фильтр по статусу и
-// роли-адресату (в адресе: ?status=&role=). Решение — через диалог, итог — тост; после принятия тост
+// Вкладка «Очередь» (контур доводки): правки поиска и задачи владельцам по оценке приоритета, затем по
+// потерянному спросу; фильтр по статусу и роли-владельцу (в адресе: ?status=&role=). Решение — через диалог, итог — тост; после принятия тост
 // ведёт в «Поиск» на действующих правилах B4.
 import { computed, nextTick, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
@@ -14,7 +14,8 @@ import { useToast } from '@/components/ui/useToast'
 import { useResource } from '@/composables/useResource'
 import { formatInt } from '@/lib/format'
 import { PROPOSAL_ROLES, PROPOSAL_STATUSES, isTicket, searchCheckUrl } from '@/lib/proposals'
-import { isBundle, sortQueue } from '@/lib/killer'
+import { causeView } from '@/lib/causes'
+import { sortQueue } from '@/lib/queue'
 import { useAppStore } from '@/stores/app'
 import DecisionDialogs from './DecisionDialogs.vue'
 import ProposalCard from './ProposalCard.vue'
@@ -33,7 +34,7 @@ const STATUS_OPTIONS = [
   { value: ALL, label: 'Все статусы' },
 ]
 const ROLE_OPTIONS = [
-  { value: ALL, label: 'Все роли' },
+  { value: ALL, label: 'Все владельцы' },
   ...PROPOSAL_ROLES.map((r) => ({ value: r.id, label: r.label })),
 ]
 
@@ -99,13 +100,17 @@ function onAccepted(p: Proposal, r: ApproveResponse) {
   afterDecision()
   void app.loadMeta(true)
   const url = searchCheckUrl(p)
-  if (isTicket(p) || isBundle(p)) {
-    toast.add({ tone: 'ok', title: 'Взято в работу', detail: `Кластер «${p.cluster?.label}»` })
+  if (isTicket(p) || causeView(p).kind === 'owner_task') {
+    toast.add({
+      tone: 'ok',
+      title: 'Задача отправлена владельцу',
+      detail: `${causeView(p).owner} · кластер «${p.cluster?.label}»`,
+    })
     return
   }
   toast.add({
     tone: 'ok',
-    title: `Правка принята · версия правил ${r.config_version}`,
+    title: `Правка утверждена · версия правил ${r.config_version}`,
     detail: 'Правило уже действует в поиске.',
     action: url ? { label: 'Проверить в поиске', run: () => void router.push(url) } : undefined,
   })
@@ -132,7 +137,7 @@ function onRejected(p: Proposal) {
   <div class="queue">
     <div class="queue__filters">
       <UiSelect v-model="status" :options="STATUS_OPTIONS" label="Статус" prefix="Статус" />
-      <UiSelect v-model="role" :options="ROLE_OPTIONS" label="Кому" prefix="Кому" />
+      <UiSelect v-model="role" :options="ROLE_OPTIONS" label="Владелец" prefix="Владелец" />
       <span v-if="res.status.value === 'ready'" class="t-sm t-muted queue__count">
         {{ formatInt(items.length) }} ·
         {{
@@ -168,7 +173,7 @@ function onRejected(p: Proposal) {
       <div>
         <template v-if="filtered">
           <p class="t-h2">По этому фильтру предложений нет</p>
-          <p class="t-muted">Выберите другой статус или роль.</p>
+          <p class="t-muted">Выберите другой статус или владельца.</p>
         </template>
         <template v-else>
           <p class="t-h2">Предложений нет. Запустите разбор</p>

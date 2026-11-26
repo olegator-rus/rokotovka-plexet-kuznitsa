@@ -11,7 +11,7 @@ import (
 
 // Proposals — GET /api/proposals?status=&role=.
 func (h *Handler) Proposals(c *fiber.Ctx) error {
-	res, err := h.services.Proposals(c.UserContext(), c.Query("status"), c.Query("role"))
+	res, err := h.services.Proposals(c.UserContext(), c.Query("status"), c.Query("role"), c.Query("cause"))
 	if err != nil {
 		return err
 	}
@@ -39,7 +39,7 @@ func (h *Handler) ApproveProposal(c *fiber.Ctx) error {
 			return err
 		}
 	}
-	res, err := h.services.ApproveProposal(c.UserContext(), c.Params("id"), req)
+	res, err := h.services.ApproveProposal(services.WithActor(c.UserContext(), actorRole(c)), c.Params("id"), req)
 	if err != nil {
 		return err
 	}
@@ -55,7 +55,7 @@ func (h *Handler) RejectProposal(c *fiber.Ctx) error {
 	if err := bindBody(c, &req); err != nil {
 		return err
 	}
-	res, err := h.services.RejectProposal(c.UserContext(), c.Params("id"), req)
+	res, err := h.services.RejectProposal(services.WithActor(c.UserContext(), actorRole(c)), c.Params("id"), req)
 	if err != nil {
 		return err
 	}

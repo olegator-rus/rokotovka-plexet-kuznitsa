@@ -19,6 +19,7 @@ import SpecCompanions from '@/components/spec/SpecCompanions.vue'
 import { useToast } from '@/components/ui/useToast'
 import { formatPrice } from '@/lib/format'
 import { hasKnownPrice, originLabel, priceModeLabel, specText } from '@/lib/spec'
+import { purchaseNote } from '@/lib/procurement'
 import { useSpecStore } from '@/stores/spec'
 import { useAuthStore } from '@/stores/auth'
 import { contactProblem } from '@/lib/auth'
@@ -130,6 +131,9 @@ function startOver() {
                 <p class="t-xs">
                   <span class="badge">{{ originLabel(l) }}</span>
                   <span v-if="l.anchor" class="t-muted"> к «{{ l.anchor }}»</span>
+                </p>
+                <p v-if="l.purchase" class="t-xs t-muted" data-testid="spec-purchase">
+                  {{ purchaseNote(l.purchase) }}
                 </p>
                 <SpecCompanions
                   v-if="l.origin === 'search'"

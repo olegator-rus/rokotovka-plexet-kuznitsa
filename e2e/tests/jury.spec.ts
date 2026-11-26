@@ -50,8 +50,9 @@ test.describe('Жюри', () => {
   })
 
   test('F7: «До / После» — таблица метрик B0–B4 и строка воспроизводимости', async ({ page }) => {
-    await page.goto('/compare')
-    await expect(page.getByRole('heading', { level: 1, name: 'До / После' })).toBeVisible()
+    await page.goto('/proofs')
+    await expect(page.getByRole('heading', { level: 1, name: 'Доказательства' })).toBeVisible()
+    await expect(page.getByRole('tab', { name: 'До / После' })).toHaveAttribute('aria-selected', 'true')
     await expect(page.getByRole('tab', { name: 'Метрики' })).toHaveAttribute('aria-selected', 'true')
 
     const table = page.getByRole('region', { name: 'Таблица метрик' })
@@ -117,7 +118,7 @@ test.describe('SearchOps', () => {
     await expect(page.getByText(/Стоимость запуска:/).first()).toContainText('30,00')
   })
 
-  test('F10: карточка предложения по правилам — диагноз, запросы, разница правил, прогон; диалог без принятия', async ({
+  test('F10: карточка «Правка поиска» — причина и владелец крупно, запросы, разница правил, прогон; диалог без утверждения', async ({
     page,
   }) => {
     // Предложение берётся из очереди, а не по имени: после переимпорта каталога предложения прежнего каталога
@@ -135,9 +136,13 @@ test.describe('SearchOps', () => {
     await page.getByRole('tab', { name: /Очередь/ }).click()
     await expect(page).toHaveURL(/tab=queue/)
 
-    const card = page.getByRole('article', { name: `Кластер «${p.cluster!.label}»` }).first()
+    const card = page.locator(`#proposal-${p.id}`)
     await expect(card).toBeVisible()
     await expect(card.getByText('Ждёт решения', { exact: false })).toBeVisible()
+    await expect(card.getByTestId('kind')).toHaveText('Правка поиска')
+    await expect(card.getByTestId('cause')).not.toBeEmpty()
+    await expect(card.getByTestId('owner')).toContainText('Владелец:')
+    await expect(card).toContainText(`кластер «${p.cluster!.label}»`)
     const firstQuery = p.cluster!.queries?.[0]?.text
     if (firstQuery) {
       await expect(card.getByRole('region', { name: 'Запросы кластера' })).toContainText(firstQuery)
@@ -145,14 +150,14 @@ test.describe('SearchOps', () => {
     await expect(card.getByRole('region', { name: 'Что предлагается' })).toBeVisible()
     await expect(card.getByRole('region', { name: 'Результат прогона' })).toBeVisible()
 
-    // Диалог «Принять» открывается и закрывается «Отменой» — без запроса к API.
-    await card.getByRole('button', { name: 'Принять', exact: true }).click()
-    const dialog = page.getByRole('dialog', { name: 'Принять правку?' })
+    // Диалог «Утвердить» открывается и закрывается «Отменой» — без запроса к API.
+    await card.getByRole('button', { name: 'Утвердить', exact: true }).click()
+    const dialog = page.getByRole('dialog', { name: 'Утвердить правку поиска?' })
     await expect(dialog).toContainText('Правило начнёт действовать сразу')
     await expect(dialog).toContainText(/версия \d+|новая версия правил/)
     await dialog.getByRole('button', { name: 'Отмена' }).click()
     await expect(dialog).toBeHidden()
-    await expect(card.getByRole('button', { name: 'Принять', exact: true })).toBeEnabled()
+    await expect(card.getByRole('button', { name: 'Утвердить', exact: true })).toBeEnabled()
 
     // «Показать ход расследования» ведёт на запуск, который нашёл правку.
     if (p.run_id) {
@@ -173,11 +178,11 @@ test.describe('SearchOps — принятие', () => {
   }) => {
     test.skip(!allowDestructive, 'меняет демо-состояние: E2E_DESTRUCTIVE=1 и allowDestructive')
     await page.goto('/searchops?tab=queue')
-    const card = page.getByRole('article', { name: 'Кластер «акад»' }).first()
-    await card.getByRole('button', { name: 'Принять', exact: true }).click()
-    const dialog = page.getByRole('dialog', { name: 'Принять правку?' })
-    await dialog.getByRole('button', { name: 'Принять', exact: true }).click()
-    await expect(page.getByText(/Правка принята · версия правил \d+/)).toBeVisible()
+    const card = page.locator('article').filter({ hasText: 'кластер «акад»' }).first()
+    await card.getByRole('button', { name: 'Утвердить', exact: true }).click()
+    const dialog = page.getByRole('dialog', { name: 'Утвердить правку поиска?' })
+    await dialog.getByRole('button', { name: 'Утвердить', exact: true }).click()
+    await expect(page.getByText(/Правка утверждена · версия правил \d+/)).toBeVisible()
 
     // После решения карточка уходит из фильтра «Ждёт решения»: проверяем через кнопку в уведомлении.
     const body = await searchResponse(page, () =>

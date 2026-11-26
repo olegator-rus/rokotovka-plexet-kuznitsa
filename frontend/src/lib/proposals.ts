@@ -55,10 +55,11 @@ export function proposalStatus(id: string): { id: string; label: string; tone: s
   )
 }
 
+/** Роли сотрудников — владельцы причин (контур доводки): фильтр очереди по тому, кто решает. */
 export const PROPOSAL_ROLES: readonly { id: string; label: string }[] = [
-  { id: 'ecom', label: 'Менеджер e-com' },
-  { id: 'product', label: 'Продукт-менеджер' },
-  { id: 'content', label: 'Контент-менеджер' },
+  { id: 'ecom', label: 'Администратор поиска' },
+  { id: 'product', label: 'Категорийный и лицензионный менеджер' },
+  { id: 'content', label: 'Каталог' },
 ]
 
 export const proposalRoleLabel = (id: string) =>

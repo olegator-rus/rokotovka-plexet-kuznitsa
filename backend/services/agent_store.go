@@ -36,6 +36,16 @@ type agentStore interface {
 	SearchEventsSince(ctx context.Context, since time.Time) ([]domain.SearchEvent, error)
 	BehaviorEventsSince(ctx context.Context, since time.Time) ([]domain.BehaviorEvent, error)
 	AgentRunUsage(ctx context.Context, runID string) (repositories.AgentUsage, error)
+	// Контур автономии: запуски по триггеру, «не предлагать», эпизоды, решения вне очереди, признак «новый» кластера.
+	ListAgentRunsByTrigger(ctx context.Context, trigger string, limit int) ([]domain.AgentRun, error)
+	CreateSuppress(ctx context.Context, m *domain.MemorySuppress) error
+	SaveSuppress(ctx context.Context, m *domain.MemorySuppress) error
+	GetSuppress(ctx context.Context, id uuid.UUID) (*domain.MemorySuppress, error)
+	ListSuppress(ctx context.Context) ([]domain.MemorySuppress, error)
+	CreateEpisode(ctx context.Context, e *domain.MemoryEpisode) error
+	ListEpisodes(ctx context.Context, limit int) ([]domain.MemoryEpisode, error)
+	CreateDecision(ctx context.Context, d *domain.Decision) error
+	ClusterKeysSeenBefore(ctx context.Context, runID uuid.UUID, keys []string) (map[string]bool, error)
 }
 
 // AgentUsage — расход модели запуском по llm_usage.

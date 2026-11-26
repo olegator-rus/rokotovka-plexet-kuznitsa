@@ -179,6 +179,13 @@ type AgentRun struct {
 	Mode string `gorm:"size:16"`
 	// Episode — эпизод запуска: метрики, эффект принятых правок (verify_applied_change), итоги кластеров.
 	Episode JSONB `gorm:"type:jsonb"`
+	// Контур автономии: запрос запуска «Разобрать» (пусто — по периоду), режим «только чтение», вход триггера, план
+	// (последняя редакция) и бюджет (лимиты и расход).
+	Query    string
+	ReadOnly bool
+	Input    JSONB `gorm:"type:jsonb"`
+	Plan     JSONB `gorm:"type:jsonb"`
+	Budget   JSONB `gorm:"type:jsonb"`
 }
 
 // AgentStep — шаг ленты запуска.
@@ -228,11 +235,11 @@ type Proposal struct {
 	// Effect — эффект после принятия (verify_applied_change следующего запуска).
 	Effect JSONB `gorm:"type:jsonb"`
 	// Контур коммерции: уровень доказательности E0–E5, техническая корректность (verified|unverified|failed),
-	// экономический эффект (unknown|estimated|measured), оценка приоритета (nil — не посчитана).
-	EvidenceLevel   string   `gorm:"size:4"`
-	TechnicalStatus string   `gorm:"size:16"`
-	EconomicStatus  string   `gorm:"size:16"`
-	PriorityScore   *float64 `gorm:"type:numeric(14,2)"`
+	// экономический эффект (unknown|estimated|measured). Оценка приоритета по покупкам (priority_score) удалена в
+	// контуре доводки — колонку снимает repositories.migrateP4Removed.
+	EvidenceLevel   string `gorm:"size:4"`
+	TechnicalStatus string `gorm:"size:16"`
+	EconomicStatus  string `gorm:"size:16"`
 }
 
 // Decision — решение человека по предложению. Отказы — память агента «не предлагать снова».
@@ -247,4 +254,6 @@ type Decision struct {
 	Diagnosis    string
 	Terms        JSONB `gorm:"type:jsonb"`
 	PatchKeys    JSONB `gorm:"type:jsonb"`
+	// DecidedBy — роль, принявшая решение (контур автономии, «кто» во вкладке «Решения»); пусто — до контура автономии.
+	DecidedBy string `gorm:"size:16"`
 }

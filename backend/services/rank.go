@@ -90,6 +90,9 @@ type rankCtx struct {
 	textTop map[string]bool
 	// hw — условия оборудования (hardware_search.go); nil — флаг выключен.
 	hw *hwPlan
+	// upgradeTargets — позиции-цели связей upgrade («старшая редакция»): у вариантов под сделку без названной
+	// редакции заранее не выбираются (purchase_attrs.go).
+	upgradeTargets map[string]bool
 }
 
 // textTopN — сколько первых мест BM25 считаются совпадением по названию (не отсекаются категорией).
@@ -127,6 +130,9 @@ func (rc rankCtx) rejectReason(d indexDoc) (string, string) {
 	}
 	if a.metric != "" && d.LicenseMetric != nil && *d.LicenseMetric != a.metric && !isPerUnit(d) {
 		return rejectMetric, "лицензия на " + *d.LicenseMetric + ", нужна на " + a.metric
+	}
+	if hidden, detail := rc.offerHidden(d); hidden {
+		return rejectOffer, detail // вариант под сделку или организацию, которых запрос не называет (purchase_attrs.go)
 	}
 	return "", ""
 }
@@ -188,6 +194,7 @@ func (rc rankCtx) fit(d indexDoc) (int, bool) {
 	if pq, bought := rc.purchasedQty[d.FamilyID]; bought && a.quantity == 0 && q == pq {
 		score++ // продление того же объёма, что покупал клиент
 	}
+	score += rc.purchaseFit(d)
 	return score, ok
 }
 

@@ -18,11 +18,12 @@ import (
 // прогон набора через сервис поиска, таблица в stdout, запись в evaluations и JSON в --out.
 func runEval(ctx context.Context, log *zap.Logger, svc *services.Services, args []string) {
 	fs := flag.NewFlagSet("eval", flag.ExitOnError)
-	set := fs.String("set", "test", "набор: tune | test | regression | demo | holdout_week (реплей отложенной недели журнала) | panel (префиксы панели)")
+	set := fs.String("set", "test", "набор: tune | test | regression | demo | holdout_week (реплей отложенной недели журнала) | panel (префиксы панели) | showcase (прогон витрины)")
 	configs := fs.String("configs", strings.Join(services.DefaultEvalConfigs, ","), "конфигурации через запятую")
 	outDir := fs.String("out", "../data/eval", "куда записать JSON прогона; пусто — не записывать")
 	noPersist := fs.Bool("no-persist", false, "не записывать результат в базу")
 	proposal := fs.String("with-proposal", "", "id ждущего предложения: эффект его правки в песочнице (B3, B4, B4+правка; в базу не пишется)")
+	contribSet := fs.String("contrib-set", "test", "набор таблицы вклада компонентов при --set contribution: test | tune | regression")
 	commerce := fs.Bool("commerce", true, "набор p2: коммерческая лестница C0–C3 и прогоны с одним изменением (false — обычная лестница B)")
 	_ = fs.Parse(args)
 
@@ -30,6 +31,14 @@ func runEval(ctx context.Context, log *zap.Logger, svc *services.Services, args 
 	defer svc.Wait()
 	if *set == "panel" {
 		runPanelEval(ctx, log, svc, *outDir, !*noPersist)
+		return
+	}
+	if *set == "showcase" {
+		runShowcaseEval(ctx, log, svc, *outDir)
+		return
+	}
+	if *set == "contribution" {
+		runContributionEval(ctx, log, svc, *contribSet, *outDir, !*noPersist)
 		return
 	}
 	if *set == "p2" && *commerce && *proposal == "" {
@@ -90,6 +99,31 @@ func runCommerceEval(ctx context.Context, log *zap.Logger, svc *services.Service
 		}
 	}
 	fmt.Print(services.FormatCommerceTable(res))
+}
+
+// runContributionEval — `make eval SET=contribution [CONTRIB_SET=tune]`: таблица вклада компонентов (контур доводки) —
+// stdout, evaluations (GET /api/evaluations/contribution) и JSON в outDir.
+func runContributionEval(ctx context.Context, log *zap.Logger, svc *services.Services, set, outDir string, persist bool) {
+	run, err := svc.RunContribution(ctx, set, persist, nil)
+	if err != nil {
+		if run == nil {
+			log.Fatal("вклад компонентов", zap.Error(err))
+		}
+		log.Error("вклад компонентов", zap.Error(err))
+	}
+	if outDir != "" {
+		if err := os.MkdirAll(outDir, 0o755); err != nil {
+			log.Fatal("вклад компонентов: каталог результатов", zap.Error(err))
+		}
+		raw, err := json.MarshalIndent(run, "", "  ")
+		if err == nil {
+			err = os.WriteFile(filepath.Join(outDir, "contribution-"+run.Set+"-"+run.RunID+".json"), raw, 0o644)
+		}
+		if err != nil {
+			log.Fatal("вклад компонентов: JSON прогона", zap.Error(err))
+		}
+	}
+	fmt.Print(services.FormatContributionTable(run))
 }
 
 // runPanelEval — `make eval SET=panel`: прогон набора префиксов по прежним подсказкам и панели контура выдачи
@@ -215,3 +249,25 @@ type multiFlag []string
 
 func (m *multiFlag) String() string     { return strings.Join(*m, ",") }
 func (m *multiFlag) Set(v string) error { *m = append(*m, v); return nil }
+
+// runShowcaseEval — `make eval SET=showcase`: 31 запрос прогона витрины на mock-каталоге, доля верных классов
+// ответа (контур доводки) — таблица в stdout и JSON в outDir; в базу не пишется.
+func runShowcaseEval(ctx context.Context, log *zap.Logger, svc *services.Services, outDir string) {
+	run, err := svc.RunShowcase(ctx)
+	if err != nil {
+		log.Fatal("набор витрины", zap.Error(err))
+	}
+	if outDir != "" {
+		if err := os.MkdirAll(outDir, 0o755); err != nil {
+			log.Fatal("набор витрины: каталог результатов", zap.Error(err))
+		}
+		raw, err := json.MarshalIndent(run, "", "  ")
+		if err == nil {
+			err = os.WriteFile(filepath.Join(outDir, "showcase-"+run.RunID+".json"), raw, 0o644)
+		}
+		if err != nil {
+			log.Fatal("набор витрины: JSON прогона", zap.Error(err))
+		}
+	}
+	fmt.Print(services.FormatShowcaseTable(run))
+}

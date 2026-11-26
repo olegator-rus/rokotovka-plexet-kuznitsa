@@ -112,6 +112,11 @@ func (p *intentService) Parse(ctx context.Context, normalized string, rulesGuess
 	if p.primary != nil {
 		modelName = llmModelName(p.primary.Model())
 	}
+	if llmOffBy(ctx) {
+		// Прогон вклада компонентов, строка «без LLM»: только правила, кэш разборов не читается.
+		rules.FallbackReason = fallbackLLMOff
+		return rules, nil
+	}
 	key := intentCacheKey(normalized, clientSegment, rulesGuess, dict.version, p.s.rulesVersion(), p.prompt.Version, modelName)
 	if hit, ok := p.cacheGet(ctx, key); ok {
 		return hit, nil

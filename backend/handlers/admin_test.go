@@ -69,13 +69,13 @@ func TestRateLimit(t *testing.T) {
 }
 
 // GET /api/effect без базы — 200 с причинами, почему сценариев нет; неверные допущения — ошибка поля.
-func TestEffectEndpoint(t *testing.T) {
+func TestEffectRemoved(t *testing.T) {
 	app := adminApp(false, 0)
-	if code, body := do(t, app, "GET", "/api/effect", ""); code != 200 || !strings.Contains(body, `"missing":["нет поисков`) {
-		t.Fatalf("effect: %d %s", code, body)
-	}
-	if code, body := do(t, app, "GET", "/api/effect?order_prob=abc", ""); code != 422 && code != 400 || !strings.Contains(body, "order_prob") {
-		t.Fatalf("effect bad: %d %s", code, body)
+	// Модель эффекта удалена в контуре доводки: маршрутов нет.
+	for _, path := range []string{"/api/effect", "/api/effect/commerce"} {
+		if code, _ := do(t, app, "GET", path, ""); code != fiber.StatusNotFound {
+			t.Fatalf("%s: %d, ждали 404", path, code)
+		}
 	}
 	if code, _ := do(t, app, "GET", "/api/costs/export", ""); code != fiber.StatusServiceUnavailable {
 		t.Fatalf("export без базы: %d", code)

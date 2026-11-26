@@ -1,6 +1,7 @@
 // Витрина без входа (повторное ревью N1, вход по ролям —): гость ходит только в открытые пути — любой
 // закрытый запрос с /search дал бы 401 до первого поиска. Бэк-офис гостю не показывается, а прямой адрес ведёт на
-// /login с возвратом. Сотрудник, у которого сессия кончилась посреди работы, тоже уходит на вход с возвратом.
+// /login с возвратом. Контур доводки: гость видит «Поиск» и «Доказательства», SearchOps — нет; старые адреса ведут на новые
+// места. Сотрудник, у которого сессия кончилась посреди работы, тоже уходит на вход с возвратом.
 import { GUEST, expect, loginWith, openSearch, search, test } from './fixtures'
 
 /** Открытые пути витрины — как publicRoutes в backend/handlers/middleware_backoffice.go. */
@@ -10,6 +11,7 @@ const PUBLIC = new Set([
   'GET /api/suggest',
   'GET /api/suggest/recommendations', // контур выдачи: рекомендации панели
   'GET /api/evaluations',
+  'GET /api/evaluations/contribution', // контур доводки: «Доказательства» → «Вклад компонентов»
   'POST /api/search',
   'POST /api/events',
   'POST /api/quotes', // контур коммерции: запрос КП из спецификации (витрина без входа)
@@ -21,7 +23,7 @@ const PUBLIC = new Set([
 test.describe('гость', () => {
   test.use({ storageState: GUEST })
 
-  test('N1: витрина не запрашивает закрытые пути; бэк-офиса в навигации нет; прямой адрес — вход с возвратом', async ({
+  test('N1: витрина и «Доказательства» не запрашивают закрытые пути; SearchOps в навигации нет; прямой адрес — вход с возвратом', async ({
     page,
   }) => {
     const closed: string[] = []
@@ -36,17 +38,31 @@ test.describe('гость', () => {
     await search(page, 'касперский')
     const nav = page.getByRole('navigation', { name: 'Разделы' })
     await expect(nav.getByRole('link', { name: 'Поиск' })).toBeVisible()
-    await expect(nav.getByRole('link', { name: 'Аналитика' })).toHaveCount(0)
+    await expect(nav.getByRole('link', { name: 'SearchOps' })).toHaveCount(0)
+    await expect(nav.getByRole('link')).toHaveText(['Поиск', 'Доказательства'])
     await expect(page.getByRole('link', { name: 'Войти' })).toBeVisible()
-    await nav.getByRole('link', { name: 'До / После' }).click()
-    await page.getByRole('tab', { name: 'Эффект агента' }).click()
+    // Гостю — без переключателя B0–B4 и плашки режима LLM.
+    await expect(page.getByLabel('Конфигурация поиска')).toHaveCount(0)
+    await expect(page.getByText(/LLM включена|Режим без LLM/)).toHaveCount(0)
+    await nav.getByRole('link', { name: 'Доказательства' }).click()
+    await expect(page.getByRole('heading', { name: 'Доказательства', level: 1 })).toBeVisible()
+    await expect(page.getByRole('tab', { name: 'До / После' })).toHaveAttribute(
+      'data-state',
+      'active',
+    )
+    await expect(page.getByRole('button', { name: 'Запустить прогон' })).toHaveCount(0)
+    await page.getByRole('tab', { name: 'Вклад компонентов' }).click()
+    // Пусто — «Прогон не запускался»; после прогона — таблица вклада (трек доказательств).
     await expect(
-      page.getByRole('region', { name: 'Эффект агента на отложенной неделе' }),
+      page.getByText('Прогон не запускался').or(page.getByRole('table').first()).first(),
     ).toBeVisible()
     expect(closed, 'витрина запросила закрытые пути').toEqual([])
 
+    // Старые адреса: /compare и /costs — в «Доказательства», /analytics — в SearchOps (вход с возвратом).
+    await page.goto('/compare?tab=one&q=word')
+    await expect(page).toHaveURL(/\/proofs\?tab=compare&view=one&q=word/)
     await page.goto('/analytics?days=7')
-    await expect(page).toHaveURL(loginWith('/analytics?days=7'))
+    await expect(page).toHaveURL(loginWith('/searchops?tab=failed'))
     await expect(
       page.getByText('Раздел бэк-офиса — войдите под аккаунтом сотрудника.'),
     ).toBeVisible()
@@ -58,10 +74,11 @@ test('сессия кончилась посреди работы: 401 бэк-о
   page,
 }) => {
   await page.goto('/changes')
-  await expect(page.getByRole('heading', { name: 'Изменения', level: 1 })).toBeVisible()
+  await expect(page).toHaveURL(/\/searchops\?tab=changes/)
+  await expect(page.getByRole('tab', { name: 'Изменения' })).toHaveAttribute('data-state', 'active')
   // Как после истечения cookie: бэк-офис отвечает 401.
   await page.route(
-    /\/api\/(proposals|analytics|agent|configs|costs|traces|effect)(\/|\?|$)/,
+    /\/api\/(proposals|analytics|agent|configs|costs|traces|margin|relations)(\/|\?|$)/,
     (route) =>
       route.fulfill({
         status: 401,
@@ -75,12 +92,9 @@ test('сессия кончилась посреди работы: 401 бэк-о
         },
       }),
   )
-  await page
-    .getByRole('navigation', { name: 'Разделы' })
-    .getByRole('link', { name: 'Аналитика' })
-    .click()
+  await page.getByRole('tab', { name: 'Запросы без ответа' }).click()
   await expect(page).toHaveURL(
-    (u) => loginWith('/analytics')(u) && u.searchParams.get('expired') === '1',
+    (u) => loginWith('/searchops?tab=failed')(u) && u.searchParams.get('expired') === '1',
   )
   await expect(page.getByText('Сессия истекла — войдите снова.')).toBeVisible()
 })

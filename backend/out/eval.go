@@ -136,7 +136,7 @@ type EvaluationsResponse struct {
 	JudgeAgreement *JudgeAgreement `json:"judge_agreement"`
 	// AgentCredit — честность правок агента в столбце B4 этого набора; null — B3 или B4 на наборе не прогонялись.
 	AgentCredit *EvalAgentCredit `json:"agent_credit"`
-	// Rescued — доля спасённых для вилки эффекта (как в /api/effect): только на holdout_week, иначе null.
+	// Rescued — доля спасённых на реплее отложенной недели: только на holdout_week, иначе null.
 	Rescued *EffectRescued `json:"rescued"`
 }
 
@@ -243,4 +243,41 @@ type JudgeRun struct {
 	JudgeAgreement
 	Grades []JudgePair `json:"grades"`
 	File   string      `json:"file,omitempty"`
+}
+
+// EffectRescued — доля спасённых поисков по реплею отложенной недели (holdout_week).
+type EffectRescued struct {
+	Set     string `json:"set"` // holdout_week
+	SetHash string `json:"set_hash"`
+	// Source — откуда доля, по-русски: набор, прогоны, засчитан ли вклад агента.
+	Source   string `json:"source"`
+	Baseline string `json:"baseline"` // B0
+	// Config — до какой конфигурации засчитано: B3 (только поиск) или B4 (поиск и честные правки агента).
+	Config string `json:"config"`
+	// RunBaseline, RunConfig, RunAgent — прогоны B0, B3, B4 (evaluations.run_id); RunAgent пусто — B4 не прогонялся.
+	RunBaseline       string `json:"run_baseline"`
+	RunConfig         string `json:"run_config"`
+	RunAgent          string `json:"run_agent"`
+	RulesVersion      int    `json:"rules_version"`
+	AgentRulesVersion int    `json:"agent_rules_version"`
+	// Weight — единица счёта: searches (запрос весит числом своих поисков за неделю).
+	Weight  string `json:"weight"`
+	Failed  int    `json:"failed"`  // поисков, где B0 не дал релевантного в топ-10
+	Rescued int    `json:"rescued"` // из них спасено (поиск + засчитанный вклад агента)
+	// FailedQueries, RescuedQueries — то же в различных запросах.
+	FailedQueries  int     `json:"failed_queries"`
+	RescuedQueries int     `json:"rescued_queries"`
+	Share          float64 `json:"share"`
+	// SearchShare — вклад поиска (B0 → B3); AgentShare — вклад агента (B3 → B4), 0, если не засчитан.
+	SearchShare float64 `json:"search_share"`
+	AgentShare  float64 `json:"agent_share"`
+	// AgentCounted — вклад агента засчитан: все принятые правки B4 — из запусков после разреза журнала.
+	AgentCounted bool `json:"agent_counted"`
+	// AgentPreHoldout — в B4 есть правки запусков до разреза журнала: числа B4 — не независимая оценка.
+	AgentPreHoldout bool   `json:"agent_pre_holdout"`
+	AgentNote       string `json:"agent_note"`
+	// CILow, CIHigh — 95% интервал Уилсона (n — различные запросы): из него берутся консервативный и
+	// оптимистичный сценарии.
+	CILow  float64 `json:"ci_low"`
+	CIHigh float64 `json:"ci_high"`
 }

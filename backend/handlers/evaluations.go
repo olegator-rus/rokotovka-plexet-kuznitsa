@@ -7,7 +7,6 @@ import (
 	"kuznica/api/in"
 	"kuznica/api/out"
 	"kuznica/api/pkg/errs"
-	"kuznica/api/services"
 
 	"github.com/gofiber/fiber/v2"
 )
@@ -59,7 +58,8 @@ func (h *Handler) RunEvaluation(c *fiber.Ctx) error {
 	return c.Status(fiber.StatusAccepted).JSON(job)
 }
 
-// Analytics — GET /api/analytics?days=30&role=ecom: плитки, воронка, проблемные запросы.
+// Analytics — GET /api/analytics?days=30: плитки, воронка, проблемные запросы с причиной и владельцем, намерения.
+// Ролевые блоки (параметр role) удалены в контуре доводки.
 func (h *Handler) Analytics(c *fiber.Ctx) error {
 	days := 0
 	if v := c.Query("days"); v != "" {
@@ -70,8 +70,7 @@ func (h *Handler) Analytics(c *fiber.Ctx) error {
 		}
 		days = n
 	}
-	// Роль блоков — из сессии; «Смотреть как» (любая роль) — только руководителю и скриптам.
-	resp, err := h.services.Analytics(c.UserContext(), days, services.ViewRole(actorRole(c), c.Query("role")))
+	resp, err := h.services.Analytics(c.UserContext(), days)
 	if err != nil {
 		return err
 	}

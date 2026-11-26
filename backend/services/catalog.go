@@ -180,6 +180,7 @@ func (s *Services) Meta() out.Meta {
 		DefaultConfig: domain.DefaultSearchConfig,
 		Clients:       []out.MetaClient{},
 		LLM:           s.LLMState(context.Background()),
+		Vectors:       s.VectorsState(),
 		Features:      out.Features(s.features),
 		Synthetic:     []string{},
 	}

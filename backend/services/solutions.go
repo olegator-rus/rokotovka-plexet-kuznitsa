@@ -96,8 +96,7 @@ type templateMatch struct {
 }
 
 // matchTemplate — утверждённый шаблон по триггерам: триггер — подстрока запроса с начала слова (не после числа).
-// Несколько —
-// раньше в запросе, при равенстве длиннее («филиал на 15 рабочих мест» — удалённый офис, а не рабочее место).
+// Несколько — раньше в запросе, при равенстве длиннее.
 func matchTemplate(templates []domain.SolutionTemplate, query string) *templateMatch {
 	q := " " + foldText(query) + " "
 	var best *templateMatch
@@ -628,6 +627,9 @@ func fitPack(lx *searchLexicon, head indexDoc, strategy string, seats int, ok fu
 		d := lx.docs[pid]
 		if !ok(d) || docEdition(d) != edition || d.LicenseType != head.LicenseType || !sameDuration(d, head) || !sameMetric(d, head) {
 			continue
+		}
+		if isOffer(d) && !isOffer(head) {
+			continue // вариант под сделку или организацию (контур доводки) слоту шаблона не подставляется
 		}
 		if d.PriceRub == nil {
 			continue

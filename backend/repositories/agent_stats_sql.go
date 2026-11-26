@@ -47,7 +47,7 @@ type AgentQueryStats struct {
 	Clicks  []AgentClickRow
 }
 
-// SearchSpan — последний поиск периода: исторический (source не live) и любой; без поисков — nil.
+// SearchSpan — последний поиск периода: исторический (source не live/traffic) и любой; без поисков — nil.
 type SearchSpan struct {
 	LastHistorical *time.Time
 	LastAny        *time.Time
@@ -62,7 +62,7 @@ func (r *Repos) SearchSpanSince(ctx context.Context, since time.Time) (SearchSpa
 	if !r.Enabled() {
 		return res, ErrNoDatabase
 	}
-	err := r.db.WithContext(ctx).Raw(`SELECT MAX(created_at) FILTER (WHERE source <> 'live') AS last_historical,
+	err := r.db.WithContext(ctx).Raw(`SELECT MAX(created_at) FILTER (WHERE source NOT IN ('live', 'traffic', '')) AS last_historical,
 	MAX(created_at) AS last_any FROM search_events WHERE created_at >= ? AND `+searchFilter, since).Scan(&res).Error
 	return res, err
 }

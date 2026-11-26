@@ -10266,10 +10266,7 @@
     "notes": "комплексная закупка, шаблон решения",
     "cluster": "p2-091",
     "terms": [],
-    "expect": {
-      "template_id": "tmpl-remote-office",
-      "quantity": 5
-    }
+    "expect": {}
   },
   {
     "id": "q-0473",
@@ -10307,10 +10304,7 @@
     "notes": "комплексная закупка, шаблон решения",
     "cluster": "p2-092",
     "terms": [],
-    "expect": {
-      "template_id": "tmpl-remote-office",
-      "quantity": 15
-    }
+    "expect": {}
   },
   {
     "id": "q-0474",
@@ -10508,9 +10502,7 @@
     "notes": "комплексная закупка, шаблон решения",
     "cluster": "p2-098",
     "terms": [],
-    "expect": {
-      "template_id": "tmpl-remote-office"
-    }
+    "expect": {}
   },
   {
     "id": "q-0480",

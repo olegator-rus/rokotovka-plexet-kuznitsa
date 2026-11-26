@@ -162,11 +162,6 @@ func checkSQLEqualsMemory(t *testing.T, r *repositories.Repos, since time.Time) 
 	if got := analyticsFrom(gotSum, gotTop); !reflect.DeepEqual(got, want) {
 		t.Fatalf("ответ аналитики:\nSQL    %+v\nпамять %+v", got, want)
 	}
-	// Вилка эффекта: замер по журналам из сумм SQL равен замеру в памяти (без цен).
-	m := measureLogs(searches, behavior, nil)
-	if got := effectLogsFrom(gotSum.Total); !reflect.DeepEqual(got, m) {
-		t.Fatalf("замер эффекта: SQL %+v, память %+v", got, m)
-	}
 	t.Logf("поисков %d, действий %d, проблемных запросов %d", len(searches), len(behavior), len(gotProblems))
 }
 

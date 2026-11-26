@@ -249,9 +249,12 @@ type textModel struct {
 }
 
 func (m *textModel) Model() string { return "aliceai-llm-flash" }
-func (m *textModel) Chat(context.Context, llm.Request) (*llm.Response, error) {
+func (m *textModel) Chat(_ context.Context, req llm.Request) (*llm.Response, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
+	if len(req.Tools) == 1 && req.Tools[0].Function.Name == "submit_plan" {
+		return &llm.Response{Message: llm.Message{Role: "assistant", Content: "план"}}, nil // план по приоритету
+	}
 	if len(m.turns) == 0 {
 		return &llm.Response{Message: llm.Message{Role: "assistant", Content: "готово"}}, nil
 	}
@@ -437,9 +440,9 @@ func TestAgentStreamDoneAndEmptySubs(t *testing.T) {
 		if ev.Kind == "done" {
 			gotDone = true
 			s.agent.mu.Lock()
-			active := s.agent.active
+			active := len(s.agent.runs)
 			s.agent.mu.Unlock()
-			if active != nil {
+			if active != 0 {
 				t.Fatal("к рассылке done запуск уже снят с active")
 			}
 		}

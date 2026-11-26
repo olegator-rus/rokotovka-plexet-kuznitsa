@@ -42,6 +42,8 @@ const (
 func (s *Services) rerankFamilies(ctx context.Context, query, route string, fams []*familyHit) domain.StepBase {
 	w := s.rerankW
 	switch {
+	case s.rerankOffBy(ctx):
+		return skipped(domain.StepRerank, reasonVectorsOff)
 	case w <= 0 || !s.reranker.Enabled():
 		return skipped(domain.StepRerank, rerankOff)
 	case route != domain.RouteIntent && route != domain.RouteSemantic:

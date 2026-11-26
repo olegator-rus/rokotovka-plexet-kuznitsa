@@ -91,13 +91,7 @@ func (rc *runCtx) runCommerce(ctx context.Context) error {
 	rc.episode["metrics"] = map[string]any{"mode": domain.RunModeCommerce, "relations": len(ch.Active), "rules": cr.scan.Rules,
 		"broken": len(broken), "missing_required": len(missing), "needs_review": cr.scan.NeedsReview,
 		"relations_version": ch.Version}
-	// перебор рычага маржи по категориям (margin_opportunity.go) — до разбора находок справочника.
-	cr.runMarginOpportunity(ctx)
 	if len(cr.scan.Findings) == 0 {
-		// совместные покупки (agent_commerce_stats.go) — этап после детерминированных диагнозов.
-		if cr.runCopurchase(ctx) > 0 {
-			return nil
-		}
 		rs.mu.Lock()
 		rs.run.StopReason = StopNoFindings
 		rs.mu.Unlock()
@@ -130,10 +124,8 @@ func (rc *runCtx) runCommerce(ctx context.Context) error {
 		if ctx.Err() != nil {
 			return ctx.Err()
 		}
-		if rs.tokens() >= agentTokensPerRun {
-			rs.mu.Lock()
-			rs.run.StopReason = StopTokenLimit
-			rs.mu.Unlock()
+		if reason := rs.exhausted(s.now()); reason != "" {
+			rc.stopBudget(ctx, reason, nil)
 			break
 		}
 		key, label := f.Key, cr.label(f)
@@ -151,9 +143,11 @@ func (rc *runCtx) runCommerce(ctx context.Context) error {
 		a.saveRun(ctx, rs)
 		switch {
 		case errors.Is(res.Err, errTokenLimit):
-			rs.mu.Lock()
-			rs.run.StopReason = StopTokenLimit
-			rs.mu.Unlock()
+			reason := rs.exhausted(s.now())
+			if reason == "" {
+				reason = StopTokenLimit
+			}
+			rc.stopBudget(ctx, reason, nil)
 			return nil
 		case errors.Is(res.Err, errBudget):
 			rs.mu.Lock()
@@ -179,10 +173,6 @@ func (rc *runCtx) runCommerce(ctx context.Context) error {
 		}
 	}
 	rc.episode["clusters_limited"], rc.episode["clusters_unfinished"] = limited, unfinished
-	// совместные покупки (agent_commerce_stats.go) — этап после детерминированных диагнозов.
-	if ctx.Err() == nil && rs.tokens() < agentTokensPerRun {
-		cr.runCopurchase(ctx)
-	}
 	rs.mu.Lock()
 	if rs.run.StopReason == "" && limited > 0 {
 		rs.run.StopReason = StopStepLimit
@@ -229,7 +219,10 @@ func (cr *commerceRun) memorySkip(ctx context.Context, f relationFinding) bool {
 		return false
 	}
 	key := f.Key
-	rc.a.step(ctx, rc.rs, &domain.AgentStep{Kind: domain.StepMemory, ClusterID: &key, OK: true, Title: title})
+	rc.a.step(ctx, rc.rs, &domain.AgentStep{Kind: domain.StepMemorySkip, ClusterID: &key, OK: true, Title: title})
+	rc.rs.mu.Lock()
+	rc.outcome.SkippedMemory++
+	rc.rs.mu.Unlock()
 	return true
 }
 
@@ -288,8 +281,8 @@ func (cr *commerceRun) investigate(ctx context.Context, f relationFinding) clust
 			fr.result.Err = err
 			break
 		}
-		if rs.tokens() >= agentTokensPerRun {
-			fr.finish("limit", "лимит токенов на запуск")
+		if reason := rs.exhausted(a.s.now()); reason != "" {
+			fr.finish("limit", budgetLabels[reason]+" запуска")
 			fr.result.Err = errTokenLimit
 			break
 		}
@@ -879,7 +872,7 @@ func (fr *findingRun) toolSubmit(ctx context.Context, raw string) (any, string, 
 	key, label := f.Key, fr.cr.label(f)
 	q := fr.checkQuery()
 	p := &domain.Proposal{RunID: rc.rs.run.ID, ClusterID: &key, ClusterKey: key, ClusterLabel: label,
-		ClusterQueries: toJSON([]clusterQuery{{Text: q}}), Diagnosis: f.Diagnosis, DiagnosisText: text, Role: domain.RoleEcom,
+		ClusterQueries: toJSON([]clusterQuery{{Text: q}}), Diagnosis: f.Diagnosis, DiagnosisText: text, Role: OwnerOf(f.Diagnosis),
 		Action: domain.ActionRelationPatch, Patch: toJSON(h.Patch), PatchKeys: toJSON([]string{key}), Evaluation: toJSON(h.Eval),
 		Evidence: toJSON(evidence), HypothesesTried: fr.hypotheses, BaseVersion: fr.cr.ch.Version, Status: domain.ProposalPending,
 		EvidenceLevel: f.EvidenceLevel, TechnicalStatus: domain.TechVerified, EconomicStatus: domain.EconUnknown}

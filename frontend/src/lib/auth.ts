@@ -2,7 +2,7 @@
 // что выключать и куда вести после входа. Чистые функции без DOM и vue-router: их проверяют node-тесты
 // (tests/auth.test.ts), а роутер и компоненты только зовут.
 
-/** Роли бэк-офиса: набор блоков «Аналитики» и зона решений. */
+/** Роли бэк-офиса — владельцы причин (контур доводки): зона решений по владельцу причины. */
 export type StaffRole = 'ecom' | 'product' | 'content' | 'head'
 /** Кто смотрит: гость, покупатель, сотрудник; system — скрипт по токену или бэк-офис без входа (development). */
 export type ViewerRole = 'guest' | 'buyer' | StaffRole | 'system'
@@ -12,9 +12,9 @@ export const LOGIN_PATH = '/login'
 export const ROLE_LABELS: Record<ViewerRole, string> = {
   guest: 'Гость',
   buyer: 'Покупатель',
-  ecom: 'Менеджер e-com',
-  product: 'Продукт-менеджер',
-  content: 'Контент-менеджер',
+  ecom: 'Администратор поиска',
+  product: 'Категорийный и лицензионный менеджер',
+  content: 'Каталог',
   head: 'Руководитель e-com',
   system: 'Служебный доступ',
 }
@@ -53,7 +53,7 @@ export function canDecide(
   return false
 }
 
-/** Подсказка у неактивной кнопки — та же фраза, что 403 сервера. */
+/** Подсказка у неактивной кнопки — та же фраза, что 403 сервера (services.DenyMessage). */
 export function denyMessage(owner: string | null | undefined): string {
   if (owner === 'ecom' || owner === 'product' || owner === 'content') {
     const l = ROLE_LABELS[owner]
@@ -62,27 +62,14 @@ export function denyMessage(owner: string | null | undefined): string {
   return 'Это решение принимает руководитель e-com'
 }
 
-/** Может ли роль смотреть «Аналитику» глазами другой роли («Смотреть как»). */
-export const canViewAs = (role: string | null | undefined) => role === 'head' || role === 'system'
-
-/** Стартовый экран роли: покупатель и гость — витрина, продукт-менеджер — очередь агента своей роли, остальные —
- * «Аналитика» своей роли. */
+/** Стартовый экран роли: покупатель и гость — витрина; сотрудник — SearchOps (вкладка «Запросы без ответа»). */
 export function homeFor(role: string | null | undefined): string {
-  switch (role) {
-    case 'product':
-      return '/searchops?tab=queue&role=product'
-    case 'ecom':
-    case 'content':
-    case 'head':
-    case 'system':
-      return '/analytics'
-    default:
-      return '/search'
-  }
+  return isStaff(role) ? '/searchops' : '/search'
 }
 
-/** Разделы бэк-офиса: путь → нужна роль сотрудника. */
-const BACKOFFICE_PREFIXES = ['/analytics', '/searchops', '/changes', '/costs', '/margin']
+/** Разделы бэк-офиса: путь → нужна роль сотрудника. /analytics, /changes и /margin — старые адреса, они ведут в
+ * SearchOps (контур доводки); /costs и /compare ведут в открытые «Доказательства». */
+const BACKOFFICE_PREFIXES = ['/searchops', '/analytics', '/changes', '/margin']
 
 export function isBackofficePath(path: string): boolean {
   const p = path.split(/[?#]/)[0] ?? ''

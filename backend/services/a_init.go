@@ -53,6 +53,8 @@ type Services struct {
 	agentStoreOverride agentStore
 	// features — флаги контура коммерции (commerce.go).
 	features Features
+	// procurement — справка и реестр контура доводки из файлов источника (help_index.go, analogs_reestr.go).
+	procurement procurementCache
 }
 
 // Options — настройки и клиенты сервисов из config. Нулевые клиенты — шаг выключен.

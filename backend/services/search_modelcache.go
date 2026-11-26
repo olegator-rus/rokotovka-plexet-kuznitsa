@@ -113,7 +113,7 @@ func newModelCache(size int, ttl time.Duration, now func() time.Time) *modelCach
 // (уже нормализован поиском). Срезы из кэша только читаются.
 func (s *Services) queryVector(ctx context.Context, text string) ([]float32, error) {
 	mc := s.models
-	if mc == nil {
+	if mc == nil || modelCacheOff(ctx) {
 		vecs, err := s.embedder.Embed(ctx, []string{text}, embeddingDim)
 		if err != nil {
 			return nil, err
@@ -148,7 +148,7 @@ func (s *Services) queryVector(ctx context.Context, text string) ([]float32, err
 // rerankCached — оценки реранкера: из кэша или от сервиса. Ключ — хэш запроса и текстов в их порядке.
 func (s *Services) rerankCached(ctx context.Context, query string, texts []string) ([]tei.RerankHit, error) {
 	mc := s.models
-	if mc == nil {
+	if mc == nil || modelCacheOff(ctx) {
 		return s.reranker.Rerank(ctx, query, texts)
 	}
 	h := sha256.New()

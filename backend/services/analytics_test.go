@@ -81,15 +81,12 @@ func TestAnalyticsReformulation(t *testing.T) {
 // Без базы аналитика отвечает нулями; неверные параметры — 422.
 func TestAnalyticsWithoutDB(t *testing.T) {
 	env := newTestEnv(t, false)
-	res, err := env.svc.Analytics(t.Context(), 0, "")
-	if err != nil || res.Days != 30 || res.Role != "ecom" || res.Tiles.Searches != 0 {
+	res, err := env.svc.Analytics(t.Context(), 0)
+	if err != nil || res.Days != 30 || res.Tiles.Searches != 0 {
 		t.Fatalf("без базы: %v %+v", err, res)
 	}
-	if _, err := env.svc.Analytics(t.Context(), 400, "ecom"); err == nil {
+	if _, err := env.svc.Analytics(t.Context(), 400); err == nil {
 		t.Fatal("days > 365 — ошибка")
-	}
-	if _, err := env.svc.Analytics(t.Context(), 7, "ceo"); err == nil {
-		t.Fatal("неизвестная роль — ошибка")
 	}
 	if _, err := env.svc.ImportSearchLogs(t.Context()); err == nil {
 		t.Fatal("импорт логов без базы — ошибка")

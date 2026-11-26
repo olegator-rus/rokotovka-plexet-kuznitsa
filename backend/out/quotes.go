@@ -1,6 +1,10 @@
 package out
 
-import "time"
+import (
+	"time"
+
+	"kuznica/api/domain"
+)
 
 // QuoteCreated — ответ POST /api/quotes (201).
 type QuoteCreated struct {
@@ -30,6 +34,8 @@ type QuoteLine struct {
 	CompanionClass string   `json:"companion_class,omitempty"`
 	PriceRub       *float64 `json:"price_rub"`
 	PriceMode      string   `json:"price_mode"`
+	// Purchase — исходный запрос и параметры закупки (контур доводки).
+	Purchase *domain.QuotePurchase `json:"purchase,omitempty"`
 }
 
 // QuoteList — GET /api/quotes.

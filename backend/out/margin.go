@@ -17,7 +17,6 @@ type MarginVersion struct {
 	Weight  float64 `json:"weight"`
 	// Categories — веса по категориям этой версии; нет — не пишется.
 	Categories map[string]float64 `json:"categories,omitempty"`
-	ProposalID *string            `json:"proposal_id,omitempty"`
 	Source     string             `json:"source"` // default | human | rollback | agent
 	Author     string             `json:"author"`
 	Comment    string             `json:"comment"`
@@ -55,8 +54,6 @@ type MarginApplied struct {
 	// Categories, CategoriesBefore — веса по категориям после и до.
 	Categories       map[string]float64 `json:"categories"`
 	CategoriesBefore map[string]float64 `json:"categories_before"`
-	// ProposalID — принятое этим применением предложение агента.
-	ProposalID *string `json:"proposal_id,omitempty"`
 }
 
 // MarginItemRef — позиция выдачи в «было / стало».

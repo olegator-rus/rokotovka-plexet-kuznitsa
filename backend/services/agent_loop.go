@@ -107,7 +107,7 @@ func (rc *runCtx) investigate(ctx context.Context, c *failedCluster) clusterResu
 			h.Label, statusLabel(h.Status), h.At.Format("02.01"), rejectLabels[h.Reason], commentSuffix(h.Comment))
 	}
 	tool := "get_previous_decisions"
-	a.step(ctx, rs, &domain.AgentStep{Kind: domain.StepMemory, ClusterID: &id, Tool: &tool, OK: true, Title: title,
+	a.step(ctx, rs, &domain.AgentStep{Kind: domain.StepMemoryRead, ClusterID: &id, Tool: &tool, OK: true, Title: title,
 		Args: toJSON(map[string]any{"cluster_id": id}), Result: toJSON(map[string]any{"items": nonNil(cr.memory)}),
 		Ms: int(time.Since(t).Milliseconds())})
 
@@ -125,9 +125,12 @@ func (rc *runCtx) investigate(ctx context.Context, c *failedCluster) clusterResu
 			cr.result.Err = err
 			break
 		}
-		if rs.tokens() >= agentTokensPerRun {
-			cr.finish("limit", domain.DiagUnknown, "лимит токенов на запуск")
-			cr.result.Err = errTokenLimit
+		if reason := rs.exhausted(rc.a.s.now()); reason != "" {
+			cr.finish("limit", diagOr(cr.diagnosis), budgetLabels[reason]+" запуска")
+			cr.result.Err = errRunBudget
+			if reason == StopTokenLimit {
+				cr.result.Err = errTokenLimit
+			}
 			break
 		}
 		if rc.a.s.guard().exceeded(ctx) {
@@ -236,6 +239,20 @@ func (rc *runCtx) chat(ctx context.Context, msgs []llm.Message, tools []llm.Tool
 	defer cancel()
 	zero := 0.0
 	req := llm.Request{Messages: msgs, Tools: tools, MaxTokens: agentMaxTokensReply, Temperature: &zero}
+	resp, err := rc.chatOnce(ctx, cctx, model, req)
+	if err != nil && ctx.Err() == nil && !errors.Is(err, errBudget) && !rc.a.s.guard().exceeded(ctx) {
+		// Повтор при сбое модели — один раз; затем ошибка уходит в шаг, запуск решает сам (кластер — error).
+		rc.a.step(ctx, rc.rs, &domain.AgentStep{Kind: domain.StepError, OK: false,
+			Title: "Модель не ответила (" + shortText(err.Error(), 120) + ") — повторяю вызов один раз"})
+		cctx2, cancel2 := context.WithTimeout(ctx, agentCallTimeout)
+		defer cancel2()
+		resp, err = rc.chatOnce(ctx, cctx2, model, req)
+	}
+	return resp, err
+}
+
+// chatOnce — один вызов модели с учётом в llm_usage (трасса запуска = журнал вызовов модели).
+func (rc *runCtx) chatOnce(ctx, cctx context.Context, model ChatModel, req llm.Request) (*llm.Response, error) {
 	started := time.Now()
 	resp, err := model.Chat(cctx, req)
 	call := llmCall{Model: model.Model(), Latency: time.Since(started), Status: llmStatusOK}

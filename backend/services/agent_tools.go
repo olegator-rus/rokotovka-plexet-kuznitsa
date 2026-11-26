@@ -56,10 +56,10 @@ func agentTools() []llm.Tool {
 			`{"type":"object","properties":{"patch_id":{"type":"string"}},"required":["patch_id"]}`),
 		def("submit_proposal", "Отправить прошедшую прогон правку человеку в очередь.",
 			`{"type":"object","properties":{"patch_id":{"type":"string"},"diagnosis_text":{"type":"string"}},"required":["patch_id","diagnosis_text"]}`),
-		def("create_assortment_ticket", "Задача человеку: SUBSTITUTE_AVAILABLE (есть аналог), ASSORTMENT_GAP (спрос без предложения), CONTENT_GAP (правка карточки), RANKING_FAILURE (товар в выдаче, но не первым — менеджеру e-com).",
-			`{"type":"object","properties":{"diagnosis":{"type":"string","enum":["SUBSTITUTE_AVAILABLE","ASSORTMENT_GAP","CONTENT_GAP","RANKING_FAILURE"]},"text":{"type":"string"},`+
+		def("create_assortment_ticket", "Задача владельцу причины: SUBSTITUTE_AVAILABLE (есть аналог), ASSORTMENT_GAP (спрос без предложения), CONTENT_GAP (правка карточки), RANKING_FAILURE (товар в выдаче, но не первым — администратору поиска), NON_PRODUCT (запрос не о товаре — администратору поиска, справочный индекс).",
+			`{"type":"object","properties":{"diagnosis":{"type":"string","enum":["SUBSTITUTE_AVAILABLE","ASSORTMENT_GAP","CONTENT_GAP","RANKING_FAILURE","NON_PRODUCT"]},"text":{"type":"string"},`+
 				`"substitute_family_ids":{"type":"array","items":{"type":"string"},"maxItems":5},"family_id":{"type":"string"}},"required":["diagnosis","text"]}`),
-		def("close_cluster", "Закрыть кластер без предложения и без задачи (NOISE, NON_PRODUCT, CONSTRAINT_CONFLICT, UNKNOWN или ALIAS_GAP/TYPO после трёх отклонённых гипотез). Спрос без предложения, аналог, карточка и ранжирование — create_assortment_ticket.",
+		def("close_cluster", "Закрыть кластер без предложения и без задачи (NOISE, CONSTRAINT_CONFLICT, UNKNOWN или ALIAS_GAP/TYPO после трёх отклонённых гипотез). Спрос без предложения, аналог, карточка, ранжирование и запрос не о товаре — create_assortment_ticket.",
 			`{"type":"object","properties":{"diagnosis":{"type":"string","enum":["ALIAS_GAP","TYPO","CONSTRAINT_CONFLICT","NON_PRODUCT","NOISE","UNKNOWN"]},"reason":{"type":"string"}},"required":["diagnosis","reason"]}`),
 		def("verify_applied_change", "Эффект принятой ранее правки: сколько запросов её кластера находится сейчас.",
 			`{"type":"object","properties":{"proposal_id":{"type":"string"}},"required":["proposal_id"]}`),

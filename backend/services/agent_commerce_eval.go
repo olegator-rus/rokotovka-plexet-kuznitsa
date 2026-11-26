@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"slices"
-	"strings"
 	"time"
 
 	"kuznica/api/domain"
@@ -274,16 +273,6 @@ func (s *Services) recheckRelationPatch(ctx context.Context, ch *relationChain, 
 	sb.pairs = nil
 	ev, _ := sb.evaluate(ctx, patch, key, false)
 	// На сменившемся справочнике находки может уже не быть (её сняли другой правкой) — тогда правка лишняя.
-	if strings.HasPrefix(key, copurchaseKeyPrefix) {
-		// Связь по совместным покупкам: находки справочника нет по построению — проверяется, что связи ещё нет.
-		for _, a := range patch.Add {
-			if d := hasRelation(sb.docs, a.FromFamily, a.ToFamily); d != nil {
-				ev.Passed = false
-				ev.Reasons = append(ev.Reasons, fmt.Sprintf("связь между %s и %s в справочнике уже есть (%s)", a.FromFamily, a.ToFamily, d.ID))
-			}
-		}
-		return ev
-	}
 	if !sb.before.keys()[key] && key != "" {
 		ev.Passed = false
 		ev.Reasons = append(ev.Reasons, "проблемы, которую снимала правка, в действующем справочнике уже нет")

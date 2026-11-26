@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"kuznica/api/in"
+	"kuznica/api/services"
 
 	"github.com/gofiber/fiber/v2"
 )
@@ -29,9 +30,9 @@ func (h *Handler) StartAgentRun(c *fiber.Ctx) error {
 	return c.Status(fiber.StatusAccepted).JSON(res)
 }
 
-// AgentRuns — GET /api/agent/runs.
+// AgentRuns — GET /api/agent/runs?trigger=manual|schedule|spike|catalog_change.
 func (h *Handler) AgentRuns(c *fiber.Ctx) error {
-	res, err := h.services.AgentRuns(c.UserContext())
+	res, err := h.services.AgentRuns(c.UserContext(), c.Query("trigger"))
 	if err != nil {
 		return err
 	}
@@ -55,9 +56,62 @@ func (h *Handler) StopAgentRun(c *fiber.Ctx) error {
 	return c.SendStatus(fiber.StatusAccepted)
 }
 
-// AgentMemory — GET /api/agent/memory.
+// AgentMemory — GET /api/agent/memory: без layer — решения прежней формой; ?layer=decisions|suppress|episodes —
+// слой памяти контура автономии.
 func (h *Handler) AgentMemory(c *fiber.Ctx) error {
+	if layer := c.Query("layer"); layer != "" {
+		res, err := h.services.AgentMemoryLayer(c.UserContext(), layer)
+		if err != nil {
+			return err
+		}
+		return c.JSON(res)
+	}
 	res, err := h.services.AgentMemory(c.UserContext())
+	if err != nil {
+		return err
+	}
+	return c.JSON(res)
+}
+
+// RemoveSuppress — POST /api/agent/memory/suppress/{id}/remove {"reason"}: снять запись «не предлагать» (владелец
+// причины, руководитель или служебный доступ); это тоже решение.
+func (h *Handler) RemoveSuppress(c *fiber.Ctx) error {
+	role := actorRole(c)
+	if role != services.RoleHead && role != services.RoleSystem {
+		owner, err := h.services.SuppressOwner(c.UserContext(), c.Params("id"))
+		if err != nil {
+			return err
+		}
+		if err := requireDecision(c, owner); err != nil {
+			return err
+		}
+	}
+	var req in.SuppressRemoveRequest
+	if err := bindBody(c, &req); err != nil {
+		return err
+	}
+	res, err := h.services.RemoveSuppress(c.UserContext(), c.Params("id"), req, role)
+	if err != nil {
+		return err
+	}
+	return c.JSON(res)
+}
+
+// AgentSettings — GET /api/agent/settings: режим агента, расписание, пороги триггеров, пул, бюджет.
+func (h *Handler) AgentSettings(c *fiber.Ctx) error {
+	return c.JSON(h.services.AgentSettings(c.UserContext()))
+}
+
+// SetAgentSettings — POST /api/agent/settings {"read_only": bool}: режим «только чтение» (руководитель e-com).
+func (h *Handler) SetAgentSettings(c *fiber.Ctx) error {
+	if err := requireDecision(c, services.RoleHead); err != nil {
+		return err
+	}
+	var req in.AgentSettingsRequest
+	if err := bindBody(c, &req); err != nil {
+		return err
+	}
+	res, err := h.services.SetAgentSettings(c.UserContext(), req)
 	if err != nil {
 		return err
 	}

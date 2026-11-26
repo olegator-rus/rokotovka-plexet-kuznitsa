@@ -6,9 +6,10 @@
 // у каждой строки. Справа — скор, он же «почему здесь» (трасса). Рейтингов, рассрочки и избранного нет.
 import { computed, ref } from 'vue'
 import { Check, ChevronDown, ListPlus, Route } from 'lucide-vue-next'
-import type { SearchItem, SearchItemBase } from '@/api/types'
+import type { Purchase, SearchItem, SearchItemBase } from '@/api/types'
 import CompatBadge from '@/components/search/CompatBadge.vue'
 import { formatScore } from '@/lib/format'
+import { reestrTone, selectedOffer } from '@/lib/procurement'
 import { isPurchasable, otherVariants, priceLabel } from '@/lib/license'
 import {
   attrCells,
@@ -26,6 +27,8 @@ const props = defineProps<{
   selected?: boolean
   inSpec: (productId: string) => boolean
   showCompat?: boolean
+  /** Контур доводки: параметры закупки из запроса — карточка открывается с выбранным по ним вариантом. */
+  purchase?: Purchase | null
 }>()
 
 const emit = defineEmits<{
@@ -36,13 +39,19 @@ const emit = defineEmits<{
 }>()
 
 const expanded = ref(false)
+const offer = computed(() => selectedOffer(props.item, props.purchase))
 const variants = computed(() => otherVariants(props.item))
 const action = computed(() => cardAction(props.item, variants.value.length))
 const isSoftware = computed(
   () => (props.item.kind ?? 'software') !== 'hardware' && !!props.item.attrs,
 )
+// Контур доводки: статус реестра — бейджем в трёх состояниях (item.reestr), прежняя ячейка из in_reestr не дублирует его.
 const cells = computed<AttrCell[]>(() =>
-  props.item.attrs ? attrCells(props.item.attrs, props.named) : [],
+  props.item.attrs
+    ? attrCells(props.item.attrs, props.named).filter(
+        (c) => !(props.item.reestr && c.key === 'reestr'),
+      )
+    : [],
 )
 const rows = computed<SearchItemBase[]>(() => [props.item, ...variants.value])
 const detailsId = computed(() => `family-${props.position}-variants`)
@@ -102,7 +111,33 @@ function rowQuantity(v: SearchItemBase): string {
           <span v-if="item.purchased_before" class="badge badge--strong">
             Вы покупали этот продукт
           </span>
+          <span
+            v-if="item.reestr"
+            :class="['badge', { 'badge--strong': reestrTone(item.reestr) === 'ok' }]"
+            data-testid="reestr"
+          >
+            {{ item.reestr.label }}
+          </span>
         </p>
+        <p v-if="item.analog_note" class="fcard__note t-xs t-muted">{{ item.analog_note }}</p>
+        <div v-if="offer" class="fcard__offer t-sm" data-testid="selected-offer">
+          <p>
+            <span class="t-muted">Выбрано по запросу:</span>&nbsp;<strong>{{ offer.label }}</strong>
+          </p>
+          <p class="t-num">{{ offer.sum }}</p>
+          <span v-if="inSpec(item.product_id)" class="t-xs t-muted" role="status">
+            В спецификации
+          </span>
+          <button
+            v-else
+            type="button"
+            class="btn btn--primary btn--sm"
+            data-testid="offer-spec"
+            @click="emit('spec', item, position)"
+          >
+            <ListPlus :size="14" aria-hidden="true" /> В спецификацию
+          </button>
+        </div>
       </div>
 
       <div class="fcard__side">
@@ -248,6 +283,23 @@ function rowQuantity(v: SearchItemBase): string {
 </template>
 
 <style scoped>
+.fcard__note {
+  margin: var(--space-1) 0 0;
+}
+.fcard__offer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-1) var(--space-3);
+  margin-top: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  border: var(--border-w) solid var(--border-control);
+  border-radius: var(--radius-card);
+  background: var(--surface-2);
+}
+.fcard__offer p {
+  margin: 0;
+}
 .fcard {
   container-type: inline-size;
   border: var(--border-w) solid var(--border);

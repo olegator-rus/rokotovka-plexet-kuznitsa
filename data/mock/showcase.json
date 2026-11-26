@@ -1,0 +1,219 @@
+[
+  {
+    "id": "sc-01",
+    "query": "др веб",
+    "vitrine": "fail",
+    "expect": "product",
+    "note": "алиас «др веб» → Dr.Web"
+  },
+  {
+    "id": "sc-02",
+    "query": "dr.web",
+    "vitrine": "ok",
+    "expect": "product",
+    "note": ""
+  },
+  {
+    "id": "sc-03",
+    "query": "ворд",
+    "vitrine": "fail",
+    "expect": "product",
+    "note": "алиас «ворд» → Word (контур поиска); офисные пакеты Microsoft"
+  },
+  {
+    "id": "sc-04",
+    "query": "мойофис",
+    "vitrine": "ok",
+    "expect": "product",
+    "note": ""
+  },
+  {
+    "id": "sc-05",
+    "query": "р7 офис",
+    "vitrine": "ok",
+    "expect": "product",
+    "note": ""
+  },
+  {
+    "id": "sc-06",
+    "query": "microsoft office",
+    "vitrine": "ok",
+    "expect": "product",
+    "note": ""
+  },
+  {
+    "id": "sc-07",
+    "query": "windows server 2025",
+    "vitrine": "fail",
+    "expect": "product",
+    "note": "на витрине Windows Server нет; в mock — есть"
+  },
+  {
+    "id": "sc-08",
+    "query": "1с",
+    "vitrine": "partial",
+    "expect": "product",
+    "note": "сама 1С в первой тройке"
+  },
+  {
+    "id": "sc-09",
+    "query": "1c бухгалтерия",
+    "vitrine": "ok",
+    "expect": "product",
+    "note": ""
+  },
+  {
+    "id": "sc-10",
+    "query": "битрикс24",
+    "vitrine": "ok",
+    "expect": "absent",
+    "note": "в mock-каталоге Битрикс24 нет — честное «нет»"
+  },
+  {
+    "id": "sc-11",
+    "query": "астра линукс",
+    "vitrine": "partial",
+    "expect": "product",
+    "note": "Astra Linux первой"
+  },
+  {
+    "id": "sc-12",
+    "query": "антивирус для сервера",
+    "vitrine": "partial",
+    "expect": "product",
+    "note": ""
+  },
+  {
+    "id": "sc-13",
+    "query": "резервное копирование",
+    "vitrine": "ok",
+    "expect": "product",
+    "note": ""
+  },
+  {
+    "id": "sc-14",
+    "query": "видеоконференции",
+    "vitrine": "partial",
+    "expect": "product",
+    "note": ""
+  },
+  {
+    "id": "sc-15",
+    "query": "электронная подпись",
+    "vitrine": "fail",
+    "expect": "product",
+    "note": "КриптоПро CSP, без шума"
+  },
+  {
+    "id": "sc-16",
+    "query": "криптопро",
+    "vitrine": "ok",
+    "expect": "product",
+    "note": ""
+  },
+  {
+    "id": "sc-17",
+    "query": "аналог microsoft office",
+    "vitrine": "fail",
+    "expect": "analogs",
+    "note": "отечественные офисные пакеты, исходный — «Вы искали»"
+  },
+  {
+    "id": "sc-18",
+    "query": "отечественная субд",
+    "vitrine": "partial",
+    "expect": "product",
+    "note": "Postgres Pro, без ОС"
+  },
+  {
+    "id": "sc-19",
+    "query": "сертификат фстэк",
+    "vitrine": "partial",
+    "expect": "product",
+    "note": "позиции с сертификатом ФСТЭК"
+  },
+  {
+    "id": "sc-20",
+    "query": "для образования",
+    "vitrine": "unknown",
+    "expect": "product",
+    "note": "варианты для образовательных учреждений"
+  },
+  {
+    "id": "sc-21",
+    "query": "продление касперский",
+    "vitrine": "fail",
+    "expect": "product",
+    "note": "продления Kaspersky, KES в первой пятёрке"
+  },
+  {
+    "id": "sc-22",
+    "query": "касперский на 50 пользователей",
+    "vitrine": "fail",
+    "expect": "product",
+    "note": "Kaspersky на 50, метрика устройств — с пояснением"
+  },
+  {
+    "id": "sc-23",
+    "query": "kaspersky на 3 года",
+    "vitrine": "partial",
+    "expect": "product",
+    "note": "срока 3 года нет — сказано прямо"
+  },
+  {
+    "id": "sc-24",
+    "query": "сервер 2u",
+    "vitrine": "partial",
+    "expect": "product",
+    "note": ""
+  },
+  {
+    "id": "sc-25",
+    "query": "ноутбук 16 гб",
+    "vitrine": "fail",
+    "expect": "product",
+    "note": "ноутбуки с 16 ГБ"
+  },
+  {
+    "id": "sc-26",
+    "query": "коммутатор 24 порта",
+    "vitrine": "ok",
+    "expect": "product",
+    "note": ""
+  },
+  {
+    "id": "sc-27",
+    "query": "монитор 27",
+    "vitrine": "ok",
+    "expect": "product",
+    "note": ""
+  },
+  {
+    "id": "sc-28",
+    "query": "счёт",
+    "vitrine": "fail",
+    "expect": "help",
+    "note": "ответ справки без товаров"
+  },
+  {
+    "id": "sc-29",
+    "query": "доставка",
+    "vitrine": "fail",
+    "expect": "help",
+    "note": "ответ справки без товаров"
+  },
+  {
+    "id": "sc-30",
+    "query": "возврат",
+    "vitrine": "fail",
+    "expect": "help",
+    "note": "ответ справки без товаров"
+  },
+  {
+    "id": "sc-31",
+    "query": "как продлить лицензию",
+    "vitrine": "fail",
+    "expect": "help",
+    "note": "ответ справки без товаров"
+  }
+]

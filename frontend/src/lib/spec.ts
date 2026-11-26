@@ -3,6 +3,7 @@
 import type { Companion, QuoteOrigin, QuoteRequest } from '@/api/typesP2'
 import type { SearchItemBase } from '@/api/types'
 import { formatPrice, plural } from './format.ts'
+import { parsePurchase, type SpecPurchase } from './procurement.ts'
 
 export const SPEC_MAX_QTY = 100000
 
@@ -21,6 +22,8 @@ export interface SpecLine {
   companion_class?: string
   /** К какой позиции добавлено (название якоря) — для пометки происхождения. */
   anchor?: string
+  /** Контур доводки: исходный запрос и параметры закупки — уходят в заявку КП. */
+  purchase?: SpecPurchase
 }
 
 /** Режим цены позиции выдачи: поле контура коммерции, иначе по старому флагу. */
@@ -52,8 +55,13 @@ export function clampQty(n: unknown): number {
   return Math.min(SPEC_MAX_QTY, Math.max(1, Math.round(v)))
 }
 
-export function lineFromItem(item: SearchItemBase, quantity = 1): SpecLine {
+export function lineFromItem(
+  item: SearchItemBase,
+  quantity = 1,
+  purchase: SpecPurchase | null = null,
+): SpecLine {
   return {
+    ...(purchase ? { purchase } : {}),
     product_id: item.product_id,
     title: item.title,
     vendor: item.vendor,
@@ -171,6 +179,7 @@ export function quoteRequest(
       quantity: l.quantity,
       origin: l.origin,
       ...(l.companion_class ? { companion_class: l.companion_class } : {}),
+      ...(l.purchase ? { purchase: l.purchase } : {}),
     })),
   }
   if (ctx.comment?.trim()) body.comment = ctx.comment.trim()
@@ -207,6 +216,7 @@ export function parseStored(raw: string | null): SpecLine[] {
       origin: ORIGINS.includes(r.origin as string) ? (r.origin as QuoteOrigin) : 'search',
       ...(typeof r.companion_class === 'string' ? { companion_class: r.companion_class } : {}),
       ...(typeof r.anchor === 'string' && r.anchor ? { anchor: r.anchor } : {}),
+      ...(parsePurchase(r.purchase) ? { purchase: parsePurchase(r.purchase) } : {}),
     })
   }
   return out

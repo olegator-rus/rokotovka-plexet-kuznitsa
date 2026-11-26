@@ -237,6 +237,9 @@ type RulesChange struct {
 	RollBackAbove int
 	// RolledBack — решения rolled_back по откаченным предложениям (заполняется внутри).
 	RolledBack []domain.Decision
+	// RollBackProposal — откат одной принятой правки по предложению агента (контур автономии, action rollback): это
+	// предложение → rolled_back с решением rolled_back (reason agent_rollback). Должно быть accepted.
+	RollBackProposal *uuid.UUID
 }
 
 // ApplyRulesChange — смена правил и решение одной транзакцией. Гонки: предложение уже решено —
@@ -318,6 +321,29 @@ func (r *Repos) ApplyRulesChange(ctx context.Context, ch *RulesChange) error {
 				}
 				ch.RolledBack = append(ch.RolledBack, d)
 			}
+		}
+		if ch.RollBackProposal != nil {
+			var p domain.Proposal
+			if err := tx.First(&p, "id = ?", *ch.RollBackProposal).Error; err != nil {
+				return err
+			}
+			res := tx.Model(&domain.Proposal{}).Where("id = ? AND status = ?", p.ID, domain.ProposalAccepted).
+				Update("status", domain.ProposalRolledBack)
+			if res.Error != nil {
+				return res.Error
+			}
+			if res.RowsAffected != 1 {
+				return domain.ErrProposalDecided
+			}
+			d := domain.Decision{ProposalID: p.ID, Decision: domain.ProposalRolledBack, Reason: "agent_rollback",
+				ClusterKey: p.ClusterKey, ClusterLabel: p.ClusterLabel, Diagnosis: p.Diagnosis, PatchKeys: p.PatchKeys}
+			if ch.Decision != nil {
+				d.Comment, d.DecidedBy = ch.Decision.Comment, ch.Decision.DecidedBy
+			}
+			if err := tx.Create(&d).Error; err != nil {
+				return err
+			}
+			ch.RolledBack = append(ch.RolledBack, d)
 		}
 		if ch.Decision != nil && ch.Proposal != nil {
 			return tx.Create(ch.Decision).Error

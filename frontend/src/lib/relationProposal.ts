@@ -23,9 +23,6 @@ export const isRelationPatch = (p: Pick<Proposal, 'action'>) => p.action === 're
 export const P2_DIAGNOSIS_LABELS: Record<string, string> = {
   BROKEN_RELATION: 'Сломанная связь',
   MISSING_REQUIRED: 'Нет обязательного дополнения',
-  MISSING_RELATION: 'Покупают вместе, связи нет',
-  BUNDLE_OPPORTUNITY: 'Возможен комплект',
-  MARGIN_OPPORTUNITY: 'Маржу можно поднять',
 }
 
 /** Инструменты агента контура коммерции — для подписей ленты. */
@@ -36,10 +33,6 @@ export const P2_TOOL_LABELS: Record<string, string> = {
   check_license_rules: 'Правила лицензий вендора',
   create_relation_patch: 'Правка связей в песочнице',
   evaluate_companions: 'Прогон блока допродажи',
-  get_copurchase_stats: 'Совместные покупки',
-  evaluate_bundle: 'Проверка комплекта',
-  verify_attach_effect: 'Эффект допродажи',
-  simulate_margin_policy: 'Симуляция маржи',
   judge: 'Судья другого семейства',
 }
 

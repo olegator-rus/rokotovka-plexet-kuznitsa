@@ -153,6 +153,19 @@ type QuoteItem struct {
 	Quantity       int    `json:"quantity"`
 	Origin         string `json:"origin"` // search | companion | template
 	CompanionClass string `json:"companion_class,omitempty"`
+	// Purchase — исходный запрос и параметры закупки (контур доводки); nil — позиция не из поиска.
+	Purchase *QuotePurchase `json:"purchase,omitempty"`
+}
+
+// QuotePurchase — исходный запрос и извлечённые параметры закупки позиции спецификации.
+type QuotePurchase struct {
+	Query          string `json:"query"`
+	Deal           string `json:"deal,omitempty"`
+	Quantity       *int   `json:"quantity,omitempty"`
+	Metric         string `json:"metric,omitempty"`
+	DurationMonths *int   `json:"duration_months,omitempty"`
+	OrgType        string `json:"org_type,omitempty"`
+	Edition        string `json:"edition,omitempty"`
 }
 
 // CatalogInfo — сведения о снимке каталога, которых нет у позиций: что в данных синтетическое. Одна строка на

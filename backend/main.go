@@ -3,7 +3,7 @@
 //
 // `go run .` — HTTP-сервер; `go run . import` — импорт каталога из DATA_DIR в OpenSearch и PostgreSQL
 // (то же, что POST /api/catalog/import), сводка — JSON в stdout; `go run . warmup` — прогрев кэша разборов
-// частотными запросами.
+// частотными запросами; `go run . traffic` — генератор mock-трафика стенда (traffic_cli.go).
 //
 // CORS не подключён намеренно: SPA и /api на одном origin (Caddy в проде, прокси Vite в dev).
 package main
@@ -34,6 +34,10 @@ import (
 
 func main() {
 	_ = godotenv.Load() // в проде файла нет, ошибка игнорируется намеренно
+	// Генератор трафика — HTTP-клиент витрины: без конфигурации API, базы и миграции (traffic_cli.go).
+	if len(os.Args) > 1 && os.Args[1] == "traffic" {
+		os.Exit(runTraffic(os.Args[2:]))
+	}
 
 	log := newLogger(os.Getenv("APP_ENV"))
 	defer func() { _ = log.Sync() }()
@@ -75,7 +79,16 @@ func main() {
 
 		AgentModel: agentModel(cfg.LLM, cfg.Agent.Model),
 		Agent: services.AgentOptions{MaxRegressionWorse: cfg.Agent.MaxRegressionWorse, RegressionSets: cfg.Agent.RegressionSets,
-			Holdout: services.HoldoutFromEnv()},
+			Holdout: services.HoldoutFromEnv(), ReadOnly: cfg.Agent.ReadOnly, MaxParallel: cfg.Agent.MaxParallel,
+			Budget: services.RunBudget{Steps: cfg.Agent.Budget.Steps, Tokens: cfg.Agent.Budget.Tokens,
+				CostRub: cfg.Agent.Budget.CostRub, Duration: cfg.Agent.Budget.Duration},
+			QueryDuration: cfg.Agent.QueryDuration,
+			Triggers: services.AgentTriggers{Schedule: cfg.Agent.Schedule, ScheduleAt: cfg.Agent.ScheduleAt,
+				Interval: cfg.Agent.Interval, ScheduleDays: cfg.Agent.ScheduleDays, Spike: cfg.Agent.Spike.Enabled,
+				SpikeT: services.SpikeThresholds{Window: cfg.Agent.Spike.Window, MinSearches: cfg.Agent.Spike.MinSearches,
+					EmptyShare: cfg.Agent.Spike.EmptyShare, ReformShare: cfg.Agent.Spike.ReformShare,
+					QueryFreq: cfg.Agent.Spike.QueryFreq, Cooldown: cfg.Agent.Spike.Cooldown},
+				Catalog: cfg.Agent.CatalogTrigger, Check: cfg.Agent.TriggerCheck}},
 
 		DailyBudgetRub:  cfg.Ops.DailyBudgetRub,
 		AgentReserveRub: cfg.Ops.AgentReserveRub,
@@ -137,9 +150,7 @@ func main() {
 	svc.LoadCatalogState(ctx)
 	go func() { _ = svc.WarmPanel(ctx) }() // словарь подсказок панели — в фоне, старт не ждёт
 	svc.RecoverAgentRuns(ctx)
-	if cfg.Agent.Schedule {
-		svc.StartAgentScheduler(ctx, cfg.Agent.Interval)
-	}
+	svc.StartAgentTriggers(ctx)
 	defer svc.Wait()
 	h := handlers.NewHandlerManager(svc, handlers.Options{PublicOrigin: cfg.PublicOrigin,
 		AdminEnabled: cfg.Ops.AdminEnabled, RatePerMinute: cfg.Ops.RatePerMinute, BackofficeToken: cfg.Ops.BackofficeToken,

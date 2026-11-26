@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"math"
 	"runtime/debug"
+	"slices"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -50,6 +51,10 @@ const (
 	MsgAgentRunning  = "Агент уже работает — дождитесь окончания запуска или остановите его"
 	MsgAgentNotFound = "Запуск не найден"
 	MsgAgentLLMOff   = "Режим LLM выключен: агенту нужна модель — включите режим (POST /api/admin/llm-mode)"
+	// MsgAgentPoolBusy — пул запусков агента занят (AGENT_MAX_PARALLEL).
+	MsgAgentPoolBusy = "Пул агента занят: идёт %d из %d запусков — дождитесь окончания одного из них"
+	// MsgAgentSameTrigger — запуск того же вида уже идёт.
+	MsgAgentSameTrigger = "Запуск этого вида уже идёт — дождитесь его окончания или остановите его"
 )
 
 // Причины остановки запуска (run.stop_reason; пусто — разобраны все выбранные кластеры).
@@ -71,6 +76,12 @@ type AgentOptions struct {
 	RegressionSets     []string
 	// Holdout — что агенту видно из журнала (agent_holdout.go); нулевое — весь журнал.
 	Holdout HoldoutOptions
+	// Контур автономии (agent_p5.go): режим «только чтение», пул, бюджет запуска, триггеры.
+	ReadOnly      bool
+	MaxParallel   int
+	Budget        RunBudget
+	QueryDuration time.Duration
+	Triggers      AgentTriggers
 }
 
 // agentService — запуски агента в процессе: один запуск за раз.
@@ -82,9 +93,15 @@ type agentService struct {
 	// evalHook — прогон правки в тестах цикла; nil — песочница (agent_eval.go).
 	evalHook func(ctx context.Context, c *failedCluster, p RulePatch) (*patchEval, error)
 
-	mu     sync.Mutex
-	active *runState
-	subs   map[uuid.UUID]map[chan agentEvent]struct{}
+	mu sync.Mutex
+	// runs — идущие запуски (пул не больше opts.MaxParallel); locks — ключ кластера → запуск, который его разбирает.
+	runs  map[uuid.UUID]*runState
+	locks map[string]uuid.UUID
+	subs  map[uuid.UUID]map[chan agentEvent]struct{}
+	// readOnly — режим «только чтение» (AGENT_READ_ONLY, POST /api/agent/settings).
+	readOnly atomic.Bool
+	// trig — состояние триггеров (agent_triggers.go).
+	trig triggerState
 }
 
 // agentEvent — событие ленты для SSE: шаг или смена статуса запуска.
@@ -97,6 +114,8 @@ type agentEvent struct {
 // runState — запуск в работе.
 type runState struct {
 	run    *domain.AgentRun
+	spec   runSpec
+	budget RunBudget
 	cancel context.CancelFunc
 	mu     sync.Mutex
 	seq    int
@@ -155,7 +174,11 @@ func newAgentService(s *Services, model ChatModel, opts AgentOptions) *agentServ
 	if len(opts.RegressionSets) == 0 {
 		opts.RegressionSets = []string{domain.EvalSetRegression, domain.EvalSetTune}
 	}
-	return &agentService{s: s, model: model, opts: opts, subs: map[uuid.UUID]map[chan agentEvent]struct{}{}}
+	opts = opts.withDefaults()
+	a := &agentService{s: s, model: model, opts: opts, subs: map[uuid.UUID]map[chan agentEvent]struct{}{},
+		runs: map[uuid.UUID]*runState{}, locks: map[string]uuid.UUID{}}
+	a.readOnly.Store(opts.ReadOnly)
+	return a
 }
 
 // agentRequestID — request_id поиска агента (≤32 символов, в журнал поиска не пишется).
@@ -165,22 +188,8 @@ func agentRequestID() string {
 	return "agent-" + hex.EncodeToString(b)
 }
 
-// StartAgentRun — POST /api/agent/runs: запуск в фоне, 202 и id.
+// StartAgentRun — POST /api/agent/runs: запуск в фоне, 202 и id. {"query": "…"} — запуск «Разобрать» на одном запросе.
 func (s *Services) StartAgentRun(ctx context.Context, req in.AgentRunRequest) (*out.AgentRunStarted, error) {
-	a := s.agent
-	st := s.store()
-	if st == nil {
-		return nil, errs.NewUnavailableError(MsgNoAgentStore)
-	}
-	if a.model == nil {
-		return nil, errs.NewUnavailableError(MsgAgentNoModel)
-	}
-	if s.LLMMode() != llmModeOn {
-		return nil, errs.NewConflictError(MsgAgentLLMOff)
-	}
-	if s.guard().exceeded(ctx) {
-		return nil, errs.NewUnavailableError(MsgBudgetExceeded)
-	}
 	days, clusters := req.Days, req.MaxClusters
 	var bad []errs.FieldError
 	if days == 0 {
@@ -209,27 +218,79 @@ func (s *Services) StartAgentRun(ctx context.Context, req in.AgentRunRequest) (*
 	if mode != domain.RunModeSearch && mode != domain.RunModeCommerce {
 		bad = append(bad, errs.FieldError{Field: "mode", Code: errs.CodeInvalidFormat, Message: "Режим — search или commerce"})
 	}
+	query := strings.Join(strings.Fields(req.Query), " ")
+	if query != "" {
+		if n := len([]rune(query)); n > 200 {
+			bad = append(bad, errs.FieldError{Field: "query", Code: errs.CodeInvalidFormat, Message: "Запрос — не длиннее 200 символов"})
+		}
+		if mode != domain.RunModeSearch || trigger != domain.TriggerManual {
+			bad = append(bad, errs.FieldError{Field: "query", Code: errs.CodeInvalidFormat, Message: "Запуск на запросе — только manual и search"})
+		}
+		clusters = 1
+	}
 	if len(bad) > 0 {
 		return nil, errs.NewValidationError(errs.MsgInvalidFields).WithDetails(bad...)
 	}
+	spec := runSpec{Trigger: trigger, Days: days, MaxClusters: clusters, Mode: mode, Query: query}
+	if query != "" {
+		spec.Input = map[string]any{"query": query}
+	} else if trigger == domain.TriggerSchedule {
+		spec.Input = map[string]any{"days": days, "source": "api"}
+	}
+	return s.startRun(ctx, spec)
+}
+
+// startRun — запуск в пуле агента: проверки модели и бюджета, место в пуле, один запуск каждого вида.
+func (s *Services) startRun(ctx context.Context, spec runSpec) (*out.AgentRunStarted, error) {
+	a := s.agent
+	st := s.store()
+	if st == nil {
+		return nil, errs.NewUnavailableError(MsgNoAgentStore)
+	}
+	if a.model == nil {
+		return nil, errs.NewUnavailableError(MsgAgentNoModel)
+	}
+	if s.LLMMode() != llmModeOn {
+		return nil, errs.NewConflictError(MsgAgentLLMOff)
+	}
+	if s.guard().exceeded(ctx) {
+		return nil, errs.NewUnavailableError(MsgBudgetExceeded)
+	}
 	a.mu.Lock()
-	if a.active != nil {
+	if len(a.runs) >= a.opts.MaxParallel {
+		n := len(a.runs)
 		a.mu.Unlock()
-		return nil, errs.NewConflictError(MsgAgentRunning)
+		return nil, errs.NewConflictError(fmt.Sprintf(MsgAgentPoolBusy, n, a.opts.MaxParallel))
+	}
+	for _, r := range a.runs {
+		if r.spec.sameKind(spec) {
+			a.mu.Unlock()
+			if spec.Trigger == domain.TriggerManual && spec.Query == "" {
+				return nil, errs.NewConflictError(MsgAgentRunning)
+			}
+			return nil, errs.NewConflictError(MsgAgentSameTrigger)
+		}
 	}
 	p := prompts.Agent()
-	if mode == domain.RunModeCommerce {
+	if spec.Mode == domain.RunModeCommerce {
 		p = prompts.AgentCommerce()
 	}
-	run := &domain.AgentRun{Status: domain.RunRunning, Trigger: trigger, Days: days, MaxClusters: clusters,
-		StartedAt: s.now().UTC(), Model: llmModelName(a.model.Model()), PromptVersion: p.Version, Mode: mode}
+	budget := a.opts.Budget
+	if spec.Query != "" {
+		budget.Duration = a.opts.QueryDuration
+	}
+	run := &domain.AgentRun{Status: domain.RunRunning, Trigger: spec.Trigger, Days: spec.Days, MaxClusters: spec.MaxClusters,
+		StartedAt: s.now().UTC(), Model: llmModelName(a.model.Model()), PromptVersion: p.Version, Mode: spec.Mode,
+		Query: spec.Query, ReadOnly: a.readOnly.Load(), Input: toJSON(nonNilMap(spec.Input)),
+		Budget: toJSON(budgetView(budget, budgetUsed{}, ""))}
 	if err := st.CreateAgentRun(ctx, run); err != nil {
 		a.mu.Unlock()
 		return nil, err
 	}
-	rctx, cancel := context.WithTimeout(context.Background(), agentRunTimeout)
-	rs := &runState{run: run, cancel: cancel, writes: &runWrites{}}
-	a.active = rs
+	// Жёсткий срок — с запасом над бюджетом времени: бюджет останавливает запуск мягко, с итогом и неразобранным.
+	rctx, cancel := context.WithTimeout(context.Background(), budget.Duration+agentHardTimeoutGrace)
+	rs := &runState{run: run, spec: spec, budget: budget, cancel: cancel, writes: &runWrites{}}
+	a.runs[run.ID] = rs
 	a.mu.Unlock()
 	// Горутина запуска — не в s.writes: в конце она ждёт только свои записи учёта (rs.writes). Паника
 	// внутри запуска не роняет API: запуск помечается failed, подписчики получают done.
@@ -244,8 +305,9 @@ func (s *Services) StartAgentRun(ctx context.Context, req in.AgentRunRequest) (*
 		}()
 		a.execute(withRunWrites(WithAgentRunID(rctx, run.ID.String()), rs.writes), rs)
 	}()
-	zap.L().Info("агент: запуск", zap.String("run_id", run.ID.String()), zap.String("trigger", trigger),
-		zap.Int("days", days), zap.Int("max_clusters", clusters), zap.String("mode", mode))
+	zap.L().Info("агент: запуск", zap.String("run_id", run.ID.String()), zap.String("trigger", spec.Trigger),
+		zap.Int("days", spec.Days), zap.Int("max_clusters", spec.MaxClusters), zap.String("mode", spec.Mode),
+		zap.String("query", spec.Query), zap.Bool("read_only", run.ReadOnly))
 	return &out.AgentRunStarted{RunID: run.ID.String()}, nil
 }
 
@@ -258,25 +320,43 @@ func (s *Services) StopAgentRun(ctx context.Context, id string) error {
 	a := s.agent
 	a.mu.Lock()
 	defer a.mu.Unlock()
-	if a.active != nil && a.active.run.ID == run.ID {
-		a.active.mu.Lock()
-		a.active.stop = StopUser
-		a.active.mu.Unlock()
-		a.active.cancel()
+	if rs := a.runs[run.ID]; rs != nil {
+		rs.mu.Lock()
+		rs.stop = StopUser
+		rs.mu.Unlock()
+		rs.cancel()
 	}
 	return nil
 }
 
-// AgentRuns — GET /api/agent/runs.
-func (s *Services) AgentRuns(ctx context.Context) (*out.AgentRunList, error) {
+// AgentRuns — GET /api/agent/runs?trigger=: последние 50 запусков (фильтр по триггеру).
+func (s *Services) AgentRuns(ctx context.Context, trigger ...string) (*out.AgentRunList, error) {
 	st := s.store()
 	if st == nil {
 		return nil, errs.NewUnavailableError(MsgNoAgentStore)
 	}
-	rows, err := st.ListAgentRuns(ctx, 50)
+	tr := ""
+	if len(trigger) > 0 {
+		tr = strings.TrimSpace(trigger[0])
+	}
+	if tr != "" && !slices.Contains(domain.Triggers, tr) {
+		return nil, errs.NewValidationError(errs.MsgInvalidQuery).WithDetails(errs.FieldError{Field: "trigger",
+			Code: errs.CodeInvalidFormat, Message: "Триггер — manual, schedule, spike или catalog_change"})
+	}
+	rows, err := st.ListAgentRunsByTrigger(ctx, tr, 50)
 	if err != nil {
 		return nil, err
 	}
+	// Идущие запуски — из памяти: счётчики свежее строки в базе.
+	s.agent.mu.Lock()
+	for i := range rows {
+		if rs := s.agent.runs[rows[i].ID]; rs != nil {
+			rs.mu.Lock()
+			rows[i] = *rs.run
+			rs.mu.Unlock()
+		}
+	}
+	s.agent.mu.Unlock()
 	res := &out.AgentRunList{Items: make([]out.AgentRun, 0, len(rows))}
 	for i := range rows {
 		res.Items = append(res.Items, s.agent.runView(&rows[i]))
@@ -313,10 +393,10 @@ func (s *Services) loadRun(ctx context.Context, id string) (*domain.AgentRun, er
 	// Идущий запуск — из памяти: счётчики свежее строки в базе.
 	a := s.agent
 	a.mu.Lock()
-	if a.active != nil && a.active.run.ID == uid {
-		a.active.mu.Lock()
-		cp := *a.active.run
-		a.active.mu.Unlock()
+	if rs := a.runs[uid]; rs != nil {
+		rs.mu.Lock()
+		cp := *rs.run
+		rs.mu.Unlock()
 		a.mu.Unlock()
 		return &cp, nil
 	}
@@ -341,7 +421,7 @@ func (s *Services) AgentStream(ctx context.Context, id string, afterSeq int) (*o
 	a := s.agent
 	ch := make(chan agentEvent, 256)
 	a.mu.Lock()
-	live := a.active != nil && a.active.run.ID == run.ID
+	live := a.runs[run.ID] != nil
 	if live {
 		if a.subs[run.ID] == nil {
 			a.subs[run.ID] = map[chan agentEvent]struct{}{}
@@ -412,8 +492,13 @@ func (a *agentService) finish(rs *runState, v out.AgentRun) {
 	if ended {
 		return
 	}
-	if a.active == rs {
-		a.active = nil
+	if a.runs[rs.run.ID] == rs {
+		delete(a.runs, rs.run.ID)
+	}
+	for k, id := range a.locks {
+		if id == rs.run.ID {
+			delete(a.locks, k)
+		}
 	}
 	a.broadcastLocked(rs.run.ID, agentEvent{Kind: "done", Run: &v})
 }
@@ -522,6 +607,7 @@ func (a *agentService) runView(r *domain.AgentRun) out.AgentRun {
 	if r.CurrentClusterID != nil {
 		v.CurrentCluster = &out.ClusterRef{ID: *r.CurrentClusterID, Label: r.CurrentLabel}
 	}
+	a.p5View(r, &v)
 	return v
 }
 

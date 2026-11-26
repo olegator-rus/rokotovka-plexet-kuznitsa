@@ -39,7 +39,7 @@ test.describe('гость', () => {
     await page.goto('/searchops?tab=queue')
     await expect(page).toHaveURL((u) => u.pathname === '/login' && u.searchParams.has('returnTo'))
     await page.getByRole('button', { name: /Войти как Дарья Лапина/ }).click()
-    // returnTo — очередь SearchOps; продукт-менеджеру туда можно.
+    // returnTo — очередь SearchOps; категорийному и лицензионному менеджеру туда можно.
     await expect(page).toHaveURL(/\/searchops\?tab=queue/)
     await expect(header(page).getByRole('button', { name: /Аккаунт: Дарья Лапина/ })).toBeVisible()
   })
@@ -104,7 +104,7 @@ test('покупатель client-a: своя выдача на «продлит
   // Пометка покупки: «Вы покупали этот продукт» (контур коммерции) или «Вы покупали» (страница результатов контура выдачи).
   await expect(resultCards(page).first()).toContainText(/Вы покупали/)
   await expect(
-    page.getByRole('navigation', { name: 'Разделы' }).getByRole('link', { name: 'Аналитика' }),
+    page.getByRole('navigation', { name: 'Разделы' }).getByRole('link', { name: 'SearchOps' }),
   ).toHaveCount(0)
 
   // Подмена client_id в теле не помогает: сервер берёт клиента из сессии.
@@ -135,12 +135,12 @@ test('покупатель client-a: своя выдача на «продлит
   await quotes.getByRole('button', { name: 'Закрыть' }).click()
   // Бэк-офис покупателю — 403 на сервере и вход сотрудником на фронте.
   expect((await page.request.get('/api/analytics?days=7')).status()).toBe(403)
-  await page.goto('/analytics')
-  await expect(page).toHaveURL(loginWith('/analytics'))
+  await page.goto('/searchops')
+  await expect(page).toHaveURL(loginWith('/searchops'))
   await expect(page.getByText(/Этот раздел — для сотрудников магазина/)).toBeVisible()
 })
 
-test('контент-менеджер не может принять правку связей: кнопки неактивны с подсказкой, сервер — 403', async ({
+test('«Каталог» не может утвердить правку связей: кнопки неактивны с подсказкой, сервер — 403', async ({
   page,
 }) => {
   const viewer = await loginAs(page, PERSONA.content)
@@ -150,9 +150,10 @@ test('контент-менеджер не может принять правк�
   await page.goto(`/searchops?tab=queue&status=pending&p=${id}`)
   const card = page.locator(`#proposal-${id}`)
   await expect(card).toBeVisible({ timeout: 15_000 })
-  await expect(card.getByRole('button', { name: 'Принять' })).toBeDisabled()
-  await expect(card.getByRole('button', { name: 'Отклонить' })).toBeDisabled()
-  await expect(card.getByText('Это решение принимает продукт-менеджер')).toBeVisible()
+  await expect(card.getByRole('button', { name: 'Утвердить' })).toBeDisabled()
+  await expect(card.getByRole('button', { name: 'Отклонить с причиной' })).toBeDisabled()
+  const deny = card.getByText(/Это решение принимает /)
+  await expect(deny).toBeVisible()
 
   // Только reject с неверной причиной: при отказе по праву — 403, а если бы право было — 422 без изменения
   // состояния (approve того же пути проверки в e2e не шлём — он изменил бы демо при ошибке).
@@ -161,8 +162,9 @@ test('контент-менеджер не может принять правк�
     data: { reason: 'not-a-reason' },
   })
   expect(resp.status()).toBe(403)
+  // Подсказка у кнопки — та же фраза, что отказ сервера.
   expect(((await resp.json()) as { error: { message: string } }).error.message).toBe(
-    'Это решение принимает продукт-менеджер',
+    (await deny.textContent())?.trim(),
   )
   // Откат правил — тоже не его зона.
   const rb = await page.request.post('/api/configs/rollback', {
@@ -170,10 +172,6 @@ test('контент-менеджер не может принять правк�
     data: {},
   })
   expect(rb.status()).toBe(403)
-  // «Аналитика» — своя роль, «Смотреть как» нет.
-  await page.goto('/analytics')
-  await expect(page.getByText(/Роль: Контент-менеджер/)).toBeVisible()
-  await expect(page.getByRole('combobox', { name: 'Смотреть как' })).toHaveCount(0)
 })
 
 test('руководитель может всё: кнопки активны, сервер пропускает к проверке тела (422, не 403)', async ({
@@ -184,7 +182,7 @@ test('руководитель может всё: кнопки активны, �
   await page.goto(`/searchops?tab=queue&status=pending&p=${id}`)
   const card = page.locator(`#proposal-${id}`)
   await expect(card).toBeVisible({ timeout: 15_000 })
-  await expect(card.getByRole('button', { name: 'Принять' })).toBeEnabled()
+  await expect(card.getByRole('button', { name: 'Утвердить' })).toBeEnabled()
   await expect(card.getByText(/Это решение принимает/)).toHaveCount(0)
   // Неверная причина отказа — 422 до изменения состояния: право есть.
   const resp = await page.request.post(`/api/proposals/${id}/reject`, {
@@ -204,12 +202,10 @@ test('руководитель может всё: кнопки активны, �
     expect(r.status(), path).not.toBe(403)
     expect(r.status(), path).toBeLessThan(500)
   }
-  await page.goto('/analytics')
-  await expect(page.getByRole('combobox', { name: 'Смотреть как' })).toBeVisible()
 })
 
 test('смена демо-аккаунта из шапки и выход', async ({ page }) => {
-  await page.goto('/analytics')
+  await page.goto('/searchops')
   await header(page)
     .getByRole('button', { name: /Аккаунт: Сергей Орлов/ })
     .click()
@@ -221,8 +217,11 @@ test('смена демо-аккаунта из шапки и выход', async
   )
   await dialog.getByRole('button', { name: /Войти как Илья Ветров/ }).click()
   await expect(dialog).toBeHidden()
-  await expect(page).toHaveURL(/\/analytics$/)
-  await expect(page.getByText(/Роль: Менеджер e-com/)).toBeVisible()
+  await expect(page).toHaveURL(/\/searchops$/)
+  await expect(page.getByRole('tab', { name: 'Запросы без ответа' })).toHaveAttribute(
+    'data-state',
+    'active',
+  )
   await expect(header(page).getByRole('button', { name: /Аккаунт: Илья Ветров/ })).toBeVisible()
 
   await header(page)
@@ -232,6 +231,7 @@ test('смена демо-аккаунта из шапки и выход', async
   await expect(page).toHaveURL(/\/search/)
   await expect(header(page).getByRole('link', { name: 'Войти' })).toBeVisible()
   expect((await page.request.get('/api/auth/me').then((r) => r.json())).viewer.role).toBe('guest')
-  await page.goto('/costs')
-  await expect(page).toHaveURL(loginWith('/costs'))
+  // Старый адрес «Маржи» — SearchOps: гостю вход с возвратом.
+  await page.goto('/margin')
+  await expect(page).toHaveURL(loginWith('/searchops?tab=policy'))
 })

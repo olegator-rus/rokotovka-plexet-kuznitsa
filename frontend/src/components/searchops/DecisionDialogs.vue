@@ -1,6 +1,6 @@
 <script setup lang="ts">
-// Решение по предложению: «Принять» / «Взять в работу» — подтверждение с номером будущей
-// версии; «Отклонить» — быстрые причины (reka ToggleGroup) и текст. Причина уходит в память агента.
+// Решение по карточке очереди (контур доводки): «Утвердить» правку поиска — подтверждение с номером будущей
+// версии; «Отправить» задачу владельцу; «Отклонить с причиной» — быстрые причины (reka ToggleGroup) и текст. Причина уходит в память агента.
 // Ошибка сервера показана в диалоге, статус предложения не меняется.
 import { computed, ref, watch } from 'vue'
 import { ToggleGroupItem, ToggleGroupRoot } from 'reka-ui'
@@ -12,7 +12,7 @@ import UiDialog from '@/components/ui/UiDialog.vue'
 import { isApiError, MSG_UNKNOWN } from '@/lib/apiError'
 import { REJECT_REASONS, isTicket } from '@/lib/proposals'
 import { buildEvent } from '@/lib/events'
-import { isBundle } from '@/lib/killer'
+import { causeView } from '@/lib/causes'
 import { isRelationPatch, relationIds } from '@/lib/relationProposal'
 import { useAppStore } from '@/stores/app'
 
@@ -60,9 +60,11 @@ const rejectOpen = computed({
   },
 })
 
-const bundle = computed(() => !!props.target && isBundle(props.target.proposal))
+const cause = computed(() => (props.target ? causeView(props.target.proposal) : null))
 // Комплект, как задача, берётся в работу: справочник и выдача не меняются.
-const ticket = computed(() => !!props.target && (isTicket(props.target.proposal) || bundle.value))
+const ticket = computed(
+  () => !!props.target && (isTicket(props.target.proposal) || cause.value?.kind === 'owner_task'),
+)
 const relation = computed(() => !!props.target && isRelationPatch(props.target.proposal))
 const app = useAppStore()
 
@@ -124,20 +126,18 @@ async function reject() {
 </script>
 
 <template>
-  <UiDialog v-model:open="acceptOpen" :title="ticket ? 'Взять в работу?' : 'Принять правку?'">
+  <UiDialog
+    v-model:open="acceptOpen"
+    :title="ticket ? 'Отправить задачу владельцу?' : 'Утвердить правку поиска?'"
+  >
     <div class="decision">
       <p v-if="target">Кластер «{{ target.proposal.cluster?.label }}».</p>
-      <p v-if="bundle">
-        Справочник связей и выдача не меняются: комплект станет задачей продукт-менеджеру — собрать
-        и опубликовать его в каталоге.
-      </p>
-      <p v-else-if="ticket">
-        Правила поиска не меняются: предложение станет задачей ответственному за ассортимент или
-        карточку.
+      <p v-if="ticket">
+        Правила поиска не меняются: задача уйдёт владельцу причины — {{ cause?.owner }}.
       </p>
       <p v-else-if="relation">
         Связь начнёт действовать в блоке «Дополните решение» сразу. Будет создана новая версия
-        справочника связей, её можно откатить в «Изменения» → «Связи».
+        справочника связей, её можно откатить в «Изменениях» → «Связи».
       </p>
       <p v-else>
         Правило начнёт действовать сразу.
@@ -164,7 +164,7 @@ async function reject() {
         :disabled="busy"
         @click="accept"
       >
-        {{ busy ? 'Применяем…' : ticket ? 'Взять в работу' : 'Принять' }}
+        {{ busy ? 'Применяем…' : ticket ? 'Отправить' : 'Утвердить' }}
       </button>
     </template>
   </UiDialog>

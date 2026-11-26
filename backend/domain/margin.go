@@ -52,14 +52,6 @@ type MarginStep struct {
 // MarginPolicyRules — содержимое версии политики маржи (config_versions.rules при kind=margin).
 type MarginPolicyRules struct {
 	Weight float64 `json:"weight"`
-	// Categories — вес по категории позиции поверх Weight (MARGIN_OPPORTUNITY агента); нет — общий вес.
+	// Categories — вес по категории позиции поверх Weight; нет — общий вес.
 	Categories map[string]float64 `json:"categories,omitempty"`
 }
-
-// MARGIN_OPPORTUNITY агента «Коммерция» (контур коммерции): сдвиг рычага в категории без потери
-// качества. Предложение — действие margin_policy; применяется на экране «Маржа» (POST /api/margin/policy с
-// proposal_id), из очереди не принимается.
-const (
-	DiagMarginOpportunity = "MARGIN_OPPORTUNITY"
-	ActionMarginPolicy    = "margin_policy"
-)

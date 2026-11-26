@@ -118,6 +118,15 @@ func (s *Services) instantProducts(ctx context.Context, lx *searchLexicon, text,
 	if err != nil {
 		return nil, err
 	}
+	// Варианты под сделку или организацию (контур доводки, purchase_attrs.go) — только в выдаче по запросу, который их
+	// называет; в панели их нет.
+	visible := top[:0]
+	for _, h := range top {
+		if d, ok := docs[h.ProductID]; !ok || !isOffer(d) {
+			visible = append(visible, h)
+		}
+	}
+	top = visible
 	scores := map[string]float64{}
 	best := 0.0
 	for _, h := range top {
@@ -257,8 +266,8 @@ func priceFrom(lx *searchLexicon, fam string) *float64 {
 	var best *float64
 	for _, pid := range lx.families[fam] {
 		d := lx.docs[pid]
-		if d.PriceOnRequest || d.PriceRub == nil {
-			continue
+		if d.PriceOnRequest || d.PriceRub == nil || isOffer(d) {
+			continue // вариант под сделку или организацию (контур доводки) — не цена «от» для всех
 		}
 		if best == nil || *d.PriceRub < *best {
 			v := *d.PriceRub

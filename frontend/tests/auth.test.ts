@@ -4,7 +4,6 @@ import assert from 'node:assert/strict'
 import {
   afterLogin,
   canDecide,
-  canViewAs,
   decideGuard,
   denyMessage,
   homeFor,
@@ -28,20 +27,17 @@ test('canDecide: руководитель — всё, роль — только 
       assert.equal(canDecide(actor, owner), want, `${actor} → ${owner}`)
     }
   }
-  assert.equal(denyMessage('product'), 'Это решение принимает продукт-менеджер')
-  assert.equal(denyMessage('ecom'), 'Это решение принимает менеджер e-com')
-  assert.equal(denyMessage('content'), 'Это решение принимает контент-менеджер')
+  assert.equal(denyMessage('product'), 'Это решение принимает категорийный и лицензионный менеджер')
+  assert.equal(denyMessage('ecom'), 'Это решение принимает администратор поиска')
+  assert.equal(denyMessage('content'), 'Это решение принимает каталог')
   assert.equal(denyMessage('x'), 'Это решение принимает руководитель e-com')
-  assert.ok(canViewAs('head') && !canViewAs('ecom') && !canViewAs('buyer'))
 })
 
-test('homeFor: стартовый экран роли', () => {
+test('homeFor: гость и покупатель — «Поиск», сотрудник — SearchOps (контур доводки)', () => {
   assert.equal(homeFor('guest'), '/search')
   assert.equal(homeFor('buyer'), '/search')
-  assert.equal(homeFor('ecom'), '/analytics')
-  assert.equal(homeFor('content'), '/analytics')
-  assert.equal(homeFor('head'), '/analytics')
-  assert.equal(homeFor('product'), '/searchops?tab=queue&role=product')
+  for (const r of ['ecom', 'product', 'content', 'head', 'system'])
+    assert.equal(homeFor(r), '/searchops')
 })
 
 test('safeReturnTo: только свой путь, не экран входа', () => {
@@ -65,11 +61,15 @@ test('afterLogin: returnTo, если роли туда можно; иначе с
   assert.equal(afterLogin('ecom', '/changes'), '/changes')
   assert.equal(afterLogin('buyer', '/analytics'), '/search')
   assert.equal(afterLogin('buyer', '/search?q=1c'), '/search?q=1c')
-  assert.equal(afterLogin('head', 'https://evil.ru'), '/analytics')
-  assert.equal(afterLogin('product', undefined), '/searchops?tab=queue&role=product')
+  assert.equal(afterLogin('head', 'https://evil.ru'), '/searchops')
+  assert.equal(afterLogin('product', undefined), '/searchops')
   assert.ok(isBackofficePath('/searchops/runs/1') && isBackofficePath('/margin?w=1'))
   assert.ok(
-    !isBackofficePath('/search') && !isBackofficePath('/compare') && !isBackofficePath('/rules'),
+    !isBackofficePath('/search') &&
+      !isBackofficePath('/proofs') &&
+      !isBackofficePath('/compare') &&
+      !isBackofficePath('/costs') &&
+      !isBackofficePath('/rules'),
   )
 })
 
@@ -90,7 +90,7 @@ test('decideGuard: бэк-офис без сотрудника → вход с r
   )
   const login = { fullPath: '/login', isLogin: true, backoffice: false }
   assert.deepEqual(decideGuard({ ...login, role: 'guest' }), { kind: 'allow' })
-  assert.deepEqual(decideGuard({ ...login, role: 'head' }), { kind: 'redirect', to: '/analytics' })
+  assert.deepEqual(decideGuard({ ...login, role: 'head' }), { kind: 'redirect', to: '/searchops' })
   assert.deepEqual(decideGuard({ ...login, role: 'buyer' }), { kind: 'redirect', to: '/search' })
   // Покупателя вернули из бэк-офиса — может войти сотрудником.
   assert.deepEqual(decideGuard({ ...login, role: 'buyer', returnTo: '/analytics' }), {

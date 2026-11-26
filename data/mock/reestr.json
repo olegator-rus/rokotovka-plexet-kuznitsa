@@ -1,0 +1,121 @@
+[
+  {
+    "family_id": "myoffice-standard",
+    "status": "confirmed",
+    "number": "1083",
+    "checked_at": "2026-05-22",
+    "source": "mock"
+  },
+  {
+    "family_id": "astra-linux-se",
+    "status": "confirmed",
+    "number": "1311",
+    "checked_at": "2026-05-22",
+    "source": "mock"
+  },
+  {
+    "family_id": "red-os",
+    "status": "confirmed",
+    "number": "1422",
+    "checked_at": "2026-05-22",
+    "source": "mock"
+  },
+  {
+    "family_id": "alt-os",
+    "status": "confirmed",
+    "number": "1535",
+    "checked_at": "2026-05-22",
+    "source": "mock"
+  },
+  {
+    "family_id": "kaspersky-endpoint-security",
+    "status": "confirmed",
+    "number": "1646",
+    "checked_at": "2026-05-22",
+    "source": "mock"
+  },
+  {
+    "family_id": "kaspersky-small-office-security",
+    "status": "confirmed",
+    "number": "1757",
+    "checked_at": "2026-05-22",
+    "source": "mock"
+  },
+  {
+    "family_id": "drweb-enterprise-security-suite",
+    "status": "confirmed",
+    "number": "1868",
+    "checked_at": "2026-05-22",
+    "source": "mock"
+  },
+  {
+    "family_id": "drweb-security-space",
+    "status": "confirmed",
+    "number": "1979",
+    "checked_at": "2026-05-22",
+    "source": "mock"
+  },
+  {
+    "family_id": "kompas-3d",
+    "status": "confirmed",
+    "number": "2081",
+    "checked_at": "2026-05-22",
+    "source": "mock"
+  },
+  {
+    "family_id": "nanocad",
+    "status": "confirmed",
+    "number": "2192",
+    "checked_at": "2026-05-22",
+    "source": "mock"
+  },
+  {
+    "family_id": "postgres-pro",
+    "status": "confirmed",
+    "number": "2303",
+    "checked_at": "2026-05-22",
+    "source": "mock"
+  },
+  {
+    "family_id": "cyber-backup",
+    "status": "confirmed",
+    "number": "2414",
+    "checked_at": "2026-05-22",
+    "source": "mock"
+  },
+  {
+    "family_id": "trueconf-server",
+    "status": "confirmed",
+    "number": "2525",
+    "checked_at": "2026-05-22",
+    "source": "mock"
+  },
+  {
+    "family_id": "secret-net-studio",
+    "status": "confirmed",
+    "number": "2636",
+    "checked_at": "2026-05-22",
+    "source": "mock"
+  },
+  {
+    "family_id": "1c-accounting",
+    "status": "confirmed",
+    "number": "2747",
+    "checked_at": "2026-05-22",
+    "source": "mock"
+  },
+  {
+    "family_id": "1c-client-license",
+    "status": "confirmed",
+    "number": "2858",
+    "checked_at": "2026-05-22",
+    "source": "mock"
+  },
+  {
+    "family_id": "cryptopro-csp",
+    "status": "confirmed",
+    "number": "2969",
+    "checked_at": "2026-05-22",
+    "source": "mock"
+  }
+]

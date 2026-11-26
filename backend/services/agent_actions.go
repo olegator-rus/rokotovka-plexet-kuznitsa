@@ -97,7 +97,7 @@ func (cr *clusterRun) toolRunEvaluation(ctx context.Context, raw string) (any, s
 		case len(ranking) > 0:
 			for f, q := range ranking {
 				res["hint"] = fmt.Sprintf("по запросу «%s» нужное семейство %s в выдаче, но не первым — это похоже на RANKING_FAILURE: "+
-					"задача менеджеру e-com (create_assortment_ticket, diagnosis=RANKING_FAILURE, family_id=%s) или следующая гипотеза", q, f, f)
+					"задача администратору поиска (create_assortment_ticket, diagnosis=RANKING_FAILURE, family_id=%s) или следующая гипотеза", q, f, f)
 				break
 			}
 		case cr.hypotheses >= agentMaxHypotheses:
@@ -135,12 +135,38 @@ func (cr *clusterRun) newProposal(diagnosis, text, role, action string) *domain.
 	cr.evidence["reformulations"] = nonNil(reform)
 	return &domain.Proposal{RunID: cr.rc.rs.run.ID, ClusterID: &id, ClusterKey: c.Key, ClusterLabel: c.Label,
 		ClusterQueries: toJSON(c.Queries), LostDemand: c.LostDemand, Diagnosis: diagnosis, DiagnosisText: text,
-		Role: role, Action: action, HypothesesTried: cr.hypotheses, BaseVersion: cr.rc.active.Version,
+		Role: OwnerOf(diagnosis), Action: action, HypothesesTried: cr.hypotheses, BaseVersion: cr.rc.active.Version,
 		Status: domain.ProposalPending, Evidence: toJSON(cr.evidence)}
 }
 
 // saveProposal — предложение в очередь, шаг ленты, счётчик запуска.
 func (cr *clusterRun) saveProposal(ctx context.Context, p *domain.Proposal, title string) error {
+	if w := cr.rc.lifted[cr.c.ID]; w != "" {
+		// Условие возврата наступило: в карточке — что изменилось с отказа.
+		var ev map[string]any
+		_ = jsonUnmarshal(p.Evidence, &ev)
+		if ev == nil {
+			ev = map[string]any{}
+		}
+		ev["what_changed"] = w
+		p.Evidence = toJSON(ev)
+		title += " (снова: " + w + ")"
+	}
+	if p.Action == domain.ActionTicket {
+		var ev map[string]any
+		_ = jsonUnmarshal(p.Evidence, &ev)
+		if ev != nil {
+			ev["task_to_owner"] = true
+			p.Evidence = toJSON(ev)
+		}
+	}
+	if cr.rc.rs.run.ReadOnly {
+		// Режим «только чтение»: диагноз и предложение сформированы, но в очередь не пишутся — изменить поиск нельзя.
+		id := cr.c.ID
+		p.ClusterID = &id
+		cr.emit(cr.rc.draftStep(p, "Только чтение — не отправлено в очередь: "+title))
+		return nil
+	}
 	if err := cr.rc.a.s.store().CreateProposal(context.WithoutCancel(ctx), p); err != nil {
 		return err
 	}
@@ -243,6 +269,10 @@ func (cr *clusterRun) toolTicket(ctx context.Context, raw string) (any, string, 
 		}
 		role = domain.RoleContent
 		cr.evidence["family_id"] = strings.TrimSpace(args.FamilyID)
+	case domain.DiagNonProduct:
+		// Запрос не о товаре (счёт, доставка, активация): правкой поиска не решается — задача администратору поиска,
+		// который ведёт справочный индекс.
+		role = domain.RoleEcom
 	case domain.DiagRankingFailure:
 		fid := strings.TrimSpace(args.FamilyID)
 		if cat.families[fid] == nil {
@@ -257,7 +287,7 @@ func (cr *clusterRun) toolTicket(ctx context.Context, raw string) (any, string, 
 		cr.evidence["family_id"] = fid
 		cr.evidence["ranking_query"] = q
 	default:
-		return nil, "", terr("diagnosis — SUBSTITUTE_AVAILABLE, ASSORTMENT_GAP, CONTENT_GAP или RANKING_FAILURE")
+		return nil, "", terr("diagnosis — SUBSTITUTE_AVAILABLE, ASSORTMENT_GAP, CONTENT_GAP, RANKING_FAILURE или NON_PRODUCT")
 	}
 	// Память: такая же задача по кластеру уже отклонена человеком.
 	for _, h := range cr.memory {
@@ -274,7 +304,9 @@ func (cr *clusterRun) toolTicket(ctx context.Context, raw string) (any, string, 
 	cr.evidence["expanded_search"] = cr.expanded
 	p := cr.newProposal(args.Diagnosis, text, role, domain.ActionTicket)
 	p.PatchKeys = toJSON([]string{"ticket:" + args.Diagnosis + ":" + cr.c.Key})
-	who := map[string]string{domain.RoleProduct: "продукт-менеджеру", domain.RoleContent: "контент-менеджеру", domain.RoleEcom: "менеджеру e-com"}[role]
+	// Кому задача — владелец причины диагноза (контур доводки, causes.go).
+	who := map[string]string{RoleProduct: "категорийному менеджеру", RoleContent: "каталогу",
+		RoleEcom: "администратору поиска", RoleHead: "руководителю e-com"}[OwnerOf(args.Diagnosis)]
 	title := fmt.Sprintf("Задача %s: %s — «%s»", who, args.Diagnosis, cr.c.Label)
 	if len(subs) > 0 {
 		var names []string
@@ -291,10 +323,12 @@ func (cr *clusterRun) toolTicket(ctx context.Context, raw string) (any, string, 
 }
 
 var closeDiagnoses = []string{domain.DiagAliasGap, domain.DiagTypo, domain.DiagConstraintConflict,
-	domain.DiagNonProduct, domain.DiagNoise, domain.DiagUnknown}
+	domain.DiagNoise, domain.DiagUnknown}
 
-// ticketDiagnoses — диагнозы, итог которых — задача человеку, а не закрытие кластера.
-var ticketDiagnoses = []string{domain.DiagAssortmentGap, domain.DiagSubstitute, domain.DiagContentGap, domain.DiagRankingFailure}
+// ticketDiagnoses — диагнозы, итог которых — задача владельцу (task_to_owner), а не правка и не закрытие кластера:
+// нет в каталоге, не хватает данных в карточке, стоит низко, запрос не о товаре (контур доводки и автономии).
+var ticketDiagnoses = []string{domain.DiagAssortmentGap, domain.DiagSubstitute, domain.DiagContentGap, domain.DiagRankingFailure,
+	domain.DiagNonProduct}
 
 func (cr *clusterRun) toolClose(ctx context.Context, raw string) (any, string, error) {
 	var args struct {

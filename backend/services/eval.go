@@ -474,13 +474,13 @@ func (s *Services) Evaluations(ctx context.Context, set string) (*out.Evaluation
 	sort.SliceStable(resp.Configs, func(i, j int) bool {
 		return slices.Index(domain.SearchConfigs, resp.Configs[i].Config) < slices.Index(domain.SearchConfigs, resp.Configs[j].Config)
 	})
-	// Честность B4 и доля спасённых — те же, что в /api/effect (effect.go): без текстов, только флаги и счёт.
+	// Честность B4 и доля спасённых (holdout_rescued.go): без текстов, только флаги и счёт.
 	if b4 := slices.IndexFunc(rows, func(r domain.Evaluation) bool { return r.Config == domain.ConfigB4 }); b4 >= 0 &&
 		slices.ContainsFunc(rows, func(r domain.Evaluation) bool { return r.Config == domain.ConfigB3 }) {
 		credit := s.agentCredit(ctx, rows)
 		resp.AgentCredit = &out.EvalAgentCredit{Counted: credit.Counted, PreHoldout: credit.PreHoldout, Note: credit.Note,
 			RulesVersion: rows[b4].RulesVersion}
-		if set == effectSet {
+		if set == holdoutSet {
 			resp.Rescued = measureRescued(rows, credit)
 		}
 	}

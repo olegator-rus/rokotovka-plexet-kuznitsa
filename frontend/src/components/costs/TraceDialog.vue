@@ -1,5 +1,5 @@
 <script setup lang="ts">
-// Трасса поиска из журнала «Экономики»: GET /api/traces/{request_id} в окне с той же
+// Трасса поиска из журнала вызовов («Доказательства» → «Стоимость»): GET /api/traces/{request_id} в окне с той же
 // панелью трассы, что и в «Поиске». Нет трассы — 404 с понятным текстом; сбой — повтор.
 import { computed, ref, watch } from 'vue'
 import { RouterLink } from 'vue-router'

@@ -12,11 +12,8 @@ import (
 )
 
 // Аудит контура коммерции («Правила среза»): что из данных контура коммерции есть у источника,
-// что восстановлено правилами, чего нет, и какие правила среза из этого следуют. Совместные покупки считаются
-// той же статистикой, что у агента «Коммерция» (commerce_copurchase.go), — аудит видит те же кандидаты.
-
-// copurchaseMinMultiOrders — меньше многопозиционных заказов с аккаунтом — статистика совместных покупок слабая.
-const copurchaseMinMultiOrders = 30
+// что восстановлено правилами, чего нет, и какие правила среза из этого следуют. Статистика совместных покупок
+// удалена в контуре доводки — аудит её больше не считает.
 
 // AuditP2 — данные контура коммерции в источнике.
 type AuditP2 struct {
@@ -43,39 +40,10 @@ type AuditP2 struct {
 	OrderIDRestored   int `json:"order_id_restored"`
 	AccountFromSource int `json:"account_from_source"`
 	AccountFromClient int `json:"account_from_client"`
-	// Orders — заказов с аккаунтом и позициями каталога (то, что видит статистика); RestoredOrders — из них с
-	// восстановленным номером; MultiItem — с двумя и более позициями.
-	Orders         int `json:"orders"`
-	RestoredOrders int `json:"restored_orders"`
-	MultiItem      int `json:"multi_item_orders"`
-	Accounts       int `json:"accounts"`
 	// CompanionPairs — размеченных пар блока; nil — разметки нет.
-	CompanionPairs *int             `json:"companion_pairs"`
-	Copurchase     *AuditCopurchase `json:"copurchase,omitempty"`
-	Items          []AuditP2Item    `json:"items"`
-	Slice          []AuditPlanItem  `json:"slice"`
-}
-
-// AuditCopurchase — статистика совместных покупок на заказах источника (как у агента).
-type AuditCopurchase struct {
-	Orders      int                   `json:"orders"`
-	Accounts    int                   `json:"accounts"`
-	Tests       int                   `json:"tests"`
-	Significant int                   `json:"significant"`
-	Candidates  []AuditCopurchasePair `json:"candidates"`
-}
-
-// AuditCopurchasePair — пара семейств без связи, прошедшая статистику и фильтры (кандидат MISSING_RELATION).
-type AuditCopurchasePair struct {
-	Anchor      string   `json:"anchor"`
-	Companion   string   `json:"companion"`
-	Accounts    int      `json:"accounts"`
-	JointOrders int      `json:"joint_orders"`
-	P           float64  `json:"p_value"`
-	Q           *float64 `json:"q_value"`
-	// Structure — прошла структурную проверку агента (не «сосед» по связям общей системы-якоря); Why — почему нет.
-	Structure bool   `json:"structure"`
-	Why       string `json:"why,omitempty"`
+	CompanionPairs *int            `json:"companion_pairs"`
+	Items          []AuditP2Item   `json:"items"`
+	Slice          []AuditPlanItem `json:"slice"`
 }
 
 // AuditP2Item — строка таблицы «что из контура коммерции есть в данных».
@@ -155,43 +123,11 @@ func (s *Services) auditP2(ctx context.Context, r *AuditReport, snap *domain.Cat
 			}
 		}
 	}
-	c := newCommerceCatalog(snap)
-	bs, _ := ordersOf(events, c)
-	accounts := map[string]bool{}
-	for _, b := range bs {
-		accounts[b.Account] = true
-		if catalogsource.IsRestoredOrder(b.ID) {
-			p.RestoredOrders++
-		}
-		if len(b.Items) >= 2 {
-			p.MultiItem++
-		}
-	}
-	p.Orders, p.Accounts = len(bs), len(accounts)
 	if l, ok := s.source.(companionPairLoader); ok {
 		if ps, err := l.LoadCompanionPairs(ctx); err == nil && len(ps) > 0 {
 			n := len(ps)
 			p.CompanionPairs = &n
 		}
-	}
-	if len(bs) > 0 {
-		from, to := s.orderWindow(bs)
-		docs := docsOfRelations(snap.Relations)
-		sc := scanCopurchase(c, docs, bs, from, to)
-		cp := &AuditCopurchase{Orders: sc.Orders, Accounts: sc.Accounts, Tests: sc.Tests, Significant: sc.Significant,
-			Candidates: []AuditCopurchasePair{}}
-		for _, cand := range sc.Candidates {
-			ok, why := sc.structureCheck(c, docs, cand.Anchor, cand.Companion)
-			if ok {
-				why = ""
-			}
-			cp.Candidates = append(cp.Candidates, AuditCopurchasePair{Anchor: cand.Anchor, Companion: cand.Companion,
-				Accounts: cand.Stat.Accounts, JointOrders: cand.Stat.JointOrders, P: cand.Stat.P, Q: cand.Stat.Q,
-				Structure: ok, Why: why})
-		}
-		// Прошедшие структуру — первыми, порядок агента (оценка приоритета) внутри групп сохраняется.
-		sort.SliceStable(cp.Candidates, func(i, j int) bool { return cp.Candidates[i].Structure && !cp.Candidates[j].Structure })
-		p.Copurchase = cp
 	}
 	p.Items = auditP2Items(p, prov)
 	p.Slice = auditP2Slice(p)
@@ -242,32 +178,6 @@ func auditP2Items(p *AuditP2, prov map[string]catalogsource.FieldReport) []Audit
 		originOf(p.OrderIDFromSource+p.OrderIDRestored, p.OrderLines, p.OrderIDRestored), idNote)
 	add("Аккаунт покупателя (account_id)", fmt.Sprintf("из данных %d, из client_id %d строк order", p.AccountFromSource, p.AccountFromClient),
 		originOf(p.AccountFromSource+p.AccountFromClient, p.OrderLines, p.AccountFromClient), prov[catalogsource.FieldAccountID].Note)
-	add("Заказы для статистики", fmt.Sprintf("%d заказов с аккаунтом (восстановленных %d), аккаунтов %d", p.Orders, p.RestoredOrders, p.Accounts),
-		originOf(p.Orders, p.Orders, p.RestoredOrders), "заказ с аккаунтом и позициями каталога; гость без аккаунта не входит")
-	add("Многопозиционные заказы", fmt.Sprintf("%d из %d", p.MultiItem, p.Orders), originOf(p.MultiItem, p.MultiItem, 0),
-		fmt.Sprintf("порог статистики — %d", copurchaseMinMultiOrders))
-	if cp := p.Copurchase; cp != nil {
-		var top []string
-		passed := 0
-		for i, c := range cp.Candidates {
-			if c.Structure {
-				passed++
-			}
-			if i < 5 {
-				mark := "проходит структуру"
-				if !c.Structure {
-					mark = "отклонена структурой"
-				}
-				top = append(top, fmt.Sprintf("%s → %s (%d акк., %d заказов, p=%s, %s)", c.Anchor, c.Companion, c.Accounts, c.JointOrders,
-					fmtP(c.P), mark))
-			}
-		}
-		add("Совместные покупки без связи", fmt.Sprintf("значимых пар %d из %d проверенных; пар без связи %d, из них проходят структуру %d",
-			cp.Significant, cp.Tests, len(cp.Candidates), passed),
-			map[bool]string{true: "из данных", false: "нет"}[passed > 0], orDash(strings.Join(top, "; ")))
-	} else {
-		add("Совместные покупки без связи", "заказов с аккаунтом нет", "нет", "")
-	}
 	if p.CompanionPairs != nil {
 		add("Разметка блока (companion_pairs)", fmt.Sprintf("%d пар", *p.CompanionPairs), "из данных", "")
 	} else {
@@ -322,22 +232,6 @@ func auditP2Slice(p *AuditP2) []AuditPlanItem {
 		add("Маржа", fmt.Sprintf("маржа у %d из %d позиций, помечена синтетической", p.Margin, p.Products), "рычаг — с плашкой «Синтетические данные»")
 	default:
 		add("Маржа", fmt.Sprintf("маржа у %d из %d позиций", p.Margin, p.Products), "рычаг маржи с ограничениями — на данных заказчика")
-	}
-	switch {
-	case p.Orders == 0:
-		add("Заказы с аккаунтами", "заказов с номером и аккаунтом нет",
-			"агент — только детерминированные диагнозы (BROKEN_RELATION, MISSING_REQUIRED); статистические ступени лестницы выключены")
-	case p.MultiItem < copurchaseMinMultiOrders:
-		add("Заказы с аккаунтами", fmt.Sprintf("многопозиционных заказов %d (< %d)", p.MultiItem, copurchaseMinMultiOrders),
-			"статистика совместных покупок слабая: MISSING_RELATION показывать как гипотезу, опора — детерминированные диагнозы")
-	default:
-		finding := fmt.Sprintf("%d заказов, %d многопозиционных, %d аккаунтов", p.Orders, p.MultiItem, p.Accounts)
-		change := "статистические ступени лестницы работают (MISSING_RELATION, BUNDLE_OPPORTUNITY)"
-		if p.RestoredOrders > 0 {
-			finding += fmt.Sprintf("; номер восстановлен у %d заказов", p.RestoredOrders)
-			change += "; в доказательствах агента пометить «заказы восстановлены по окну»"
-		}
-		add("Заказы с аккаунтами", finding, change)
 	}
 	if p.CompanionPairs == nil {
 		add("Разметка блока", "companion_pairs нет", "метрики блока в `make eval SET=p2` — «нет разметки»; разметить пары ключевых якорей или говорить только о проверках совместимости")

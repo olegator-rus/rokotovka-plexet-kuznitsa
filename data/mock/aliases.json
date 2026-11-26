@@ -439,5 +439,19 @@
     "kind": "slang",
     "target": "term",
     "target_id": null
+  },
+  {
+    "alias": "сертификат",
+    "canonical": "сертифицирован",
+    "kind": "alias",
+    "target": "term",
+    "target_id": null
+  },
+  {
+    "alias": "сертификатом",
+    "canonical": "сертифицирован",
+    "kind": "alias",
+    "target": "term",
+    "target_id": null
   }
 ]

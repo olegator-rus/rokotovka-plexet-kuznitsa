@@ -26,7 +26,8 @@ FILES = ["catalog.json", "vendors.json", "categories.json", "relations.json", "a
 P2_FILES = ["license_rules.json", "compatibility_rules.json", "attribute_definitions.json", "solution_templates.json",
             "companion_pairs.json"]
 P3_FILES = ["prefixes.json"]
-DIGEST_FILES = FILES + P2_FILES + ["PLANTED.md"] + P3_FILES
+P4_FILES = ["help.json", "reestr.json", "showcase.json"]
+DIGEST_FILES = FILES + P2_FILES + ["PLANTED.md"] + P3_FILES + P4_FILES
 # Заморозка контура поиска: хэш списка (id, text, set, judgments) запросов вне p2 и первых строк events.jsonl.
 P1_QUERIES_SHA = "36ad647ff56c61c3088d3fe17ea05ea464a1d095d67e2f35a5e8b093ef07de13"
 P1_EVENTS_SHA = "f2608dff36743b08848ac1a917e1c3c1fdd0ef8b38127e1e63d74f57487e7b7a"
@@ -88,7 +89,7 @@ class Report:
 
 def load(d, r):
     data = {}
-    for name in FILES + P2_FILES + P3_FILES:
+    for name in FILES + P2_FILES + P3_FILES + P4_FILES:
         path = d / name
         if not r.check(path.exists(), f"нет файла {name}"):
             continue
@@ -537,7 +538,7 @@ def check_p2(d, data, by_id, fams, cats, vendors, queries, events, r):
 
     # шаблоны решений
     tmpl = data["solution_templates.json"]
-    r.check(len(tmpl) == 3, f"solution_templates: {len(tmpl)} вместо 3")
+    r.check(len(tmpl) == 2, f"solution_templates: {len(tmpl)} вместо 2")  # контур доводки: «Удалённый офис» удалён
     for t in tmpl:
         r.check(t.get("triggers") and isinstance(t.get("approved"), bool) and t.get("slots"), f"template {t.get('id')}")
         for sl in t.get("slots", []):
@@ -714,6 +715,40 @@ def check_p3(d, data, by_id, queries, events, r):
                 window=(start.isoformat(), end.isoformat()))
 
 
+# ------------------------------------------------------------------ контур доводки
+def check_p4(data, by_id, fams, r):
+    """Справка, реестр, набор витрины; варианты под сделку и организацию — только у ПО контура доводки."""
+    for h in data["help.json"]:
+        r.check(h.get("id") and h.get("title") and h.get("text") and h.get("url", "").startswith("/help"),
+                f"help {h.get('id')}: id, title, text, url /help…")
+        r.check(isinstance(h.get("triggers"), list) and h["triggers"], f"help {h.get('id')}: триггеры")
+    ids = [h.get("id") for h in data["help.json"]]
+    r.check(len(ids) == len(set(ids)), "help: повтор id")
+    for need in ("invoice", "documents", "delivery", "return", "renewal", "activation"):
+        r.check(need in ids, f"help: нет статьи {need}")
+    seen = set()
+    for e in data["reestr.json"]:
+        f = e.get("family_id")
+        r.check(f in fams and f not in seen, f"reestr {f}: нет семейства или повтор")
+        seen.add(f)
+        r.check(e.get("status") in ("confirmed", "not_matching"), f"reestr {f}: статус")
+        if e.get("status") == "confirmed":
+            r.check(bool(e.get("number")), f"reestr {f}: подтверждено без номера")
+            origin = next((p["origin"] for p in by_id.values() if p["family_id"] == f), None)
+            r.check(origin == "ru", f"reestr {f}: зарубежное ПО подтверждено в реестре")
+    sc = data["showcase.json"]
+    r.check(len(sc) == 31, f"showcase: {len(sc)} запросов, нужен 31")
+    for q in sc:
+        r.check(q.get("expect") in ("product", "analogs", "absent", "help"), f"showcase {q.get('id')}: класс")
+        r.check(q.get("vitrine") in ("ok", "partial", "fail", "unknown"), f"showcase {q.get('id')}: оценка витрины")
+    for p in by_id.values():
+        a = p["attributes"]
+        if "deal" in a or "org_type" in a:
+            r.check(p.get("kind") == "software", f"product {p['id']}: deal/org_type вне позиций контура доводки")
+            r.check(a.get("deal", "renewal") in ("renewal", "extension", "migration"), f"product {p['id']}: deal")
+            r.check(a.get("org_type", "education") in ("education", "government"), f"product {p['id']}: org_type")
+
+
 def digest(d):
     return {name: hashlib.sha256((d / name).read_bytes()).hexdigest() for name in DIGEST_FILES}
 
@@ -853,6 +888,7 @@ def main():
     r.check(180 <= len(p1) <= 300, f"catalog: позиций контура поиска {len(p1)} вне 180–300")
     check_p2(d, data, by_id, fams, cats, vendors, queries, events, r)
     p3 = check_p3(d, data, by_id, queries, events, r)
+    check_p4(data, by_id, fams, r)
     if args.determinism:
         check_determinism(d, r)
     for w in r.warnings:

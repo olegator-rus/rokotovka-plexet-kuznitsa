@@ -7,7 +7,6 @@ import (
 	"slices"
 	"strings"
 	"testing"
-	"time"
 
 	"kuznica/api/domain"
 	"kuznica/api/externalApi/catalogsource"
@@ -257,54 +256,18 @@ func foreignP2(t *testing.T, g *catalogsource.Generic, got, want *domain.Catalog
 		t.Errorf("разметка пар: %d, в mock %d (%v)", len(pairs), len(wantPairs), err)
 	}
 
-	// P2-03 — семейства R750 и ИБП Innova RT II в восстановленном каталоге.
-	fam := map[string]string{}
-	for _, p := range got.Products {
-		fam[p.ID] = p.FamilyID
-	}
-	anchor, ups := fam["srv-r750-g6338"], fam["ups-ippon-rt-3000"]
-	if anchor == "" || anchor != fam["srv-r750-s4314"] {
-		t.Fatalf("серверы R750 не в одном семействе: %q %q", anchor, fam["srv-r750-s4314"])
-	}
-	c := newCommerceCatalog(got)
-	docs := docsOfRelations(got.Relations)
-	bs, _ := ordersOf(evs, c)
-	s := &Services{now: time.Now}
-	from, to := s.orderWindow(bs)
-	sc := scanCopurchase(c, docs, bs, from, to)
-	found := false
-	for _, cand := range sc.Candidates {
-		ok, why := sc.structureCheck(c, docs, cand.Anchor, cand.Companion)
-		t.Logf("кандидат %s → %s: %d акк., %d заказов, p=%s, структура %v %s", cand.Anchor, cand.Companion, cand.Stat.Accounts,
-			cand.Stat.JointOrders, fmtP(cand.Stat.P), ok, why)
-		if cand.Anchor == anchor && cand.Companion == ups {
-			found = true
-			if !ok {
-				t.Errorf("P2-03 на чужом наборе не прошла структуру: %s", why)
-			}
-		}
-	}
-	if !found {
-		t.Fatalf("P2-03 (%s → %s) не найдена статистикой покупок на чужом наборе", anchor, ups)
-	}
-
-	// Аудит видит то же: пару, восстановленные заказы, отсутствие правил лицензий и шаблонов.
+	// Аудит видит то же: восстановленные заказы, отсутствие правил лицензий и шаблонов (статистика совместных
+	// покупок удалена в контуре доводки).
 	r, err := NewServices(nil, Options{Source: g}).Audit(t.Context(), AuditOptions{NoSearch: true})
 	if err != nil {
 		t.Fatal(err)
 	}
 	p2 := r.P2
-	if p2 == nil || p2.Copurchase == nil || !slices.ContainsFunc(p2.Copurchase.Candidates, func(x AuditCopurchasePair) bool {
-		return x.Anchor == anchor && x.Companion == ups && x.Structure
-	}) {
-		t.Fatalf("аудит не видит P2-03: %+v", p2)
-	}
-	if p2.RestoredOrders == 0 || p2.OrderIDRestored != restored || p2.CompanionPairs == nil || p2.LicenseRules != 0 {
-		t.Errorf("аудит контура коммерции: восстановленных заказов %d, строк %d (ожидалось %d), пар %v, правил лицензий %d",
-			p2.RestoredOrders, p2.OrderIDRestored, restored, p2.CompanionPairs, p2.LicenseRules)
+	if p2 == nil || p2.OrderIDRestored != restored || p2.CompanionPairs == nil || p2.LicenseRules != 0 {
+		t.Fatalf("аудит контура коммерции: %+v (ожидалось восстановленных строк %d)", p2, restored)
 	}
 	md := FormatAuditMarkdown(r)
-	for _, want := range []string{"## Контур коммерции: что есть в данных", "## Правила среза контура коммерции", "Шаблоны решений", anchor + " → " + ups} {
+	for _, want := range []string{"## Контур коммерции: что есть в данных", "## Правила среза контура коммерции", "Шаблоны решений"} {
 		if !strings.Contains(md, want) {
 			t.Errorf("в AUDIT.md нет %q", want)
 		}

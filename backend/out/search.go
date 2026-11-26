@@ -38,7 +38,13 @@ type SearchResponse struct {
 	Refinements []Refinement  `json:"refinements,omitempty"`
 	Sort        *ResultSort   `json:"sort,omitempty"`
 	Group       string        `json:"group,omitempty"` // family | none
-	Trace       *domain.Trace `json:"trace"`
+	// Контур доводки (out/procurement.go): параметры закупки, ответ справки, «Вы искали» и позиции,
+	// убранные из основного блока явным требованием реестра.
+	Purchase          *Purchase       `json:"purchase,omitempty"`
+	Help              *HelpAnswer     `json:"help,omitempty"`
+	AnalogOriginal    *AnalogOriginal `json:"analog_original,omitempty"`
+	ReestrUnconfirmed []SearchItem    `json:"reestr_unconfirmed,omitempty"`
+	Trace             *domain.Trace   `json:"trace"`
 }
 
 // Complement — сопутствующий товар: самая популярная позиция связанного семейства.
@@ -115,6 +121,9 @@ type SearchItem struct {
 	// FilterFill — семейство не найдено поиском, а дописано фильтром категории/производителя из панели (§11.8,
 	// signals filter_fill): фронт показывает его отдельно — «Ещё в категории …».
 	FilterFill bool `json:"filter_fill,omitempty"`
+	// Контур доводки: статус реестра семейства и строка отличий аналога отсутствующего товара.
+	Reestr     *Reestr `json:"reestr,omitempty"`
+	AnalogNote string  `json:"analog_note,omitempty"`
 }
 
 // ItemCompatibility — совместимость позиции с моделью из запроса.
@@ -234,6 +243,8 @@ type Relaxed struct {
 type Empty struct {
 	Message     string `json:"message"`
 	ShowManager bool   `json:"show_manager"`
+	// Supply — товара нет в каталоге: кнопка «Запросить поставку» (событие supply_request с исходным запросом).
+	Supply bool `json:"supply,omitempty"`
 }
 
 // Meta — GET /api/meta.
@@ -246,6 +257,8 @@ type Meta struct {
 	Clients        []MetaClient `json:"clients"`
 	// LLM — режим модели, дневной бюджет и плашка режима для шапки.
 	LLM LLMState `json:"llm"`
+	// Vectors — режим векторов (эмбеддер и реранкер) и плашка режима «без моделей» (контур доводки).
+	Vectors VectorsState `json:"vectors"`
 	// AdminEnabled — доступны ли служебные методы /api/admin/* (ADMIN_ENABLED).
 	AdminEnabled bool `json:"admin_enabled"`
 	// RateLimitPerMin — лимит частоты запросов к /api с одного адреса; 0 — без лимита.

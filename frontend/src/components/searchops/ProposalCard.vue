@@ -1,6 +1,8 @@
 <script setup lang="ts">
-// Карточка предложения агента сверху вниз: диагноз словами → запросы кластера с частотой →
-// что предлагается (разница правил) → результат прогона двумя строками → ход расследования → решение.
+// Карточка очереди SearchOps (контур доводки «SearchOps → Очередь») сверху вниз: причина и владелец крупно,
+// код подпричины мелко → запросы кластера с частотой → что предлагается (разница правил) или что сделать владельцу →
+// результат прогона → ход расследования → решение. Два вида: «Правка поиска» (утвердить / отклонить с причиной) и
+// «Задача владельцу» (отправить). Причина — lib/causes.ts (с сервера cause/owner, без них — по коду диагноза).
 import { computed, ref } from 'vue'
 import { CollapsibleContent, CollapsibleRoot, CollapsibleTrigger } from 'reka-ui'
 import { RouterLink } from 'vue-router'
@@ -25,7 +27,6 @@ import {
   hypothesisLines,
   isTicket,
   lostDemandLabel,
-  proposalRoleLabel,
   proposalStatus,
   recheckView,
   rejectReasonLabel,
@@ -34,18 +35,9 @@ import {
   targetQueryRows,
   ticketLines,
 } from '@/lib/proposals'
-import {
-  PRIORITY_CAPTION,
-  isBundle,
-  isCopurchase,
-  isMarginProposal,
-  marginProposalView,
-  priorityValue,
-} from '@/lib/killer'
+import { KIND_LABELS, causeView } from '@/lib/causes'
+import { PRIORITY_CAPTION, priorityValue } from '@/lib/queue'
 import { isRelationPatch } from '@/lib/relationProposal'
-import BundleView from './BundleView.vue'
-import CopurchaseEvidence from './CopurchaseEvidence.vue'
-import MarginProposalView from './MarginProposalView.vue'
 import PatchDiff from './PatchDiff.vue'
 import RelationPatchView from './RelationPatchView.vue'
 
@@ -73,19 +65,13 @@ const effect = computed(() => effectLine(p.value.effect))
 const recheck = computed(() => recheckView(p.value))
 const stale = computed(() => staleReason(p.value))
 const relation = computed(() => isRelationPatch(p.value))
-const bundle = computed(() => isBundle(p.value))
-const copurchase = computed(() => isCopurchase(p.value))
-// Контур коммерции: связь, комплект, маржа — заголовок без «Кластер», без потерянного спроса и запросов кластера.
-const commerce = computed(() => relation.value || bundle.value || isMarginProposal(p.value))
-// Комплект принимается «в работу»: справочник и выдача не меняются.
-const workItem = computed(() => ticket.value || bundle.value)
+// Контур коммерции: правка справочника связей — заголовок без «Кластер», без потерянного спроса.
+const commerce = computed(() => relation.value)
+const cause = computed(() => causeView(p.value))
+// Задача владельцу: правила поиска не меняются — «Отправить».
+const workItem = computed(() => ticket.value || cause.value.kind === 'owner_task')
 const priority = computed(() =>
   priorityValue(p.value as Proposal & { priority_score?: number | null }),
-)
-// Предложение настройки маржи применяется на экране «Маржа», не из очереди:
-// /margin?w=<вес>&cat=<категория>&p=<id> — песочница с теми же числами.
-const marginLink = computed(() =>
-  isMarginProposal(p.value) ? marginProposalView(p.value).link : null,
 )
 const detailsOpen = ref(false)
 const runLink = computed(() =>
@@ -107,8 +93,7 @@ const runLink = computed(() =>
   >
     <header class="pcard__head">
       <span :class="['badge', 'badge--tone', status.tone]">{{ status.label }}</span>
-      <span class="badge">{{ diagnosisLabel(p.diagnosis) }}</span>
-      <span class="t-xs t-muted">{{ proposalRoleLabel(p.role) }}</span>
+      <span class="badge" data-testid="kind">{{ KIND_LABELS[cause.kind] }}</span>
       <span v-if="priority" class="pcard__priority t-sm" data-testid="priority">
         <strong class="t-num">{{ priority }}</strong>
         <span class="t-xs t-muted">{{ PRIORITY_CAPTION }}</span>
@@ -122,20 +107,27 @@ const runLink = computed(() =>
       </span>
     </header>
 
-    <h3 :id="`p-${p.id}-title`" class="t-h2">
-      <template v-if="commerce">{{ p.cluster?.label }}</template>
-      <template v-else>Кластер «{{ p.cluster?.label }}»</template>
-    </h3>
+    <div class="pcard__cause">
+      <h3 :id="`p-${p.id}-title`" class="pcard__cause-title" data-testid="cause">
+        {{ cause.label }}
+      </h3>
+      <p class="pcard__owner" data-testid="owner">
+        <span class="t-muted">Владелец:</span> {{ cause.owner }}
+      </p>
+      <p class="t-xs t-muted">
+        <template v-if="p.diagnosis"
+          >Подпричина: {{ diagnosisLabel(p.diagnosis) }} ·
+          <span class="t-mono">{{ p.diagnosis }}</span> · </template
+        ><template v-if="commerce">{{ p.cluster?.label }}</template
+        ><template v-else>кластер «{{ p.cluster?.label }}»</template>
+      </p>
+    </div>
     <p v-if="stale" class="pcard__stale t-sm">
       <span class="pcard__effect-label">Почему устарело:</span> {{ stale }}. Принять нельзя.
     </p>
     <p v-if="p.diagnosis_text" class="pcard__diag">{{ p.diagnosis_text }}</p>
 
-    <section
-      v-if="!copurchase && !marginLink && (queries.length || !relation)"
-      class="pcard__block"
-      aria-label="Запросы кластера"
-    >
+    <section v-if="queries.length || !relation" class="pcard__block" aria-label="Запросы кластера">
       <p class="pcard__label">
         Запросы кластера · {{ formatInt(queries.length) }}
         {{ plural(queries.length, ['запрос', 'запроса', 'запросов']) }}
@@ -155,17 +147,12 @@ const runLink = computed(() =>
       </ul>
     </section>
 
-    <MarginProposalView v-if="marginLink" :proposal="p" />
-
-    <BundleView v-else-if="bundle" :proposal="p" />
-
-    <template v-else-if="relation">
-      <RelationPatchView :proposal="p" />
-      <CopurchaseEvidence v-if="copurchase" :proposal="p" />
-    </template>
+    <RelationPatchView v-if="relation" :proposal="p" />
 
     <section v-else class="pcard__block" aria-label="Что предлагается">
-      <p class="pcard__label">{{ ticket ? 'Что сделать' : 'Что предлагается' }}</p>
+      <p class="pcard__label">
+        {{ ticket ? `Что сделать · кому: ${cause.owner}` : 'Что предлагается' }}
+      </p>
       <ul v-if="todo.length" class="pcard__todo">
         <li v-for="t in todo" :key="t">{{ t }}</li>
       </ul>
@@ -321,8 +308,9 @@ const runLink = computed(() =>
         Показать ход расследования <ArrowRight :size="14" aria-hidden="true" />
       </RouterLink>
 
-      <div v-if="p.status === 'pending' && marginLink" class="pcard__actions">
+      <div v-if="p.status === 'pending'" class="pcard__actions">
         <button
+          v-if="!workItem"
           type="button"
           class="btn btn--secondary"
           :disabled="busy || !!deny"
@@ -331,25 +319,7 @@ const runLink = computed(() =>
           @click="$emit('reject')"
         >
           <Lock v-if="deny" :size="14" aria-hidden="true" />
-          Отклонить
-        </button>
-        <RouterLink :to="marginLink" class="btn btn--primary">Открыть в песочнице</RouterLink>
-        <p v-if="deny" :id="denyId" class="pcard__deny t-xs">
-          <Lock :size="12" aria-hidden="true" /> {{ deny }}
-        </p>
-      </div>
-
-      <div v-else-if="p.status === 'pending'" class="pcard__actions">
-        <button
-          type="button"
-          class="btn btn--secondary"
-          :disabled="busy || !!deny"
-          :title="deny || undefined"
-          :aria-describedby="deny ? denyId : undefined"
-          @click="$emit('reject')"
-        >
-          <Lock v-if="deny" :size="14" aria-hidden="true" />
-          Отклонить
+          Отклонить с причиной
         </button>
         <button
           type="button"
@@ -360,7 +330,7 @@ const runLink = computed(() =>
           @click="$emit('accept')"
         >
           <Lock v-if="deny" :size="14" aria-hidden="true" />
-          {{ workItem ? 'Взять в работу' : 'Принять' }}
+          {{ workItem ? 'Отправить' : 'Утвердить' }}
         </button>
         <p v-if="deny" :id="denyId" class="pcard__deny t-xs">
           <Lock :size="12" aria-hidden="true" /> {{ deny }}
@@ -378,7 +348,7 @@ const runLink = computed(() =>
           <template v-if="p.decided_comment"> · «{{ p.decided_comment }}»</template>
         </span>
         <RouterLink
-          v-if="p.status === 'accepted' && checkUrl && !workItem && !marginLink"
+          v-if="p.status === 'accepted' && checkUrl && !workItem"
           :to="checkUrl"
           class="btn btn--secondary btn--sm"
         >
@@ -412,6 +382,21 @@ const runLink = computed(() =>
   align-items: baseline;
   gap: 0 var(--space-1);
   margin-left: auto;
+}
+.pcard__cause {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.pcard__cause-title {
+  margin: 0;
+  font-size: var(--fs-h1);
+  font-weight: var(--fw-semibold);
+  line-height: 1.3;
+}
+.pcard__owner {
+  font-size: var(--fs-h2);
+  font-weight: var(--fw-medium);
 }
 .pcard__diag {
   color: var(--text);

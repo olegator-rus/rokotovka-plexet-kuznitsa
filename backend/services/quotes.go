@@ -96,7 +96,10 @@ func (s *Services) CreateQuote(ctx context.Context, req in.QuoteRequest) (*out.Q
 		if it.Origin == "companion" {
 			cls = it.CompanionClass
 		}
-		items = append(items, domain.QuoteItem{ProductID: it.ProductID, Quantity: it.Quantity, Origin: it.Origin, CompanionClass: cls})
+		purchase, pbad := quotePurchase(field, it.Purchase)
+		bad = append(bad, pbad...)
+		items = append(items, domain.QuoteItem{ProductID: it.ProductID, Quantity: it.Quantity, Origin: it.Origin,
+			CompanionClass: cls, Purchase: purchase})
 	}
 	if len(bad) > 0 {
 		return nil, errs.NewValidationError(errs.MsgInvalidFields).WithDetails(bad...)
@@ -155,7 +158,7 @@ func (s *Services) quoteList(rows []domain.QuoteRequest) *out.QuoteList {
 			ClientID: q.ClientID, Comment: q.Comment, Items: make([]out.QuoteLine, 0, len(q.Items))}
 		for _, it := range q.Items {
 			line := out.QuoteLine{ProductID: it.ProductID, Quantity: it.Quantity, Origin: it.Origin,
-				CompanionClass: it.CompanionClass, PriceMode: domain.PriceQuoteRequired}
+				CompanionClass: it.CompanionClass, PriceMode: domain.PriceQuoteRequired, Purchase: it.Purchase}
 			if p := products[it.ProductID]; p != nil {
 				line.Title, line.PriceMode = p.Title, p.PriceMode
 				if priceKnown(p) {

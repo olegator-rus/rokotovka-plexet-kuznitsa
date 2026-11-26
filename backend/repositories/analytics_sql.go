@@ -98,11 +98,9 @@ type SearchTotals struct {
 	Clicks   int    `json:"clicks"`   // поиски с кликом (корзина и заказ — тоже клик)
 	Carts    int    `json:"carts"`
 	Orders   int    `json:"orders"`
-	// Problems — поиски с пустой выдачей или без клика; сессии — различные сессии таких поисков.
-	Problems        int `json:"problems"`
-	ProblemSessions int `json:"problem_sessions"`
-	ClickSessions   int `json:"click_sessions"`
-	OrderSessions   int `json:"order_sessions"` // сессии, где поиск с кликом закончился заказом
+	// Problems — поиски с пустой выдачей или без клика. Счёт сессий (problem/click/order_sessions) нужен был только
+	// модели эффекта и удалён с ней в контуре доводки.
+	Problems int `json:"problems"`
 }
 
 // SearchSummary — суммы исходов за период: по источникам (по алфавиту) и итог.
@@ -130,10 +128,7 @@ const totalsSQL = `'searches', COUNT(*),
 	'clicks', COUNT(*) FILTER (WHERE clicked),
 	'carts', COUNT(*) FILTER (WHERE carted),
 	'orders', COUNT(*) FILTER (WHERE ordered),
-	'problems', COUNT(*) FILTER (WHERE results_count = 0 OR NOT clicked),
-	'problem_sessions', COUNT(DISTINCT sess) FILTER (WHERE results_count = 0 OR NOT clicked),
-	'click_sessions', COUNT(DISTINCT sess) FILTER (WHERE clicked),
-	'order_sessions', COUNT(DISTINCT sess) FILTER (WHERE ordered)`
+	'problems', COUNT(*) FILTER (WHERE results_count = 0 OR NOT clicked)`
 
 // SearchOutcomesSince — суммы исходов поисков с момента since и до limit проблемных запросов (пустая выдача,
 // переформулировка, нет клика) по убыванию неудач, затем частоты, затем по тексту. Один проход по событиям:

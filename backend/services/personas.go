@@ -22,14 +22,14 @@ var demoPersonas = []demoPersona{
 		note: "Windows Server, CAL, Veeam и KES в истории — своя выдача и допродажи к серверу"},
 	{id: "buyer-gov", name: "Наталья Громова", role: RoleBuyer, title: "Контрактный управляющий, госсектор", clientID: "client-d",
 		note: "Dr.Web и Secret Net в истории — продления этих лицензий первыми"},
-	{id: "staff-ecom", name: "Илья Ветров", role: RoleEcom, title: "Менеджер e-com",
-		note: "Аналитика: проблемные запросы; решает правки правил поиска и маржу"},
-	{id: "staff-product", name: "Дарья Лапина", role: RoleProduct, title: "Продукт-менеджер",
-		note: "Очередь агента: связи, комплекты, ассортимент; откат связей"},
-	{id: "staff-content", name: "Елена Сорокина", role: RoleContent, title: "Контент-менеджер",
-		note: "Карточки и термины; решения только по своим предложениям"},
+	{id: "staff-ecom", name: "Илья Ветров", role: RoleEcom, title: "Администратор поиска",
+		note: "Причины «поиск не понял запрос» и «товар стоит низко»: правки поиска, откат правил, политика ранжирования"},
+	{id: "staff-product", name: "Дарья Лапина", role: RoleProduct, title: "Категорийный и лицензионный менеджер",
+		note: "Причины «товара нет в каталоге» и «ошибка в связи или правиле»: ассортимент, связи, откат связей"},
+	{id: "staff-content", name: "Елена Сорокина", role: RoleContent, title: "Каталог",
+		note: "Причина «в карточке не хватает данных»: карточки и характеристики"},
 	{id: "staff-head", name: "Сергей Орлов", role: RoleHead, title: "Руководитель e-com",
-		note: "Видит всё, решает за любую роль, смотрит аналитику глазами команды"},
+		note: "Видит всё и решает предложения любой причины"},
 }
 
 // DemoPersonas — демо-аккаунты для кнопок входа: покупатели только на клиентах загруженного каталога; у сотрудников —
@@ -115,7 +115,7 @@ func (s *Services) pendingByRole(ctx context.Context) map[string]int {
 	}
 	res := map[string]int{}
 	for _, p := range list.Items {
-		res[p.Role]++
+		res[p.Owner]++
 	}
 	return res
 }

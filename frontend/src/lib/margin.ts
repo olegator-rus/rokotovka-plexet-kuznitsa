@@ -207,80 +207,29 @@ export function rankColumns(a: MarginAffected): { before: RankRow[]; after: Rank
   }
 }
 
-// ── Кривая ──
+// ── Пример «было / стало» (контур доводки: «Политика ранжирования», один пример) ──
 
-export interface CurvePoint {
-  weight: number
-  /** Потеря качества (−ΔNDCG@10) к весу контура поиска; отрицательная — выигрыш. */
-  loss: number
-  index: number
-  x: number
-  y: number
-  disabled: boolean
-  /** Подпись точки; у совпадающих точек — одна общая у первой («0,00 · 0,03»), у остальных null. */
-  label: string | null
-}
-
-export interface CurveGeometry {
-  points: CurvePoint[]
-  path: string
-  xMin: number
-  xMax: number
-  yMin: number
-  yMax: number
-}
+/** Сколько позиций переставлено в первой тройке (up/down/new в «стало»). */
+const movedTop3 = (a: MarginAffected) =>
+  rankColumns(a)
+    .after.slice(0, 3)
+    .filter((r) => r.move !== 'same').length
 
 /**
- * Кривая «потеря качества → индекс показанной маржи» в рамке w×h с отступом pad. Точки без индекса маржи
- * не рисуются. Положения за упором (isLocked) помечены disabled.
+ * Один пример для экрана: запрос, где в первой тройке поменялись местами ровно два близких товара (обмен соседей),
+ * иначе — запрос с наименьшим числом перестановок; пусто — null. Точные запросы среди затронутых не бывает: их
+ * защищает сервер.
  */
-export function curveGeometry(
-  items: MarginSimPoint[],
-  bounds: SimBounds | null,
-  w: number,
-  h: number,
-  pad: number,
-): CurveGeometry {
-  const raw = [...items]
-    .filter((p) => typeof p.margin_index === 'number')
-    .sort((a, b) => a.weight - b.weight)
-    .map((p) => ({
-      weight: p.weight,
-      loss: -p.ndcg_delta_mean || 0,
-      index: p.margin_index as number,
-      available: p.available,
-    }))
-  if (!raw.length) return { points: [], path: '', xMin: 0, xMax: 0, yMin: 0, yMax: 0 }
-  const xMin = Math.min(0, ...raw.map((p) => p.loss))
-  let xMax = Math.max(0, ...raw.map((p) => p.loss))
-  if (xMax - xMin < 1e-9) xMax = xMin + 0.01
-  let yMin = Math.min(...raw.map((p) => p.index))
-  let yMax = Math.max(...raw.map((p) => p.index))
-  if (yMax - yMin < 1e-9) {
-    yMin -= 0.5
-    yMax += 0.5
-  }
-  const sx = (v: number) => pad + ((v - xMin) / (xMax - xMin)) * (w - 2 * pad)
-  const sy = (v: number) => h - pad - ((v - yMin) / (yMax - yMin)) * (h - 2 * pad)
-  const sim = { ...bounds, items }
-  const points = raw.map((p) => ({
-    weight: p.weight,
-    loss: p.loss,
-    index: p.index,
-    x: Math.round(sx(p.loss) * 10) / 10,
-    y: Math.round(sy(p.index) * 10) / 10,
-    disabled: isLocked(p.weight, sim),
-  }))
-  const labelled: CurvePoint[] = []
-  for (const p of points) {
-    const twin = labelled.find(
-      (q) => q.label !== null && Math.abs(q.x - p.x) < 6 && Math.abs(q.y - p.y) < 6,
+export function swapExample(items: MarginAffected[]): MarginAffected | null {
+  if (!items.length) return null
+  const swap = items.find((a) => {
+    const after = rankColumns(a).after.slice(0, 3)
+    const moved = after.filter((r) => r.move !== 'same')
+    return (
+      moved.length === 2 &&
+      moved.every((r) => r.otherPos !== null && Math.abs(r.otherPos - r.pos) === 1)
     )
-    if (twin) {
-      twin.label = `${twin.label} · ${weightLabel(p.weight)}`
-      labelled.push({ ...p, label: null })
-    } else labelled.push({ ...p, label: weightLabel(p.weight) })
-  }
-  const path = labelled.map((p, i) => `${i ? 'L' : 'M'}${p.x} ${p.y}`).join(' ')
-  return { points: labelled, path, xMin, xMax, yMin, yMax }
+  })
+  if (swap) return swap
+  return [...items].sort((a, b) => (movedTop3(a) || 99) - (movedTop3(b) || 99))[0] ?? null
 }

@@ -14,7 +14,6 @@ import type {
   Solution,
   Upgrade,
 } from './typesP2'
-import type { AnalyticsCommerce } from './typesKiller'
 import type { P3EventType } from './typesPanel'
 import type {
   ItemAttrs,
@@ -137,6 +136,9 @@ export interface SearchItemBase {
   attrs?: ItemAttrs | null
   /** Контур выдачи (§11.8): дописано фильтром категории/производителя, поиском не найдено. */
   filter_fill?: boolean
+  /** Контур доводки (§12.6): статус реестра семейства; строка отличий аналога отсутствующего товара. */
+  reestr?: Reestr | null
+  analog_note?: string
 }
 
 export interface SearchItem extends SearchItemBase {
@@ -152,6 +154,51 @@ export interface Relaxed {
 export interface EmptyInfo {
   message: string
   show_manager: boolean
+  /** Контур доводки: товара нет в каталоге — кнопка «Запросить поставку». */
+  supply?: boolean
+}
+
+/** Контур доводки (§12.6): параметры закупки из запроса — карточка, спецификация и заявка КП. */
+export interface Purchase {
+  query: string
+  deal?: 'new' | 'renewal' | 'extension' | 'migration' | string
+  deal_label?: string
+  quantity?: number
+  metric?: string
+  duration_months?: number
+  org_type?: 'commercial' | 'education' | 'government' | string
+  org_label?: string
+  edition?: string
+}
+
+/** Контур доводки (§12.6): ответ справки; answer — вместо товаров, hint — строка рядом с товаром. */
+export interface HelpAnswer {
+  id: string
+  mode: 'answer' | 'hint' | string
+  title: string
+  text: string
+  link_label: string
+  url: string
+}
+
+/** Контур доводки (§12.6): статус в реестре российского ПО. */
+export interface Reestr {
+  status: 'confirmed' | 'not_matching' | 'unknown' | string
+  number?: string
+  label: string
+  checked_at?: string
+}
+
+/** Контур доводки (§12.6): «Вы искали» — исходный продукт запроса замены. */
+export interface AnalogOriginal {
+  family_id: string
+  family_name: string
+  product_id: string
+  title: string
+  vendor: string
+  category: string
+  price_from_rub: number | null
+  reestr: Reestr | null
 }
 
 export interface SearchResponse {
@@ -181,6 +228,11 @@ export interface SearchResponse {
   refinements?: Refinement[]
   sort?: ResultSortInfo
   group?: ResultsGroup | string
+  /** Контур доводки (§12): параметры закупки, справка, «Вы искали», неподтверждённые при требовании реестра. */
+  purchase?: Purchase
+  help?: HelpAnswer
+  analog_original?: AnalogOriginal
+  reestr_unconfirmed?: SearchItem[]
   trace: Trace
 }
 
@@ -333,6 +385,11 @@ export type EventType =
   | P2EventType
   | P3EventType
   | ResultsEventType
+  | ProcurementEventType
+
+/** Контур доводки: справка, поставка отсутствующего, «Вы искали». */
+export type ProcurementEventType =
+  'help_answer_shown' | 'help_click' | 'supply_request' | 'analog_original_shown'
 
 export interface SearchEvent {
   type: EventType
@@ -469,8 +526,6 @@ export interface EvaluationsResponse {
   judge_agreement?: JudgeAgreement | null
   /** Честность правок агента в столбце B4 этого набора; null — нет B3 или B4. */
   agent_credit?: EvalAgentCredit | null
-  /** Только holdout_week: доля спасённых для вилки эффекта (как measured.rescued в /api/effect). */
-  rescued?: EffectRescued | null
 }
 
 export interface EvalAgentCredit {
@@ -482,59 +537,12 @@ export interface EvalAgentCredit {
   rules_version: number
 }
 
-/** Доля спасённых поисков на реплее отложенной недели (backend/out/effect.go EffectRescued). */
-export interface EffectRescued {
-  set: string
-  set_hash: string
-  source: string
-  baseline: string
-  /** До какой конфигурации засчитано: B3 (только поиск) или B4 (поиск и честные правки агента). */
-  config: ConfigId
-  run_baseline: string
-  run_config: string
-  run_agent: string
-  rules_version: number
-  agent_rules_version: number
-  weight: string
-  failed: number
-  rescued: number
-  failed_queries: number
-  rescued_queries: number
-  share: number
-  search_share: number
-  agent_share: number
-  agent_counted: boolean
-  agent_pre_holdout?: boolean
-  agent_note: string
-  ci_low: number
-  ci_high: number
-}
-
 export interface EvalRunRequest {
   set: string
   configs: ConfigId[]
 }
 
-// ── «Аналитика»: GET /api/analytics?days=30&role=… (backend/out/analytics.go) ──
-
-export interface AnalyticsTiles {
-  searches: number
-  empty: number
-  empty_rate: number | null
-  no_click: number
-  no_click_rate: number | null
-  orders: number
-  order_rate: number | null
-  pending_proposals: number
-}
-
-export interface FunnelStepRaw {
-  step: 'searches' | 'clicks' | 'carts' | 'orders' | string
-  label: string
-  count: number
-  /** Доля от поисков. */
-  rate: number | null
-}
+// ── SearchOps «Запросы без ответа»: GET /api/analytics?days=30 (backend/out/analytics.go) ──
 
 export interface ProblemQuery {
   query: string
@@ -555,6 +563,9 @@ export interface ProblemQuery {
   proposal_diagnosis?: string | null
   /** Вывод агента: из предложения или итога кластера последних запусков. */
   agent?: AgentVerdict
+  /** Контур доводки: причина и владелец, если запрос разобран. */
+  cause?: string | null
+  owner?: string | null
 }
 
 export type AgentVerdictCode =
@@ -570,94 +581,18 @@ export interface AgentVerdict {
   cluster_label?: string
 }
 
-/** GET /api/analytics/current: текущая выдача по проблемным запросам (поиск без журнала, действующие правила). */
-export interface ProblemNow {
-  query: string
-  total: number
-  exact: boolean
-  not_in_catalog: boolean
-  top_title: string
-  route: string
-  cached: boolean
-  error?: string
-}
-
-export interface ProblemsNowResponse {
-  days: number
-  rules_version: number
-  catalog_version: string
-  checked_at: string
-  items: ProblemNow[]
-}
-
-// ── Вилка эффекта: GET /api/effect (backend/out/effect.go) ──
-
-export interface EffectParam {
-  key: 'session_factor' | 'order_prob' | 'rescue_factor' | 'avg_check_rub' | string
-  label: string
-  value: number
-  default: number
-  source: 'measured' | 'assumed' | 'request' | string
-  unit: string
-  hint: string
-}
-
-export interface EffectScenario {
-  id: 'conservative' | 'base' | 'optimistic' | string
-  label: string
-  rule: string
-  rescued_share: number
-  rescue_factor: number
-  order_prob: number
-  problem_sessions_month: number
-  rescued_month: number
-  orders_month: number
-  revenue_rub_month: number
-  /** Заказы сценария / текущие заказы поиска в месяц; null — заказов не было. */
-  uplift: number | null
-}
-
-export interface EffectResponse {
-  days: number
-  from: string
-  to: string
-  note: string
-  formula: string
-  formula_keys: string
-  measured: {
-    searches: number
-    searches_month: number
-    problem_searches: number
-    problem_share: number | null
-    problem_sessions: number
-    orders: number
-    search_order_rate: number | null
-    orders_month: number
-    rescued: EffectRescued | null
-  }
-  assumptions: EffectParam[]
-  scenarios: EffectScenario[]
-  missing: string[]
-  warnings: string[]
-}
-
+/** GET /api/analytics — фронт берёт только неудачные запросы (вкладка «Запросы без ответа»); ролевые блоки
+ * удалены в контуре доводки. */
 export interface AnalyticsResponse {
-  role: string
   days: number
   from: string
   to: string
-  tiles: AnalyticsTiles
-  funnel: FunnelStepRaw[]
   problems: ProblemQuery[]
   /** Откуда события: live и mock_log (импорт исторических логов). */
-  sources: Record<string, number>
-  /** Только role=head: вилка эффекта с допущениями по умолчанию. */
-  effect?: EffectResponse | null
-  /** Блок «Допродажи» роли (контур коммерции); null — не собран. */
-  commerce?: AnalyticsCommerce | null
+  sources?: Record<string, number>
 }
 
-// ── «Экономика»: GET /api/costs?limit=&offset= (backend/out/costs.go) ──
+// ── «Доказательства» → «Стоимость»: GET /api/costs?limit=&offset= (backend/out/costs.go) ──
 
 export interface CostsPrice {
   model: string
@@ -1015,6 +950,9 @@ export interface Proposal {
   check_query?: string | null
   /** Почему предложение устарело (status: stale): код или текст сервера. */
   stale_reason?: string | null
+  /** Контур доводки: одна из семи причин и её владелец; код диагноза — подпричина. */
+  cause?: string | null
+  owner?: string | null
 }
 
 export interface ProposalsResponse {

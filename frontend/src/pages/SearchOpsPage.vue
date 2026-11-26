@@ -1,13 +1,17 @@
 <script setup lang="ts">
-// SearchOps: вкладки «Запуски», «Очередь», «Память» (reka Tabs, вкладка в адресе:
-// /searchops?tab=runs|queue|memory). «Запустить разбор» → POST /api/agent/runs → страница запуска с лентой.
+// SearchOps («Навигация»): вкладки «Запросы без ответа», «Запуски», «Очередь», «Изменения»,
+// «Политика ранжирования» (reka Tabs, вкладка в адресе: /searchops?tab=failed|runs|queue|changes|policy).
+// «Запустить разбор» → POST /api/agent/runs → страница запуска с лентой. «Разобрать» в «Запросах без ответа» ведёт
+// сюда с ?tab=runs&q=<запрос>: запуск на одном запросе подключит трек агента.
 import { computed, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { storeToRefs } from 'pinia'
 import { TabsContent, TabsList, TabsRoot, TabsTrigger } from 'reka-ui'
 import { Play } from 'lucide-vue-next'
 import { getRuns, startRun } from '@/api/agent'
-import MemoryList from '@/components/searchops/MemoryList.vue'
+import ChangesPanel from '@/components/searchops/ChangesPanel.vue'
+import FailedQueries from '@/components/searchops/FailedQueries.vue'
+import PolicyPanel from '@/components/searchops/PolicyPanel.vue'
 import ProposalQueue from '@/components/searchops/ProposalQueue.vue'
 import RunsList from '@/components/searchops/RunsList.vue'
 import { useToast } from '@/components/ui/useToast'
@@ -16,7 +20,7 @@ import { isApiError } from '@/lib/apiError'
 import { isRunActive } from '@/lib/agentFeed'
 import { useAppStore } from '@/stores/app'
 
-const TABS = ['runs', 'queue', 'memory'] as const
+const TABS = ['failed', 'runs', 'queue', 'changes', 'policy'] as const
 type Tab = (typeof TABS)[number]
 
 const route = useRoute()
@@ -27,16 +31,21 @@ const { pendingProposals } = storeToRefs(useAppStore())
 const tab = computed<Tab>({
   get: () => {
     const t = typeof route.query.tab === 'string' ? route.query.tab : ''
-    return (TABS as readonly string[]).includes(t) ? (t as Tab) : 'runs'
+    return (TABS as readonly string[]).includes(t) ? (t as Tab) : 'failed'
   },
   set: (t) => void router.replace({ query: { tab: t } }),
 })
+
+/** Запрос из «Разобрать» (?q=): запуск на одном запросе подключит трек агента. */
+const askedQuery = computed(() =>
+  tab.value === 'runs' && typeof route.query.q === 'string' ? route.query.q.trim() : '',
+)
 
 const runs = useResource((opts) => getRuns(opts))
 watch(
   tab,
   (t) => {
-    if (t === 'runs') void runs.load({ quiet: !!runs.data.value })
+    if (t === 'runs' || t === 'failed') void runs.load({ quiet: !!runs.data.value })
   },
   { immediate: true },
 )
@@ -87,6 +96,7 @@ async function onStart() {
 
     <TabsRoot v-model="tab" class="sops__tabs">
       <TabsList class="tabs" aria-label="Разделы SearchOps">
+        <TabsTrigger value="failed" class="tabs__trigger">Запросы без ответа</TabsTrigger>
         <TabsTrigger value="runs" class="tabs__trigger">Запуски</TabsTrigger>
         <TabsTrigger value="queue" class="tabs__trigger">
           Очередь
@@ -94,10 +104,19 @@ async function onStart() {
             {{ pendingProposals }}
           </span>
         </TabsTrigger>
-        <TabsTrigger value="memory" class="tabs__trigger">Память</TabsTrigger>
+        <TabsTrigger value="changes" class="tabs__trigger">Изменения</TabsTrigger>
+        <TabsTrigger value="policy" class="tabs__trigger">Политика ранжирования</TabsTrigger>
       </TabsList>
 
+      <TabsContent value="failed" class="sops__panel">
+        <FailedQueries />
+      </TabsContent>
       <TabsContent value="runs" class="sops__panel">
+        <p v-if="askedQuery" class="panel sops__asked t-sm" role="status">
+          Разбор запроса «<strong>{{ askedQuery }}</strong
+          >»: запуск на одном запросе ещё не подключён. «Запустить разбор» разберёт неудачные
+          запросы за 30 дней (до 5 самых частых кластеров).
+        </p>
         <RunsList
           :runs="runs.data.value?.items ?? null"
           :status="runs.status.value"
@@ -110,8 +129,11 @@ async function onStart() {
       <TabsContent value="queue" class="sops__panel">
         <ProposalQueue @start="onStart" />
       </TabsContent>
-      <TabsContent value="memory" class="sops__panel">
-        <MemoryList />
+      <TabsContent value="changes" class="sops__panel">
+        <ChangesPanel />
+      </TabsContent>
+      <TabsContent value="policy" class="sops__panel">
+        <PolicyPanel />
       </TabsContent>
     </TabsRoot>
   </section>
@@ -140,6 +162,10 @@ async function onStart() {
   display: flex;
   flex-direction: column;
   gap: var(--space-4);
+}
+.sops__asked {
+  padding: var(--space-3) var(--space-4);
+  color: var(--text-2);
 }
 .sops__panel:focus-visible {
   outline-offset: 4px;

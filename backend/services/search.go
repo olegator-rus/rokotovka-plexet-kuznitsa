@@ -223,9 +223,9 @@ func validateSearch(req *in.SearchRequest) (string, int, error) {
 		}
 	}
 	switch req.Source = strings.ToLower(strings.TrimSpace(req.Source)); req.Source {
-	case "", domain.EventSourceLive, domain.EventSourceCompare:
+	case "", domain.EventSourceLive, domain.EventSourceCompare, domain.EventSourceTraffic:
 	default:
-		bad = append(bad, errs.FieldError{Field: "source", Code: errs.CodeInvalidFormat, Message: "Источник — live или compare"})
+		bad = append(bad, errs.FieldError{Field: "source", Code: errs.CodeInvalidFormat, Message: "Источник — live, compare или traffic"})
 	}
 	bad = append(bad, validateFilters(req.Filters)...)
 	if len(bad) > 0 {
@@ -290,6 +290,8 @@ func (s *Services) dense(ctx context.Context, normalized string, info *indexMeta
 		return r
 	}
 	switch {
+	case s.vectorsOff(ctx):
+		return skip(reasonVectorsOff)
 	case !s.embedder.Enabled():
 		return skip(reasonEmbedderDisabled)
 	case !info.HasVectors:
@@ -434,8 +436,8 @@ func (s *Services) saveSearch(req in.SearchRequest, normalized string, resp *out
 		ClientID: optional(req.ClientID), SessionID: optional(req.SessionID), TotalMs: int(math.Round(tr.TotalMs)),
 		Source: domain.EventSourceLive, IntentID: intentForLog(req.IntentID),
 	}
-	if req.Source == domain.EventSourceCompare {
-		ev.Source = domain.EventSourceCompare
+	if req.Source == domain.EventSourceCompare || req.Source == domain.EventSourceTraffic {
+		ev.Source = req.Source
 	}
 	st := &domain.SearchTrace{RequestID: tr.RequestID, Trace: raw}
 	s.writes.Add(1)

@@ -1,8 +1,20 @@
-import { createRouter, createWebHistory } from 'vue-router'
+import { type LocationQuery, createRouter, createWebHistory } from 'vue-router'
 import SearchPage from '@/pages/SearchPage.vue'
 import { LOGIN_PATH, decideGuard } from '@/lib/auth'
 import { PRODUCT_NAME } from '@/lib/brand'
 import { useAuthStore } from '@/stores/auth'
+
+/** /compare?tab=one&q=… → /proofs?tab=compare&view=one&q=…; вкладка «Эффект агента» удалена — на «Метрики». */
+function compareQuery(q: LocationQuery): Record<string, string> {
+  const out: Record<string, string> = { tab: 'compare' }
+  const view = typeof q.tab === 'string' ? q.tab : ''
+  if (['one', 'regressions', 'commerce', 'panel'].includes(view)) out.view = view
+  for (const k of ['q', 'left', 'right', 'cfg']) {
+    const v = q[k]
+    if (typeof v === 'string' && v) out[k] = v
+  }
+  return out
+}
 
 declare module 'vue-router' {
   interface RouteMeta {
@@ -15,7 +27,8 @@ declare module 'vue-router' {
   }
 }
 
-// Разделы («Навигация»): витрина открыта всем, бэк-офис — после входа сотрудника.
+// Разделы («Навигация»): «Поиск» и «Доказательства» открыты всем, SearchOps — после входа
+// сотрудника.
 export const router = createRouter({
   history: createWebHistory(),
   routes: [
@@ -26,18 +39,6 @@ export const router = createRouter({
       name: 'login',
       component: () => import('@/pages/LoginPage.vue'),
       meta: { section: 'Вход', bare: true },
-    },
-    {
-      path: '/compare',
-      name: 'compare',
-      component: () => import('@/pages/ComparePage.vue'),
-      meta: { section: 'До / После' },
-    },
-    {
-      path: '/analytics',
-      name: 'analytics',
-      component: () => import('@/pages/AnalyticsPage.vue'),
-      meta: { section: 'Аналитика', backoffice: true },
     },
     {
       path: '/searchops',
@@ -52,16 +53,16 @@ export const router = createRouter({
       meta: { section: 'Запуск агента', backoffice: true },
     },
     {
-      path: '/changes',
-      name: 'changes',
-      component: () => import('@/pages/ChangesPage.vue'),
-      meta: { section: 'Изменения', backoffice: true },
+      path: '/proofs',
+      name: 'proofs',
+      component: () => import('@/pages/ProofsPage.vue'),
+      meta: { section: 'Доказательства' },
     },
     {
-      path: '/costs',
-      name: 'costs',
-      component: () => import('@/pages/CostsPage.vue'),
-      meta: { section: 'Экономика', backoffice: true },
+      path: '/help',
+      name: 'help',
+      component: () => import('@/pages/HelpPage.vue'),
+      meta: { section: 'Помощь' },
     },
     {
       path: '/rules',
@@ -69,12 +70,27 @@ export const router = createRouter({
       component: () => import('@/pages/RulesPage.vue'),
       meta: { section: 'Правила рекомендаций' },
     },
+    // Старые адреса контуров поиска–3 (контур доводки: три раздела) — на новые места, без ссылок в пустоту.
+    { path: '/analytics', redirect: () => ({ path: '/searchops', query: { tab: 'failed' } }) },
+    {
+      path: '/changes',
+      redirect: (to) => ({
+        path: '/searchops',
+        query: {
+          tab: 'changes',
+          ...(to.query.tab === 'relations' ? { view: 'relations' } : {}),
+        },
+      }),
+    },
     {
       path: '/margin',
-      name: 'margin',
-      component: () => import('@/pages/MarginPage.vue'),
-      meta: { section: 'Маржа', backoffice: true },
+      redirect: (to) => ({
+        path: '/searchops',
+        query: { tab: 'policy', ...(typeof to.query.w === 'string' ? { w: to.query.w } : {}) },
+      }),
     },
+    { path: '/costs', redirect: () => ({ path: '/proofs', query: { tab: 'cost' } }) },
+    { path: '/compare', redirect: (to) => ({ path: '/proofs', query: compareQuery(to.query) }) },
     {
       path: '/:pathMatch(.*)*',
       name: 'not-found',

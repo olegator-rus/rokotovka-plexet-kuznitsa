@@ -352,7 +352,7 @@ func (s *Services) setsJournal(ctx context.Context, req BuildSetsRequest) ([]dom
 			return nil, nil, err
 		}
 		keep := func(src string) bool {
-			return src != domain.EventSourceCompare && (req.IncludeLive || src != domain.EventSourceLive)
+			return src != domain.EventSourceCompare && (req.IncludeLive || !domain.IsLiveSource(src))
 		}
 		searches = slices.DeleteFunc(searches, func(e domain.SearchEvent) bool {
 			return !keep(e.Source) || strings.HasPrefix(e.RequestID, evalRequestPrefix)

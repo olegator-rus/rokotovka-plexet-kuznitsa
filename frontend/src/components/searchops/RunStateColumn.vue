@@ -1,6 +1,6 @@
 <script setup lang="ts">
 // Колонка состояния запуска: текущий кластер, шаг N из лимита, кластеры, токены и рубли.
-// Стоимость ведёт в «Экономику» — там журнал вызовов модели с run_id запуска.
+// Стоимость ведёт в «Доказательства» → «Стоимость» — там журнал вызовов модели с run_id запуска.
 import { computed } from 'vue'
 import { RouterLink } from 'vue-router'
 import type { AgentRun, AgentStep } from '@/api/types'
@@ -79,9 +79,9 @@ const transportLabel = computed(() =>
         <dt>Стоимость</dt>
         <dd class="t-num">
           <RouterLink
-            to="/costs"
+            to="/proofs?tab=cost"
             class="num-btn"
-            :aria-label="`Стоимость ${formatCost(run.cost_rub)}: журнал вызовов в «Экономике»`"
+            :aria-label="`Стоимость ${formatCost(run.cost_rub)}: журнал вызовов в «Доказательствах»`"
             >{{ formatCost(run.cost_rub) }}</RouterLink
           >
         </dd>

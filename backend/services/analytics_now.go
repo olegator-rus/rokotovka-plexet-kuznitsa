@@ -131,6 +131,10 @@ func applyVerdicts(resp *out.AnalyticsResponse, clusters []repositories.RunClust
 		if p.Agent.Code != verdictUnseen {
 			p.Diagnosis = p.Agent.Label
 		}
+		if d := p.Agent.Diagnosis; d != "" {
+			c := CauseOf(d)
+			p.Cause, p.CauseLabel, p.Owner, p.OwnerLabel = c.Code, c.Label, c.Owner, c.OwnerLabel
+		}
 	}
 }
 

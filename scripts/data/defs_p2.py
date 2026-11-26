@@ -631,17 +631,4 @@ SOLUTION_TEMPLATES = [
              dict(id="dbms", label="СУБД", category_id="dbms", query="postgres pro", constraints={},
                   quantity_strategy="one"),
          ]),
-    dict(id="tmpl-remote-office", title="Удалённый офис",
-         triggers=["удаленный офис", "удалённый офис", "филиал", "небольшого офиса"], approved=True, slots=[
-             dict(id="switch", label="Коммутатор", category_id="switches", query="коммутатор 24 порта",
-                  constraints={"ports_count": {"op": "gte", "value": 24}}, quantity_strategy="one"),
-             dict(id="ups", label="ИБП", category_id="ups", query="ибп 1500",
-                  constraints={"power_w": {"op": "gte", "value": 1000}}, quantity_strategy="one"),
-             dict(id="laptop", label="Ноутбук", category_id="laptops", query="ноутбук", constraints={},
-                  quantity_strategy="per_seat"),
-             dict(id="office", label="Офис и почта", category_id="office-suite", query="microsoft 365 business basic",
-                  constraints={}, quantity_strategy="per_seat"),
-             dict(id="remote", label="Удалённый доступ", category_id="remote-access", query="удаленный доступ",
-                  constraints={}, quantity_strategy="per_seat"),
-         ]),
 ]

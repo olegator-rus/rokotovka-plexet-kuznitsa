@@ -234,6 +234,50 @@ paths:
         "403": { $ref: "#/components/responses/Error" }
         "409": { $ref: "#/components/responses/Error" }
         "422": { $ref: "#/components/responses/Error" }
+  /api/admin/vectors-mode:
+    post:
+      tags: [Служебное]
+      summary: Включить или выключить векторы и реранкер без перезапуска (контур доводки)
+      description: |
+        `off` — шаги dense и rerank пропускаются с причиной `vectors_off`. За `ADMIN_ENABLED` и входом в бэк-офис.
+      operationId: setVectorsMode
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { type: object, required: [mode], properties: { mode: { type: string, enum: [on, off] } } }
+      responses:
+        "200":
+          description: Новое состояние (как meta.vectors)
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/VectorsState" }
+        "403": { $ref: "#/components/responses/Error" }
+        "422": { $ref: "#/components/responses/Error" }
+  /api/admin/offline-mode:
+    post:
+      tags: [Служебное]
+      summary: Одна настройка «без моделей» — LLM и векторы вместе (контур доводки)
+      description: |
+        `on` — LLM off и векторы off; `off` — векторы on, LLM on, если модель настроена. За `ADMIN_ENABLED` и входом.
+      operationId: setOfflineMode
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { type: object, required: [mode], properties: { mode: { type: string, enum: [on, off] } } }
+      responses:
+        "200":
+          description: Оба режима после переключения
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  llm: { $ref: "#/components/schemas/LLMState" }
+                  vectors: { $ref: "#/components/schemas/VectorsState" }
+        "403": { $ref: "#/components/responses/Error" }
+        "422": { $ref: "#/components/responses/Error" }
   /api/search:
     post:
       tags: [Поиск]
@@ -476,6 +520,7 @@ paths:
                 product_id: { type: string }
                 position: { type: [integer, "null"] }
                 payload: { type: object }
+                source: { type: string, enum: [live, traffic], description: "Контур автономии: traffic — генератор mock-трафика стенда (go run . traffic); пусто — live" }
       responses:
         "204": { description: Записано }
         "422": { $ref: "#/components/responses/Error" }
@@ -499,7 +544,7 @@ paths:
                   normalized: { type: string }
                   config: { type: string }
                   route: { type: string, enum: [A, B, C, D] }
-                  source: { type: string, enum: [live, compare, mock_log, ""] }
+                  source: { type: string, enum: [live, compare, mock_log, traffic, ""] }
                   client_id: { type: [string, "null"] }
                   created_at: { type: string, format: date-time }
                   trace: { $ref: "#/components/schemas/Trace" }
@@ -520,16 +565,13 @@ paths:
   /api/analytics:
     get:
       tags: [Аналитика]
-      summary: Плитки, воронка и проблемные запросы для роли
+      summary: Плитки, воронка и проблемные запросы с причиной и владельцем
       description: >
-        Для `role=head` в ответе ещё `effect` — вилка эффекта с допущениями по умолчанию (как `GET /api/effect`).
-        Контур коммерции: `commerce` — блок «Допродажи» роли (AnalyticsCommerce): плитки с источником
-        (stand_events — события стенда, offline_eval, catalog, agent, synthetic), списки за плитками, у head — `effect`
-        модели пакета (как `GET /api/effect/commerce`). Непосчитанное — `value: null` с причиной в `note`.
+        Контур доводки: у проблемного запроса — `cause`, `cause_label`, `owner`, `owner_label` (причина из семи и её владелец
+        по диагнозу агента; пусто — диагноза нет). Ролевые блоки (`role`, `effect`, `commerce`) удалены в контуре доводки.
       operationId: analytics
       parameters:
         - { name: days, in: query, schema: { type: integer, minimum: 1, maximum: 365, default: 30 } }
-        - { name: role, in: query, schema: { type: string, enum: [ecom, product, content, head], default: ecom } }
       responses:
         "200":
           description: Аналитика за период
@@ -566,132 +608,6 @@ paths:
                 items:
                   - { query: продлить антивирус, total: 11, not_in_catalog: false, cached: false }
         "401": { $ref: "#/components/responses/Error" }
-        "422": { $ref: "#/components/responses/Error" }
-  /api/effect:
-    get:
-      tags: [Аналитика]
-      summary: Вилка эффекта внедрения для руководителя
-      description: |
-        Три сценария (консервативный, базовый, оптимистичный) в заказах и рублях в месяц:
-        `заказы = поиски в месяц × доля проблемных × поправка на сессии × доля спасённых × вероятность заказа`,
-        `рубли = заказы × средний чек`. Поиски, доля проблемных, поправка на сессии, вероятность заказа и средний
-        чек измеряются по журналам за период; доля спасённых — по реплею отложенной недели (`holdout_week`,
-        поиски, которых агент не видел): вклад поиска B0 → B3 и вклад агента B3 → B4, если все принятые правки
-        B4 сделаны запусками после разреза журнала (иначе 0, причина — `agent_note`). Доля — по поискам, сценарии
-        берут границы её 95% интервала Уилсона (n — различные запросы). Любое допущение можно задать параметром — тогда
-        `source: request`. Сценарная оценка на тестовых данных; фактический эффект измеряется A/B-тестом в пилоте.
-      operationId: effect
-      parameters:
-        - { name: days, in: query, schema: { type: integer, minimum: 1, maximum: 365, default: 30 } }
-        - { name: session_factor, in: query, description: "Поправка на сессии (0..1]", schema: { type: number } }
-        - { name: order_prob, in: query, description: "Конверсия успешного поиска в заказ (0..1] — потолок вероятности заказа спасённого", schema: { type: number } }
-        - { name: rescue_factor, in: query, description: "Понижающий коэффициент для спасённого поиска (0..1], по умолчанию 0,3 (допущение)", schema: { type: number } }
-        - { name: avg_check_rub, in: query, description: "Средний чек, ₽", schema: { type: number } }
-      responses:
-        "200":
-          description: Вилка эффекта
-          content:
-            application/json:
-              schema: { $ref: "#/components/schemas/Effect" }
-        "422": { $ref: "#/components/responses/Error" }
-  /api/effect/commerce:
-    get:
-      tags: [Аналитика]
-      summary: Модель эффекта контура коммерции — модель чувствительности, не прогноз
-      description: |
-        Три непересекающихся механизма в валовой прибыли (GP) в месяц — возврат поиска (спасённые заказы сценария
-        `/api/effect` × G₀), допродажа (O₁ × покрытие блока × доля присоединения × инкрементальность × сумма × маржа),
-        сдвиг микса от рычага маржи (только якорная позиция) — и вычеты: потеря конверсии якоря и возвраты из-за
-        несовместимости. Проверка: ΔGP = ΔO·G₀ + O₀·ΔG + ΔO·ΔG против прямого (O₀+ΔO)(G₀+ΔG) − O₀G₀ (`check.ok`).
-        У каждого входа `source`: measured | synthetic | assumed | literature (`source_url`) | request. Непосчитанный
-        вход — `value: null`, член — `gp_rub_month: null`, сценарий `complete: false`, причина в `missing`.
-        Параметры `/api/effect` передаются в вилку возврата; входы модели переопределяются параметрами.
-      operationId: effectCommerce
-      parameters:
-        - { name: days, in: query, schema: { type: integer, minimum: 1, maximum: 365, default: 30 } }
-        - { name: session_factor, in: query, schema: { type: number } }
-        - { name: order_prob, in: query, schema: { type: number } }
-        - { name: rescue_factor, in: query, schema: { type: number } }
-        - { name: avg_check_rub, in: query, schema: { type: number } }
-        - { name: rescued_orders_month, in: query, description: "Спасённые заказы в месяц (все сценарии)", schema: { type: number, minimum: 0 } }
-        - { name: base_margin, in: query, description: "Базовая маржа заказа [0;1]", schema: { type: number } }
-        - { name: block_coverage, in: query, description: "Покрытие блока [0;1]", schema: { type: number } }
-        - { name: attach_rate, in: query, description: "Доля присоединения [0;1]", schema: { type: number } }
-        - { name: incrementality, in: query, description: "Коэффициент инкрементальности [0;1], литература — не больше 0,25", schema: { type: number } }
-        - { name: companion_sum_rub, in: query, description: "Сумма допроданного, ₽", schema: { type: number } }
-        - { name: companion_margin, in: query, description: "Маржа допроданного [0;1]", schema: { type: number } }
-        - { name: anchor_loss, in: query, description: "Потеря конверсии якоря [0;1], литература — 0,019", schema: { type: number } }
-        - { name: return_rate, in: query, description: "Доля несовместимых пар [0;1]", schema: { type: number } }
-        - { name: mix_gp_per_order, in: query, description: "Сдвиг микса: ₽ GP якоря на заказ", schema: { type: number } }
-      responses:
-        "200":
-          description: Модель
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  days: { type: integer }
-                  title: { type: string, description: "«Модель чувствительности, не прогноз»" }
-                  note: { type: string }
-                  synthetic: { type: boolean }
-                  synthetic_keys: { type: array, items: { type: string } }
-                  formula: { type: array, items: { type: string } }
-                  identity: { type: string }
-                  pilot: { type: string }
-                  missing: { type: array, items: { type: string } }
-                  warnings: { type: array, items: { type: string } }
-                  inputs:
-                    type: array
-                    items:
-                      type: object
-                      properties:
-                        key: { type: string }
-                        label: { type: string }
-                        value: { type: [number, "null"] }
-                        default: { type: [number, "null"] }
-                        unit: { type: string }
-                        source: { type: string, enum: [measured, synthetic, assumed, literature, request] }
-                        source_ref: { type: string }
-                        source_url: { type: string }
-                        scenarios: { type: object, additionalProperties: { type: number } }
-                        hint: { type: string }
-                  scenarios:
-                    type: array
-                    items:
-                      type: object
-                      properties:
-                        id: { type: string, enum: [conservative, base, optimistic] }
-                        label: { type: string }
-                        rule: { type: string }
-                        delta_gp_rub_month: { type: number }
-                        complete: { type: boolean }
-                        uplift: { type: [number, "null"] }
-                        terms:
-                          type: array
-                          items:
-                            type: object
-                            properties:
-                              key: { type: string, enum: [rescued, upsell, mix, anchor_loss, returns] }
-                              label: { type: string }
-                              kind: { type: string, enum: [mechanism, deduction] }
-                              gp_rub_month: { type: [number, "null"] }
-                              orders_month: { type: [number, "null"] }
-                              formula: { type: string }
-                        check:
-                          type: object
-                          properties:
-                            o0: { type: number }
-                            g0: { type: number }
-                            delta_o: { type: number }
-                            delta_g: { type: number }
-                            do_g0: { type: number }
-                            o0_dg: { type: number }
-                            do_dg: { type: number }
-                            sum: { type: number }
-                            direct: { type: number }
-                            terms: { type: number }
-                            ok: { type: boolean }
         "422": { $ref: "#/components/responses/Error" }
   /api/costs:
     get:
@@ -808,7 +724,7 @@ paths:
                   type: string
                   enum: [search, commerce]
                   default: search
-                  description: commerce — справочник связей контура коммерции (BROKEN_RELATION, MISSING_REQUIRED), затем совместные покупки (MISSING_RELATION, BUNDLE_OPPORTUNITY)
+                  description: commerce — справочник связей контура коммерции (BROKEN_RELATION, MISSING_REQUIRED); совместные покупки и маржа удалены в контуре доводки
       responses:
         "202":
           description: Запуск начат
@@ -899,7 +815,8 @@ paths:
       operationId: proposals
       parameters:
         - { name: status, in: query, schema: { type: string, enum: [pending, accepted, rejected, rolled_back, stale] } }
-        - { name: role, in: query, schema: { type: string, enum: [ecom, product, content] } }
+        - { name: role, in: query, description: "Владелец причины (контур доводки)", schema: { type: string, enum: [ecom, product, content, head] } }
+        - { name: cause, in: query, description: "Причина (контур доводки)", schema: { $ref: "#/components/schemas/Cause" } }
       responses:
         "200":
           description: Предложения
@@ -1118,6 +1035,46 @@ paths:
         "404": { $ref: "#/components/responses/Error" }
         "409": { $ref: "#/components/responses/Error" }
         "422": { $ref: "#/components/responses/Error" }
+  /api/evaluations/contribution:
+    get:
+      tags: [Оценка]
+      summary: Вклад компонентов — последний прогон таблицы (контур доводки)
+      operationId: contributionEvaluation
+      security: []
+      parameters:
+        - { name: set, in: query, schema: { type: string, enum: [test, tune, regression], default: test } }
+      responses:
+        "200":
+          description: Лестница B0→B3, полный путь без одного компонента, проверки, предварительные решения
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  set: { type: string }
+                  run: { type: object, nullable: true, additionalProperties: true }
+                  running: { type: object, nullable: true, additionalProperties: true }
+                  last_job: { type: object, nullable: true, additionalProperties: true }
+                  modes:
+                    type: object
+                    properties:
+                      llm: { $ref: "#/components/schemas/LLMState" }
+                      vectors: { $ref: "#/components/schemas/VectorsState" }
+                  notes: { type: array, items: { type: string } }
+        "422": { $ref: "#/components/responses/Error" }
+  /api/evaluations/contribution/run:
+    post:
+      tags: [Оценка]
+      summary: Запустить прогон таблицы вклада в фоне (бэк-офис)
+      operationId: runContribution
+      requestBody:
+        content:
+          application/json:
+            schema: { type: object, properties: { set: { type: string, enum: [test, tune, regression] } } }
+      responses:
+        "202": { description: Задание прогона (EvalJob) }
+        "409": { $ref: "#/components/responses/Error" }
+        "422": { $ref: "#/components/responses/Error" }
   /api/evaluations/commerce:
     get:
       tags: [Оценка]
@@ -1184,8 +1141,7 @@ paths:
                         version: { type: integer }
                         weight: { type: number }
                         categories: { type: object, additionalProperties: { type: number } }
-                        proposal_id: { type: string }
-                        source: { type: string, enum: [default, human, rollback, agent] }
+                        source: { type: string, enum: [default, human, rollback, agent], description: "agent — версии до контура доводки (MARGIN_OPPORTUNITY удалён)" }
                         author: { type: string }
                         comment: { type: string }
                         created_at: { type: [string, "null"], format: date-time }
@@ -1196,9 +1152,8 @@ paths:
         Вес — одно из положений; положение за упором (share_over_eps > 0 на tune) — 422; то же, что действует, — 409;
         без базы — 503. Первая проверка упора может прогнать базовую выдачу tune (до ~20 с).
         `categories` — веса по категориям поверх общего (nil — прежние, {} — снять); упор изменённой
-        категории проверяется симуляцией с `category`. `proposal_id` — применяется предложение агента
-        MARGIN_OPPORTUNITY: настройка должна совпасть с предложенной (иначе 422), версия — source agent, предложение
-        принято. Из очереди (`/api/proposals/{id}/approve`) такое предложение не принимается — 422.
+        категории проверяется симуляцией с `category`. Предложения агента по марже (`proposal_id`,
+        MARGIN_OPPORTUNITY) удалены в контуре доводки: рычаг двигает только человек.
       operationId: applyMarginPolicy
       requestBody:
         required: true
@@ -1211,7 +1166,6 @@ paths:
                 weight: { type: number }
                 categories: { type: object, additionalProperties: { type: number } }
                 comment: { type: string }
-                proposal_id: { type: string, format: uuid }
       responses:
         "201": { description: Новая версия, content: { application/json: { schema: { $ref: "#/components/schemas/MarginApplied" } } } }
         "409": { $ref: "#/components/responses/Error" }
@@ -1254,7 +1208,7 @@ paths:
               properties:
                 set: { type: string, enum: [tune, test, regression, demo] }
                 positions: { type: array, items: { type: number } }
-                category: { type: string, description: "положения только для позиций категории, остальные — по действующей политике; в ответе scope. Так воспроизводится предложение MARGIN_OPPORTUNITY (patch.simulate)" }
+                category: { type: string, description: "положения только для позиций категории, остальные — по действующей политике; в ответе scope" }
       responses:
         "200":
           description: Показатели по положениям
@@ -1393,7 +1347,6 @@ components:
         rolled_back_to: { type: integer }
         categories: { type: object, additionalProperties: { type: number } }
         categories_before: { type: object, additionalProperties: { type: number } }
-        proposal_id: { type: string }
     MarginItemRef:
       type: object
       properties:
@@ -1471,9 +1424,31 @@ components:
               client_name: { type: [string, "null"] }
               client_hint: { type: [string, "null"] }
               pending: { type: [integer, "null"], description: "ждущие решения предложения роли; null — нет очереди" }
+    Cause:
+      type: string
+      description: |
+        Семь причин неудачного поиска (контур доводки) и владелец: not_understood «Поиск не понял запрос» и
+        ranked_low «Нужный товар стоит низко или задублирован» — ecom (администратор поиска); content_gap «В карточке
+        не хватает данных» — content (каталог); not_in_catalog «Товара нет в каталоге» и relation_rule «Ошибка в связи
+        или лицензионном правиле» — product (категорийный и лицензионный менеджер); non_product «Запрос не о товаре» —
+        ecom; noise «Шум или недостаточно данных» — head (ручной разбор).
+      enum: [not_understood, ranked_low, content_gap, not_in_catalog, relation_rule, non_product, noise]
     Diagnosis:
       type: string
+      description: >
+        Подпричина (код агента); причина и владелец — `cause`, `owner` (контур доводки). MISSING_RELATION,
+        BUNDLE_OPPORTUNITY, MARGIN_OPPORTUNITY удалены в контуре доводки и встречаются только у stale-предложений
+        (`stale_reason: removed_p4`).
       enum: [ALIAS_GAP, TYPO, ASSORTMENT_GAP, SUBSTITUTE_AVAILABLE, CONTENT_GAP, RANKING_FAILURE, CONSTRAINT_CONFLICT, NON_PRODUCT, NOISE, UNKNOWN, BROKEN_RELATION, MISSING_REQUIRED, MISSING_RELATION, BUNDLE_OPPORTUNITY, MARGIN_OPPORTUNITY]
+    VectorsState:
+      type: object
+      description: Режим векторов (эмбеддер и реранкер), контур доводки
+      properties:
+        mode: { type: string, enum: [on, off] }
+        online: { type: boolean }
+        changed_at: { type: string, format: date-time, nullable: true }
+        offline: { type: boolean, description: "LLM и векторы выключены — режим «без моделей»" }
+        banner: { type: string, nullable: true }
     LLMState:
       type: object
       properties:
@@ -1552,7 +1527,7 @@ components:
               value: { type: string }
         clarify: { type: object, additionalProperties: { type: string } }
         limit: { type: integer, minimum: 1, maximum: 50, default: 20 }
-        source: { type: string, enum: [live, compare], description: "compare — в журнал, но не в аналитику и стоимость" }
+        source: { type: string, enum: [live, compare, traffic], description: "compare — в журнал, но не в аналитику и стоимость; traffic — генератор mock-трафика стенда (контур автономии): для агента живой журнал, в аналитике отдельный источник" }
         sort:
           type: string
           enum: [recommended, relevance, price_asc, price_desc, delivery]
@@ -1821,7 +1796,6 @@ components:
     Analytics:
       type: object
       properties:
-        role: { type: string, enum: [ecom, product, content, head] }
         days: { type: integer }
         from: { type: string, format: date-time }
         to: { type: string, format: date-time }
@@ -1865,51 +1839,11 @@ components:
               proposal_status: { type: [string, "null"], enum: [pending, accepted, rejected, rolled_back, stale, null] }
               proposal_diagnosis: { oneOf: [{ $ref: "#/components/schemas/Diagnosis" }, { type: "null" }] }
               agent: { $ref: "#/components/schemas/AgentVerdict" }
+              cause: { type: string, description: "Контур доводки: причина из семи по диагнозу агента; пусто — диагноза нет" }
+              cause_label: { type: string }
+              owner: { type: string, enum: [ecom, product, content, head, ""], description: Владелец причины }
+              owner_label: { type: string }
         sources: { type: object, additionalProperties: { type: integer } }
-        effect:
-          oneOf:
-            - { $ref: "#/components/schemas/Effect" }
-            - { type: "null" }
-        commerce:
-          description: "Блок «Допродажи» роли (контур коммерции); события стенда — не трафик магазина"
-          type: [object, "null"]
-          properties:
-            role: { type: string }
-            title: { type: string }
-            note: { type: string }
-            synthetic: { type: boolean }
-            missing: { type: array, items: { type: string } }
-            effect: { description: "Только head — как GET /api/effect/commerce", type: [object, "null"] }
-            tiles:
-              type: array
-              items:
-                type: object
-                properties:
-                  key: { type: string }
-                  label: { type: string }
-                  value: { type: [number, "null"] }
-                  unit: { type: string, enum: [share, count, rub] }
-                  source: { type: string, enum: [stand_events, offline_eval, catalog, agent, synthetic] }
-                  note: { type: string }
-                  list: { type: string, description: "Ключ списка в lists" }
-                  link: { type: string, description: "effect — открыть модель эффекта" }
-            lists:
-              type: array
-              items:
-                type: object
-                properties:
-                  key: { type: string }
-                  label: { type: string }
-                  total: { type: integer }
-                  items:
-                    type: array
-                    items:
-                      type: object
-                      properties:
-                        id: { type: string }
-                        title: { type: string }
-                        detail: { type: string }
-                        query: { type: string }
     AgentVerdict:
       type: object
       description: Вывод агента по проблемному запросу — из его предложения или итога кластера последних запусков
@@ -1948,80 +1882,33 @@ components:
               route: { type: string, enum: [A, B, C, D] }
               cached: { type: boolean, description: Ответ из кэша проверки (10 мин) }
               error: { type: string, description: Заполнено, если поиск по этому запросу не ответил }
-    EffectParam:
+    HoldoutRescued:
       type: object
+      description: Доля спасённых на реплее отложенной недели (holdout_week) — замер для «До / После»
       properties:
-        key: { type: string, enum: [session_factor, order_prob, rescue_factor, avg_check_rub] }
-        label: { type: string }
-        value: { type: number }
-        default: { type: number }
-        source: { type: string, enum: [measured, assumed, request] }
-        unit: { type: string }
-        hint: { type: string }
-    Effect:
-      type: object
-      properties:
-        days: { type: integer }
-        from: { type: string, format: date-time }
-        to: { type: string, format: date-time }
-        note: { type: string, description: «Сценарная оценка на тестовых данных…» }
-        formula: { type: string }
-        formula_keys: { type: string }
-        measured:
-          type: object
-          properties:
-            searches: { type: integer }
-            searches_month: { type: number }
-            problem_searches: { type: integer }
-            problem_share: { type: [number, "null"] }
-            problem_sessions: { type: integer }
-            orders: { type: integer }
-            search_order_rate: { type: [number, "null"] }
-            rescued:
-              type: [object, "null"]
-              properties:
-                set: { type: string, enum: [holdout_week] }
-                set_hash: { type: string }
-                source: { type: string, description: "Откуда доля: набор, прогоны, засчитан ли вклад агента" }
-                baseline: { type: string, enum: [B0] }
-                config: { type: string, enum: [B3, B4], description: "B4 — только если вклад агента засчитан" }
-                run_baseline: { type: string }
-                run_config: { type: string }
-                run_agent: { type: string, description: "Прогон B4; пусто — не прогонялся" }
-                rules_version: { type: integer }
-                agent_rules_version: { type: integer }
-                weight: { type: string, enum: [searches] }
-                failed: { type: integer, description: "Поисков, где B0 не дал релевантного в топ-10" }
-                rescued: { type: integer }
-                failed_queries: { type: integer }
-                rescued_queries: { type: integer }
-                share: { type: number }
-                search_share: { type: number, description: "Вклад поиска B0 → B3" }
-                agent_share: { type: number, description: "Вклад агента B3 → B4; 0, если не засчитан" }
-                agent_counted: { type: boolean }
-                agent_pre_holdout: { type: boolean, description: "В B4 есть правки запусков до разреза журнала: B4 — не независимая оценка" }
-                agent_note: { type: string }
-                ci_low: { type: number }
-                ci_high: { type: number }
-        assumptions: { type: array, items: { $ref: "#/components/schemas/EffectParam" } }
-        scenarios:
-          type: array
-          items:
-            type: object
-            properties:
-              id: { type: string, enum: [conservative, base, optimistic] }
-              label: { type: string }
-              rule: { type: string }
-              rescued_share: { type: number }
-              order_prob: { type: number }
-              rescue_factor: { type: number }
-              uplift: { type: [number, "null"] }
-              problem_sessions_month: { type: number }
-              rescued_month: { type: number }
-              orders_month: { type: number }
-              revenue_rub_month: { type: number }
-        missing: { type: array, items: { type: string }, description: Чего не хватает для расчёта }
-        warnings: { type: array, items: { type: string }, description: Базовый прирост больше +50 % к текущим заказам }
+        set: { type: string, enum: [holdout_week] }
+        set_hash: { type: string }
+        source: { type: string, description: "Откуда доля: набор, прогоны, засчитан ли вклад агента" }
+        baseline: { type: string, enum: [B0] }
+        config: { type: string, enum: [B3, B4], description: "B4 — только если вклад агента засчитан" }
+        run_baseline: { type: string }
+        run_config: { type: string }
+        run_agent: { type: string, description: "Прогон B4; пусто — не прогонялся" }
+        rules_version: { type: integer }
+        agent_rules_version: { type: integer }
+        weight: { type: string, enum: [searches] }
+        failed: { type: integer, description: "Поисков, где B0 не дал релевантного в топ-10" }
+        rescued: { type: integer }
+        failed_queries: { type: integer }
+        rescued_queries: { type: integer }
+        share: { type: number }
+        search_share: { type: number, description: "Вклад поиска B0 → B3" }
+        agent_share: { type: number, description: "Вклад агента B3 → B4; 0, если не засчитан" }
+        agent_counted: { type: boolean }
+        agent_pre_holdout: { type: boolean, description: "В B4 есть правки запусков до разреза журнала: B4 — не независимая оценка" }
+        agent_note: { type: string }
+        ci_low: { type: number }
+        ci_high: { type: number }
     Costs:
       type: object
       properties:
@@ -2190,9 +2077,10 @@ components:
             note: { type: string }
             rules_version: { type: integer }
         rescued:
-          type: [object, "null"]
-          description: Только для set=holdout_week — то же, что measured.rescued в /api/effect
-          additionalProperties: true
+          description: Только для set=holdout_week — доля спасённых на реплее отложенной недели
+          oneOf:
+            - { $ref: "#/components/schemas/HoldoutRescued" }
+            - { type: "null" }
     AgentRun:
       type: object
       properties:
@@ -2282,11 +2170,18 @@ components:
             lost_demand: { type: number }
         diagnosis: { $ref: "#/components/schemas/Diagnosis" }
         diagnosis_text: { type: string }
-        role: { type: string, enum: [ecom, product, content] }
+        cause: { $ref: "#/components/schemas/Cause" }
+        cause_label: { type: string }
+        owner: { type: string, enum: [ecom, product, content, head], description: "Владелец причины: он принимает решение (контур доводки)" }
+        owner_label: { type: string }
+        role: { type: string, enum: [ecom, product, content, head], description: "= owner (контур доводки)" }
+        evidence_level: { type: string }
+        technical_status: { type: string, enum: [verified, unverified, failed, ""] }
+        economic_status: { type: string, enum: [unknown, estimated, measured, ""] }
         action:
           type: string
           enum: [rules_patch, ticket, relation_patch, margin_policy, bundle]
-          description: "relation_patch — правка справочника связей (MISSING_RELATION); bundle — карточка комплекта BUNDLE_OPPORTUNITY (принять = взять в работу, версия не создаётся)"
+          description: "relation_patch — правка справочника связей; margin_policy и bundle удалены в контуре доводки — только у stale-предложений"
         patch: { oneOf: [{ $ref: "#/components/schemas/RulePatch" }, { type: "null" }] }
         evaluation: { type: [object, "null"], additionalProperties: true, description: "Прогон: целевой кластер до/после, регрессия, причины" }
         evidence: { type: [object, "null"], additionalProperties: true }
@@ -2302,11 +2197,12 @@ components:
         decided_comment: { type: [string, "null"] }
         stale_reason:
           type: [string, "null"]
-          enum: [catalog_changed, pre_holdout, null]
+          enum: [catalog_changed, pre_holdout, removed_p4, null]
           description: |
             Только у status = stale: catalog_changed — импорт другого каталога (правка проверялась на прежнем
             словаре); pre_holdout — запуск агента до разреза журнала видел отложенную неделю и тексты test
-            (`go run . proposals stale --run <id> --reason "<текст>"`, текст — в decided_comment).
+            (`go run . proposals stale --run <id> --reason "<текст>"`, текст — в decided_comment); removed_p4 — тип
+            предложения удалён в контуре доводки (миграция при старте, decided_comment «удалено в контуре доводки»).
         config_version: { type: [integer, "null"] }
         effect: { type: [object, "null"], additionalProperties: true }
         check_query: { type: string }

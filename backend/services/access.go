@@ -10,9 +10,14 @@ import (
 //
 //	guest   — не вошёл: витрина, «До / После», правила рекомендаций, запрос КП;
 //	buyer   — покупатель-компания: то же, выдача по своему клиенту из сессии;
-//	ecom    — менеджер e-com: весь бэк-офис; решает предложения role=ecom, откат правил поиска, политика маржи;
-//	product — продукт-менеджер: весь бэк-офис; предложения role=product, откат справочника связей;
-//	content — контент-менеджер: весь бэк-офис; предложения role=content;
+//	ecom    — администратор поиска: весь бэк-офис; решает причины «поиск не понял», «стоит низко», «не о товаре»,
+//	          откат правил поиска, политика ранжирования (рычаг маржи);
+//	product — категорийный и лицензионный менеджер: весь бэк-офис; причины «нет в каталоге», «ошибка в связи или
+//	          правиле», откат справочника связей;
+//	content — каталог: весь бэк-офис; причина «в карточке не хватает данных»;
+//
+// Владелец предложения — владелец его причины (causes.go, контур доводки), а не роль, записанная агентом.
+//
 //	head    — руководитель e-com: всё;
 //	system  — Bearer BACKOFFICE_TOKEN (скрипты и CLI) или бэк-офис без входа (AUTH_REQUIRED=off в development): всё.
 const (
@@ -29,9 +34,9 @@ const (
 var roleLabels = map[string]string{
 	RoleGuest:   "Гость",
 	RoleBuyer:   "Покупатель",
-	RoleEcom:    "Менеджер e-com",
-	RoleProduct: "Продукт-менеджер",
-	RoleContent: "Контент-менеджер",
+	RoleEcom:    "Администратор поиска",
+	RoleProduct: "Категорийный и лицензионный менеджер",
+	RoleContent: "Каталог",
 	RoleHead:    "Руководитель e-com",
 	RoleSystem:  "Служебный доступ",
 }
@@ -81,10 +86,13 @@ func DenyMessage(owner string) string {
 	if l == owner || owner == "" {
 		return "Это решение принимает руководитель e-com"
 	}
+	if owner == RoleContent {
+		l = "команда каталога"
+	}
 	return fmt.Sprintf("Это решение принимает %s", lowerFirst(l))
 }
 
-// lowerFirst — «Продукт-менеджер» → «продукт-менеджер».
+// lowerFirst — «Администратор поиска» → «администратор поиска».
 func lowerFirst(s string) string {
 	r := []rune(s)
 	if len(r) == 0 {
@@ -94,23 +102,11 @@ func lowerFirst(s string) string {
 	return string(r)
 }
 
-// ProposalRole — роль предложения (кто по таблице прав принимает решение по нему).
+// ProposalRole — кто по таблице прав принимает решение по предложению: владелец его причины.
 func (s *Services) ProposalRole(ctx context.Context, id string) (string, error) {
 	p, err := s.loadProposal(ctx, id)
 	if err != nil {
 		return "", err
 	}
-	return p.Role, nil
-}
-
-// ViewRole — роль, чьи блоки показывает «Аналитика»: руководитель и служебный доступ смотрят любую
-// («Смотреть как»), остальные сотрудники — только свою.
-func ViewRole(actor, requested string) string {
-	switch actor {
-	case RoleHead, RoleSystem:
-		return requested
-	case RoleEcom, RoleProduct, RoleContent:
-		return actor
-	}
-	return requested
+	return OwnerOf(p.Diagnosis), nil
 }

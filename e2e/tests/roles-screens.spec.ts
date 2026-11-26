@@ -66,7 +66,7 @@ for (const { w, h } of WIDTHS) {
 
     test(`меню и смена демо-аккаунта ${w}`, async ({ page }) => {
       await loginAs(page, PERSONA.head)
-      await page.goto('/analytics')
+      await page.goto('/searchops')
       await expect(page.locator('main h1').first()).toBeVisible()
       await page
         .getByRole('banner')
@@ -90,10 +90,10 @@ for (const { w, h } of WIDTHS) {
       test.skip(!id, 'нет ждущей правки связей роли product')
       await page.goto(`/searchops?tab=queue&status=pending&p=${id}`)
       const card = page.locator(`#proposal-${id}`)
-      await expect(card.getByText('Это решение принимает продукт-менеджер')).toBeVisible({
+      await expect(card.getByText(/Это решение принимает /)).toBeVisible({
         timeout: 15_000,
       })
-      await card.getByRole('button', { name: 'Принять' }).scrollIntoViewIfNeeded()
+      await card.getByRole('button', { name: 'Утвердить' }).scrollIntoViewIfNeeded()
       await page.mouse.wheel(0, 200)
       await shot(page, '10-deny-content', w)
     })

@@ -207,7 +207,7 @@ func (s *Services) MarginPolicy(ctx context.Context) (*out.MarginPolicy, error) 
 			rp, _ := marginPolicyOf(&r)
 			at := r.CreatedAt
 			res.Versions = append(res.Versions, out.MarginVersion{Version: r.Version, Weight: rp.Weight, Categories: rp.Categories,
-				ProposalID: r.ProposalID, Source: r.Source, Author: r.Author, Comment: r.Comment, CreatedAt: &at})
+				Source: r.Source, Author: r.Author, Comment: r.Comment, CreatedAt: &at})
 		}
 	}
 	res.Versions = append(res.Versions, out.MarginVersion{Version: 0, Weight: marginBaseWeight, Source: "default",
@@ -221,17 +221,15 @@ func (s *Services) marginSynthetic() bool {
 	return st != nil && st.commerce != nil && slices.Contains(st.commerce.synthetic, "margin")
 }
 
-// Отказы применения весов по категориям и предложения агента.
+// Отказы применения весов по категориям.
 const (
-	MsgMarginNoChange       = "Укажите вес или веса по категориям"
-	MsgMarginCategory       = "Такой категории нет в каталоге"
-	MsgMarginProposal       = "Это не предложение по марже"
-	MsgMarginProposalChange = "Настройка отличается от предложения агента — примените её без предложения или откройте предложение заново"
+	MsgMarginNoChange = "Укажите вес или веса по категориям"
+	MsgMarginCategory = "Такой категории нет в каталоге"
 )
 
 // ApplyMarginPolicy — POST /api/margin/policy: новое положение рычага (общий вес и/или веса по категориям) новой
-// версией. Положение за упором (по симуляции на tune) не применяется. С proposal_id — применяется предложение
-// агента MARGIN_OPPORTUNITY: настройка должна совпасть с предложенной, предложение становится принятым.
+// версией. Положение за упором (по симуляции на tune) не применяется. Предложения агента по марже
+// (MARGIN_OPPORTUNITY, proposal_id) удалены в контуре доводки: рычаг двигает только человек.
 func (s *Services) ApplyMarginPolicy(ctx context.Context, req in.MarginPolicyRequest) (*out.MarginApplied, error) {
 	if req.Weight == nil && req.Categories == nil {
 		return nil, errs.NewValidationError(errs.MsgInvalidFields).WithDetails(errs.FieldError{
@@ -266,21 +264,11 @@ func (s *Services) ApplyMarginPolicy(ctx context.Context, req in.MarginPolicyReq
 		next.Categories = req.Categories
 	}
 	next.Categories = normalizeMarginCats(next.Categories, next.Weight)
-	var prop *domain.Proposal
-	if id := strings.TrimSpace(req.ProposalID); id != "" {
-		if prop, err = s.marginProposalFor(ctx, id, cur, next); err != nil {
-			return nil, err
-		}
-	}
 	comment := marginPolicyComment(s, next)
 	if c := strings.TrimSpace(req.Comment); c != "" {
 		comment += ": " + truncateRunes(c, 300)
 	}
-	source := "human"
-	if prop != nil {
-		source = "agent"
-	}
-	return s.setMarginPolicy(ctx, next, source, comment, nil, prop)
+	return s.setMarginPolicy(ctx, next, "human", comment, nil)
 }
 
 // normalizeMarginCats — веса по категориям без совпадающих с общим (они ничего не меняют); пусто — nil.
@@ -352,12 +340,11 @@ func (s *Services) RollbackMarginPolicy(ctx context.Context, req in.MarginRollba
 	if c := strings.TrimSpace(req.Comment); c != "" {
 		comment += ": " + truncateRunes(c, 300)
 	}
-	return s.setMarginPolicy(ctx, p, "rollback", comment, &to, nil)
+	return s.setMarginPolicy(ctx, p, "rollback", comment, &to)
 }
 
-// setMarginPolicy — новая версия политики поверх действующей; prop — принимаемое предложение агента.
-func (s *Services) setMarginPolicy(ctx context.Context, next activeMargin, source, comment string, rolledTo *int,
-	prop *domain.Proposal) (*out.MarginApplied, error) {
+// setMarginPolicy — новая версия политики поверх действующей.
+func (s *Services) setMarginPolicy(ctx context.Context, next activeMargin, source, comment string, rolledTo *int) (*out.MarginApplied, error) {
 	st := s.marginStore()
 	if st == nil {
 		return nil, errs.NewUnavailableError(MsgMarginNoStore)
@@ -385,10 +372,6 @@ func (s *Services) setMarginPolicy(ctx context.Context, next activeMargin, sourc
 	author := "human"
 	v := &domain.ConfigVersion{Kind: domain.ConfigKindMargin, Source: source, Author: author, Comment: comment,
 		Rules: rules, Diff: diff}
-	if prop != nil {
-		pid := prop.ID.String()
-		v.ProposalID, v.Author = &pid, "agent+human"
-	}
 	if st := s.catalog.Load(); st != nil {
 		v.CatalogVersion = st.version
 	}
@@ -404,10 +387,6 @@ func (s *Services) setMarginPolicy(ctx context.Context, next activeMargin, sourc
 	ms.mu.Unlock()
 	res := &out.MarginApplied{Version: v.Version, Weight: next.Weight, VersionBefore: cur.Version, WeightBefore: cur.Weight,
 		RolledBackTo: rolledTo, Categories: nonNilCats(next.Categories), CategoriesBefore: nonNilCats(cur.Categories)}
-	if prop != nil {
-		s.acceptMarginProposal(ctx, prop, v.Version)
-		res.ProposalID = v.ProposalID
-	}
 	return res, nil
 }
 

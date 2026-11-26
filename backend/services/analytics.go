@@ -42,9 +42,6 @@ const (
 	diagnosisUnparsed    = "не разобрано"
 )
 
-// Роли аналитики (переключатель в шапке).
-var analyticsRoles = []string{"ecom", "product", "content", "head"}
-
 // Исходы проблемного запроса.
 const (
 	outcomeEmpty        = "empty"
@@ -59,20 +56,13 @@ var outcomeLabels = map[string]string{
 }
 
 // Analytics — GET /api/analytics. Без базы или без данных — нули и пустые списки.
-func (s *Services) Analytics(ctx context.Context, days int, role string) (*out.AnalyticsResponse, error) {
+func (s *Services) Analytics(ctx context.Context, days int) (*out.AnalyticsResponse, error) {
 	if days == 0 {
 		days = analyticsDefaultDays
-	}
-	role = strings.ToLower(strings.TrimSpace(role))
-	if role == "" {
-		role = analyticsRoles[0]
 	}
 	var bad []errs.FieldError
 	if days < 1 || days > analyticsMaxDays {
 		bad = append(bad, errs.FieldError{Field: "days", Code: errs.CodeOutOfRange, Message: fmt.Sprintf("Период — от 1 до %d дней", analyticsMaxDays)})
-	}
-	if !slices.Contains(analyticsRoles, role) {
-		bad = append(bad, errs.FieldError{Field: "role", Code: errs.CodeInvalidFormat, Message: "Роль — ecom, product, content или head"})
 	}
 	if len(bad) > 0 {
 		return nil, errs.NewValidationError(errs.MsgInvalidFields).WithDetails(bad...)
@@ -88,7 +78,7 @@ func (s *Services) Analytics(ctx context.Context, days int, role string) (*out.A
 		}
 	}
 	resp := analyticsFrom(sum, problems)
-	resp.Role, resp.Days, resp.From, resp.To = role, days, since, now
+	resp.Days, resp.From, resp.To = days, since, now
 	if st := s.store(); st != nil {
 		ps, err := st.ListProposals(ctx, "", "")
 		if err != nil {
@@ -99,14 +89,6 @@ func (s *Services) Analytics(ctx context.Context, days int, role string) (*out.A
 	if err := s.agentVerdicts(ctx, resp); err != nil {
 		return nil, err
 	}
-	if role == "head" {
-		eff, err := s.effect(ctx, EffectRequest{Days: days}, sum)
-		if err != nil {
-			return nil, err
-		}
-		resp.Effect = eff
-	}
-	resp.Commerce = s.analyticsCommerce(ctx, role, days, since, sum.Total.Searches)
 	intents, err := s.intentAnalytics(ctx, since)
 	if err != nil {
 		return nil, err
@@ -134,8 +116,6 @@ func aggregateOutcomes(searches []domain.SearchEvent, behavior []domain.Behavior
 	all := buildOutcomes(searches, behavior)
 	bySource := map[string]*repositories.SearchTotals{}
 	total := &repositories.SearchTotals{}
-	type sessSets struct{ problem, click, order map[string]bool }
-	sets := map[*repositories.SearchTotals]*sessSets{}
 	problems := map[string]*repositories.QueryOutcome{}
 	for _, o := range all {
 		src := sourceOf(o.ev.Source)
@@ -144,14 +124,8 @@ func aggregateOutcomes(searches []domain.SearchEvent, behavior []domain.Behavior
 			st = &repositories.SearchTotals{Source: src}
 			bySource[src] = st
 		}
-		sess := sessionKey(o.ev.SessionID, o.ev.RequestID)
 		empty := o.ev.ResultsCount == 0
 		for _, t := range []*repositories.SearchTotals{st, total} {
-			ss := sets[t]
-			if ss == nil {
-				ss = &sessSets{map[string]bool{}, map[string]bool{}, map[string]bool{}}
-				sets[t] = ss
-			}
 			t.Searches++
 			if empty {
 				t.Empty++
@@ -163,18 +137,15 @@ func aggregateOutcomes(searches []domain.SearchEvent, behavior []domain.Behavior
 			}
 			if empty || !o.clicked {
 				t.Problems++
-				ss.problem[sess] = true
 			}
 			if o.clicked {
 				t.Clicks++
-				ss.click[sess] = true
 			}
 			if o.carted {
 				t.Carts++
 			}
 			if o.ordered {
 				t.Orders++
-				ss.order[sess] = true
 			}
 		}
 		key := foldQuery(o.ev.Query)
@@ -201,9 +172,6 @@ func aggregateOutcomes(searches []domain.SearchEvent, behavior []domain.Behavior
 		if o.ordered {
 			p.Orders++
 		}
-	}
-	for t, ss := range sets {
-		t.ProblemSessions, t.ClickSessions, t.OrderSessions = len(ss.problem), len(ss.click), len(ss.order)
 	}
 	sum := &repositories.SearchSummary{BySource: []repositories.SearchTotals{}, Total: *total}
 	for _, st := range bySource {
@@ -278,6 +246,10 @@ func linkProposals(resp *out.AnalyticsResponse, ps []domain.Proposal) {
 	byQuery := map[string]link{}
 	for i := range ps {
 		p := &ps[i]
+		// Предложения удалённых в контуре доводки типов (stale, removed_p4) не привязываются к запросам: причины у них нет.
+		if p.Status == domain.ProposalStale && p.DecidedReason == repositories.StaleReasonRemovedP4 {
+			continue
+		}
 		pending := p.Status == domain.ProposalPending
 		if pending {
 			resp.Tiles.PendingProposals++

@@ -7,6 +7,18 @@ type AgentRunRequest struct {
 	Trigger     string `json:"trigger"`
 	// Mode — search (по умолчанию: кластеры неудачных запросов) | commerce (справочник связей, контур коммерции).
 	Mode string `json:"mode"`
+	// Query — запуск «Разобрать» на одном запросе (контур доводки и автономии): триггер manual, кластер из одного запроса.
+	Query string `json:"query"`
+}
+
+// SuppressRemoveRequest — POST /api/agent/memory/suppress/{id}/remove: причина обязательна.
+type SuppressRemoveRequest struct {
+	Reason string `json:"reason"`
+}
+
+// AgentSettingsRequest — POST /api/agent/settings: режим «только чтение».
+type AgentSettingsRequest struct {
+	ReadOnly *bool `json:"read_only"`
 }
 
 // ApproveRequest — POST /api/proposals/{id}/approve.

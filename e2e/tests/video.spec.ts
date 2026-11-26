@@ -3,7 +3,7 @@
 //
 // Режимы:
 //   VIDEO_PACE=1 (по умолчанию) — паузы для чтения; VIDEO_PACE=0 — быстрая проверка сценария (make e2e).
-//   без VIDEO_ACCEPT          — диалог «Принять правку?» открывается и закрывается «Отменой»; шаг
+//   без VIDEO_ACCEPT          — диалог «Утвердить правку поиска?» открывается и закрывается «Отменой»; шаг
 //                               «акад находит AutoCAD» пропускается. Демо не меняется.
 //   VIDEO_ACCEPT=1            — принятие «акад» на ПОДМЕНЁННЫХ ответах API (approve, очередь, мета, поиск
 //                               «акад» в B4): база не меняется, сценарий проходит целиком.
@@ -151,6 +151,7 @@ test('Видео: поиск задачей → трасса → агент → 
     .click()
   await expect(page.getByRole('heading', { level: 1, name: 'SearchOps' })).toBeVisible()
   await read(page, 3000)
+  await page.getByRole('tab', { name: 'Запуски' }).click()
   await page
     .getByRole('region', { name: 'Запуски агента' })
     .locator(`a[href*="${MAIN_RUN_ID}"]`)
@@ -176,10 +177,10 @@ test('Видео: поиск задачей → трасса → агент → 
   // ── F10: очередь, карточка «акад» (или другая ждущая правка правил), решение человека ──
   if (target) await queueStep(page, target.id, target.akad)
 
-  // ── F7: «До / После» ──
+  // ── F7: «Доказательства» → «До / После» ──
   await page
     .getByRole('navigation', { name: 'Разделы' })
-    .getByRole('link', { name: 'До / После' })
+    .getByRole('link', { name: 'Доказательства' })
     .click()
   const table = page.getByRole('region', { name: 'Таблица метрик' })
   await expect(table.getByRole('columnheader', { name: /^B4/ })).toBeVisible()
@@ -221,7 +222,7 @@ async function queueStep(page: Page, id: string, akad: boolean) {
     await page.goto(`/searchops?tab=queue&status=pending&p=${id}`)
   }
   const card = akad
-    ? page.getByRole('article', { name: 'Кластер «акад»' }).first()
+    ? page.locator('article').filter({ hasText: 'кластер «акад»' }).first()
     : page.locator(`#proposal-${id}`)
   await expect(card).toBeVisible()
   await card.scrollIntoViewIfNeeded()
@@ -231,14 +232,14 @@ async function queueStep(page: Page, id: string, akad: boolean) {
   await expect(run).toContainText('Условия допуска выполнены')
   await read(page, 8000)
 
-  await card.getByRole('button', { name: 'Принять', exact: true }).click()
-  const dialog = page.getByRole('dialog', { name: 'Принять правку?' })
+  await card.getByRole('button', { name: 'Утвердить', exact: true }).click()
+  const dialog = page.getByRole('dialog', { name: 'Утвердить правку поиска?' })
   await expect(dialog).toContainText('Правило начнёт действовать сразу')
   await read(page, 4000)
 
   if (ACCEPT) {
-    await dialog.getByRole('button', { name: 'Принять', exact: true }).click()
-    await expect(page.getByText(/Правка принята · версия правил \d+/)).toBeVisible()
+    await dialog.getByRole('button', { name: 'Утвердить', exact: true }).click()
+    await expect(page.getByText(/Правка утверждена · версия правил \d+/)).toBeVisible()
     await read(page, 3500)
 
     // ── «акад» в поиске теперь находит AutoCAD ──

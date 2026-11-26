@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"slices"
+	"strings"
 
 	"kuznica/api/domain"
 	"kuznica/api/in"
@@ -32,6 +33,14 @@ func (s *Services) RecordEvent(ctx context.Context, req in.EventRequest) error {
 		}
 	}
 	bad = append(bad, checkIntentID(req.Type, req.IntentID)...)
+	source := domain.EventSourceLive
+	switch src := strings.ToLower(strings.TrimSpace(req.Source)); src {
+	case "", domain.EventSourceLive:
+	case domain.EventSourceTraffic:
+		source = src
+	default:
+		bad = append(bad, errs.FieldError{Field: "source", Code: errs.CodeInvalidFormat, Message: "Источник — live или traffic"})
+	}
 	if req.Position != nil && (*req.Position < 0 || *req.Position > maxPosition) {
 		bad = append(bad, errs.FieldError{Field: "position", Code: errs.CodeOutOfRange, Message: "Позиция вне диапазона"})
 	}
@@ -73,7 +82,7 @@ func (s *Services) RecordEvent(ctx context.Context, req in.EventRequest) error {
 	ev := &domain.BehaviorEvent{
 		Type: req.Type, RequestID: optional(req.RequestID), SessionID: optional(req.SessionID),
 		ClientID: optional(req.ClientID), ProductID: optional(req.ProductID), Position: req.Position,
-		IntentID: optional(req.IntentID),
+		IntentID: optional(req.IntentID), Source: source,
 	}
 	if len(payload) > 0 {
 		ev.Payload = domain.JSONB(payload)

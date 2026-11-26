@@ -226,10 +226,10 @@ func TestDecisionRights(t *testing.T) {
 		path, deny string
 		allow      []string
 	}{
-		{"/api/configs/rollback", "Это решение принимает менеджер e-com", []string{"staff-ecom", "staff-head"}},
-		{"/api/margin/policy", "Это решение принимает менеджер e-com", []string{"staff-ecom", "staff-head"}},
-		{"/api/margin/policy/rollback", "Это решение принимает менеджер e-com", []string{"staff-ecom", "staff-head"}},
-		{"/api/relations/rollback", "Это решение принимает продукт-менеджер", []string{"staff-product", "staff-head"}},
+		{"/api/configs/rollback", "Это решение принимает администратор поиска", []string{"staff-ecom", "staff-head"}},
+		{"/api/margin/policy", "Это решение принимает администратор поиска", []string{"staff-ecom", "staff-head"}},
+		{"/api/margin/policy/rollback", "Это решение принимает администратор поиска", []string{"staff-ecom", "staff-head"}},
+		{"/api/relations/rollback", "Это решение принимает категорийный и лицензионный менеджер", []string{"staff-product", "staff-head"}},
 	}
 	for _, tc := range cases {
 		for persona, cookie := range cookies {
@@ -249,18 +249,6 @@ func TestDecisionRights(t *testing.T) {
 	// Решение по предложению: роль предложения из очереди — без базы очередь недоступна (503), но не 403 у руководителя.
 	if r := authDo(t, app, "POST", "/api/proposals/x/approve", `{}`, cookies["staff-head"]); r.code == fiber.StatusForbidden {
 		t.Errorf("руководитель: %d %s", r.code, r.body)
-	}
-}
-
-// Аналитика: роль блоков — из сессии; «Смотреть как» — только руководителю.
-func TestViewRole(t *testing.T) {
-	for _, tc := range []struct{ actor, requested, want string }{
-		{"ecom", "head", "ecom"}, {"content", "", "content"}, {"product", "ecom", "product"},
-		{"head", "content", "content"}, {"head", "", ""}, {"system", "product", "product"},
-	} {
-		if got := services.ViewRole(tc.actor, tc.requested); got != tc.want {
-			t.Errorf("%s смотрит %q: %q, ждали %q", tc.actor, tc.requested, got, tc.want)
-		}
 	}
 }
 

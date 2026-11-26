@@ -42,6 +42,13 @@ type queryAttrs struct {
 	renewal    bool   // продление — обязательное условие
 	origin     string // ru | ""
 	analog     bool   // «аналог», «замена», «вместо»: просят замену
+	// Контур доводки (purchase_attrs.go): тип покупки кроме продления (extension | migration), тип организации,
+	// редакция из ответа на уточнение, явное требование реестра («из реестра», «в реестре»).
+	deal            string
+	org             string
+	edition         string
+	editionAnswered bool
+	reestrRequired  bool
 	// consumed — индексы токенов, ушедших в атрибуты: в текстовый поиск они не идут.
 	consumed map[int]bool
 	found    []domain.FoundAttribute
@@ -170,6 +177,7 @@ func extractAttrs(tokens []string) queryAttrs {
 	if a.renewal && a.licType == domain.LicenseSubscription {
 		a.licType = "" // «продление подписки» — это продление
 	}
+	extractPurchase(tokens, &a)
 	return a
 }
 
@@ -212,6 +220,7 @@ func (a *queryAttrs) applyRequest(req in.SearchRequest) {
 			a.origin = ""
 		}
 	}
+	a.applyPurchaseRequest(req)
 	if v, ok := req.Clarify[domain.FieldLicenseMetric]; ok && a.metricUnresolved {
 		switch v {
 		case domain.MetricDevice, domain.MetricUser, domain.MetricCore, domain.MetricServer:
@@ -276,6 +285,7 @@ func (a queryAttrs) chips(ent queryEntities, lx *searchLexicon) ([]out.Chip, []d
 	if a.origin != "" {
 		add(domain.FieldOrigin, a.origin, "Отечественное ПО", true)
 	}
+	a.purchaseChips(add)
 	return chips, found
 }
 

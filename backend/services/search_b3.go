@@ -201,7 +201,10 @@ func (s *Services) searchB3(ctx context.Context, requestID string, req in.Search
 
 	// fusion
 	t = time.Now()
-	ranked := rrf(b3RRFK, bm.step.Top, dn.step.Top)
+	// Варианты под сделку или организацию, которых запрос не называет, в слияние не идут (purchase_attrs.go):
+	// иначе они занимают места списков и сдвигают ранги остальных позиций.
+	bmTop, dnTop := withoutHiddenOffers(lx, attrs, bm.step.Top), withoutHiddenOffers(lx, attrs, dn.step.Top)
+	ranked := rrf(b3RRFK, bmTop, dnTop)
 	ranked = hw.fuse(ranked, b3RRFK)
 	fusionStep := domain.FusionStep{StepBase: domain.StepBase{Name: domain.StepFusion, Ms: msSince(t)}, K: b3RRFK}
 	denseScore := map[string]float64{}
@@ -213,9 +216,10 @@ func (s *Services) searchB3(ctx context.Context, requestID string, req in.Search
 	t = time.Now()
 	rc := s.rankContext(st, lx, req.ClientID, attrs, ent)
 	rc.hw = hw
+	rc.upgradeTargets = upgradeTargetSet(s.commerceFor(ctx))
 	cq := s.companionQuantity(ctx, lx, attrs, ent) // «на 50 пользователей» к серверу — количество CAL (search_companion_qty.go)
 	cq.apply(&rc)
-	for _, h := range bm.step.Top {
+	for _, h := range bmTop {
 		if h.Rank <= textTopN {
 			rc.textTop[lx.docs[h.ProductID].FamilyID] = true
 		}
@@ -256,6 +260,9 @@ func (s *Services) searchB3(ctx context.Context, requestID string, req in.Search
 			addRejected(&trace.Rejected, f.ProductID, rejectDenseScore,
 				fmt.Sprintf("найден только векторами, скор %.3f < %.3f", denseScore[f.ProductID], minDense))
 			continue
+		}
+		if hidden, _ := rc.offerHidden(d); hidden {
+			continue // вариант под сделку или организацию, которых запрос не называет: семейство он не поднимает
 		}
 		if absent && denseScore[f.ProductID] < absentDenseMin {
 			addRejected(&trace.Rejected, f.ProductID, rejectAbsentDense,
@@ -326,6 +333,20 @@ func (s *Services) searchB3(ctx context.Context, requestID string, req in.Search
 				continue
 			}
 			addFamily(f, rel, group)
+		}
+	}
+	// Метрика не та у всего названного («касперский на 50 пользователей», а Kaspersky — на устройства): честнее
+	// показать названный продукт с пояснением, чем «нет в каталоге» (прогон витрины №22).
+	metricRelaxed := ""
+	if len(fams) == 0 && rc.attrs.metric != "" && !rc.attrs.analog && !noLetters && !ent.nonProduct && !absent &&
+		(len(ent.vendors) > 0 || len(ent.families) > 0) {
+		metricRelaxed = rc.attrs.metric
+		rc.attrs.metricPref, rc.attrs.metric = rc.attrs.metric, ""
+		seen = map[string]bool{}
+		for _, f := range lx.familyOrder {
+			if rel, ok := byFamily[f]; ok && rel >= relThreshold {
+				addFamily(f, rel, "")
+			}
 		}
 	}
 	// Категория раньше количества: «видеоконференции на 50» — TrueConf (до 25) остаётся, офисный пакет на 50 — нет.
@@ -399,6 +420,9 @@ func (s *Services) searchB3(ctx context.Context, requestID string, req in.Search
 		}
 	}
 	resp.Relaxed = relaxedMessages(rc, fams)
+	if m := metricRelaxedMessage(metricRelaxed, rc.attrs.quantity, fams); m != nil {
+		resp.Relaxed = append(resp.Relaxed, *m)
+	}
 	if len(resp.Relaxed) > 0 {
 		ladder = append(ladder, ladderRelax)
 	}
@@ -417,7 +441,7 @@ func (s *Services) searchB3(ctx context.Context, requestID string, req in.Search
 		if len(ent.unknown) > 0 {
 			name = strings.Join(ent.unknown, " ")
 		}
-		resp.Empty = &out.Empty{Message: fmt.Sprintf("Товара «%s» нет в каталоге", name), ShowManager: true}
+		resp.Empty = &out.Empty{Message: fmt.Sprintf("Товара «%s» нет в каталоге", name), ShowManager: true, Supply: true}
 	case attrs.analog && len(fams) == 0:
 		resp.Empty = &out.Empty{Message: fmt.Sprintf("Аналогов по запросу «%s» в каталоге нет", req.Query), ShowManager: true}
 	}
@@ -473,6 +497,7 @@ func (s *Services) searchB3(ctx context.Context, requestID string, req in.Search
 	trace.Steps = []any{normStep, attrStep, routeStep, intentStep, bm.step, dn.step, fusionStep, rerankStep, businessStep, relaxStep}
 	hw.decorate(resp)
 	rp.decorate(rc, resp, limit, exactDocMatcher(nr.tokens, hw))
+	procStep := s.procurementStage(st.lex, req.Query, nr.tokens, attrs, ent, fams, resp) // контур доводки: purchase_stage.go
 	if hwStep := hw.step(); hwStep != nil {
 		trace.Steps = append(trace.Steps, hwStep)
 	}
@@ -488,6 +513,7 @@ func (s *Services) searchB3(ctx context.Context, requestID string, req in.Search
 	if marginStep != nil {
 		trace.Steps = append(trace.Steps, marginStep)
 	}
+	trace.Steps = append(trace.Steps, procStep)
 	trace.TotalMs = msSince(started)
 	resp.Trace = trace
 	if !opts.NoLog {

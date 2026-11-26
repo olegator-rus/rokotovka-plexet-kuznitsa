@@ -161,6 +161,16 @@ export interface QuoteItem {
   quantity: number
   origin: QuoteOrigin
   companion_class?: string
+  /** Контур доводки (§12.6): исходный запрос и параметры закупки позиции. */
+  purchase?: {
+    query: string
+    deal?: string
+    quantity?: number
+    metric?: string
+    duration_months?: number
+    org_type?: string
+    edition?: string
+  }
 }
 
 /** POST /api/quotes — запрос КП по спецификации. */

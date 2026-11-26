@@ -4,12 +4,15 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"slices"
 	"sort"
 	"strings"
 	"time"
 
 	"kuznica/api/domain"
+	"kuznica/api/out"
 
+	"github.com/google/uuid"
 	"go.uber.org/zap"
 )
 
@@ -40,17 +43,36 @@ type runCtx struct {
 	episode   map[string]any
 	results   []map[string]any
 	skipped   []map[string]any
+	// Контур автономии: план, память («не предлагать», эпизоды), что изменилось у кластеров с наступившим условием возврата,
+	// итог по видам, черновики режима «только чтение», неразобранное и версия каталога.
+	plan           *runPlan
+	suppress       []domain.MemorySuppress
+	episodes       []domain.MemoryEpisode
+	lifted         map[string]string
+	outcome        out.RunOutcome
+	drafts         []map[string]any
+	unprocessed    []map[string]any
+	memorySkipped  []map[string]any
+	catalogVersion string
 }
 
 // execute — запуск целиком; любой исход записывается в статус запуска.
 func (a *agentService) execute(ctx context.Context, rs *runState) {
 	rc := &runCtx{a: a, rs: rs, byID: map[string]*failedCluster{}, rows: map[string]*domain.IssueCluster{},
-		episode: map[string]any{}}
+		episode: map[string]any{}, lifted: map[string]string{}}
+	if cs := a.s.catalog.Load(); cs != nil {
+		rc.catalogVersion = cs.version
+	}
 	var err error
 	unit := "кластеров"
-	if rs.run.Mode == domain.RunModeCommerce {
+	switch {
+	case rs.run.Trigger == domain.TriggerCatalogChange:
+		err, unit = rc.runCatalogChange(ctx), "находок"
+	case rs.run.Mode == domain.RunModeCommerce:
 		err, unit = rc.runCommerce(ctx), "находок"
-	} else {
+	case rs.spec.Query != "":
+		err = rc.runQuery(ctx)
+	default:
 		err = rc.run(ctx)
 	}
 	now := a.s.now().UTC()
@@ -74,6 +96,30 @@ func (a *agentService) execute(ctx context.Context, rs *runState) {
 	}
 	r.FinishedAt = &now
 	r.CurrentClusterID, r.CurrentLabel = nil, ""
+	// Итог по видам и бюджет (контур автономии).
+	for _, res := range rc.results {
+		if r.ReadOnly {
+			break // в режиме «только чтение» предложений и задач нет — только черновики
+		}
+		switch res["outcome"] {
+		case "proposal":
+			rc.outcome.Proposals++
+		case "ticket":
+			rc.outcome.Tasks++
+		}
+	}
+	rc.episode["outcome"] = rc.outcome
+	rc.episode["unprocessed"] = nonNil(rc.unprocessed)
+	rc.episode["memory_skipped"] = nonNil(rc.memorySkipped)
+	if len(rc.drafts) > 0 {
+		rc.episode["drafts"] = rc.drafts
+	}
+	exh := ""
+	if _, ok := budgetLabels[r.StopReason]; ok {
+		exh = r.StopReason
+	}
+	r.Budget = toJSON(budgetView(rs.budget, budgetUsed{Steps: r.ToolCalls, Tokens: r.InputTokens + r.OutputTokens,
+		CostRub: r.CostRub, Seconds: int(now.Sub(r.StartedAt).Seconds())}, exh))
 	switch {
 	case rs.stop != "":
 		r.Status, r.StopReason = domain.RunStopped, rs.stop
@@ -102,6 +148,21 @@ func (a *agentService) execute(ctx context.Context, rs *runState) {
 	if n, _ := rc.episode["clusters_unfinished"].(int); n > 0 {
 		r.Summary += fmt.Sprintf(". Без итога (модель не вызвала завершающий инструмент): %d", n)
 	}
+	if o := rc.outcome; o.Tasks+o.SkippedMemory+o.EffectChecks+o.Rollbacks+o.Drafts > 0 {
+		r.Summary += fmt.Sprintf(". Задач владельцам: %d, пропущено по памяти: %d", o.Tasks, o.SkippedMemory)
+		if o.EffectChecks > 0 {
+			r.Summary += fmt.Sprintf(", проверено правок: %d (помогло %d, без эффекта %d, навредило %d)", o.EffectChecks, o.Helped, o.NoEffect, o.Harmed)
+		}
+		if o.Rollbacks > 0 {
+			r.Summary += fmt.Sprintf(", предложено откатов: %d", o.Rollbacks)
+		}
+		if o.Drafts > 0 {
+			r.Summary += fmt.Sprintf(", черновиков (только чтение): %d", o.Drafts)
+		}
+	}
+	if l, ok := budgetLabels[r.StopReason]; ok {
+		r.Summary += fmt.Sprintf(". Остановлено: %s; неразобрано: %d", l, len(rc.unprocessed))
+	}
 	rs.mu.Unlock()
 	if err != nil && rs.stopReason() == "" {
 		a.step(ctx, rs, &domain.AgentStep{Kind: domain.StepError, Title: "Запуск прерван: " + shortText(err.Error(), 200)})
@@ -116,9 +177,10 @@ func (a *agentService) execute(ctx context.Context, rs *runState) {
 		zap.Int("input_tokens", cp.InputTokens), zap.Int("output_tokens", cp.OutputTokens), zap.Float64("cost_rub", cp.CostRub))
 }
 
-func (rc *runCtx) run(ctx context.Context) error {
-	a, s, rs := rc.a, rc.a.s, rc.rs
-	st := s.store()
+// prepare — общее начало запуска по кластерам: правила, каталог, песочница, память (решения, предложения,
+// «не предлагать», эпизоды).
+func (rc *runCtx) prepare(ctx context.Context) error {
+	s, rs := rc.a.s, rc.rs
 	var err error
 	if rc.active, err = s.activeRules(ctx); err != nil {
 		return err
@@ -129,47 +191,130 @@ func (rc *runCtx) run(ctx context.Context) error {
 	if rc.cat, err = s.agentCatalog(ctx); err != nil {
 		return err
 	}
-	if rc.sb, err = s.newSandbox(ctx, "agent-"+rs.run.ID.String()[:8], rc.active, a.opts); err != nil {
+	if rc.sb, err = s.newSandbox(ctx, "agent-"+rs.run.ID.String()[:8], rc.active, rc.a.opts); err != nil {
 		return err
 	}
+	return rc.loadMemory(ctx)
+}
+
+// loadMemory — три слоя памяти и ждущие предложения.
+func (rc *runCtx) loadMemory(ctx context.Context) error {
+	st := rc.a.s.store()
+	var err error
 	if rc.decisions, err = st.ListDecisions(ctx); err != nil {
 		return err
 	}
 	if rc.proposals, err = st.ListProposals(ctx, "", ""); err != nil {
 		return err
 	}
+	if rc.suppress, err = st.ListSuppress(ctx); err != nil {
+		return err
+	}
+	if rc.episodes, err = st.ListEpisodes(ctx, 300); err != nil {
+		return err
+	}
+	return nil
+}
 
-	// 1. Эффект ранее принятых правок (память: эпизоды).
-	rc.verifyAccepted(ctx)
+// memoryReadStep — шаг «читаю память» в начале запуска: что агент помнит.
+func (rc *runCtx) memoryReadStep(ctx context.Context) {
+	rej, acc, active := 0, 0, 0
+	for _, d := range rc.decisions {
+		switch d.Decision {
+		case domain.ProposalRejected:
+			rej++
+		case domain.ProposalAccepted:
+			acc++
+		}
+	}
+	for _, m := range rc.suppress {
+		if m.Status == domain.SuppressActive {
+			active++
+		}
+	}
+	tool := "get_previous_decisions"
+	rc.a.step(ctx, rc.rs, &domain.AgentStep{Kind: domain.StepMemoryRead, Tool: &tool, OK: true,
+		Title: fmt.Sprintf("Читаю память: решений %d (принято %d, отклонено %d), «не предлагать» — %d действующих, эпизодов — %d",
+			len(rc.decisions), acc, rej, active, len(rc.episodes)),
+		Result: toJSON(map[string]any{"decisions": len(rc.decisions), "accepted": acc, "rejected": rej,
+			"suppress_active": active, "suppress_total": len(rc.suppress), "episodes": len(rc.episodes)})})
+}
 
-	// 2. Неудачные запросы за период.
+// statsSince — начало окна журнала запуска: всплеск — окно триггера, иначе Days суток.
+func (rc *runCtx) statsSince() time.Time {
+	if !rc.rs.spec.Since.IsZero() {
+		return rc.rs.spec.Since
+	}
+	return rc.a.s.now().Add(-time.Duration(rc.rs.run.Days) * 24 * time.Hour)
+}
+
+func (rc *runCtx) run(ctx context.Context) error {
+	a, s, rs := rc.a, rc.a.s, rc.rs
+	st := s.store()
+	if err := rc.prepare(ctx); err != nil {
+		return err
+	}
+	rc.memoryReadStep(ctx)
+
+	// 1. Эффект ранее принятых правок (ночной разбор и разбор по периоду вручную; не всплеск).
+	if rs.run.Trigger != domain.TriggerSpike {
+		rc.effectCheck(ctx)
+	}
+
+	// 2. Неудачные запросы за окно.
 	t := time.Now()
 	var hold holdoutInfo
-	if rc.stats, hold, err = s.agentQueryStats(ctx, rs.run.Days, a.opts.Holdout); err != nil {
+	var err error
+	if rc.stats, hold, err = s.agentQueryStatsSince(ctx, rc.statsSince(), a.opts.Holdout); err != nil {
 		return err
 	}
 	rc.episode["holdout"] = hold
 	rc.failed = rc.stats.failed()
+	if len(rs.spec.Focus) > 0 {
+		// Всплеск: только запросы, на которые сработал триггер (в порядке триггера — новые первыми).
+		in := map[string]bool{}
+		for _, f := range rs.spec.Focus {
+			in[f] = true
+		}
+		var kept []clusterQuery
+		for _, q := range rc.failed {
+			if in[q.Text] {
+				kept = append(kept, q)
+			}
+		}
+		for _, f := range rs.spec.Focus {
+			if q := rc.stats.byText[f]; q != nil && q.Failures > 0 && !slices.ContainsFunc(kept, func(k clusterQuery) bool { return k.Text == f }) {
+				kept = append(kept, *q)
+			}
+		}
+		rc.failed = kept
+	}
 	searches, fails := 0, 0
 	for _, q := range rc.stats.byText {
 		searches += q.Freq
 		fails += q.Failures
 	}
+	period := fmt.Sprintf("%d дней", rs.run.Days)
+	if !rs.spec.Since.IsZero() {
+		period = "окно всплеска " + shortDuration(s.now().Sub(rs.spec.Since).Round(time.Minute))
+	} else if rs.run.Days == 1 {
+		period = "сутки"
+	}
 	rc.episode["metrics"] = map[string]any{"days": rs.run.Days, "searches": searches, "failed_searches": fails,
-		"distinct_queries": len(rc.stats.byText), "failed_queries": len(rc.failed)}
+		"distinct_queries": len(rc.stats.byText), "failed_queries": len(rc.failed), "period": period}
 	top := rc.failed
 	if len(top) > 10 {
 		top = top[:10]
 	}
-	title := fmt.Sprintf("Неудачные запросы за %d дней: %d из %d различных, %d неудачных поисков из %d",
-		rs.run.Days, len(rc.failed), len(rc.stats.byText), fails, searches)
-	if hold.HoldoutFrom != nil {
+	title := fmt.Sprintf("Неудачные запросы за %s: %d из %d различных, %d неудачных поисков из %d",
+		period, len(rc.failed), len(rc.stats.byText), fails, searches)
+	if hold.HoldoutFrom != nil && hold.HiddenEvents > 0 {
 		title += fmt.Sprintf("; неделя %s–%s отложена для проверки эффекта", *hold.HoldoutFrom, *hold.HoldoutTo)
 	}
 	if hold.TestTexts > 0 {
 		title += fmt.Sprintf("; тексты test скрыты (%d)", hold.TestTexts)
 	}
-	a.toolStep(ctx, rs, nil, "get_failed_queries", map[string]any{"days": rs.run.Days},
+	a.toolStep(ctx, rs, nil, "get_failed_queries", map[string]any{"days": rs.run.Days, "since": rc.statsSince().UTC()},
 		map[string]any{"searches": searches, "failed_searches": fails, "failed_queries": len(rc.failed), "top": compactQueries(top),
 			"holdout": hold}, title, true, time.Since(t))
 	if len(rc.failed) == 0 {
@@ -179,7 +324,7 @@ func (rc *runCtx) run(ctx context.Context) error {
 		return nil
 	}
 
-	// 3. Кластеры по потерянному спросу.
+	// 3. Кластеры.
 	t = time.Now()
 	texts := make([]string, len(rc.failed))
 	for i, q := range rc.failed {
@@ -198,54 +343,40 @@ func (rc *runCtx) run(ctx context.Context) error {
 	if len(all) > agentCandidates {
 		all = all[:agentCandidates]
 	}
-	var rows []domain.IssueCluster
-	for i := range all {
-		c := &all[i]
-		row := domain.IssueCluster{RunID: rs.run.ID, Key: c.Key, Label: c.Label, Terms: toJSON(c.Terms), Queries: toJSON(c.Queries),
-			Freq: c.Freq, Failures: c.Failures, LostDemand: c.LostDemand, Rank: i + 1, Status: "new"}
-		if err := row.BeforeCreate(nil); err != nil {
-			return err
-		}
-		c.ID = row.ID.String()
-		rows = append(rows, row)
-		rc.clusters = append(rc.clusters, c)
-		rc.byID[c.ID] = c
-	}
-	if err := st.SaveIssueClusters(ctx, rows); err != nil {
+	if err := rc.saveClusters(ctx, all); err != nil {
 		return err
 	}
-	for i := range rows {
-		rc.rows[rows[i].ID.String()] = &rows[i]
-	}
+	cands := rc.candidates(ctx, rc.clusters)
 	view := []map[string]any{}
-	for i, c := range rc.clusters {
+	for i, c := range cands {
 		if i >= 15 {
 			break
 		}
-		view = append(view, map[string]any{"cluster_id": c.ID, "label": c.Label, "queries": len(c.Queries),
-			"terms": c.Terms, "lost_demand": c.LostDemand})
+		view = append(view, map[string]any{"cluster_id": c.ID, "label": c.Label, "queries": len(c.c.Queries),
+			"terms": c.Terms, "lost_demand": c.c.LostDemand, "freq": c.Freq, "failures": c.Failures, "fail_share": c.FailShare,
+			"new": c.New, "score": c.Score})
 	}
 	how := "общие непонятные слова и близость векторов BGE-M3"
 	if vecs == nil {
 		how = "общие непонятные слова (эмбеддер недоступен)"
 	}
 	a.step(ctx, rs, &domain.AgentStep{Kind: domain.StepCheck, OK: true, Ms: int(time.Since(t).Milliseconds()),
-		Title:  fmt.Sprintf("Кластеры: %d запросов → %d кластеров (%s), по убыванию потерянного спроса", len(rc.failed), len(all), how),
+		Title:  fmt.Sprintf("Кластеры: %d запросов → %d кластеров (%s); приоритет — частота × доля неудач × «новый»", len(rc.failed), len(all), how),
 		Result: toJSON(map[string]any{"clusters": view})})
 
-	// 4. Выбор: память и проверка действующим поиском.
-	var picked []*failedCluster
-	for _, c := range rc.clusters {
-		if len(picked) >= rs.run.MaxClusters || ctx.Err() != nil {
+	// 4. Память и проверка действующим поиском — до плана: в план идут только кластеры, которые есть смысл разбирать.
+	var open []planCandidate
+	for _, c := range cands {
+		if len(open) >= planMaxCandidates || ctx.Err() != nil {
 			break
 		}
-		if skip := rc.memorySkip(ctx, c); skip {
+		if rc.memorySkip(ctx, c.c, false) {
 			continue
 		}
-		if rc.alreadySolved(ctx, c) {
+		if rc.alreadySolved(ctx, c.c) {
 			continue
 		}
-		picked = append(picked, c)
+		open = append(open, c)
 	}
 	if len(rc.skipped) > 0 {
 		var labels []string
@@ -257,58 +388,120 @@ func (rc *runCtx) run(ctx context.Context) error {
 				len(rc.skipped), shortText(strings.Join(labels, ", "), 300)),
 			Result: toJSON(map[string]any{"skipped": rc.skipped})})
 	}
-	var pickedView []map[string]any
-	for _, c := range picked {
-		pickedView = append(pickedView, map[string]any{"cluster_id": c.ID, "label": c.Label, "lost_demand": c.LostDemand, "terms": c.Terms})
+
+	// 5. План модели и разбор по плану.
+	plan := rc.makePlan(ctx, open, rs.run.MaxClusters, nil)
+	return rc.investigatePlan(ctx, plan, open, st)
+}
+
+// saveClusters — кластеры запуска в базу и в память запуска.
+func (rc *runCtx) saveClusters(ctx context.Context, all []failedCluster) error {
+	var rows []domain.IssueCluster
+	for i := range all {
+		c := &all[i]
+		row := domain.IssueCluster{RunID: rc.rs.run.ID, Key: c.Key, Label: c.Label, Terms: toJSON(c.Terms), Queries: toJSON(c.Queries),
+			Freq: c.Freq, Failures: c.Failures, LostDemand: c.LostDemand, Rank: i + 1, Status: "new"}
+		if err := row.BeforeCreate(nil); err != nil {
+			return err
+		}
+		c.ID = row.ID.String()
+		rows = append(rows, row)
+		rc.clusters = append(rc.clusters, c)
+		rc.byID[c.ID] = c
 	}
-	a.step(ctx, rs, &domain.AgentStep{Kind: domain.StepThought, OK: true,
-		Title:  fmt.Sprintf("Беру в разбор кластеров: %d (по убыванию потерянного спроса)", len(picked)),
-		Result: toJSON(map[string]any{"clusters": nonNil(pickedView)})})
+	if err := rc.a.s.store().SaveIssueClusters(ctx, rows); err != nil {
+		return err
+	}
+	for i := range rows {
+		rc.rows[rows[i].ID.String()] = &rows[i]
+	}
+	return nil
+}
+
+// investigatePlan — разбор кластеров плана по порядку. Кластер занят другим запуском — выпадает из плана, его место
+// занимает следующий кандидат; бюджет исчерпан — остановка с причиной и списком неразобранного.
+func (rc *runCtx) investigatePlan(ctx context.Context, plan *runPlan, open []planCandidate, st agentStore) error {
+	a, rs := rc.a, rc.rs
+	byID := map[string]planCandidate{}
+	for _, c := range open {
+		byID[c.ID] = c
+	}
+	queue := append([]planItem(nil), plan.Clusters...)
+	inPlan := map[string]bool{}
+	for _, c := range queue {
+		inPlan[c.ID] = true
+	}
 	rs.mu.Lock()
-	rs.run.ClustersTotal = len(picked)
+	rs.run.ClustersTotal = len(queue)
 	rs.mu.Unlock()
 	a.saveRun(ctx, rs)
-
-	// 5. Расследование кластеров.
-	for _, c := range picked {
+	var spent []time.Duration
+	for qi := 0; qi < len(queue); qi++ {
+		item := queue[qi]
+		c := byID[item.ID].c
+		if c == nil {
+			continue
+		}
 		if ctx.Err() != nil {
 			return ctx.Err()
 		}
-		if rs.tokens() >= agentTokensPerRun {
-			rs.mu.Lock()
-			rs.run.StopReason = StopTokenLimit
-			rs.mu.Unlock()
+		now := a.s.now()
+		if reason := rs.exhausted(now); reason != "" {
+			rc.stopBudget(ctx, reason, queue[qi:])
 			break
+		}
+		// Не хватит времени на следующий кластер (по среднему разобранных) — план сокращается заранее.
+		if len(spent) > 0 && rs.budget.Duration > 0 {
+			var sum time.Duration
+			for _, d := range spent {
+				sum += d
+			}
+			avg := sum / time.Duration(len(spent))
+			left := rs.budget.Duration - now.Sub(rs.run.StartedAt)
+			if left < avg {
+				rc.replan(ctx, fmt.Sprintf("до лимита времени %s, кластер в среднем занимает %s — оставшиеся не начинаю",
+					left.Round(time.Second), avg.Round(time.Second)), queue[qi:], nil)
+				rc.stopBudget(ctx, StopTimeBudget, queue[qi:])
+				break
+			}
+		}
+		if owner, ok := a.lockCluster(rs.run.ID, c.Key); !ok {
+			// Защита от одновременных запусков на одних кластерах: кластер разбирает другой запуск.
+			var add []planItem
+			for _, o := range open {
+				if !inPlan[o.ID] {
+					add = append(add, planItem{ID: o.ID, Label: o.Label, Score: o.Score, Why: "вместо занятого кластера"})
+					inPlan[o.ID] = true
+					break
+				}
+			}
+			rc.replan(ctx, fmt.Sprintf("кластер «%s» уже разбирает запуск %s — пропускаю", c.Label, owner.String()[:8]),
+				[]planItem{item}, add)
+			queue = append(queue, add...)
+			continue
 		}
 		id := c.ID
 		rs.mu.Lock()
 		rs.run.CurrentClusterID, rs.run.CurrentLabel = &id, c.Label
 		rs.mu.Unlock()
 		a.saveRun(ctx, rs)
+		started := time.Now()
 		res := rc.investigate(ctx, c)
-		if row := rc.rows[c.ID]; row != nil {
-			row.Status, row.Diagnosis, row.Note = "investigated", res.Diagnosis, shortText(res.Note, 500)
-			if err := st.SaveIssueCluster(context.WithoutCancel(ctx), row); err != nil {
-				zap.L().Warn("агент: кластер не записан", zap.Error(err))
+		spent = append(spent, time.Since(started))
+		rc.afterCluster(ctx, c, res)
+		if errors.Is(res.Err, errTokenLimit) || errors.Is(res.Err, errRunBudget) {
+			reason := rs.exhausted(a.s.now())
+			if reason == "" {
+				reason = StopTokenLimit
 			}
-		}
-		rc.results = append(rc.results, map[string]any{"cluster_id": c.ID, "label": c.Label, "diagnosis": res.Diagnosis,
-			"outcome": res.Outcome, "hypotheses": res.Hypotheses, "rejected": res.Rejected, "tool_calls": res.ToolCalls,
-			"proposal_id": res.ProposalID})
-		rs.mu.Lock()
-		rs.run.ClustersDone++
-		rs.mu.Unlock()
-		a.saveRun(ctx, rs)
-		if errors.Is(res.Err, errTokenLimit) {
-			rs.mu.Lock()
-			rs.run.StopReason = StopTokenLimit
-			rs.mu.Unlock()
+			rc.stopBudget(ctx, reason, queue[qi+1:])
 			break
 		}
 		if errors.Is(res.Err, errBudget) {
 			rs.mu.Lock()
 			rs.run.StopReason = StopBudget
 			rs.mu.Unlock()
+			rc.markUnprocessed(queue[qi+1:], "дневной бюджет LLM исчерпан")
 			break
 		}
 		if res.Err != nil && ctx.Err() != nil {
@@ -318,9 +511,13 @@ func (rc *runCtx) run(ctx context.Context) error {
 			rs.mu.Lock()
 			rs.run.StopReason = StopLLMError
 			rs.mu.Unlock()
+			rc.markUnprocessed(queue[qi+1:], "сбой модели")
 			return res.Err
 		}
 	}
+	rs.mu.Lock()
+	rs.run.ClustersTotal = max(rs.run.ClustersTotal, rs.run.ClustersDone)
+	rs.mu.Unlock()
 	// Честный итог: кластер, упёршийся в лимит вызовов, разобран не до конца — запуск это показывает
 	// (step_limit), а не «все кластеры разобраны».
 	limited, unfinished := 0, 0
@@ -339,6 +536,68 @@ func (rc *runCtx) run(ctx context.Context) error {
 	}
 	rs.mu.Unlock()
 	return nil
+}
+
+// afterCluster — итог кластера: строка кластера, эпизод, счётчики.
+func (rc *runCtx) afterCluster(ctx context.Context, c *failedCluster, res clusterResult) {
+	st := rc.a.s.store()
+	if row := rc.rows[c.ID]; row != nil {
+		row.Status, row.Diagnosis, row.Note = "investigated", res.Diagnosis, shortText(res.Note, 500)
+		if err := st.SaveIssueCluster(context.WithoutCancel(ctx), row); err != nil {
+			zap.L().Warn("агент: кластер не записан", zap.Error(err))
+		}
+	}
+	rc.results = append(rc.results, map[string]any{"cluster_id": c.ID, "label": c.Label, "diagnosis": res.Diagnosis,
+		"outcome": res.Outcome, "hypotheses": res.Hypotheses, "rejected": res.Rejected, "tool_calls": res.ToolCalls,
+		"proposal_id": res.ProposalID})
+	var pid *uuid.UUID
+	if u, err := uuid.Parse(res.ProposalID); err == nil {
+		pid = &u
+	}
+	details := map[string]any{"hypotheses": res.Hypotheses, "rejected": res.Rejected, "tool_calls": res.ToolCalls,
+		"queries": len(c.Queries), "failures": c.Failures}
+	if w := rc.lifted[c.ID]; w != "" {
+		details["what_changed"] = w
+	}
+	rc.writeEpisode(ctx, &domain.MemoryEpisode{ClusterKey: c.Key, ClusterLabel: c.Label, Kind: "investigation",
+		Outcome: res.Outcome, Diagnosis: res.Diagnosis, ProposalID: pid, Details: toJSON(details), Note: shortText(res.Note, 400)})
+	rc.rs.mu.Lock()
+	rc.rs.run.ClustersDone++
+	rc.rs.mu.Unlock()
+	rc.a.saveRun(ctx, rc.rs)
+}
+
+// markUnprocessed — кластеры плана, до которых запуск не дошёл.
+func (rc *runCtx) markUnprocessed(items []planItem, reason string) {
+	for _, it := range items {
+		rc.unprocessed = append(rc.unprocessed, map[string]any{"cluster_id": it.ID, "label": it.Label, "score": it.Score,
+			"reason": reason})
+	}
+}
+
+// stopBudget — бюджет запуска исчерпан: причина остановки, шаг budget со списком неразобранного.
+func (rc *runCtx) stopBudget(ctx context.Context, reason string, rest []planItem) {
+	rs := rc.rs
+	rs.mu.Lock()
+	if rs.run.StopReason == "" {
+		rs.run.StopReason = reason
+	}
+	rs.mu.Unlock()
+	rc.markUnprocessed(rest, budgetLabels[reason])
+	u := rs.used(rc.a.s.now())
+	var labels []string
+	for _, it := range rest {
+		labels = append(labels, "«"+it.Label+"»")
+	}
+	title := fmt.Sprintf("Бюджет запуска: исчерпан %s (шагов %d из %d, токенов %d из %d, %.2f из %.0f ₽, %d из %d с) — останавливаюсь",
+		budgetLabels[reason], u.Steps, rs.budget.Steps, u.Tokens, rs.budget.Tokens, u.CostRub, rs.budget.CostRub, u.Seconds,
+		int(rs.budget.Duration.Seconds()))
+	if len(labels) > 0 {
+		title += "; не разобраны: " + shortText(strings.Join(labels, ", "), 200)
+	}
+	rc.a.step(ctx, rs, &domain.AgentStep{Kind: domain.StepBudget, OK: false, Title: title,
+		Result: toJSON(map[string]any{"reason": reason, "used": u, "budget": budgetView(rs.budget, u, reason),
+			"unprocessed": nonNil(rc.unprocessed)})})
 }
 
 // toolStep — шаг-вызов инструмента, который делает сам код (обязательные шаги цикла).
@@ -425,7 +684,7 @@ func (rc *runCtx) memoryFor(ctx context.Context, key string, terms []string) []m
 func (rc *runCtx) rejectedPatchKeys() map[string]memoryHit {
 	res := map[string]memoryHit{}
 	for _, d := range rc.decisions {
-		if d.Decision != domain.ProposalRejected {
+		if d.Decision != domain.ProposalRejected || rc.suppressOpen(d.ProposalID.String()) {
 			continue
 		}
 		var pk []string
@@ -444,37 +703,6 @@ var rejectLabels = map[string]string{
 	domain.RejectWrongProduct: "неверный товар",
 	domain.RejectNotNow:       "не сейчас",
 	domain.RejectOther:        "другое",
-}
-
-// memorySkip — кластер не разбирается: предложение уже ждёт человека или человек отклонил его не из-за
-// ширины правки (тогда ту же проблему не предлагаем снова). Отказ «слишком широко» не закрывает кластер:
-// агент ищет правку уже, но отклонённую правку не повторит (код не пропустит).
-func (rc *runCtx) memorySkip(ctx context.Context, c *failedCluster) bool {
-	hits := rc.memoryFor(ctx, c.Key, c.Terms)
-	if len(hits) == 0 {
-		return false
-	}
-	id := c.ID
-	for _, h := range hits {
-		var title string
-		switch {
-		case h.Kind == "proposal":
-			title = fmt.Sprintf("Память: по кластеру «%s» уже есть предложение %s, оно ждёт решения — пропускаю", c.Label, h.Diagnosis)
-		case h.Status == domain.ProposalRejected && h.Reason != domain.RejectTooBroad:
-			title = fmt.Sprintf("Память: похожее предложение «%s» отклонено %s, причина: %s%s — не предлагаю",
-				h.Label, h.At.Format("02.01"), rejectLabels[h.Reason], commentSuffix(h.Comment))
-		default:
-			continue
-		}
-		rc.a.step(ctx, rc.rs, &domain.AgentStep{Kind: domain.StepMemory, ClusterID: &id, OK: true, Title: title,
-			Result: toJSON(map[string]any{"hits": hits})})
-		if row := rc.rows[c.ID]; row != nil {
-			row.Status, row.Note = "skipped", title
-			_ = rc.a.s.store().SaveIssueCluster(context.WithoutCancel(ctx), row)
-		}
-		return true
-	}
-	return false
 }
 
 func commentSuffix(c string) string {
@@ -520,30 +748,6 @@ func (rc *runCtx) alreadySolved(ctx context.Context, c *failedCluster) bool {
 	rc.skipped = append(rc.skipped, map[string]any{"cluster_id": c.ID, "label": c.Label, "lost_demand": c.LostDemand,
 		"current_search": outs, "ms": time.Since(t).Milliseconds()})
 	return true
-}
-
-// verifyAccepted — verify_applied_change по всем принятым правкам: целевой кластер на действующих правилах
-// сейчас против цифр прогона при принятии. Эффект — в предложение, версию правил и эпизод запуска.
-func (rc *runCtx) verifyAccepted(ctx context.Context) {
-	var effects []map[string]any
-	for i := range rc.proposals {
-		p := &rc.proposals[i]
-		if p.Status != domain.ProposalAccepted || p.Action != domain.ActionRulesPatch {
-			continue
-		}
-		t := time.Now()
-		eff, err := rc.verifyProposal(ctx, p)
-		if err != nil {
-			continue
-		}
-		effects = append(effects, eff)
-		ok, _ := eff["holds"].(bool)
-		rc.a.toolStep(ctx, rc.rs, nil, "verify_applied_change", map[string]any{"proposal_id": p.ID.String()}, eff,
-			fmt.Sprintf("Эффект принятой правки «%s» (v%d): %s", p.ClusterLabel, derefInt(p.ConfigVersion), eff["summary"]), ok, time.Since(t))
-	}
-	if len(effects) > 0 {
-		rc.episode["applied_effects"] = effects
-	}
 }
 
 // verifyProposal — эффект принятой правки: сейчас находится столько-то запросов кластера.
@@ -661,6 +865,8 @@ func (rc *runCtx) clusterBrief(c *failedCluster, memory []memoryHit) map[string]
 			"failures": c.Failures, "unknown_terms": c.Terms, "queries": c.Queries},
 		"current_search": current,
 		"memory":         memory,
+		"past_episodes":  nonNil(rc.episodesFor(c.Key)),
+		"what_changed":   rc.lifted[c.ID],
 		"rules_version":  rc.active.Version,
 		"limits":         map[string]any{"tool_calls": agentToolCallsPerCluster, "hypotheses": agentMaxHypotheses},
 	}

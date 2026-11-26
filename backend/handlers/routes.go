@@ -30,8 +30,6 @@ func RegisterRoutes(app *fiber.App, h *Handler) {
 	api.Post("/catalog/import", h.ImportCatalog)
 	api.Get("/costs", h.Costs)
 	api.Get("/costs/export", h.CostsExport)
-	api.Get("/effect", h.Effect)
-	api.Get("/effect/commerce", h.EffectCommerce)
 	api.Get("/traces/:request_id", h.Trace)
 	api.Get("/evaluations", h.Evaluations)
 	api.Post("/evaluations/run", h.RunEvaluation)
@@ -45,6 +43,9 @@ func RegisterRoutes(app *fiber.App, h *Handler) {
 	api.Get("/agent/runs/:id/stream", h.AgentRunStream)
 	api.Post("/agent/runs/:id/stop", h.StopAgentRun)
 	api.Get("/agent/memory", h.AgentMemory)
+	api.Post("/agent/memory/suppress/:id/remove", h.RemoveSuppress)
+	api.Get("/agent/settings", h.AgentSettings)
+	api.Post("/agent/settings", h.SetAgentSettings)
 	api.Get("/proposals", h.Proposals)
 	api.Get("/proposals/:id", h.Proposal)
 	api.Post("/proposals/:id/approve", h.ApproveProposal)
@@ -57,6 +58,10 @@ func RegisterRoutes(app *fiber.App, h *Handler) {
 	api.Get("/relations/versions", h.RelationVersions)
 	api.Post("/relations/rollback", h.RollbackRelations)
 	api.Get("/evaluations/commerce", h.CommerceEvaluation)
+
+	// Контур доводки: вклад компонентов.
+	api.Get("/evaluations/contribution", h.Contribution)
+	api.Post("/evaluations/contribution/run", h.RunContribution)
 
 	// Политика маржи (контур коммерции, margin.go).
 	api.Get("/margin/policy", h.MarginPolicy)
@@ -71,7 +76,11 @@ func RegisterRoutes(app *fiber.App, h *Handler) {
 	api.Get("/quotes/mine", h.MyQuotes) // свои КП покупателя
 	// Компаньоны к позиции спецификации (витрина).
 	api.Get("/companions", h.ProductCompanions)
+	api.Get("/help", h.Help) // справка магазина (контур доводки)
 
 	// Служебное: режим LLM без перезапуска (ADMIN_ENABLED).
 	api.Post("/admin/llm-mode", h.SetLLMMode)
+	// Контур доводки: режим без векторов и одна настройка «без моделей».
+	api.Post("/admin/vectors-mode", h.SetVectorsMode)
+	api.Post("/admin/offline-mode", h.SetOfflineMode)
 }

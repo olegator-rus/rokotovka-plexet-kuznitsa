@@ -12,6 +12,6 @@ export function getSuggest(q: string, clientId: string | null, opts?: RequestOpt
   return http.get<SuggestResponse>(`/suggest?${params.toString()}`, opts)
 }
 
-/** GET /api/traces/{request_id} — сохранённая трасса поиска (переход из журнала «Экономики»). */
+/** GET /api/traces/{request_id} — сохранённая трасса поиска (переход из журнала вызовов). */
 export const getTrace = (requestId: string, opts?: RequestOptions) =>
   http.get<TraceRecord>(`/traces/${encodeURIComponent(requestId)}`, opts)

@@ -90,7 +90,7 @@ func (s *Services) holdoutRange(h HoldoutOptions, searches []domain.SearchEvent)
 		if at.After(lastAny) {
 			lastAny = at
 		}
-		if searches[i].Source != domain.EventSourceLive && at.After(last) {
+		if !domain.IsLiveSource(searches[i].Source) && at.After(last) {
 			last = at
 		}
 	}
@@ -156,8 +156,14 @@ const MsgAgentNoTestSet = "Набор запросов разметки не ч�
 // agentQueryStats — исходы поисков, которые агенту разрешено видеть: за days дней до отложенного окна,
 // без текстов test.
 func (s *Services) agentQueryStats(ctx context.Context, days int, h HoldoutOptions) (*queryStats, holdoutInfo, error) {
+	return s.agentQueryStatsSince(ctx, s.now().Add(-time.Duration(days)*24*time.Hour), h)
+}
+
+// agentQueryStatsSince — вход агента с момента since. Окно, которое начинается в отложенной неделе или после неё
+// (ночной разбор за сутки, всплеск за час на живом журнале стенда), видит поиски после недели: они не входят в реплей
+// holdout_week. Окно, начатое раньше недели (разбор за 30 дней), — как раньше: до начала недели.
+func (s *Services) agentQueryStatsSince(ctx context.Context, since time.Time, h HoldoutOptions) (*queryStats, holdoutInfo, error) {
 	st := s.store()
-	since := s.now().Add(-time.Duration(days) * 24 * time.Hour)
 	info := holdoutInfo{Enabled: h.Enabled, SeenFrom: since.UTC(), SeenTo: s.now().UTC(), ExcludeTest: h.ExcludeTest}
 	if sq, ok := st.(agentStatsSQL); ok {
 		stats, err := s.agentQueryStatsSQL(ctx, sq, since, h, &info)
@@ -180,6 +186,14 @@ func (s *Services) agentQueryStats(ctx context.Context, days int, h HoldoutOptio
 		from, to := s.holdoutRange(h, searches)
 		f, t := from.In(mskZone).Format("2006-01-02"), to.Add(-time.Second).In(mskZone).Format("2006-01-02")
 		info.HoldoutFrom, info.HoldoutTo, info.SeenTo = &f, &t, from.UTC()
+		if !since.Before(from) {
+			// Окно начинается в отложенной неделе или после неё: видно только то, что после недели.
+			since = maxTime(since, to)
+			from = time.Date(9999, 1, 1, 0, 0, 0, 0, time.UTC)
+			info.SeenFrom, info.SeenTo = since.UTC(), s.now().UTC()
+			searches = filterSince(searches, since)
+			behavior = filterBehaviorSince(behavior, since)
+		}
 		kept := searches[:0:0]
 		for _, e := range searches {
 			if e.CreatedAt.Before(from) {
@@ -236,6 +250,25 @@ func (s *Services) agentQueryStatsSQL(ctx context.Context, sq agentStatsSQL, sin
 		from, to := s.holdoutRangeAt(h, lastHist, lastAny)
 		f, t := from.In(mskZone).Format("2006-01-02"), to.Add(-time.Second).In(mskZone).Format("2006-01-02")
 		info.HoldoutFrom, info.HoldoutTo, info.SeenTo = &f, &t, from.UTC()
+		if !since.Before(from) {
+			// Окно запуска начинается в отложенной неделе или после неё (ночной разбор за сутки, всплеск за час на
+			// живом журнале стенда): видно только то, что после недели, — эти поиски не входят в реплей holdout_week.
+			since = maxTime(since, to)
+			info.SeenFrom, info.SeenTo = since.UTC(), s.now().UTC()
+			agg, err := sq.AgentQueryStatsBetween(ctx, since, until)
+			if err != nil {
+				return nil, err
+			}
+			stats := queryStatsFromSQL(agg)
+			if h.ExcludeTest {
+				tt, err := s.testTexts(ctx)
+				if err != nil {
+					return nil, err
+				}
+				info.TestTexts = stats.exclude(tt)
+			}
+			return stats, nil
+		}
 		// Окно может начинаться раньше периода (короткий days): скрыты поиски периода с начала окна.
 		hidden, err := sq.CountSearchesSince(ctx, maxTime(from, since))
 		if err != nil {
@@ -358,7 +391,7 @@ func buildHoldoutQueries(searches []domain.SearchEvent, judged []domain.EvalQuer
 	freq := map[key]int{}
 	orig := map[key]string{}
 	for _, e := range searches {
-		if e.CreatedAt.Before(from) || !e.CreatedAt.Before(to) || e.Source == domain.EventSourceLive {
+		if e.CreatedAt.Before(from) || !e.CreatedAt.Before(to) || domain.IsLiveSource(e.Source) {
 			continue
 		}
 		k := key{foldQuery(e.Query), derefStr(e.ClientID)}

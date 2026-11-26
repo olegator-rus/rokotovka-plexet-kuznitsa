@@ -131,8 +131,40 @@ func (r *Repos) MigrateDB() error {
 				return err
 			}
 		}
-		return nil
+		return migrateP4Removed(tx)
 	})
+}
+
+// Контур доводки: обратная миграция удалённого из кода. Каждая — идемпотентна.
+const (
+	// StaleReasonRemovedP4 — decided_reason предложений удалённых типов.
+	StaleReasonRemovedP4  = "removed_p4"
+	staleCommentRemovedP4 = "удалено в контуре доводки"
+)
+
+// removedP4Diagnoses — диагнозы агента, удалённые в контуре доводки: статистика совместных покупок и предложения по марже.
+var removedP4Diagnoses = []string{"MISSING_RELATION", "BUNDLE_OPPORTUNITY", "MARGIN_OPPORTUNITY"}
+
+// removedP4Templates — шаблоны решений, удалённые из data/mock в контуре доводки (остались «Рабочее место» и «Сервер под 1С»).
+var removedP4Templates = []string{"tmpl-remote-office"}
+
+func migrateP4Removed(tx *gorm.DB) error {
+	// Ждущие и отклонённые предложения удалённых типов → stale с причиной «удалено в контуре доводки»: их больше нельзя
+	// принять, а память агента по ним не нужна. Принятые не трогаются — это история версий.
+	if err := tx.Exec(`UPDATE proposals SET status = 'stale', decided_reason = ?, decided_comment = ?,
+		decided_at = COALESCE(decided_at, now()) WHERE diagnosis IN ? AND status IN ('pending', 'rejected')`,
+		StaleReasonRemovedP4, staleCommentRemovedP4, removedP4Diagnoses).Error; err != nil {
+		return err
+	}
+	// proposals.priority_score — оценка приоритета по совместным покупкам; поле снято с модели,
+	// колонка снимается здесь явно (AutoMigrate колонки не удаляет).
+	if tx.Migrator().HasColumn("proposals", "priority_score") {
+		if err := tx.Exec(`ALTER TABLE proposals DROP COLUMN IF EXISTS priority_score`).Error; err != nil {
+			return err
+		}
+	}
+	// Удалённый шаблон решения: строка справочника до следующего импорта (импорт data/mock его уже не создаст).
+	return tx.Exec(`DELETE FROM solution_templates WHERE id IN ?`, removedP4Templates).Error
 }
 
 // extraMigrations — то, что не выражается тегами GORM: индексы по времени для агрегатов аналитики за период

@@ -2735,5 +2735,49 @@
     "evidence_level": "E3",
     "review_status": "approved",
     "reviewed_at": "2026-05-22"
+  },
+  {
+    "id": "rel-0149",
+    "from_family": "kaspersky-endpoint-security",
+    "to_family": "kaspersky-endpoint-security",
+    "from_product": "kes-std-ren12",
+    "to_product": "kes-ext-ren12",
+    "type": "upgrade",
+    "note": "Расширенный вместо Стандартного",
+    "requirement": "optional",
+    "compatibility": "verified",
+    "conditions": [],
+    "quantity_strategy": "per_device",
+    "source": "vendor_documentation",
+    "source_url": "",
+    "evidence_level": "E2",
+    "review_status": "approved",
+    "reviewed_at": "2026-05-27",
+    "upgrade_adds": [
+      "Шифрование дисков и файлов",
+      "Управление исправлениями ПО"
+    ]
+  },
+  {
+    "id": "rel-0150",
+    "from_family": "kaspersky-endpoint-security",
+    "to_family": "kaspersky-endpoint-security",
+    "from_product": "kes-std-ren24",
+    "to_product": "kes-ext-ren24",
+    "type": "upgrade",
+    "note": "Расширенный вместо Стандартного",
+    "requirement": "optional",
+    "compatibility": "verified",
+    "conditions": [],
+    "quantity_strategy": "per_device",
+    "source": "vendor_documentation",
+    "source_url": "",
+    "evidence_level": "E2",
+    "review_status": "approved",
+    "reviewed_at": "2026-05-27",
+    "upgrade_adds": [
+      "Шифрование дисков и файлов",
+      "Управление исправлениями ПО"
+    ]
   }
 ]

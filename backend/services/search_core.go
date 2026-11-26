@@ -398,7 +398,9 @@ func mergeParsed(in domain.Intent, attrs *queryAttrs, ent *queryEntities, lx *se
 	if in.Kind == domain.IntentRenewal {
 		attrs.renewal = true
 	}
-	if in.Kind == domain.IntentNonProduct {
+	// «Не о товаре» от модели не принимается, если слова запроса называют категорию каталога, а слов вопроса
+	// (счёт, доставка, документы) нет: «сертификат фстэк» — это СЗИ, а не вопрос менеджеру (витрина №19).
+	if in.Kind == domain.IntentNonProduct && (ent.category == "" || ent.nonProduct) {
 		ent.nonProduct = true
 	}
 	if f := in.ReferenceFamily; f != "" && lx.families[f] != nil {

@@ -9,7 +9,6 @@ import type {
   EvaluationsResponse,
   JudgeAgreement,
 } from '@/api/types'
-import { formatInt, plural } from './format.ts'
 import { metricDef, metricDelta, orderMetricKeys, type MetricDelta } from './metrics.ts'
 
 const LADDER: readonly ConfigId[] = ['B0', 'B1', 'B2', 'B3', 'B4']
@@ -241,90 +240,4 @@ export function judgeView(ja: JudgeAgreement | null | undefined): JudgeView | nu
       swapped.push([a.config, b.config])
   }
   return { rows, swapped }
-}
-
-// ── «Эффект агента»: реплей отложенной недели (набор holdout_week, B3 → B4) ──
-
-export const HOLDOUT_SET = 'holdout_week'
-
-/** Строки сравнения B3 → B4 на отложенной неделе — в этом порядке. */
-export const HOLDOUT_METRICS = [
-  'empty_rate_weighted',
-  'relevant_top10_weighted',
-  'ndcg10',
-  'mrr10',
-] as const
-
-export interface HoldoutRow {
-  key: string
-  base: number | null
-  agent: number | null
-  delta: MetricDelta | null
-}
-
-export interface HoldoutView {
-  base: EvaluationView
-  agent: EvaluationView
-  rows: HoldoutRow[]
-  queries: number
-  searches: number | null
-  judgedSearches: number | null
-  rescued: number | null
-  lost: number | null
-  improvements: EvalChange[]
-  regressions: EvalChange[]
-}
-
-/**
- * B4 (правила агента) против конфигурации, с которой сервер его сравнил (against, обычно B3).
- * Нет B4 или базы — null: реплей не считался.
- */
-export function holdoutView(resp: EvaluationsResponse | null | undefined): HoldoutView | null {
-  const cols = evalColumns(resp)
-  const agent = cols.find((c) => c.config === 'B4')
-  if (!agent) return null
-  const baseId = agent.against || 'B3'
-  const base = cols.find((c) => c.config === baseId)
-  if (!base) return null
-  const fb = flattenMetrics(base.metrics)
-  const fa = flattenMetrics(agent.metrics)
-  const rows = HOLDOUT_METRICS.filter((k) => fb[k] != null || fa[k] != null).map((key) => ({
-    key,
-    base: fb[key] ?? null,
-    agent: fa[key] ?? null,
-    delta: metricDelta(fa[key], fb[key], metricDef(key)),
-  }))
-  const n = (v: unknown) => (typeof v === 'number' && Number.isFinite(v) ? v : null)
-  const byDelta = (a: EvalChange, b: EvalChange) =>
-    Math.abs(b.ndcg_delta) - Math.abs(a.ndcg_delta) || b.freq - a.freq
-  return {
-    base,
-    agent,
-    rows,
-    queries: agent.queries,
-    searches: n(agent.metrics.searches),
-    judgedSearches: n(agent.metrics.judged_searches),
-    rescued: n(agent.metrics.rescued_searches),
-    lost: n(agent.metrics.lost_searches),
-    improvements: [...(agent.improvements ?? [])].sort(byDelta),
-    regressions: [...(agent.regressions ?? [])].sort(byDelta),
-  }
-}
-
-/** Вывод одной фразой — из чисел реплея, без оценок «хорошо/плохо». */
-export function holdoutVerdict(v: HoldoutView): string {
-  const searches = (k: number) => plural(k, ['поиск', 'поиска', 'поисков'])
-  const queries = (k: number) => plural(k, ['запросе', 'запросах', 'запросах'])
-  const r = v.rescued ?? 0
-  const l = v.lost ?? 0
-  const better = v.improvements.length
-  const worse = v.regressions.length
-  if (v.rescued === null && v.lost === null)
-    return 'Сервер не прислал спасённые и потерянные поиски для этого прогона.'
-  if (r === 0 && l === 0) {
-    if (better === 0 && worse === 0)
-      return 'Правки агента на этой неделе ничего не изменили в выдаче.'
-    return `Правки агента не спасли и не потеряли ни одного поиска; выдача лучше в ${formatInt(better)} ${queries(better)}, хуже — в ${formatInt(worse)}.`
-  }
-  return `Правки агента спасли ${formatInt(r)} ${searches(r)} и потеряли ${formatInt(l)}.`
 }

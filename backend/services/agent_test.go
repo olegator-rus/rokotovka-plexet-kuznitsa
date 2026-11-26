@@ -30,6 +30,8 @@ type memStore struct {
 	versions  []domain.ConfigVersion
 	searches  []domain.SearchEvent
 	behavior  []domain.BehaviorEvent
+	suppress  []domain.MemorySuppress
+	episodes  []domain.MemoryEpisode
 }
 
 func newMemStore(rules domain.JSONB) *memStore {
@@ -216,6 +218,17 @@ func (m *memStore) ApplyRulesChange(_ context.Context, ch *repositories.RulesCha
 	if ch.Proposal != nil {
 		m.proposals[ch.Proposal.ID] = *ch.Proposal
 	}
+	if ch.RollBackProposal != nil {
+		p, ok := m.proposals[*ch.RollBackProposal]
+		if !ok || p.Status != domain.ProposalAccepted {
+			return domain.ErrProposalDecided
+		}
+		p.Status = domain.ProposalRolledBack
+		m.proposals[p.ID] = p
+		d := domain.Decision{ProposalID: p.ID, Decision: domain.ProposalRolledBack, Reason: "agent_rollback"}
+		ensureID(&d.UUIDModel)
+		m.decisions = append(m.decisions, d)
+	}
 	if ch.Decision != nil && ch.Proposal != nil {
 		ensureID(&ch.Decision.UUIDModel)
 		m.decisions = append(m.decisions, *ch.Decision)
@@ -237,6 +250,12 @@ type scriptModel struct {
 	mu    sync.Mutex
 	turns [][]llm.ToolCall
 	seen  [][]llm.Message
+	// plan — ответ планировщику (submit_plan, контур автономии); nil — модель «не ответила по схеме», план по приоритету.
+	// Вызов планировщика не тратит ходы сценария.
+	plan  *llm.ToolCall
+	plans int
+	// fail — сколько следующих вызовов вернуть ошибкой (проверка повтора).
+	fail int
 }
 
 func (m *scriptModel) Model() string { return "aliceai-llm-flash" }
@@ -245,6 +264,20 @@ func (m *scriptModel) Chat(_ context.Context, req llm.Request) (*llm.Response, e
 	defer m.mu.Unlock()
 	if req.Temperature == nil || *req.Temperature != 0 {
 		return nil, errors.New("temperature должна быть 0")
+	}
+	if m.fail > 0 {
+		m.fail--
+		return nil, errors.New("модель недоступна")
+	}
+	if len(req.Tools) == 1 && req.Tools[0].Function.Name == "submit_plan" {
+		m.plans++
+		if m.plan == nil {
+			return &llm.Response{Message: llm.Message{Role: "assistant", Content: "план"}}, nil
+		}
+		c := *m.plan
+		c.ID = "submit_plan"
+		return &llm.Response{Message: llm.Message{Role: "assistant", ToolCalls: []llm.ToolCall{c}},
+			Usage: llm.Usage{PromptTokens: 500, CompletionTokens: 40}}, nil
 	}
 	m.seen = append(m.seen, req.Messages)
 	if len(m.turns) == 0 {
@@ -305,7 +338,7 @@ func waitRun(t *testing.T, s *Services, id string) *domain.AgentRun {
 	deadline := time.Now().Add(20 * time.Second)
 	for time.Now().Before(deadline) {
 		s.agent.mu.Lock()
-		busy := s.agent.active != nil
+		busy := len(s.agent.runs) > 0
 		s.agent.mu.Unlock()
 		if !busy {
 			run, err := s.loadRun(t.Context(), id)
@@ -474,6 +507,7 @@ func TestAgentMemoryBlocksRejectedPatch(t *testing.T) {
 	}
 	// Отказ по другой причине закрывает кластер целиком: третий запуск его не берёт.
 	ms.decisions[0].Reason = domain.RejectWrongProduct
+	ms.suppress[0].Reason, ms.suppress[0].Scope = domain.RejectWrongProduct, domain.SuppressScopeCluster
 	model.turns = nil
 	r3, _ := s.StartAgentRun(t.Context(), in.AgentRunRequest{MaxClusters: 1})
 	run = waitRun(t, s, r3.RunID)

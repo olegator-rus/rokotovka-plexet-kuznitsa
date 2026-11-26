@@ -56,6 +56,9 @@ type patchEval struct {
 		Total        int              `json:"total"`
 		Sets         []string         `json:"sets"`
 		WorseQueries []out.EvalChange `json:"worse_queries"`
+		// BetterQueries — первые улучшившиеся (контур автономии: прогон «без правки» при проверке эффекта — это запросы,
+		// которым правка навредила).
+		BetterQueries []out.EvalChange `json:"better_queries,omitempty"`
 	} `json:"regression"`
 	ExactWorse              int      `json:"exact_worse"`
 	ConstraintViolationsNew int      `json:"constraint_violations_new"`
@@ -290,6 +293,11 @@ func (sb *sandbox) evaluate(ctx context.Context, cluster *failedCluster, patch R
 	ev.Regression.Total, ev.Regression.Worse, ev.Regression.Better = len(rq), len(regs), len(imps)
 	ev.Regression.Sets = sb.sets
 	ev.Regression.WorseQueries = []out.EvalChange{}
+	for i, r := range imps {
+		if i < 5 {
+			ev.Regression.BetterQueries = append(ev.Regression.BetterQueries, r)
+		}
+	}
 	for i, r := range regs {
 		if slices.Contains(r.Reasons, "lost_exact") || r.Type == domain.QueryExact || r.Type == domain.QuerySKU {
 			ev.ExactWorse++

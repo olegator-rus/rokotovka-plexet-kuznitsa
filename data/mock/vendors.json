@@ -238,5 +238,10 @@
     "id": "eltex",
     "name": "Элтекс",
     "origin": "ru"
+  },
+  {
+    "id": "cryptopro",
+    "name": "КриптоПро",
+    "origin": "ru"
   }
 ]

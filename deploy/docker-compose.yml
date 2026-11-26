@@ -57,6 +57,16 @@ services:
       AUTH_ACCOUNTS: ${AUTH_ACCOUNTS:-}
       AUTH_SESSION_TTL: ${AUTH_SESSION_TTL:-}
       AUTH_LOGIN_PER_MIN: ${AUTH_LOGIN_PER_MIN:-}
+      # Контур автономии: автономный агент — расписание и пороги триггера «всплеск».
+      AGENT_SCHEDULE: ${AGENT_SCHEDULE:-}
+      AGENT_SCHEDULE_INTERVAL: ${AGENT_SCHEDULE_INTERVAL:-}
+      AGENT_SCHEDULE_AT: ${AGENT_SCHEDULE_AT:-}
+      AGENT_SPIKE_WINDOW: ${AGENT_SPIKE_WINDOW:-}
+      AGENT_SPIKE_MIN_SEARCHES: ${AGENT_SPIKE_MIN_SEARCHES:-}
+      AGENT_SPIKE_EMPTY_SHARE: ${AGENT_SPIKE_EMPTY_SHARE:-}
+      AGENT_SPIKE_REFORM_SHARE: ${AGENT_SPIKE_REFORM_SHARE:-}
+      AGENT_SPIKE_QUERY_FREQ: ${AGENT_SPIKE_QUERY_FREQ:-}
+      AGENT_SPIKE_COOLDOWN: ${AGENT_SPIKE_COOLDOWN:-}
       TZ: Europe/Moscow
     depends_on:
       db:
@@ -66,6 +76,33 @@ services:
       interval: 30s
       timeout: 5s
       retries: 3
+
+  # Генератор mock-трафика (контур автономии): обычный клиент витрины, ходит в api по сети compose, пишет source=traffic.
+  # Не стартует по умолчанию: docker compose --profile traffic up -d traffic.
+  traffic:
+    image: kuznica-api
+    profiles: [traffic]
+    restart: unless-stopped
+    entrypoint: ["/app/api", "traffic"]
+    command:
+      - --api=http://api:8080
+      - --data=/data/mock
+      - --spikes-file=/data/traffic/spikes.json
+      - --rate=${TRAFFIC_RATE:-2}
+      - --max-rpm=${TRAFFIC_MAX_RPM:-120}
+      - --spikes=${TRAFFIC_SPIKES:-sketchup-empty@2h,kasperych-reform@8h,chertilka-reform@14h}
+      - --spike-len=${TRAFFIC_SPIKE_LEN:-12m}
+      - --spike-sessions=${TRAFFIC_SPIKE_SESSIONS:-40}
+      - --repeat=${TRAFFIC_REPEAT:-24h}
+      - --quiet
+    environment:
+      PUBLIC_ORIGIN: https://${DOMAIN:?set DOMAIN in .env}
+      TZ: Europe/Moscow
+    volumes:
+      - ../data:/data:ro
+    depends_on:
+      api:
+        condition: service_healthy
 
   web:
     build:

@@ -39,11 +39,14 @@ var publicRoutes = map[string]bool{
 	fiber.MethodGet + " /api/evaluations": true,
 	// Коммерческая лестница C0–C3 (вкладка «Коммерция» в «До / После»): сводные метрики, без цифр маржи позиций.
 	fiber.MethodGet + " /api/evaluations/commerce": true,
-	fiber.MethodPost + " /api/search":              true,
-	fiber.MethodPost + " /api/events":              true,
-	fiber.MethodPost + " /api/quotes":              true,
+	// Контур доводки: вклад компонентов (вкладка «Доказательства → Вклад компонентов»): свой набор запросов, без журнала.
+	fiber.MethodGet + " /api/evaluations/contribution": true,
+	fiber.MethodPost + " /api/search":                  true,
+	fiber.MethodPost + " /api/events":                  true,
+	fiber.MethodPost + " /api/quotes":                  true,
 	// «К этой позиции» в спецификации: компаньоны из справочника, без цифр маржи.
 	fiber.MethodGet + " /api/companions": true,
+	fiber.MethodGet + " /api/help":       true,
 	// Контур выдачи: рекомендации панели поиска (витрина).
 	fiber.MethodGet + " /api/suggest/recommendations": true,
 	// Вход по ролям; свои КП — только вошедшему покупателю (проверяет обработчик).

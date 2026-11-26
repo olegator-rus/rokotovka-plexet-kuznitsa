@@ -3,7 +3,7 @@ import type { EvalJob, EvalRunRequest, EvaluationsResponse } from './types'
 
 /**
  * GET /api/evaluations — последний прогон по каждой конфигурации, ухудшения, воспроизводимость.
- * set — набор (по умолчанию test; holdout_week — реплей отложенной недели для «Эффекта агента»).
+ * set — набор (по умолчанию test).
  */
 export const getEvaluations = (opts?: RequestOptions, set?: string) =>
   http.get<EvaluationsResponse>(

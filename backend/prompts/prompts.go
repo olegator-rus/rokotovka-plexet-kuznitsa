@@ -51,18 +51,17 @@ var agentText string
 // Agent — системный промпт агента SearchOps (services/agent_loop.go).
 func Agent() Prompt { return parse(agentText) }
 
+//go:embed agent_plan.md
+var agentPlanText string
+
+// AgentPlan — промпт планировщика запуска агента (контур автономии, services/agent_plan.go).
+func AgentPlan() Prompt { return parse(agentPlanText) }
+
 //go:embed agent_commerce.md
 var agentCommerceText string
 
 // AgentCommerce — системный промпт агента в режиме «Коммерция»: справочник связей (services/agent_commerce.go).
 func AgentCommerce() Prompt { return parse(agentCommerceText) }
-
-//go:embed agent_commerce_judge.md
-var agentCommerceJudgeText string
-
-// AgentCommerceJudge — судья другого семейства моделей для предложений по совместным покупкам: фильтр на отказ
-// (services/agent_commerce_stats.go).
-func AgentCommerceJudge() Prompt { return parse(agentCommerceJudgeText) }
 
 //go:embed evalsets_classify.md
 var evalSetsClassifyText string

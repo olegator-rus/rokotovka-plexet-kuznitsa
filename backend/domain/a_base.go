@@ -38,7 +38,7 @@ func AllModels() []any {
 		&SearchEvent{}, &SearchTrace{}, &BehaviorEvent{}, &LLMUsage{}, &ConfigVersion{},
 		&Evaluation{}, &JudgeRun{},
 		&IntentCache{},
-		&IssueCluster{}, &AgentRun{}, &AgentStep{}, &Proposal{}, &Decision{},
+		&IssueCluster{}, &AgentRun{}, &AgentStep{}, &Proposal{}, &Decision{}, &MemorySuppress{}, &MemoryEpisode{},
 		&LicenseRule{}, &CompatibilityRule{}, &AttributeDefinition{}, &SolutionTemplate{}, &QuoteRequest{}, &CatalogInfo{},
 		&Suggestion{},
 	}
