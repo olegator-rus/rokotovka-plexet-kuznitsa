@@ -119,6 +119,11 @@ func main() {
 		runEval(ctx, log, svc, os.Args[2:])
 		return
 	}
+	if len(os.Args) > 1 && os.Args[1] == "guide-eval" {
+		svc.SetGuideMinFactStatus(cfg.GuideMinFactStatus) // порог показа фактов — как у API
+		runGuideEval(ctx, log, svc, os.Args[2:])
+		return
+	}
 	if len(os.Args) > 1 && os.Args[1] == "judge" {
 		runJudge(ctx, log, svc, os.Args[2:])
 		return

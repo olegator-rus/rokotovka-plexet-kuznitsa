@@ -124,6 +124,8 @@ type FeedSummary struct {
 	Table []FeedRow `json:"table"`
 	// Configs — что сравнивается: id конфигурации и подпись.
 	Configs []FeedConfig `json:"configs"`
+	// Guide — диалог режима подбора (контур подбора): последняя оценка полного подбора; null — не прогоняли.
+	Guide *FeedGuide `json:"guide"`
 	// MockRuns — есть прогоны mock-каталога (вкладка «Метрики», подпись «до данных заказчика»).
 	MockRuns bool `json:"mock_runs"`
 }

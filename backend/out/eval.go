@@ -45,6 +45,8 @@ type EvalMetrics struct {
 	ByRoute         map[string]EvalLatency `json:"by_route,omitempty"`
 	// Target — метрики набора «по цели» на фиде (eval_target.go); у наборов с оценками 0–3 — nil.
 	Target *TargetMetrics `json:"target,omitempty"`
+	// Guide — оценка режима подбора (guide_eval.go); у прочих наборов — nil.
+	Guide *GuideEvalMetrics `json:"guide,omitempty"`
 }
 
 // EvalLatency — время ответа сервиса поиска, мс.
@@ -78,6 +80,8 @@ type EvalQueryResult struct {
 	Error       string   `json:"error,omitempty"`
 	// Target — вердикт запроса набора «по цели» (eval_target.go); у наборов с оценками 0–3 — nil.
 	Target *TargetQueryResult `json:"target,omitempty"`
+	// Guide — диалог режима подбора в прогоне (guide_eval.go).
+	Guide []GuideDialogResult `json:"guide,omitempty"`
 }
 
 // EvalChange — запрос, по которому конфигурация хуже (или лучше) предыдущей в лестнице прогона.

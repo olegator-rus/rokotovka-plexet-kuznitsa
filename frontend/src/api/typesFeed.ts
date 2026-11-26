@@ -121,6 +121,20 @@ export interface FeedRow {
   rub_per_query: number | null
 }
 
+/** Диалог режима подбора (контур подбора): последняя оценка полного подбора. */
+export interface FeedGuide {
+  dialogs: number
+  runs: number
+  task_all: number
+  gate: boolean
+  dialog_cost_rub: number
+  dialog_llm_cost_rub: number
+  dialogs_with_llm: number
+  llm_calls: number
+  ms_total_p95: number
+  run_tail: string
+}
+
 export interface FeedSummary {
   catalog: FeedCatalog
   etalon: FeedScore | null
@@ -129,5 +143,7 @@ export interface FeedSummary {
   cost: FeedCost | null
   table: FeedRow[]
   configs: FeedConfig[]
+  /** null — оценку подбора не прогоняли. */
+  guide?: FeedGuide | null
   mock_runs: boolean
 }

@@ -136,6 +136,27 @@ function explainCost(r: FeedCostRun) {
   })
 }
 
+const guide = computed(() => data.value?.guide ?? null)
+function explainGuide() {
+  const g = guide.value
+  if (!g) return
+  explain({
+    title: 'Стоимость диалога подбора',
+    value: formatCost(g.dialog_cost_rub),
+    what: 'Режим подбора зовёт модель только на реплику покупателя и только когда есть проверенные факты; вопросы, чипы и отказы — без модели.',
+    how: 'Расход модели по llm_usage ходов оценки (request_id хода) / число диалогов во всех прогонах.',
+    rows: [
+      { label: 'Диалогов × прогонов', value: `${formatInt(g.dialogs)} × ${g.runs}` },
+      { label: 'Решено во всех прогонах', value: outOf(g.task_all, g.dialogs) },
+      { label: 'Вызовов модели', value: formatInt(g.llm_calls) },
+      { label: 'Диалогов с вызовом модели', value: formatInt(g.dialogs_with_llm) },
+      { label: 'На диалог с вызовом модели', value: formatCost(g.dialog_llm_cost_rub) },
+      { label: 'Весь ход, p95', value: formatMs(g.ms_total_p95) },
+      { label: 'Прогон', value: `…${g.run_tail}` },
+    ],
+  })
+}
+
 const costSub = computed(() => {
   const r = head.value
   if (!r) return undefined
@@ -323,6 +344,15 @@ function explainRow(r: FeedRow) {
               >
             </li>
           </ul>
+          <p v-if="guide" class="t-sm feed__guide">
+            Диалог режима подбора:
+            <button type="button" class="num-btn" @click="explainGuide">
+              <strong>{{ formatCost(guide.dialog_cost_rub) }}</strong>
+            </button>
+            в среднем на диалог ({{ formatInt(guide.dialogs) }} диалогов × {{ guide.runs }} прогона;
+            где модель вызывалась — {{ formatCost(guide.dialog_llm_cost_rub) }}). В стоимость поиска
+            выше не входит.
+          </p>
           <p v-for="n in cost.notes" :key="n" class="t-xs t-muted">{{ n }}</p>
         </section>
 

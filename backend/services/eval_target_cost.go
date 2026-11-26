@@ -146,6 +146,14 @@ func (s *Services) FeedSummary(ctx context.Context) (*out.FeedSummary, error) {
 	if err != nil {
 		return nil, err
 	}
+	// Диалог режима подбора (контур подбора): последняя оценка полного подбора (`go run . guide-eval`).
+	if gv, runID, err := s.LatestGuideEval(ctx); err != nil {
+		return nil, err
+	} else if m := gv[GuideVariantFull]; m != nil {
+		res.Guide = &out.FeedGuide{Dialogs: m.Dialogs, Runs: m.Runs, TaskAll: m.TaskAll, Gate: m.Gate,
+			DialogCostRub: m.DialogCostRub, DialogLLMRub: m.DialogLLMRub, DialogsWithLLM: m.DialogsWithLLM,
+			LLMCalls: m.LLMCalls, MsTotalP95: m.MsTotal.P95, RunTail: runTail(runID)}
+	}
 	return res, nil
 }
 
