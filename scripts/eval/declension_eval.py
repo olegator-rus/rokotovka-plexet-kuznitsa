@@ -5,7 +5,7 @@
 (тип и URL после нормализации, как в customer_eval.py); у цели «категория» без URL сравнивается заголовок. Плюс
 первое семейство выдачи — для справки.
 
-  API=http://127.0.0.1:8092 python3 scripts/eval/declension_eval.py --out data/softline/eval/declension-after
+  API=http://127.0.0.1:8092 python3 scripts/eval/declension_eval.py --out data/softline/eval/results/declension-after
 """
 import argparse
 import json

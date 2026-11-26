@@ -16,10 +16,10 @@ import (
 
 // Оценка «по цели» на фиде заказчика (контур эталонов, services/eval_target*.go):
 //
-//	go run . eval --set etalon,tz,neighbors --cold --report ../data/softline/eval/report   # BM25, B1, B2, live
-//	go run . eval --set etalon,tz,neighbors --configs live --report ../data/softline/eval/report
+//	go run . eval --set etalon,tz,neighbors --cold --report ../data/softline/eval/results   # BM25, B1, B2, live
+//	go run . eval --set etalon,tz,neighbors --configs live --report ../data/softline/eval/results
 //	go run . eval --set closed --file <путь закрытого набора> --report …                    # один раз, при заморозке
-//	go run . eval --summary ../data/softline/eval/report/REPORT.md --header "…"            # сводка S6 в Markdown
+//	go run . eval --summary ../data/softline/eval/results/REPORT.md --header "…"            # сводка S6 в Markdown
 
 // targetSetsArg — наборы «по цели» из --set (через запятую); не «по цели» — nil.
 func targetSetsArg(v string) []string {

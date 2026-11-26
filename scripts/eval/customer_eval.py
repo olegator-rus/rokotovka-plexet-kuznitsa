@@ -19,12 +19,12 @@ source=compare: в журнал пишутся, в аналитику и сто�
 печатает версию каталога из /api/meta и из трасс и предупреждает, если каталог mock.
 
   # точка отсчёта на фиде: текущая сборка и BM25 без улучшений в одном отчёте
-  python3 scripts/eval/customer_eval.py --configs live,B1 --out data/softline/eval/baseline-feed
+  python3 scripts/eval/customer_eval.py --configs live,B1 --out data/softline/eval/results/baseline-feed
   # то же по отдельности
-  python3 scripts/eval/customer_eval.py --configs live --out data/softline/eval/baseline-feed-live
-  python3 scripts/eval/customer_eval.py --configs B1 --out data/softline/eval/baseline-feed-b1
-  # пробный прогон на mock-каталоге (отчёт уже в data/softline/eval/)
-  python3 scripts/eval/customer_eval.py --configs live,B1 --out data/softline/eval/baseline-mock-2
+  python3 scripts/eval/customer_eval.py --configs live --out data/softline/eval/results/baseline-feed-live
+  python3 scripts/eval/customer_eval.py --configs B1 --out data/softline/eval/results/baseline-feed-b1
+  # пробный прогон на mock-каталоге (отчёт уже в data/softline/eval/results/)
+  python3 scripts/eval/customer_eval.py --configs live,B1 --out data/softline/eval/results/baseline-mock-2
 
 На live маршрут D при холодном кэше разборов идёт в LLM (секунды); повторный прогон попадает в кэш, и p95 падает.
 Для сравнения «до/после» запускать в одинаковом состоянии кэша.

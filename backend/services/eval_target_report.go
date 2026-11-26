@@ -9,7 +9,7 @@ import (
 	"kuznica/api/out"
 )
 
-// Отчёты прогона «по цели» (CLI): таблица в stdout и Markdown для data/softline/eval/report/. Дат в отчётах нет:
+// Отчёты прогона «по цели» (CLI): таблица в stdout и Markdown для data/softline/eval/results/. Дат в отчётах нет:
 // прогон назван последними знаками run_id, каталог — источником и числом офферов.
 
 // targetCfgLabel — подпись конфигурации.

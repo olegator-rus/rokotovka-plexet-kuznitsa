@@ -2,7 +2,7 @@
 """«Чужой» набор данных из data/mock — для сквозной проверки DATA_SOURCE=generic.
 
     python3.13 scripts/data/make_foreign.py                 # пишет data/foreign/ и data/foreign/mapping.yaml
-    python3.13 scripts/data/make_foreign.py --out /tmp/x    # в другой каталог
+    python3.13 scripts/data/make_foreign.py --out <папка>    # в другой каталог
 
 Тот же магазин, но в виде, в каком данные обычно приходят: прайс в XLSX с шапкой над таблицей, справочники и
 журналы в CSV в cp1251 с «;», журнал действий в TSV с BOM и московским временем, другие имена колонок,

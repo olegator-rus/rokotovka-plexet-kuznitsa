@@ -10,7 +10,7 @@
   expect.normalized — нормализованный запрос ровно такой; expect.route_not — маршрут не этот (D — без модели).
 Вендор и категория карточки берутся из фида (data/softline/feed/products.jsonl), а не из ответа.
 
-  API=http://127.0.0.1:8092 python3 scripts/eval/understanding_eval.py --out data/softline/eval/understanding-after
+  API=http://127.0.0.1:8092 python3 scripts/eval/understanding_eval.py --out data/softline/eval/results/understanding-after
   python3 scripts/eval/understanding_eval.py --before before.json --out after   # печатает «было / стало»
 
 Запросы идут с source=compare (в аналитику покупателя не входят), по одному, на 429 — пауза и повтор.

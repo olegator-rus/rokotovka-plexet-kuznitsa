@@ -1,0 +1,170 @@
+[
+ {
+  "vendor_name": "Kaspersky Endpoint Security для бизнеса Стандартный",
+  "line": "kes-business",
+  "family_id": "3953",
+  "feed_family_name": "Kaspersky Endpoint Security для бизнеса Стандартный",
+  "feed_vendor": "kaspersky",
+  "in_feed": true
+ },
+ {
+  "vendor_name": "Kaspersky Endpoint Security для бизнеса Расширенный",
+  "line": "kes-business",
+  "family_id": "3935",
+  "feed_family_name": "Kaspersky Endpoint Security для бизнеса Расширенный",
+  "feed_vendor": "kaspersky",
+  "in_feed": true
+ },
+ {
+  "vendor_name": "Kaspersky Endpoint Security для бизнеса Расширенный Плюс",
+  "line": "kes-business",
+  "family_id": "419620",
+  "feed_family_name": "Kaspersky Endpoint Security для бизнеса Расширенный Плюс",
+  "feed_vendor": "kaspersky",
+  "in_feed": true
+ },
+ {
+  "vendor_name": "Kaspersky Small Office Security",
+  "line": "ksos",
+  "family_id": "3761",
+  "feed_family_name": "Kaspersky Small Office Security",
+  "feed_vendor": "kaspersky",
+  "in_feed": true
+ },
+ {
+  "vendor_name": "КриптоПро CSP 5.0",
+  "line": "cryptopro-csp",
+  "family_id": "22268",
+  "feed_family_name": "Программа КриптоПро CSP 5.0",
+  "feed_vendor": "kripto-pro",
+  "in_feed": true
+ },
+ {
+  "vendor_name": "КриптоПро CSP TLS",
+  "line": "cryptopro-csp",
+  "family_id": "385280",
+  "feed_family_name": "КриптоПро CSP TLS",
+  "feed_vendor": "kripto-pro",
+  "in_feed": true
+ },
+ {
+  "vendor_name": "Astra Linux Special Edition",
+  "line": "astra-linux-se",
+  "family_id": "121231",
+  "feed_family_name": "Astra Linux Special Edition",
+  "feed_vendor": "astralinux",
+  "in_feed": true
+ },
+ {
+  "vendor_name": "Кибер Бэкап Стандартная редакция",
+  "line": "cyber-backup",
+  "family_id": "173614",
+  "feed_family_name": "Кибер Бэкап Стандартная редакция",
+  "feed_vendor": "cyberprotect",
+  "in_feed": true
+ },
+ {
+  "vendor_name": "Кибер Бэкап Расширенная редакция",
+  "line": "cyber-backup",
+  "family_id": "173615",
+  "feed_family_name": "Кибер Бэкап Расширенная редакция",
+  "feed_vendor": "cyberprotect",
+  "in_feed": true
+ },
+ {
+  "vendor_name": "Dr.Web Desktop Security Suite",
+  "line": "drweb-business",
+  "family_id": "4069",
+  "feed_family_name": "Dr.Web Desktop Security Suite",
+  "feed_vendor": "drweb",
+  "in_feed": true
+ },
+ {
+  "vendor_name": "Dr.Web Server Security Suite",
+  "line": "drweb-business",
+  "family_id": "4092",
+  "feed_family_name": "Dr.Web Server Security Suite",
+  "feed_vendor": "drweb",
+  "in_feed": true
+ },
+ {
+  "vendor_name": "PRO32 Endpoint Security Standard",
+  "line": "pro32-endpoint",
+  "family_id": "329406",
+  "feed_family_name": "PRO32 Endpoint Security Standard",
+  "feed_vendor": "pro32",
+  "in_feed": true
+ },
+ {
+  "vendor_name": "Microsoft 365 бизнес базовый",
+  "line": "m365-business",
+  "family_id": "65743",
+  "feed_family_name": "Облачная платформа Microsoft 365 Business Basic",
+  "feed_vendor": "microsoft",
+  "in_feed": true
+ },
+ {
+  "vendor_name": "Microsoft 365 бизнес стандарт",
+  "line": "m365-business",
+  "family_id": "169704",
+  "feed_family_name": "Microsoft 365 бизнес стандарт",
+  "feed_vendor": "microsoft",
+  "in_feed": true
+ },
+ {
+  "vendor_name": "Microsoft 365 для семьи",
+  "line": "m365-consumer",
+  "family_id": "165034",
+  "feed_family_name": "Microsoft 365 Family (для семьи)",
+  "feed_vendor": "microsoft",
+  "in_feed": true
+ },
+ {
+  "vendor_name": "Office для дома и бизнеса 2024",
+  "line": "office-2024",
+  "family_id": "391338",
+  "feed_family_name": "Microsoft Office 2024 для дома и бизнеса",
+  "feed_vendor": "microsoft",
+  "in_feed": true
+ },
+ {
+  "vendor_name": "AnyDesk",
+  "line": "anydesk",
+  "family_id": "306539",
+  "feed_family_name": "AnyDesk",
+  "feed_vendor": "anydesk",
+  "in_feed": true
+ },
+ {
+  "vendor_name": "МТС Линк Стандарт",
+  "line": "mts-link",
+  "family_id": "447242",
+  "feed_family_name": "МТС Линк Стандарт",
+  "feed_vendor": "webinar",
+  "in_feed": true
+ },
+ {
+  "vendor_name": "МТС Линк Про",
+  "line": "mts-link",
+  "family_id": "447243",
+  "feed_family_name": "МТС Линк Про",
+  "feed_vendor": "webinar",
+  "in_feed": true
+ },
+ {
+  "vendor_name": "Сканер-ВС",
+  "line": "scanner-vs",
+  "family_id": "46421",
+  "feed_family_name": "Эшелон «СКАНЕР-ВС»",
+  "feed_vendor": "npo-echelon",
+  "in_feed": true
+ },
+ {
+  "vendor_name": "MaxPatrol EPP",
+  "line": "maxpatrol",
+  "family_id": "437421",
+  "feed_family_name": "MaxPatrol Endpoint Protection Platform",
+  "feed_vendor": "positive-technologies",
+  "in_feed": true
+ }
+]

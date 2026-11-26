@@ -1,0 +1,2814 @@
+{
+ "api": "http://127.0.0.1:8092",
+ "catalog_version": "softline-feed",
+ "rules_version": 4,
+ "command": "python3 scripts/eval/neighbor_eval.py --before data/softline/eval/results/neighbors-before.json --out data/softline/eval/results/neighbors-after",
+ "results": [
+  {
+   "vendor": "astralinux",
+   "query": "астра линукс",
+   "kind": "транслит",
+   "distortion": "транслит",
+   "target_type": "family",
+   "group_ids": [
+    "121231"
+   ],
+   "expected": [
+    "https://store.softline.ru/astralinux/astra-linux-special-edition/"
+   ],
+   "strict": true,
+   "top4": true,
+   "rank": 1,
+   "first_url": "https://store.softline.ru/astralinux/astra-linux-special-edition/",
+   "first_type": "family",
+   "first_family": "121231",
+   "first_title": "Astra Linux Special Edition на базе п/а Эльбрус, для аппаратных платформ Эльбрус-8С, Эльбрус-1С, РУСБ.10265-01 (МО),",
+   "route": "B",
+   "normalized": "astra linux",
+   "cards": 9,
+   "http": 200,
+   "ms": 6784
+  },
+  {
+   "vendor": "astralinux",
+   "query": "астры линукс",
+   "kind": "склонение",
+   "distortion": "склонение",
+   "target_type": "family",
+   "group_ids": [
+    "121231"
+   ],
+   "expected": [
+    "https://store.softline.ru/astralinux/astra-linux-special-edition/"
+   ],
+   "strict": true,
+   "top4": true,
+   "rank": 1,
+   "first_url": "https://store.softline.ru/astralinux/astra-linux-special-edition/",
+   "first_type": "family",
+   "first_family": "121231",
+   "first_title": "Astra Linux Special Edition на базе п/а Эльбрус, для аппаратных платформ Эльбрус-8С, Эльбрус-1С, РУСБ.10265-01 (МО),",
+   "route": "B",
+   "normalized": "astra linux",
+   "cards": 14,
+   "http": 200,
+   "ms": 107
+  },
+  {
+   "vendor": "astralinux",
+   "query": "для астра линукс",
+   "kind": "склонение",
+   "distortion": "склонение",
+   "target_type": "family",
+   "group_ids": [
+    "121231"
+   ],
+   "expected": [
+    "https://store.softline.ru/astralinux/astra-linux-special-edition/"
+   ],
+   "strict": true,
+   "top4": true,
+   "rank": 1,
+   "first_url": "https://store.softline.ru/astralinux/astra-linux-special-edition/",
+   "first_type": "family",
+   "first_family": "121231",
+   "first_title": "Astra Linux Special Edition на базе п/а Эльбрус, для аппаратных платформ Эльбрус-8С, Эльбрус-1С, РУСБ.10265-01 (МО),",
+   "route": "B",
+   "normalized": "для astra linux",
+   "cards": 10,
+   "http": 200,
+   "ms": 135
+  },
+  {
+   "vendor": "astralinux",
+   "query": "astra linux special edition",
+   "kind": "полное название",
+   "distortion": "название",
+   "target_type": "family",
+   "group_ids": [
+    "121231"
+   ],
+   "expected": [
+    "https://store.softline.ru/astralinux/astra-linux-special-edition/"
+   ],
+   "strict": true,
+   "top4": true,
+   "rank": 1,
+   "first_url": "https://store.softline.ru/astralinux/astra-linux-special-edition/",
+   "first_type": "family",
+   "first_family": "121231",
+   "first_title": "Astra Linux Special Edition на базе п/а Эльбрус, для аппаратных платформ Эльбрус-8С, Эльбрус-1С, РУСБ.10265-01 (МО),",
+   "route": "A",
+   "normalized": "astra linux special edition",
+   "cards": 5,
+   "http": 200,
+   "ms": 212
+  },
+  {
+   "vendor": "astralinux",
+   "query": "astralinux",
+   "kind": "слитно",
+   "distortion": "написание",
+   "target_type": "family",
+   "group_ids": [
+    "121231"
+   ],
+   "expected": [
+    "https://store.softline.ru/astralinux/astra-linux-special-edition/"
+   ],
+   "strict": true,
+   "top4": true,
+   "rank": 1,
+   "first_url": "https://store.softline.ru/astralinux/astra-linux-special-edition/",
+   "first_type": "family",
+   "first_family": "121231",
+   "first_title": "Astra Linux Special Edition на базе п/а Эльбрус, для аппаратных платформ Эльбрус-8С, Эльбрус-1С, РУСБ.10265-01 (МО),",
+   "route": "B",
+   "normalized": "astra linux",
+   "cards": 5,
+   "http": 200,
+   "ms": 172
+  },
+  {
+   "vendor": "astralinux",
+   "query": "астра линукс се",
+   "kind": "сокращение",
+   "distortion": "написание",
+   "target_type": "family",
+   "group_ids": [
+    "121231"
+   ],
+   "expected": [
+    "https://store.softline.ru/astralinux/astra-linux-special-edition/"
+   ],
+   "strict": true,
+   "top4": true,
+   "rank": 1,
+   "first_url": "https://store.softline.ru/astralinux/astra-linux-special-edition/",
+   "first_type": "family",
+   "first_family": "121231",
+   "first_title": "Astra Linux Special Edition на базе п/а Эльбрус, для аппаратных платформ Эльбрус-8С, Эльбрус-1С, РУСБ.10265-01 (МО),",
+   "route": "B",
+   "normalized": "astra linux special edition",
+   "cards": 6,
+   "http": 200,
+   "ms": 173
+  },
+  {
+   "vendor": "astralinux",
+   "query": "фыекф дштгч",
+   "kind": "раскладка",
+   "distortion": "раскладка",
+   "target_type": "family",
+   "group_ids": [
+    "121231"
+   ],
+   "expected": [
+    "https://store.softline.ru/astralinux/astra-linux-special-edition/"
+   ],
+   "strict": true,
+   "top4": true,
+   "rank": 1,
+   "first_url": "https://store.softline.ru/astralinux/astra-linux-special-edition/",
+   "first_type": "family",
+   "first_family": "121231",
+   "first_title": "Astra Linux Special Edition на базе п/а Эльбрус, для аппаратных платформ Эльбрус-8С, Эльбрус-1С, РУСБ.10265-01 (МО),",
+   "route": "B",
+   "normalized": "astra linux",
+   "cards": 5,
+   "http": 200,
+   "ms": 163
+  },
+  {
+   "vendor": "astralinux",
+   "query": "астра линкус",
+   "kind": "опечатка",
+   "distortion": "опечатка",
+   "target_type": "family",
+   "group_ids": [
+    "121231"
+   ],
+   "expected": [
+    "https://store.softline.ru/astralinux/astra-linux-special-edition/"
+   ],
+   "strict": true,
+   "top4": true,
+   "rank": 1,
+   "first_url": "https://store.softline.ru/astralinux/astra-linux-special-edition/",
+   "first_type": "family",
+   "first_family": "121231",
+   "first_title": "Astra Linux Special Edition на базе п/а Эльбрус, для аппаратных платформ Эльбрус-8С, Эльбрус-1С, РУСБ.10265-01 (МО),",
+   "route": "B",
+   "normalized": "astra linux",
+   "cards": 9,
+   "http": 200,
+   "ms": 101
+  },
+  {
+   "vendor": "astralinux",
+   "query": "astra linux воронеж",
+   "kind": "редакция",
+   "distortion": "атрибут",
+   "target_type": "family",
+   "group_ids": [
+    "121231"
+   ],
+   "expected": [
+    "https://store.softline.ru/astralinux/astra-linux-special-edition/"
+   ],
+   "strict": true,
+   "top4": true,
+   "rank": 1,
+   "first_url": "https://store.softline.ru/astralinux/astra-linux-special-edition/",
+   "first_type": "family",
+   "first_family": "121231",
+   "first_title": "Astra Linux Special Edition на базе п/а Эльбрус, для аппаратных платформ Эльбрус-8С, Эльбрус-1С, РУСБ.10265-01 (МО),",
+   "route": "A",
+   "normalized": "astra linux воронеж",
+   "cards": 5,
+   "http": 200,
+   "ms": 160
+  },
+  {
+   "vendor": "astralinux",
+   "query": "астра линукс смоленск",
+   "kind": "редакция",
+   "distortion": "атрибут",
+   "target_type": "family",
+   "group_ids": [
+    "121231"
+   ],
+   "expected": [
+    "https://store.softline.ru/astralinux/astra-linux-special-edition/"
+   ],
+   "strict": true,
+   "top4": true,
+   "rank": 1,
+   "first_url": "https://store.softline.ru/astralinux/astra-linux-special-edition/",
+   "first_type": "family",
+   "first_family": "121231",
+   "first_title": "Astra Linux Special Edition на базе п/а Эльбрус, для аппаратных платформ Эльбрус-8С, Эльбрус-1С, РУСБ.10265-01 (МО),",
+   "route": "B",
+   "normalized": "astra linux смоленск",
+   "cards": 6,
+   "http": 200,
+   "ms": 163
+  },
+  {
+   "vendor": "astralinux",
+   "query": "техподдержка астра линукс",
+   "kind": "атрибут лицензии",
+   "distortion": "атрибут",
+   "target_type": "family",
+   "group_ids": [
+    "121231"
+   ],
+   "expected": [
+    "https://store.softline.ru/astralinux/astra-linux-special-edition/"
+   ],
+   "strict": true,
+   "top4": true,
+   "rank": 1,
+   "first_url": "https://store.softline.ru/astralinux/astra-linux-special-edition/",
+   "first_type": "family",
+   "first_family": "121231",
+   "first_title": "Сертификат техподдержки на ОС Astra Linux Special Edition для ЭВМ на базе п/а Эльбрус, для аппаратных платформ",
+   "route": "B",
+   "normalized": "техподдержка astra linux",
+   "cards": 9,
+   "http": 200,
+   "ms": 151
+  },
+  {
+   "vendor": "astralinux",
+   "query": "астра линукс для сервера",
+   "kind": "атрибут",
+   "distortion": "атрибут",
+   "target_type": "family",
+   "group_ids": [
+    "121231"
+   ],
+   "expected": [
+    "https://store.softline.ru/astralinux/astra-linux-special-edition/"
+   ],
+   "strict": true,
+   "top4": true,
+   "rank": 1,
+   "first_url": "https://store.softline.ru/astralinux/astra-linux-special-edition/",
+   "first_type": "family",
+   "first_family": "121231",
+   "first_title": "Astra Linux Special Edition на базе п/а Эльбрус, для аппаратных платформ Эльбрус-8С, Эльбрус-1С, РУСБ.10265-01 (МО),",
+   "route": "B",
+   "normalized": "astra linux для сервера",
+   "cards": 14,
+   "http": 200,
+   "ms": 131
+  },
+  {
+   "vendor": "astralinux",
+   "query": "астра",
+   "kind": "бренд",
+   "distortion": "название",
+   "target_type": "vendor",
+   "group_ids": [],
+   "expected": [
+    "https://store.softline.ru/astralinux/"
+   ],
+   "strict": true,
+   "top4": true,
+   "rank": null,
+   "first_url": "https://store.softline.ru/astralinux/",
+   "first_type": "vendor",
+   "first_family": "304907",
+   "first_title": "Группа Астра Программные продукты DCImanager Infrastructure, срочные лицензии, Лицензия DCImanager 6 Infrastructure на",
+   "route": "B",
+   "normalized": "группа астра",
+   "cards": 5,
+   "http": 200,
+   "ms": 112
+  },
+  {
+   "vendor": "astralinux",
+   "query": "алд про",
+   "kind": "другой продукт вендора",
+   "distortion": "название",
+   "target_type": "family",
+   "group_ids": [
+    "287015"
+   ],
+   "expected": [
+    "https://store.softline.ru/astralinux/ald-pro/"
+   ],
+   "strict": true,
+   "top4": true,
+   "rank": 1,
+   "first_url": "https://store.softline.ru/astralinux/ald-pro/",
+   "first_type": "family",
+   "first_family": "287015",
+   "first_title": "Группа Астра Программный комплекс ALD Pro, серверные лицензии, срочные, Лицензия на ПК ALD Pro РДЦП.10101-01 на 1",
+   "route": "B",
+   "normalized": "ald pro",
+   "cards": 4,
+   "http": 200,
+   "ms": 136
+  },
+  {
+   "vendor": "astralinux",
+   "query": "ald pro",
+   "kind": "другой продукт вендора",
+   "distortion": "название",
+   "target_type": "family",
+   "group_ids": [
+    "287015"
+   ],
+   "expected": [
+    "https://store.softline.ru/astralinux/ald-pro/"
+   ],
+   "strict": true,
+   "top4": true,
+   "rank": 1,
+   "first_url": "https://store.softline.ru/astralinux/ald-pro/",
+   "first_type": "family",
+   "first_family": "287015",
+   "first_title": "Группа Астра Программный комплекс ALD Pro, серверные лицензии, срочные, Лицензия на ПК ALD Pro РДЦП.10101-01 на 1",
+   "route": "A",
+   "normalized": "ald pro",
+   "cards": 4,
+   "http": 200,
+   "ms": 104
+  },
+  {
+   "vendor": "astralinux",
+   "query": "термидеск",
+   "kind": "другой продукт вендора",
+   "distortion": "название",
+   "target_type": "family",
+   "group_ids": [
+    "299975"
+   ],
+   "expected": [
+    "https://store.softline.ru/astralinux/termidesk/"
+   ],
+   "strict": true,
+   "top4": true,
+   "rank": 1,
+   "first_url": "https://store.softline.ru/astralinux/termidesk/",
+   "first_type": "family",
+   "first_family": "299975",
+   "first_title": "Лицензия на Программный комплекс для организации виртуальных рабочих мест Termidesk Enterprise в составе: диспетчер",
+   "route": "B",
+   "normalized": "termidesk",
+   "cards": 4,
+   "http": 200,
+   "ms": 78
+  },
+  {
+   "vendor": "astralinux",
+   "query": "рубэкап",
+   "kind": "другой продукт вендора",
+   "distortion": "название",
+   "target_type": "family",
+   "group_ids": [
+    "406074"
+   ],
+   "expected": [
+    "https://store.softline.ru/astralinux/rubackup-oneclick/"
+   ],
+   "strict": true,
+   "top4": true,
+   "rank": 1,
+   "first_url": "https://store.softline.ru/astralinux/rubackup-oneclick/",
+   "first_type": "family",
+   "first_family": "406074",
+   "first_title": "Группа Астра Программный комплекс RuBackup OneClick, бессрочные лицензии, Лицензия на ПК RuBackup OneClick, в составе:",
+   "route": "B",
+   "normalized": "rubackup",
+   "cards": 5,
+   "http": 200,
+   "ms": 89
+  },
+  {
+   "vendor": "astralinux",
+   "query": "тантор",
+   "kind": "другой продукт вендора",
+   "distortion": "название",
+   "target_type": "family",
+   "group_ids": [
+    "342351"
+   ],
+   "expected": [
+    "https://store.softline.ru/astralinux/tantor/"
+   ],
+   "strict": true,
+   "top4": true,
+   "rank": 1,
+   "first_url": "https://store.softline.ru/astralinux/tantor/",
+   "first_type": "family",
+   "first_family": "342351",
+   "first_title": "Группа Астра Программные продукты СУБД Tantor Special Edition х86-64, бессрочные лицензии, Лицензия на СУБД Tantor SE,",
+   "route": "C",
+   "normalized": "тантор",
+   "cards": 4,
+   "http": 200,
+   "ms": 125
+  },
+  {
+   "vendor": "microsoft",
+   "query": "офис для дома и бизнеса",
+   "kind": "жаргон",
+   "distortion": "написание",
+   "target_type": "family",
+   "group_ids": [
+    "391338"
+   ],
+   "expected": [
+    "https://store.softline.ru/microsoft/microsoft-office-dlya-doma-i-biznesa-2024/"
+   ],
+   "strict": true,
+   "top4": true,
+   "rank": 1,
+   "first_url": "https://store.softline.ru/microsoft/microsoft-office-dlya-doma-i-biznesa-2024/",
+   "first_type": "family",
+   "first_family": "391338",
+   "first_title": "Microsoft Office для дома и бизнеса 2024, Электронная лицензия на 1 ПК, бессрочная",
+   "route": "B",
+   "normalized": "office для дома и бизнеса",
+   "cards": 20,
+   "http": 200,
+   "ms": 121
+  },
+  {
+   "vendor": "microsoft",
+   "query": "майкрософт офис для дома и бизнеса",
+   "kind": "транслит",
+   "distortion": "транслит",
+   "target_type": "family",
+   "group_ids": [
+    "391338"
+   ],
+   "expected": [
+    "https://store.softline.ru/microsoft/microsoft-office-dlya-doma-i-biznesa-2024/"
+   ],
+   "strict": true,
+   "top4": true,
+   "rank": 1,
+   "first_url": "https://store.softline.ru/microsoft/microsoft-office-dlya-doma-i-biznesa-2024/",
+   "first_type": "family",
+   "first_family": "391338",
+   "first_title": "Microsoft Office для дома и бизнеса 2024, Электронная лицензия на 1 ПК, бессрочная",
+   "route": "B",
+   "normalized": "microsoft office для дома и бизнеса",
+   "cards": 20,
+   "http": 200,
+   "ms": 150
+  },
+  {
+   "vendor": "microsoft",
+   "query": "office home and business 2024",
+   "kind": "английское название",
+   "distortion": "транслит",
+   "target_type": "family",
+   "group_ids": [
+    "391338"
+   ],
+   "expected": [
+    "https://store.softline.ru/microsoft/microsoft-office-dlya-doma-i-biznesa-2024/"
+   ],
+   "strict": true,
+   "top4": true,
+   "rank": 1,
+   "first_url": "https://store.softline.ru/microsoft/microsoft-office-dlya-doma-i-biznesa-2024/",
+   "first_type": "family",
+   "first_family": "391338",
+   "first_title": "Microsoft Office для дома и бизнеса 2024, Электронная лицензия на 1 ПК, бессрочная",
+   "route": "A",
+   "normalized": "office home and business 2024",
+   "cards": 9,
+   "http": 200,
+   "ms": 126
+  },
+  {
+   "vendor": "microsoft",
+   "query": "ms office для дома и бизнеса 2024",
+   "kind": "сокращение",
+   "distortion": "написание",
+   "target_type": "family",
+   "group_ids": [
+    "391338"
+   ],
+   "expected": [
+    "https://store.softline.ru/microsoft/microsoft-office-dlya-doma-i-biznesa-2024/"
+   ],
+   "strict": true,
+   "top4": true,
+   "rank": 1,
+   "first_url": "https://store.softline.ru/microsoft/microsoft-office-dlya-doma-i-biznesa-2024/",
+   "first_type": "family",
+   "first_family": "391338",
+   "first_title": "Microsoft Office для дома и бизнеса 2024, Электронная лицензия на 1 ПК, бессрочная",
+   "route": "B",
+   "normalized": "microsoft office для дома и бизнеса 2024",
+   "cards": 15,
+   "http": 200,
+   "ms": 132
+  },
+  {
+   "vendor": "microsoft",
+   "query": "офиса для дома и бизнеса",
+   "kind": "склонение",
+   "distortion": "склонение",
+   "target_type": "family",
+   "group_ids": [
+    "391338"
+   ],
+   "expected": [
+    "https://store.softline.ru/microsoft/microsoft-office-dlya-doma-i-biznesa-2024/"
+   ],
+   "strict": true,
+   "top4": true,
+   "rank": 1,
+   "first_url": "https://store.softline.ru/microsoft/microsoft-office-dlya-doma-i-biznesa-2024/",
+   "first_type": "family",
+   "first_family": "391338",
+   "first_title": "Microsoft Office для дома и бизнеса 2024, Электронная лицензия на 1 ПК, бессрочная",
+   "route": "B",
+   "normalized": "office для дома и бизнеса",
+   "cards": 20,
+   "http": 200,
+   "ms": 102
+  },
+  {
+   "vendor": "microsoft",
+   "query": "офис для дома и учебы",
+   "kind": "соседнее семейство",
+   "distortion": "название",
+   "target_type": "family",
+   "group_ids": [
+    "391335"
+   ],
+   "expected": [
+    "https://store.softline.ru/microsoft/microsoft-office-dlya-doma-i-ucheby-2024/"
+   ],
+   "strict": true,
+   "top4": true,
+   "rank": 1,
+   "first_url": "https://store.softline.ru/microsoft/microsoft-office-dlya-doma-i-ucheby-2024/",
+   "first_type": "family",
+   "first_family": "391335",
+   "first_title": "Microsoft Office для дома 2024, Электронная лицензия на 1 ПК, бессрочная",
+   "route": "B",
+   "normalized": "office для дома и учебы",
+   "cards": 20,
+   "http": 200,
+   "ms": 103
+  },
+  {
+   "vendor": "microsoft",
+   "query": "office home and student",
+   "kind": "соседнее семейство",
+   "distortion": "название",
+   "target_type": "family",
+   "group_ids": [
+    "391335"
+   ],
+   "expected": [
+    "https://store.softline.ru/microsoft/microsoft-office-dlya-doma-i-ucheby-2024/"
+   ],
+   "strict": true,
+   "top4": true,
+   "rank": 1,
+   "first_url": "https://store.softline.ru/microsoft/microsoft-office-dlya-doma-i-ucheby-2024/",
+   "first_type": "family",
+   "first_family": "391335",
+   "first_title": "Microsoft Office для дома 2024, Электронная лицензия на 1 ПК, бессрочная",
+   "route": "C",
+   "normalized": "office home and student",
+   "cards": 4,
+   "http": 200,
+   "ms": 582
+  },
+  {
+   "vendor": "microsoft",
+   "query": "microsoft 365",
+   "kind": "полное название",
+   "distortion": "название",
+   "target_type": "family",
+   "group_ids": [
+    "165034"
+   ],
+   "expected": [
+    "https://store.softline.ru/microsoft/microsoft-365-for-family/"
+   ],
+   "strict": true,
+   "top4": true,
+   "rank": 1,
+   "first_url": "https://store.softline.ru/microsoft/microsoft-365-for-family/",
+   "first_type": "family",
+   "first_family": "165034",
+   "first_title": "Microsoft 365 для семьи (Family) 6GQ-00084: подписка на 6 пользователей, 1 год",
+   "route": "B",
+   "normalized": "microsoft 365",
+   "cards": 13,
+   "http": 200,
+   "ms": 104
+  },
+  {
+   "vendor": "microsoft",
+   "query": "майкрософт 365",
+   "kind": "транслит",
+   "distortion": "транслит",
+   "target_type": "family",
+   "group_ids": [
+    "165034"
+   ],
+   "expected": [
+    "https://store.softline.ru/microsoft/microsoft-365-for-family/"
+   ],
+   "strict": true,
+   "top4": true,
+   "rank": 1,
+   "first_url": "https://store.softline.ru/microsoft/microsoft-365-for-family/",
+   "first_type": "family",
+   "first_family": "165034",
+   "first_title": "Microsoft 365 для семьи (Family) 6GQ-00084: подписка на 6 пользователей, 1 год",
+   "route": "B",
+   "normalized": "microsoft 365",
+   "cards": 14,
+   "http": 200,
+   "ms": 150
+  },
+  {
+   "vendor": "microsoft",
+   "query": "офис 365",
+   "kind": "жаргон",
+   "distortion": "написание",
+   "target_type": "family",
+   "group_ids": [
+    "165034"
+   ],
+   "expected": [
+    "https://store.softline.ru/microsoft/microsoft-365-for-family/"
+   ],
+   "strict": true,
+   "top4": true,
+   "rank": 1,
+   "first_url": "https://store.softline.ru/microsoft/microsoft-365-for-family/",
+   "first_type": "family",
+   "first_family": "165034",
+   "first_title": "Microsoft 365 для семьи (Family) 6GQ-00084: подписка на 6 пользователей, 1 год",
+   "route": "B",
+   "normalized": "microsoft 365",
+   "cards": 19,
+   "http": 200,
+   "ms": 99
+  },
+  {
+   "vendor": "microsoft",
+   "query": "office 365",
+   "kind": "прежнее название",
+   "distortion": "написание",
+   "target_type": "family",
+   "group_ids": [
+    "165034"
+   ],
+   "expected": [
+    "https://store.softline.ru/microsoft/microsoft-365-for-family/"
+   ],
+   "strict": true,
+   "top4": true,
+   "rank": 1,
+   "first_url": "https://store.softline.ru/microsoft/microsoft-365-for-family/",
+   "first_type": "family",
+   "first_family": "165034",
+   "first_title": "Microsoft 365 для семьи (Family) 6GQ-00084: подписка на 6 пользователей, 1 год",
+   "route": "B",
+   "normalized": "microsoft 365",
+   "cards": 20,
+   "http": 200,
+   "ms": 84
+  },
+  {
+   "vendor": "microsoft",
+   "query": "365 для семьи",
+   "kind": "уточнение",
+   "distortion": "атрибут",
+   "target_type": "family",
+   "group_ids": [
+    "165034"
+   ],
+   "expected": [
+    "https://store.softline.ru/microsoft/microsoft-365-for-family/"
+   ],
+   "strict": true,
+   "top4": true,
+   "rank": 1,
+   "first_url": "https://store.softline.ru/microsoft/microsoft-365-for-family/",
+   "first_type": "family",
+   "first_family": "165034",
+   "first_title": "Microsoft 365 для семьи (Family) 6GQ-00084: подписка на 6 пользователей, 1 год",
+   "route": "A",
+   "normalized": "365 для семьи",
+   "cards": 7,
+   "http": 200,
+   "ms": 92
+  },
+  {
+   "vendor": "microsoft",
+   "query": "м365",
+   "kind": "сокращение",
+   "distortion": "написание",
+   "target_type": "family",
+   "group_ids": [
+    "165034"
+   ],
+   "expected": [
+    "https://store.softline.ru/microsoft/microsoft-365-for-family/"
+   ],
+   "strict": true,
+   "top4": true,
+   "rank": 1,
+   "first_url": "https://store.softline.ru/microsoft/microsoft-365-for-family/",
+   "first_type": "family",
+   "first_family": "165034",
+   "first_title": "Microsoft 365 для семьи (Family) 6GQ-00084: подписка на 6 пользователей, 1 год",
+   "route": "B",
+   "normalized": "microsoft 365",
+   "cards": 15,
+   "http": 200,
+   "ms": 93
+  },
+  {
+   "vendor": "microsoft",
+   "query": "365 персональный",
+   "kind": "соседнее семейство",
+   "distortion": "название",
+   "target_type": "family",
+   "group_ids": [
+    "283494"
+   ],
+   "expected": [
+    "https://store.softline.ru/microsoft/microsoft-365-personal/"
+   ],
+   "strict": true,
+   "top4": true,
+   "rank": 1,
+   "first_url": "https://store.softline.ru/microsoft/microsoft-365-personal/",
+   "first_type": "family",
+   "first_family": "283494",
+   "first_title": "Microsoft 365 Персональный, Электронная подписка для 1 пользователя, на 1 год",
+   "route": "A",
+   "normalized": "365 персональный",
+   "cards": 11,
+   "http": 200,
+   "ms": 98
+  },
+  {
+   "vendor": "microsoft",
+   "query": "visio",
+   "kind": "две редакции",
+   "distortion": "название",
+   "target_type": "family",
+   "group_ids": [
+    "391350",
+    "391347"
+   ],
+   "expected": [
+    "https://store.softline.ru/microsoft/microsoft-visio-standard-2024/",
+    "https://store.softline.ru/microsoft/microsoft-visio-professional-2024/"
+   ],
+   "strict": true,
+   "top4": true,
+   "rank": 1,
+   "first_url": "https://store.softline.ru/microsoft/microsoft-visio-standard-2024/",
+   "first_type": "family",
+   "first_family": "391350",
+   "first_title": "Microsoft Visio Standard 2024, электронная лицензия на 1 ПК, бессрочная",
+   "route": "A",
+   "normalized": "visio",
+   "cards": 7,
+   "http": 200,
+   "ms": 71
+  },
+  {
+   "vendor": "microsoft",
+   "query": "ms project",
+   "kind": "две редакции",
+   "distortion": "название",
+   "target_type": "family",
+   "group_ids": [
+    "391344",
+    "391341"
+   ],
+   "expected": [
+    "https://store.softline.ru/microsoft/microsoft-project-standard-2024/",
+    "https://store.softline.ru/microsoft/microsoft-project-professional-2024/"
+   ],
+   "strict": true,
+   "top4": true,
+   "rank": 1,
+   "first_url": "https://store.softline.ru/microsoft/microsoft-project-standard-2024/",
+   "first_type": "family",
+   "first_family": "391344",
+   "first_title": "Microsoft Project Standard 2024, электронная лицензия на 1 ПК, бессрочная",
+   "route": "B",
+   "normalized": "microsoft project",
+   "cards": 6,
+   "http": 200,
+   "ms": 96
+  },
+  {
+   "vendor": "microsoft",
+   "query": "windows 11",
+   "kind": "две редакции",
+   "distortion": "название",
+   "target_type": "family",
+   "group_ids": [
+    "286676",
+    "310176"
+   ],
+   "expected": [
+    "https://store.softline.ru/microsoft/microsoft-windows-professional-11/",
+    "https://store.softline.ru/microsoft/microsoft-windows-11-home/"
+   ],
+   "strict": true,
+   "top4": true,
+   "rank": 1,
+   "first_url": "https://store.softline.ru/microsoft/microsoft-windows-professional-11/",
+   "first_type": "family",
+   "first_family": "286676",
+   "first_title": "Microsoft Windows 11 Pro FQC-10572, электронный ключ",
+   "route": "A",
+   "normalized": "windows 11",
+   "cards": 4,
+   "http": 200,
+   "ms": 183
+  },
+  {
+   "vendor": "microsoft",
+   "query": "виндовс 11 про",
+   "kind": "транслит",
+   "distortion": "транслит",
+   "target_type": "family",
+   "group_ids": [
+    "286676"
+   ],
+   "expected": [
+    "https://store.softline.ru/microsoft/microsoft-windows-professional-11/"
+   ],
+   "strict": true,
+   "top4": true,
+   "rank": 1,
+   "first_url": "https://store.softline.ru/microsoft/microsoft-windows-professional-11/",
+   "first_type": "family",
+   "first_family": "286676",
+   "first_title": "Microsoft Windows 11 Pro FQC-10572, электронный ключ",
+   "route": "B",
+   "normalized": "windows 11 pro",
+   "cards": 15,
+   "http": 200,
+   "ms": 72
+  },
+  {
+   "vendor": "kaspersky",
+   "query": "касперский small office security",
+   "kind": "смешанное написание",
+   "distortion": "транслит",
+   "target_type": "family",
+   "group_ids": [
+    "3761"
+   ],
+   "expected": [
+    "https://store.softline.ru/kaspersky/kaspersky-small-office-security/"
+   ],
+   "strict": true,
+   "top4": true,
+   "rank": 1,
+   "first_url": "https://store.softline.ru/kaspersky/kaspersky-small-office-security/",
+   "first_type": "family",
+   "first_family": "3761",
+   "first_title": "Kaspersky Small Office Security новая лицензия на 5 ПК/мобильных устройств/пользователей на 1 год",
+   "route": "B",
+   "normalized": "kaspersky small office security",
+   "cards": 16,
+   "http": 200,
+   "ms": 142
+  },
+  {
+   "vendor": "kaspersky",
+   "query": "касперского смолл офис секьюрити",
+   "kind": "склонение + транслит",
+   "distortion": "склонение",
+   "target_type": "family",
+   "group_ids": [
+    "3761"
+   ],
+   "expected": [
+    "https://store.softline.ru/kaspersky/kaspersky-small-office-security/"
+   ],
+   "strict": true,
+   "top4": true,
+   "rank": 1,
+   "first_url": "https://store.softline.ru/kaspersky/kaspersky-small-office-security/",
+   "first_type": "family",
+   "first_family": "3761",
+   "first_title": "Kaspersky Small Office Security новая лицензия на 5 ПК/мобильных устройств/пользователей на 1 год",
+   "route": "B",
+   "normalized": "kaspersky small office security",
+   "cards": 8,
+   "http": 200,
+   "ms": 118
+  },
+  {
+   "vendor": "kaspersky",
+   "query": "kaspersky small office",
+   "kind": "неполное название",
+   "distortion": "название",
+   "target_type": "family",
+   "group_ids": [
+    "3761"
+   ],
+   "expected": [
+    "https://store.softline.ru/kaspersky/kaspersky-small-office-security/"
+   ],
+   "strict": true,
+   "top4": true,
+   "rank": 1,
+   "first_url": "https://store.softline.ru/kaspersky/kaspersky-small-office-security/",
+   "first_type": "family",
+   "first_family": "3761",
+   "first_title": "Kaspersky Small Office Security новая лицензия на 5 ПК/мобильных устройств/пользователей на 1 год",
+   "route": "B",
+   "normalized": "kaspersky small office",
+   "cards": 4,
+   "http": 200,
+   "ms": 94
+  },
+  {
+   "vendor": "kaspersky",
+   "query": "ksos",
+   "kind": "сокращение",
+   "distortion": "написание",
+   "target_type": "family",
+   "group_ids": [
+    "3761"
+   ],
+   "expected": [
+    "https://store.softline.ru/kaspersky/kaspersky-small-office-security/"
+   ],
+   "strict": true,
+   "top4": true,
+   "rank": 1,
+   "first_url": "https://store.softline.ru/kaspersky/kaspersky-small-office-security/",
+   "first_type": "family",
+   "first_family": "3761",
+   "first_title": "Kaspersky Small Office Security новая лицензия на 5 ПК/мобильных устройств/пользователей на 1 год",
+   "route": "B",
+   "normalized": "kaspersky small office security",
+   "cards": 12,
+   "http": 200,
+   "ms": 108
+  },
+  {
+   "vendor": "kaspersky",
+   "query": "kaspersky smal ofice security",
+   "kind": "опечатка",
+   "distortion": "опечатка",
+   "target_type": "family",
+   "group_ids": [
+    "3761"
+   ],
+   "expected": [
+    "https://store.softline.ru/kaspersky/kaspersky-small-office-security/"
+   ],
+   "strict": true,
+   "top4": true,
+   "rank": 1,
+   "first_url": "https://store.softline.ru/kaspersky/kaspersky-small-office-security/",
+   "first_type": "family",
+   "first_family": "3761",
+   "first_title": "Kaspersky Small Office Security новая лицензия на 5 ПК/мобильных устройств/пользователей на 1 год",
+   "route": "B",
+   "normalized": "kaspersky small office security",
+   "cards": 15,
+   "http": 200,
+   "ms": 118
+  },
+  {
+   "vendor": "kaspersky",
+   "query": "продление kaspersky small office security",
+   "kind": "атрибут лицензии",
+   "distortion": "атрибут",
+   "target_type": "family",
+   "group_ids": [
+    "3761"
+   ],
+   "expected": [
+    "https://store.softline.ru/kaspersky/kaspersky-small-office-security/"
+   ],
+   "strict": true,
+   "top4": true,
+   "rank": 1,
+   "first_url": "https://store.softline.ru/kaspersky/kaspersky-small-office-security/",
+   "first_type": "family",
+   "first_family": "3761",
+   "first_title": "Kaspersky Small Office Security продление лицензии на 5 ПК/мобильных устройств/пользователей на 1 год",
+   "route": "B",
+   "normalized": "продление kaspersky small office security",
+   "cards": 4,
+   "http": 200,
+   "ms": 83
+  },
+  {
+   "vendor": "kaspersky",
+   "query": "касперский смол офис на 10 пк",
+   "kind": "атрибут количества",
+   "distortion": "атрибут",
+   "target_type": "family",
+   "group_ids": [
+    "3761"
+   ],
+   "expected": [
+    "https://store.softline.ru/kaspersky/kaspersky-small-office-security/"
+   ],
+   "strict": true,
+   "top4": true,
+   "rank": 1,
+   "first_url": "https://store.softline.ru/kaspersky/kaspersky-small-office-security/",
+   "first_type": "family",
+   "first_family": "3761",
+   "first_title": "Kaspersky Small Office Security новая лицензия на 5 ПК/мобильных устройств/пользователей на 1 год",
+   "route": "B",
+   "normalized": "kaspersky small office на 10 пк",
+   "cards": 4,
+   "http": 200,
+   "ms": 123
+  },
+  {
+   "vendor": "kaspersky",
+   "query": "касперский",
+   "kind": "бренд",
+   "distortion": "название",
+   "target_type": "vendor",
+   "group_ids": [],
+   "expected": [
+    "https://store.softline.ru/kaspersky/"
+   ],
+   "strict": true,
+   "top4": true,
+   "rank": null,
+   "first_url": "https://store.softline.ru/kaspersky/",
+   "first_type": "vendor",
+   "first_family": "341252",
+   "first_title": "Kaspersky Standard лицензия Base Download Pack Russian Edition на 1 год и на 3 устройства",
+   "route": "B",
+   "normalized": "kaspersky",
+   "cards": 4,
+   "http": 200,
+   "ms": 86
+  },
+  {
+   "vendor": "kaspersky",
+   "query": "kaspersky",
+   "kind": "бренд",
+   "distortion": "название",
+   "target_type": "vendor",
+   "group_ids": [],
+   "expected": [
+    "https://store.softline.ru/kaspersky/"
+   ],
+   "strict": true,
+   "top4": true,
+   "rank": null,
+   "first_url": "https://store.softline.ru/kaspersky/",
+   "first_type": "vendor",
+   "first_family": "341252",
+   "first_title": "Kaspersky Standard лицензия Base Download Pack Russian Edition на 1 год и на 3 устройства",
+   "route": "B",
+   "normalized": "kaspersky",
+   "cards": 4,
+   "http": 200,
+   "ms": 74
+  },
+  {
+   "vendor": "kaspersky",
+   "query": "касперского",
+   "kind": "склонение",
+   "distortion": "склонение",
+   "target_type": "vendor",
+   "group_ids": [],
+   "expected": [
+    "https://store.softline.ru/kaspersky/"
+   ],
+   "strict": true,
+   "top4": true,
+   "rank": null,
+   "first_url": "https://store.softline.ru/kaspersky/",
+   "first_type": "vendor",
+   "first_family": "341252",
+   "first_title": "Kaspersky Standard лицензия Base Download Pack Russian Edition на 1 год и на 3 устройства",
+   "route": "B",
+   "normalized": "kaspersky",
+   "cards": 4,
+   "http": 200,
+   "ms": 95
+  },
+  {
+   "vendor": "kaspersky",
+   "query": "каспер",
+   "kind": "жаргон",
+   "distortion": "написание",
+   "target_type": "vendor",
+   "group_ids": [],
+   "expected": [
+    "https://store.softline.ru/kaspersky/"
+   ],
+   "strict": true,
+   "top4": true,
+   "rank": null,
+   "first_url": "https://store.softline.ru/kaspersky/",
+   "first_type": "vendor",
+   "first_family": "341252",
+   "first_title": "Kaspersky Standard лицензия Base Download Pack Russian Edition на 1 год и на 3 устройства",
+   "route": "B",
+   "normalized": "kaspersky",
+   "cards": 4,
+   "http": 200,
+   "ms": 91
+  },
+  {
+   "vendor": "kaspersky",
+   "query": "лаборатория касперского",
+   "kind": "вендор",
+   "distortion": "название",
+   "target_type": "vendor",
+   "group_ids": [],
+   "expected": [
+    "https://store.softline.ru/kaspersky/"
+   ],
+   "strict": true,
+   "top4": true,
+   "rank": null,
+   "first_url": "https://store.softline.ru/kaspersky/",
+   "first_type": "vendor",
+   "first_family": "341252",
+   "first_title": "Kaspersky Standard лицензия Base Download Pack Russian Edition на 1 год и на 3 устройства",
+   "route": "B",
+   "normalized": "лаборатория kaspersky",
+   "cards": 4,
+   "http": 200,
+   "ms": 85
+  },
+  {
+   "vendor": "kaspersky",
+   "query": "kaspersky endpoint security",
+   "kind": "линейка",
+   "distortion": "название",
+   "target_type": "vendor_category",
+   "group_ids": [],
+   "expected": [
+    "https://store.softline.ru/kaspersky/?filter[category][]=650"
+   ],
+   "strict": true,
+   "top4": true,
+   "rank": 1,
+   "first_url": "https://store.softline.ru/kaspersky/?filter[category][]=650",
+   "first_type": "vendor_category",
+   "first_family": "3953",
+   "first_title": "Kaspersky Стандартный Certified media Pack Russian Edition Media Pack - Установочный комплект Дистрибутив. Русская",
+   "route": "B",
+   "normalized": "kaspersky endpoint security",
+   "cards": 19,
+   "http": 200,
+   "ms": 109
+  },
+  {
+   "vendor": "kaspersky",
+   "query": "касперский эндпоинт стандартный",
+   "kind": "соседнее семейство",
+   "distortion": "название",
+   "target_type": "family",
+   "group_ids": [
+    "3953"
+   ],
+   "expected": [
+    "https://store.softline.ru/kaspersky/kaspersky-endpoint-security-dlya-biznesa-standartnyiy/"
+   ],
+   "strict": true,
+   "top4": true,
+   "rank": 1,
+   "first_url": "https://store.softline.ru/kaspersky/kaspersky-endpoint-security-dlya-biznesa-standartnyiy/",
+   "first_type": "family",
+   "first_family": "3953",
+   "first_title": "Kaspersky Стандартный Certified media Pack Russian Edition Media Pack - Установочный комплект Дистрибутив. Русская",
+   "route": "B",
+   "normalized": "kaspersky endpoint стандартный",
+   "cards": 4,
+   "http": 200,
+   "ms": 123
+  },
+  {
+   "vendor": "kaspersky",
+   "query": "kes расширенный",
+   "kind": "соседнее семейство",
+   "distortion": "название",
+   "target_type": "family",
+   "group_ids": [
+    "3935"
+   ],
+   "expected": [
+    "https://store.softline.ru/kaspersky/kaspersky-endpoint-security-dlya-biznesa-rasshirennyiy/"
+   ],
+   "strict": true,
+   "top4": true,
+   "rank": 1,
+   "first_url": "https://store.softline.ru/kaspersky/kaspersky-endpoint-security-dlya-biznesa-rasshirennyiy/",
+   "first_type": "family",
+   "first_family": "3935",
+   "first_title": "Kaspersky Certified media Pack Customized Russian Edition Media Pack - Установочный комплект Дистрибутив. Русская",
+   "route": "B",
+   "normalized": "kaspersky endpoint security расширенный",
+   "cards": 14,
+   "http": 200,
+   "ms": 126
+  },
+  {
+   "vendor": "kaspersky",
+   "query": "kaspersky total security для бизнеса",
+   "kind": "соседнее семейство",
+   "distortion": "название",
+   "target_type": "family",
+   "group_ids": [
+    "3971"
+   ],
+   "expected": [
+    "https://store.softline.ru/kaspersky/kaspersky-total-security-dlya-biznesa/"
+   ],
+   "strict": true,
+   "top4": true,
+   "rank": 1,
+   "first_url": "https://store.softline.ru/kaspersky/kaspersky-total-security-dlya-biznesa/",
+   "first_type": "family",
+   "first_family": "3971",
+   "first_title": "Kaspersky Total Security для бизнеса базовая лицензия на 2 года по количеству узлов",
+   "route": "B",
+   "normalized": "kaspersky total security для бизнеса",
+   "cards": 20,
+   "http": 200,
+   "ms": 136
+  },
+  {
+   "vendor": "kaspersky",
+   "query": "касперский для почтовых серверов",
+   "kind": "соседнее семейство",
+   "distortion": "название",
+   "target_type": "family",
+   "group_ids": [
+    "3707"
+   ],
+   "expected": [
+    "https://store.softline.ru/kaspersky/kaspersky-security-dlya-pochtovyih-serverov/"
+   ],
+   "strict": true,
+   "top4": true,
+   "rank": 1,
+   "first_url": "https://store.softline.ru/kaspersky/kaspersky-security-dlya-pochtovyih-serverov/",
+   "first_type": "family",
+   "first_family": "3707",
+   "first_title": "Kaspersky Security для почтовых серверов базовая лицензия на 1 год по количеству почтовых адресов",
+   "route": "B",
+   "normalized": "kaspersky для почтовых серверов",
+   "cards": 20,
+   "http": 200,
+   "ms": 115
+  },
+  {
+   "vendor": "kaspersky",
+   "query": "kaspersky endpoint security cloud",
+   "kind": "соседнее семейство",
+   "distortion": "название",
+   "target_type": "family",
+   "group_ids": [
+    "4052"
+   ],
+   "expected": [
+    "https://store.softline.ru/kaspersky/kaspersky-endpoint-security-dlya-biznesa-cloud/"
+   ],
+   "strict": true,
+   "top4": true,
+   "rank": 1,
+   "first_url": "https://store.softline.ru/kaspersky/kaspersky-endpoint-security-dlya-biznesa-cloud/",
+   "first_type": "family",
+   "first_family": "4052",
+   "first_title": "Kaspersky Endpoint Security Cloud лицензия на 1 год по количеству рабочих станций/файловых серверов",
+   "route": "B",
+   "normalized": "kaspersky endpoint security cloud",
+   "cards": 17,
+   "http": 200,
+   "ms": 134
+  },
+  {
+   "vendor": "kaspersky",
+   "query": "kaspersky standard",
+   "kind": "соседнее семейство",
+   "distortion": "название",
+   "target_type": "family",
+   "group_ids": [
+    "341252"
+   ],
+   "expected": [
+    "https://store.softline.ru/kaspersky/kaspersky-standard/"
+   ],
+   "strict": true,
+   "top4": true,
+   "rank": 1,
+   "first_url": "https://store.softline.ru/kaspersky/kaspersky-standard/",
+   "first_type": "family",
+   "first_family": "341252",
+   "first_title": "Kaspersky Standard лицензия Base Download Pack Russian Edition на 1 год и на 3 устройства",
+   "route": "B",
+   "normalized": "kaspersky standard",
+   "cards": 4,
+   "http": 200,
+   "ms": 82
+  },
+  {
+   "vendor": "kripto-pro",
+   "query": "криптопро csp",
+   "kind": "слитно",
+   "distortion": "написание",
+   "target_type": "family",
+   "group_ids": [
+    "22268"
+   ],
+   "expected": [
+    "https://store.softline.ru/kripto-pro/cryptopro-csp/"
+   ],
+   "strict": true,
+   "top4": true,
+   "rank": 1,
+   "first_url": "https://store.softline.ru/kripto-pro/cryptopro-csp/",
+   "first_type": "family",
+   "first_family": "22268",
+   "first_title": "КриптоПро CSP версии 4.0 (Номер ЕРРП: 515), Лицензия на право использования СКЗИ КриптоПро CSP версии 4.0 на одном",
+   "route": "B",
+   "normalized": "криптопро csp",
+   "cards": 12,
+   "http": 200,
+   "ms": 80
+  },
+  {
+   "vendor": "kripto-pro",
+   "query": "крипто про цсп",
+   "kind": "транслит",
+   "distortion": "транслит",
+   "target_type": "family",
+   "group_ids": [
+    "22268"
+   ],
+   "expected": [
+    "https://store.softline.ru/kripto-pro/cryptopro-csp/"
+   ],
+   "strict": true,
+   "top4": true,
+   "rank": 1,
+   "first_url": "https://store.softline.ru/kripto-pro/cryptopro-csp/",
+   "first_type": "family",
+   "first_family": "22268",
+   "first_title": "КриптоПро CSP версии 4.0 (Номер ЕРРП: 515), Лицензия на право использования СКЗИ КриптоПро CSP версии 4.0 на одном",
+   "route": "B",
+   "normalized": "криптопро csp",
+   "cards": 10,
+   "http": 200,
+   "ms": 78
+  },
+  {
+   "vendor": "kripto-pro",
+   "query": "cryptopro csp 5.0",
+   "kind": "английское написание",
+   "distortion": "транслит",
+   "target_type": "family",
+   "group_ids": [
+    "22268"
+   ],
+   "expected": [
+    "https://store.softline.ru/kripto-pro/cryptopro-csp/"
+   ],
+   "strict": true,
+   "top4": true,
+   "rank": 1,
+   "first_url": "https://store.softline.ru/kripto-pro/cryptopro-csp/",
+   "first_type": "family",
+   "first_family": "22268",
+   "first_title": "КриптоПро CSP версии 4.0 (Номер ЕРРП: 515), Лицензия на право использования СКЗИ КриптоПро CSP версии 4.0 на одном",
+   "route": "B",
+   "normalized": "криптопро csp 5.0",
+   "cards": 13,
+   "http": 200,
+   "ms": 91
+  },
+  {
+   "vendor": "kripto-pro",
+   "query": "криптопро csp 5",
+   "kind": "версия",
+   "distortion": "атрибут",
+   "target_type": "family",
+   "group_ids": [
+    "22268"
+   ],
+   "expected": [
+    "https://store.softline.ru/kripto-pro/cryptopro-csp/"
+   ],
+   "strict": true,
+   "top4": true,
+   "rank": 1,
+   "first_url": "https://store.softline.ru/kripto-pro/cryptopro-csp/",
+   "first_type": "family",
+   "first_family": "22268",
+   "first_title": "КриптоПро CSP версии 4.0 (Номер ЕРРП: 515), Лицензия на право использования СКЗИ КриптоПро CSP версии 4.0 на одном",
+   "route": "B",
+   "normalized": "криптопро csp 5",
+   "cards": 11,
+   "http": 200,
+   "ms": 87
+  },
+  {
+   "vendor": "kripto-pro",
+   "query": "крипто-про csp",
+   "kind": "дефис",
+   "distortion": "написание",
+   "target_type": "family",
+   "group_ids": [
+    "22268"
+   ],
+   "expected": [
+    "https://store.softline.ru/kripto-pro/cryptopro-csp/"
+   ],
+   "strict": true,
+   "top4": true,
+   "rank": 1,
+   "first_url": "https://store.softline.ru/kripto-pro/cryptopro-csp/",
+   "first_type": "family",
+   "first_family": "22268",
+   "first_title": "КриптоПро CSP версии 4.0 (Номер ЕРРП: 515), Лицензия на право использования СКЗИ КриптоПро CSP версии 4.0 на одном",
+   "route": "B",
+   "normalized": "криптопро csp",
+   "cards": 12,
+   "http": 200,
+   "ms": 81
+  },
+  {
+   "vendor": "kripto-pro",
+   "query": "rhbgnjghj csp",
+   "kind": "раскладка",
+   "distortion": "раскладка",
+   "target_type": "family",
+   "group_ids": [
+    "22268"
+   ],
+   "expected": [
+    "https://store.softline.ru/kripto-pro/cryptopro-csp/"
+   ],
+   "strict": true,
+   "top4": true,
+   "rank": 1,
+   "first_url": "https://store.softline.ru/kripto-pro/cryptopro-csp/",
+   "first_type": "family",
+   "first_family": "22268",
+   "first_title": "КриптоПро CSP версии 4.0 (Номер ЕРРП: 515), Лицензия на право использования СКЗИ КриптоПро CSP версии 4.0 на одном",
+   "route": "B",
+   "normalized": "криптопро csp",
+   "cards": 12,
+   "http": 200,
+   "ms": 63
+  },
+  {
+   "vendor": "kripto-pro",
+   "query": "лицензия криптопро csp",
+   "kind": "атрибут",
+   "distortion": "атрибут",
+   "target_type": "family",
+   "group_ids": [
+    "22268"
+   ],
+   "expected": [
+    "https://store.softline.ru/kripto-pro/cryptopro-csp/"
+   ],
+   "strict": true,
+   "top4": true,
+   "rank": 1,
+   "first_url": "https://store.softline.ru/kripto-pro/cryptopro-csp/",
+   "first_type": "family",
+   "first_family": "22268",
+   "first_title": "КриптоПро CSP версии 4.0 (Номер ЕРРП: 515), Лицензия на право использования СКЗИ КриптоПро CSP версии 4.0 на одном",
+   "route": "B",
+   "normalized": "лицензия криптопро csp",
+   "cards": 13,
+   "http": 200,
+   "ms": 101
+  },
+  {
+   "vendor": "kripto-pro",
+   "query": "крипто про сsp 5.0",
+   "kind": "смешанные буквы",
+   "distortion": "транслит",
+   "target_type": "family",
+   "group_ids": [
+    "22268"
+   ],
+   "expected": [
+    "https://store.softline.ru/kripto-pro/cryptopro-csp/"
+   ],
+   "strict": true,
+   "top4": true,
+   "rank": 1,
+   "first_url": "https://store.softline.ru/kripto-pro/cryptopro-csp/",
+   "first_type": "family",
+   "first_family": "22268",
+   "first_title": "КриптоПро CSP версии 4.0 (Номер ЕРРП: 515), Лицензия на право использования СКЗИ КриптоПро CSP версии 4.0 на одном",
+   "route": "B",
+   "normalized": "криптопро csp 5.0",
+   "cards": 12,
+   "http": 200,
+   "ms": 88
+  },
+  {
+   "vendor": "kripto-pro",
+   "query": "криптопро",
+   "kind": "бренд",
+   "distortion": "название",
+   "target_type": "vendor",
+   "group_ids": [],
+   "expected": [
+    "https://store.softline.ru/kripto-pro/"
+   ],
+   "strict": true,
+   "top4": true,
+   "rank": null,
+   "first_url": "https://store.softline.ru/kripto-pro/",
+   "first_type": "vendor",
+   "first_family": "385279",
+   "first_title": "КриптоПро JavaCSP (Номер ЕРРП: 2011), Лицензия на право использования ПО КриптоПро JavaCSP на одном сервере",
+   "route": "B",
+   "normalized": "криптопро",
+   "cards": 13,
+   "http": 200,
+   "ms": 82
+  },
+  {
+   "vendor": "kripto-pro",
+   "query": "крипто про",
+   "kind": "бренд",
+   "distortion": "название",
+   "target_type": "vendor",
+   "group_ids": [],
+   "expected": [
+    "https://store.softline.ru/kripto-pro/"
+   ],
+   "strict": true,
+   "top4": true,
+   "rank": null,
+   "first_url": "https://store.softline.ru/kripto-pro/",
+   "first_type": "vendor",
+   "first_family": "385279",
+   "first_title": "КриптоПро JavaCSP (Номер ЕРРП: 2011), Лицензия на право использования ПО КриптоПро JavaCSP на одном сервере",
+   "route": "B",
+   "normalized": "криптопро",
+   "cards": 13,
+   "http": 200,
+   "ms": 70
+  },
+  {
+   "vendor": "kripto-pro",
+   "query": "cryptopro",
+   "kind": "бренд",
+   "distortion": "название",
+   "target_type": "vendor",
+   "group_ids": [],
+   "expected": [
+    "https://store.softline.ru/kripto-pro/"
+   ],
+   "strict": true,
+   "top4": true,
+   "rank": null,
+   "first_url": "https://store.softline.ru/kripto-pro/",
+   "first_type": "vendor",
+   "first_family": "385279",
+   "first_title": "КриптоПро JavaCSP (Номер ЕРРП: 2011), Лицензия на право использования ПО КриптоПро JavaCSP на одном сервере",
+   "route": "B",
+   "normalized": "криптопро",
+   "cards": 13,
+   "http": 200,
+   "ms": 131
+  },
+  {
+   "vendor": "kripto-pro",
+   "query": "криптопро jcp",
+   "kind": "соседнее семейство",
+   "distortion": "название",
+   "target_type": "family",
+   "group_ids": [
+    "22211"
+   ],
+   "expected": [
+    "https://store.softline.ru/kripto-pro/kripto-pro-jcp/"
+   ],
+   "strict": true,
+   "top4": true,
+   "rank": 1,
+   "first_url": "https://store.softline.ru/kripto-pro/kripto-pro-jcp/",
+   "first_type": "family",
+   "first_family": "22211",
+   "first_title": "КриптоПро JCP 2.0 (Номер ЕРРП: 1902), Лицензия на право использования КриптоПро JavaTLS версии 2.0 на одном сервере",
+   "route": "B",
+   "normalized": "криптопро jcp",
+   "cards": 12,
+   "http": 200,
+   "ms": 101
+  },
+  {
+   "vendor": "kripto-pro",
+   "query": "криптопро ngate",
+   "kind": "соседнее семейство",
+   "distortion": "название",
+   "target_type": "family",
+   "group_ids": [
+    "167189"
+   ],
+   "expected": [
+    "https://store.softline.ru/kripto-pro/kriptopro-ngate/"
+   ],
+   "strict": true,
+   "top4": true,
+   "rank": 1,
+   "first_url": "https://store.softline.ru/kripto-pro/kriptopro-ngate/",
+   "first_type": "family",
+   "first_family": "167189",
+   "first_title": "КриптоПро NGate (аппаратная платформа), 600",
+   "route": "B",
+   "normalized": "криптопро ngate",
+   "cards": 4,
+   "http": 200,
+   "ms": 91
+  },
+  {
+   "vendor": "kripto-pro",
+   "query": "криптопро tsp",
+   "kind": "соседнее семейство",
+   "distortion": "название",
+   "target_type": "family",
+   "group_ids": [
+    "22181"
+   ],
+   "expected": [
+    "https://store.softline.ru/kripto-pro/kripto-pro-tsp/"
+   ],
+   "strict": true,
+   "top4": true,
+   "rank": 1,
+   "first_url": "https://store.softline.ru/kripto-pro/kripto-pro-tsp/",
+   "first_type": "family",
+   "first_family": "22181",
+   "first_title": "КриптоПро TSP Server (лицензия на право использования из состава ПАК Службы УЦ версии 2.0), Исполнение 5 класс КС2 на",
+   "route": "B",
+   "normalized": "криптопро tsp",
+   "cards": 8,
+   "http": 200,
+   "ms": 86
+  },
+  {
+   "vendor": "kripto-pro",
+   "query": "криптопро csp tls",
+   "kind": "соседнее семейство",
+   "distortion": "название",
+   "target_type": "family",
+   "group_ids": [
+    "385280"
+   ],
+   "expected": [
+    "https://store.softline.ru/kripto-pro/kriptopro-csp-tls/"
+   ],
+   "strict": true,
+   "top4": true,
+   "rank": 1,
+   "first_url": "https://store.softline.ru/kripto-pro/kriptopro-csp-tls/",
+   "first_type": "family",
+   "first_family": "385280",
+   "first_title": "КриптоПро CSP TLS (Номер ЕРРП: 4332), Лицензия на право использования СКЗИ КриптоПро CSP версии 5.0 для одного",
+   "route": "B",
+   "normalized": "криптопро csp tls",
+   "cards": 11,
+   "http": 200,
+   "ms": 109
+  },
+  {
+   "vendor": "anydesk",
+   "query": "энидеск",
+   "kind": "транслит",
+   "distortion": "транслит",
+   "target_type": "family",
+   "group_ids": [
+    "306539"
+   ],
+   "expected": [
+    "https://store.softline.ru/anydesk/anydesk/"
+   ],
+   "strict": true,
+   "top4": true,
+   "rank": 1,
+   "first_url": "https://store.softline.ru/anydesk/anydesk/",
+   "first_type": "family",
+   "first_family": "306539",
+   "first_title": "AnyDesk (лицензия на 1 год), Solo",
+   "route": "B",
+   "normalized": "anydesk",
+   "cards": 4,
+   "http": 200,
+   "ms": 120
+  },
+  {
+   "vendor": "anydesk",
+   "query": "эни деск",
+   "kind": "раздельно",
+   "distortion": "написание",
+   "target_type": "family",
+   "group_ids": [
+    "306539"
+   ],
+   "expected": [
+    "https://store.softline.ru/anydesk/anydesk/"
+   ],
+   "strict": true,
+   "top4": true,
+   "rank": 1,
+   "first_url": "https://store.softline.ru/anydesk/anydesk/",
+   "first_type": "family",
+   "first_family": "306539",
+   "first_title": "AnyDesk (лицензия на 1 год), Solo",
+   "route": "B",
+   "normalized": "anydesk",
+   "cards": 4,
+   "http": 200,
+   "ms": 100
+  },
+  {
+   "vendor": "anydesk",
+   "query": "any desk",
+   "kind": "раздельно",
+   "distortion": "написание",
+   "target_type": "family",
+   "group_ids": [
+    "306539"
+   ],
+   "expected": [
+    "https://store.softline.ru/anydesk/anydesk/"
+   ],
+   "strict": true,
+   "top4": true,
+   "rank": 1,
+   "first_url": "https://store.softline.ru/anydesk/anydesk/",
+   "first_type": "family",
+   "first_family": "306539",
+   "first_title": "AnyDesk (лицензия на 1 год), Solo",
+   "route": "B",
+   "normalized": "anydesk",
+   "cards": 4,
+   "http": 200,
+   "ms": 84
+  },
+  {
+   "vendor": "anydesk",
+   "query": "anydesk лицензия",
+   "kind": "атрибут",
+   "distortion": "атрибут",
+   "target_type": "family",
+   "group_ids": [
+    "306539"
+   ],
+   "expected": [
+    "https://store.softline.ru/anydesk/anydesk/"
+   ],
+   "strict": true,
+   "top4": true,
+   "rank": 1,
+   "first_url": "https://store.softline.ru/anydesk/anydesk/",
+   "first_type": "family",
+   "first_family": "306539",
+   "first_title": "AnyDesk (лицензия на 1 год), Solo",
+   "route": "B",
+   "normalized": "anydesk лицензия",
+   "cards": 4,
+   "http": 200,
+   "ms": 88
+  },
+  {
+   "vendor": "anydesk",
+   "query": "энидекс",
+   "kind": "опечатка",
+   "distortion": "опечатка",
+   "target_type": "family",
+   "group_ids": [
+    "306539"
+   ],
+   "expected": [
+    "https://store.softline.ru/anydesk/anydesk/"
+   ],
+   "strict": true,
+   "top4": true,
+   "rank": 1,
+   "first_url": "https://store.softline.ru/anydesk/anydesk/",
+   "first_type": "family",
+   "first_family": "306539",
+   "first_title": "AnyDesk (лицензия на 1 год), Solo",
+   "route": "B",
+   "normalized": "anydesk",
+   "cards": 4,
+   "http": 200,
+   "ms": 69
+  },
+  {
+   "vendor": "anydesk",
+   "query": "фтнвуыл",
+   "kind": "раскладка",
+   "distortion": "раскладка",
+   "target_type": "family",
+   "group_ids": [
+    "306539"
+   ],
+   "expected": [
+    "https://store.softline.ru/anydesk/anydesk/"
+   ],
+   "strict": true,
+   "top4": true,
+   "rank": 1,
+   "first_url": "https://store.softline.ru/anydesk/anydesk/",
+   "first_type": "family",
+   "first_family": "306539",
+   "first_title": "AnyDesk (лицензия на 1 год), Solo",
+   "route": "B",
+   "normalized": "anydesk",
+   "cards": 4,
+   "http": 200,
+   "ms": 51
+  },
+  {
+   "vendor": "cyberprotect",
+   "query": "кибербэкап",
+   "kind": "слитно",
+   "distortion": "написание",
+   "target_type": "vendor_category",
+   "group_ids": [],
+   "expected": [
+    "https://store.softline.ru/cyberprotect/?filter[category][]=1033"
+   ],
+   "strict": true,
+   "top4": true,
+   "rank": null,
+   "first_url": "https://store.softline.ru/cyberprotect/?filter[category][]=1033",
+   "first_type": "vendor_category",
+   "first_family": "173614",
+   "first_title": "Киберпротект Кибер Бэкап Стандартная редакция (лицензия для коммерческих организаций), для физического сервера",
+   "route": "B",
+   "normalized": "кибер бэкап",
+   "cards": 5,
+   "http": 200,
+   "ms": 102
+  },
+  {
+   "vendor": "cyberprotect",
+   "query": "кибер бекап",
+   "kind": "е вместо э",
+   "distortion": "опечатка",
+   "target_type": "vendor_category",
+   "group_ids": [],
+   "expected": [
+    "https://store.softline.ru/cyberprotect/?filter[category][]=1033"
+   ],
+   "strict": true,
+   "top4": true,
+   "rank": null,
+   "first_url": "https://store.softline.ru/cyberprotect/?filter[category][]=1033",
+   "first_type": "vendor_category",
+   "first_family": "173614",
+   "first_title": "Киберпротект Кибер Бэкап Стандартная редакция (лицензия для коммерческих организаций), для физического сервера",
+   "route": "B",
+   "normalized": "кибер бэкап",
+   "cards": 5,
+   "http": 200,
+   "ms": 85
+  },
+  {
+   "vendor": "cyberprotect",
+   "query": "cyber backup",
+   "kind": "английское написание",
+   "distortion": "транслит",
+   "target_type": "vendor_category",
+   "group_ids": [],
+   "expected": [
+    "https://store.softline.ru/cyberprotect/?filter[category][]=1033"
+   ],
+   "strict": true,
+   "top4": true,
+   "rank": null,
+   "first_url": "https://store.softline.ru/cyberprotect/?filter[category][]=1033",
+   "first_type": "vendor_category",
+   "first_family": "173614",
+   "first_title": "Киберпротект Кибер Бэкап Стандартная редакция (лицензия для коммерческих организаций), для физического сервера",
+   "route": "B",
+   "normalized": "кибер бэкап",
+   "cards": 5,
+   "http": 200,
+   "ms": 112
+  },
+  {
+   "vendor": "cyberprotect",
+   "query": "киберпротект бэкап",
+   "kind": "вендор + продукт",
+   "distortion": "название",
+   "target_type": "vendor_category",
+   "group_ids": [],
+   "expected": [
+    "https://store.softline.ru/cyberprotect/?filter[category][]=1033"
+   ],
+   "strict": true,
+   "top4": true,
+   "rank": null,
+   "first_url": "https://store.softline.ru/cyberprotect/?filter[category][]=1033",
+   "first_type": "vendor_category",
+   "first_family": "173614",
+   "first_title": "Киберпротект Кибер Бэкап Стандартная редакция (лицензия для коммерческих организаций), для физического сервера",
+   "route": "B",
+   "normalized": "киберпротект бэкап",
+   "cards": 5,
+   "http": 200,
+   "ms": 141
+  },
+  {
+   "vendor": "cyberprotect",
+   "query": "кибер бэкапа",
+   "kind": "склонение",
+   "distortion": "склонение",
+   "target_type": "vendor_category",
+   "group_ids": [],
+   "expected": [
+    "https://store.softline.ru/cyberprotect/?filter[category][]=1033"
+   ],
+   "strict": true,
+   "top4": true,
+   "rank": null,
+   "first_url": "https://store.softline.ru/cyberprotect/?filter[category][]=1033",
+   "first_type": "vendor_category",
+   "first_family": "173614",
+   "first_title": "Киберпротект Кибер Бэкап Стандартная редакция (лицензия для коммерческих организаций), для физического сервера",
+   "route": "B",
+   "normalized": "кибер бэкапа",
+   "cards": 4,
+   "http": 200,
+   "ms": 75
+  },
+  {
+   "vendor": "cyberprotect",
+   "query": "кибер бэкап расширенная редакция",
+   "kind": "соседнее семейство",
+   "distortion": "название",
+   "target_type": "family",
+   "group_ids": [
+    "173615"
+   ],
+   "expected": [
+    "https://store.softline.ru/cyberprotect/kiber-bekap-rasshirennaya/"
+   ],
+   "strict": true,
+   "top4": true,
+   "rank": 1,
+   "first_url": "https://store.softline.ru/cyberprotect/kiber-bekap-rasshirennaya/",
+   "first_type": "family",
+   "first_family": "173615",
+   "first_title": "Киберпротект Кибер Бэкап Расширенная редакция (бессрочная лицензия для коммерческих организаций), для физического",
+   "route": "B",
+   "normalized": "кибер бэкап расширенная редакция",
+   "cards": 5,
+   "http": 200,
+   "ms": 118
+  },
+  {
+   "vendor": "cyberprotect",
+   "query": "кибер бэкап стандартная",
+   "kind": "соседнее семейство",
+   "distortion": "название",
+   "target_type": "family",
+   "group_ids": [
+    "173614"
+   ],
+   "expected": [
+    "https://store.softline.ru/cyberprotect/kiber-bekap/"
+   ],
+   "strict": true,
+   "top4": true,
+   "rank": 1,
+   "first_url": "https://store.softline.ru/cyberprotect/kiber-bekap/",
+   "first_type": "family",
+   "first_family": "173614",
+   "first_title": "Киберпротект Кибер Бэкап Стандартная редакция (лицензия для коммерческих организаций), для физического сервера",
+   "route": "B",
+   "normalized": "кибер бэкап стандартная",
+   "cards": 5,
+   "http": 200,
+   "ms": 94
+  },
+  {
+   "vendor": "cyberprotect",
+   "query": "кибер бэкап старт",
+   "kind": "соседнее семейство",
+   "distortion": "название",
+   "target_type": "family",
+   "group_ids": [
+    "444870"
+   ],
+   "expected": [
+    "https://store.softline.ru/cyberprotect/kiber-bekap-start/"
+   ],
+   "strict": true,
+   "top4": true,
+   "rank": 1,
+   "first_url": "https://store.softline.ru/cyberprotect/kiber-bekap-start/",
+   "first_type": "family",
+   "first_family": "444870",
+   "first_title": "Киберпротект Кибер Бэкап Старт (подписка на 1 год, включая услугу по технической поддержке), 1 ПК",
+   "route": "B",
+   "normalized": "кибер бэкап старт",
+   "cards": 4,
+   "http": 200,
+   "ms": 93
+  },
+  {
+   "vendor": "cyberprotect",
+   "query": "кибер бэкап облачный",
+   "kind": "соседнее семейство",
+   "distortion": "название",
+   "target_type": "family",
+   "group_ids": [
+    "442025"
+   ],
+   "expected": [
+    "https://store.softline.ru/cyberprotect/kiber-bekap-oblacnyi/"
+   ],
+   "strict": true,
+   "top4": true,
+   "rank": 1,
+   "first_url": "https://store.softline.ru/cyberprotect/kiber-bekap-oblacnyi/",
+   "first_type": "family",
+   "first_family": "442025",
+   "first_title": "Киберпротект Кибер Бэкап Облачный (лицензия), Лицензия для физического сервера",
+   "route": "B",
+   "normalized": "кибер бэкап облачный",
+   "cards": 5,
+   "http": 200,
+   "ms": 109
+  },
+  {
+   "vendor": "cyberprotect",
+   "query": "кибер хранилище",
+   "kind": "соседнее семейство",
+   "distortion": "название",
+   "target_type": "family",
+   "group_ids": [
+    "412674"
+   ],
+   "expected": [
+    "https://store.softline.ru/cyberprotect/kiber-khranilishche/"
+   ],
+   "strict": true,
+   "top4": true,
+   "rank": 1,
+   "first_url": "https://store.softline.ru/cyberprotect/kiber-khranilishche/",
+   "first_type": "family",
+   "first_family": "412674",
+   "first_title": "Киберпротект Кибер Хранилище (лицензия), лицензия на 1 ТБ",
+   "route": "A",
+   "normalized": "кибер хранилище",
+   "cards": 20,
+   "http": 200,
+   "ms": 105
+  },
+  {
+   "vendor": "cyberprotect",
+   "query": "кибер файлы",
+   "kind": "соседнее семейство",
+   "distortion": "название",
+   "target_type": "family",
+   "group_ids": [
+    "394620"
+   ],
+   "expected": [
+    "https://store.softline.ru/cyberprotect/kiber-fayly/"
+   ],
+   "strict": true,
+   "top4": true,
+   "rank": 1,
+   "first_url": "https://store.softline.ru/cyberprotect/kiber-fayly/",
+   "first_type": "family",
+   "first_family": "394620",
+   "first_title": "Киберпротект Кибер Файлы (лицензия), Количество пользователей",
+   "route": "A",
+   "normalized": "кибер файлы",
+   "cards": 7,
+   "http": 200,
+   "ms": 101
+  },
+  {
+   "vendor": "cyberprotect",
+   "query": "киберпротект",
+   "kind": "бренд",
+   "distortion": "название",
+   "target_type": "vendor",
+   "group_ids": [],
+   "expected": [
+    "https://store.softline.ru/cyberprotect/"
+   ],
+   "strict": true,
+   "top4": true,
+   "rank": null,
+   "first_url": "https://store.softline.ru/cyberprotect/",
+   "first_type": "vendor",
+   "first_family": "173614",
+   "first_title": "Киберпротект Кибер Бэкап Стандартная редакция (лицензия для коммерческих организаций), для физического сервера",
+   "route": "B",
+   "normalized": "киберпротект",
+   "cards": 7,
+   "http": 200,
+   "ms": 83
+  },
+  {
+   "vendor": "cyberprotect",
+   "query": "акронис",
+   "kind": "преемник",
+   "distortion": "написание",
+   "target_type": "vendor_category",
+   "group_ids": [],
+   "expected": [
+    "https://store.softline.ru/cyberprotect/?filter[category][]=1033"
+   ],
+   "strict": true,
+   "top4": true,
+   "rank": null,
+   "first_url": "https://store.softline.ru/cyberprotect/?filter[category][]=1033",
+   "first_type": "vendor_category",
+   "first_family": "173614",
+   "first_title": "Киберпротект Кибер Бэкап Стандартная редакция (лицензия для коммерческих организаций), для физического сервера",
+   "route": "B",
+   "normalized": "кибер бэкап",
+   "cards": 4,
+   "http": 200,
+   "ms": 85
+  },
+  {
+   "vendor": "npo-echelon",
+   "query": "сканер вс",
+   "kind": "без дефиса",
+   "distortion": "написание",
+   "target_type": "family",
+   "group_ids": [
+    "46421"
+   ],
+   "expected": [
+    "https://store.softline.ru/npo-echelon/eshelon-skaner-vs/"
+   ],
+   "strict": true,
+   "top4": true,
+   "rank": 1,
+   "first_url": "https://store.softline.ru/npo-echelon/eshelon-skaner-vs/",
+   "first_type": "family",
+   "first_family": "46421",
+   "first_title": "НПО «Эшелон» СКАНЕР-ВС 7, Основная лицензия Enterprise на 1 год, рег (№ 231), на 256 IP активов",
+   "route": "B",
+   "normalized": "сканер-вс",
+   "cards": 9,
+   "http": 200,
+   "ms": 160
+  },
+  {
+   "vendor": "npo-echelon",
+   "query": "сканервс",
+   "kind": "слитно",
+   "distortion": "написание",
+   "target_type": "family",
+   "group_ids": [
+    "46421"
+   ],
+   "expected": [
+    "https://store.softline.ru/npo-echelon/eshelon-skaner-vs/"
+   ],
+   "strict": true,
+   "top4": true,
+   "rank": 1,
+   "first_url": "https://store.softline.ru/npo-echelon/eshelon-skaner-vs/",
+   "first_type": "family",
+   "first_family": "46421",
+   "first_title": "НПО «Эшелон» СКАНЕР-ВС 7, Основная лицензия Enterprise на 1 год, рег (№ 231), на 256 IP активов",
+   "route": "B",
+   "normalized": "сканер-вс",
+   "cards": 9,
+   "http": 200,
+   "ms": 132
+  },
+  {
+   "vendor": "npo-echelon",
+   "query": "skaner vs",
+   "kind": "транслит",
+   "distortion": "транслит",
+   "target_type": "family",
+   "group_ids": [
+    "46421"
+   ],
+   "expected": [
+    "https://store.softline.ru/npo-echelon/eshelon-skaner-vs/"
+   ],
+   "strict": true,
+   "top4": true,
+   "rank": 1,
+   "first_url": "https://store.softline.ru/npo-echelon/eshelon-skaner-vs/",
+   "first_type": "family",
+   "first_family": "46421",
+   "first_title": "НПО «Эшелон» СКАНЕР-ВС 7, Основная лицензия Enterprise на 1 год, рег (№ 231), на 256 IP активов",
+   "route": "B",
+   "normalized": "сканер-вс",
+   "cards": 9,
+   "http": 200,
+   "ms": 140
+  },
+  {
+   "vendor": "npo-echelon",
+   "query": "эшелон сканер-вс",
+   "kind": "вендор + продукт",
+   "distortion": "название",
+   "target_type": "family",
+   "group_ids": [
+    "46421"
+   ],
+   "expected": [
+    "https://store.softline.ru/npo-echelon/eshelon-skaner-vs/"
+   ],
+   "strict": true,
+   "top4": true,
+   "rank": 1,
+   "first_url": "https://store.softline.ru/npo-echelon/eshelon-skaner-vs/",
+   "first_type": "family",
+   "first_family": "46421",
+   "first_title": "НПО «Эшелон» СКАНЕР-ВС 7, Основная лицензия Enterprise на 1 год, рег (№ 231), на 256 IP активов",
+   "route": "A",
+   "normalized": "эшелон сканер-вс",
+   "cards": 12,
+   "http": 200,
+   "ms": 131
+  },
+  {
+   "vendor": "npo-echelon",
+   "query": "сканера вс",
+   "kind": "склонение",
+   "distortion": "склонение",
+   "target_type": "family",
+   "group_ids": [
+    "46421"
+   ],
+   "expected": [
+    "https://store.softline.ru/npo-echelon/eshelon-skaner-vs/"
+   ],
+   "strict": true,
+   "top4": true,
+   "rank": 1,
+   "first_url": "https://store.softline.ru/npo-echelon/eshelon-skaner-vs/",
+   "first_type": "family",
+   "first_family": "46421",
+   "first_title": "НПО «Эшелон» СКАНЕР-ВС 7, Основная лицензия Enterprise на 1 год, рег (№ 231), на 256 IP активов",
+   "route": "B",
+   "normalized": "сканер-вс",
+   "cards": 9,
+   "http": 200,
+   "ms": 170
+  },
+  {
+   "vendor": "npo-echelon",
+   "query": "сканер-вс 6",
+   "kind": "версия",
+   "distortion": "атрибут",
+   "target_type": "family",
+   "group_ids": [
+    "46421"
+   ],
+   "expected": [
+    "https://store.softline.ru/npo-echelon/eshelon-skaner-vs/"
+   ],
+   "strict": true,
+   "top4": true,
+   "rank": 1,
+   "first_url": "https://store.softline.ru/npo-echelon/eshelon-skaner-vs/",
+   "first_type": "family",
+   "first_family": "46421",
+   "first_title": "НПО «Эшелон» СКАНЕР-ВС 7, Основная лицензия Enterprise на 1 год, рег (№ 231), на 256 IP активов",
+   "route": "A",
+   "normalized": "сканер-вс 6",
+   "cards": 8,
+   "http": 200,
+   "ms": 132
+  },
+  {
+   "vendor": "npo-echelon",
+   "query": "эшелон",
+   "kind": "бренд",
+   "distortion": "название",
+   "target_type": "vendor",
+   "group_ids": [],
+   "expected": [
+    "https://store.softline.ru/npo-echelon/"
+   ],
+   "strict": true,
+   "top4": true,
+   "rank": null,
+   "first_url": "https://store.softline.ru/npo-echelon/",
+   "first_type": "vendor",
+   "first_family": "411204",
+   "first_title": "НПО «Эшелон» Программный генератор паролей «Генератор», Лицензия на 3 года, рег (№ 1680),",
+   "route": "A",
+   "normalized": "эшелон",
+   "cards": 6,
+   "http": 200,
+   "ms": 124
+  },
+  {
+   "vendor": "npo-echelon",
+   "query": "ак-вс 3",
+   "kind": "соседнее семейство",
+   "distortion": "название",
+   "target_type": "family",
+   "group_ids": [
+    "411254"
+   ],
+   "expected": [
+    "https://store.softline.ru/npo-echelon/pk-ak-vs-3/"
+   ],
+   "strict": true,
+   "top4": true,
+   "rank": 1,
+   "first_url": "https://store.softline.ru/npo-echelon/pk-ak-vs-3/",
+   "first_type": "family",
+   "first_family": "411254",
+   "first_title": "НПО «Эшелон» Анализатор исходных текстов программ «АК-ВС 3», Лицензия, рег (№ 14300), Лицензия на 1 проект сроком на 1",
+   "route": "A",
+   "normalized": "ак-вс 3",
+   "cards": 4,
+   "http": 200,
+   "ms": 171
+  },
+  {
+   "vendor": "webinar",
+   "query": "мтс линк",
+   "kind": "полное название",
+   "distortion": "название",
+   "target_type": "vendor",
+   "group_ids": [],
+   "expected": [
+    "https://store.softline.ru/webinar/"
+   ],
+   "strict": true,
+   "top4": true,
+   "rank": null,
+   "first_url": "https://store.softline.ru/webinar/",
+   "first_type": "vendor",
+   "first_family": "447242",
+   "first_title": "МТС Линк (Webinar Group) МТС Линк Стандарт (лицензия), на 1 год",
+   "route": "B",
+   "normalized": "мтс линк",
+   "cards": 4,
+   "http": 200,
+   "ms": 129
+  },
+  {
+   "vendor": "webinar",
+   "query": "mts link",
+   "kind": "транслит",
+   "distortion": "транслит",
+   "target_type": "vendor",
+   "group_ids": [],
+   "expected": [
+    "https://store.softline.ru/webinar/"
+   ],
+   "strict": true,
+   "top4": true,
+   "rank": null,
+   "first_url": "https://store.softline.ru/webinar/",
+   "first_type": "vendor",
+   "first_family": "447242",
+   "first_title": "МТС Линк (Webinar Group) МТС Линк Стандарт (лицензия), на 1 год",
+   "route": "B",
+   "normalized": "мтс линк",
+   "cards": 4,
+   "http": 200,
+   "ms": 95
+  },
+  {
+   "vendor": "webinar",
+   "query": "мтслинк",
+   "kind": "слитно",
+   "distortion": "написание",
+   "target_type": "vendor",
+   "group_ids": [],
+   "expected": [
+    "https://store.softline.ru/webinar/"
+   ],
+   "strict": true,
+   "top4": true,
+   "rank": null,
+   "first_url": "https://store.softline.ru/webinar/",
+   "first_type": "vendor",
+   "first_family": "447242",
+   "first_title": "МТС Линк (Webinar Group) МТС Линк Стандарт (лицензия), на 1 год",
+   "route": "B",
+   "normalized": "мтс линк",
+   "cards": 4,
+   "http": 200,
+   "ms": 102
+  },
+  {
+   "vendor": "webinar",
+   "query": "вебинар",
+   "kind": "прежнее название",
+   "distortion": "написание",
+   "target_type": "vendor",
+   "group_ids": [],
+   "expected": [
+    "https://store.softline.ru/webinar/"
+   ],
+   "strict": true,
+   "top4": true,
+   "rank": null,
+   "first_url": "https://store.softline.ru/webinar/",
+   "first_type": "vendor",
+   "first_family": "414326",
+   "first_title": "МТС Линк (Webinar Group) МТС Линк Optimum 30 (лицензия в месяц при покупке на год, до 30 участников вебинара), цена за",
+   "route": "B",
+   "normalized": "webinar",
+   "cards": 4,
+   "http": 200,
+   "ms": 163
+  },
+  {
+   "vendor": "webinar",
+   "query": "webinar",
+   "kind": "прежнее название",
+   "distortion": "написание",
+   "target_type": "vendor",
+   "group_ids": [],
+   "expected": [
+    "https://store.softline.ru/webinar/"
+   ],
+   "strict": true,
+   "top4": true,
+   "rank": null,
+   "first_url": "https://store.softline.ru/webinar/",
+   "first_type": "vendor",
+   "first_family": "414326",
+   "first_title": "МТС Линк (Webinar Group) МТС Линк Optimum 30 (лицензия в месяц при покупке на год, до 30 участников вебинара), цена за",
+   "route": "B",
+   "normalized": "webinar",
+   "cards": 4,
+   "http": 200,
+   "ms": 129
+  },
+  {
+   "vendor": "webinar",
+   "query": "мтс линка",
+   "kind": "склонение",
+   "distortion": "склонение",
+   "target_type": "vendor",
+   "group_ids": [],
+   "expected": [
+    "https://store.softline.ru/webinar/"
+   ],
+   "strict": true,
+   "top4": true,
+   "rank": null,
+   "first_url": "https://store.softline.ru/webinar/",
+   "first_type": "vendor",
+   "first_family": "447242",
+   "first_title": "МТС Линк (Webinar Group) МТС Линк Стандарт (лицензия), на 1 год",
+   "route": "B",
+   "normalized": "мтс линк",
+   "cards": 4,
+   "http": 200,
+   "ms": 115
+  },
+  {
+   "vendor": "webinar",
+   "query": "мтс вебинары",
+   "kind": "смешанное",
+   "distortion": "написание",
+   "target_type": "vendor",
+   "group_ids": [],
+   "expected": [
+    "https://store.softline.ru/webinar/"
+   ],
+   "strict": true,
+   "top4": true,
+   "rank": null,
+   "first_url": "https://store.softline.ru/webinar/",
+   "first_type": "vendor",
+   "first_family": "414326",
+   "first_title": "МТС Линк (Webinar Group) МТС Линк Optimum 30 (лицензия в месяц при покупке на год, до 30 участников вебинара), цена за",
+   "route": "B",
+   "normalized": "мтс webinar",
+   "cards": 4,
+   "http": 200,
+   "ms": 140
+  },
+  {
+   "vendor": "webinar",
+   "query": "мтс линк про",
+   "kind": "соседнее семейство",
+   "distortion": "название",
+   "target_type": "family",
+   "group_ids": [
+    "447243"
+   ],
+   "expected": [
+    "https://store.softline.ru/webinar/mts-link-pro/"
+   ],
+   "strict": true,
+   "top4": true,
+   "rank": 1,
+   "first_url": "https://store.softline.ru/webinar/mts-link-pro/",
+   "first_type": "family",
+   "first_family": "447243",
+   "first_title": "МТС Линк (Webinar Group) МТС Линк Про (лицензия), на 1 год",
+   "route": "B",
+   "normalized": "мтс линк pro",
+   "cards": 4,
+   "http": 200,
+   "ms": 154
+  },
+  {
+   "vendor": "webinar",
+   "query": "мтс линк стандарт",
+   "kind": "соседнее семейство",
+   "distortion": "название",
+   "target_type": "family",
+   "group_ids": [
+    "447242"
+   ],
+   "expected": [
+    "https://store.softline.ru/webinar/mts-link-standart/"
+   ],
+   "strict": true,
+   "top4": true,
+   "rank": 1,
+   "first_url": "https://store.softline.ru/webinar/mts-link-standart/",
+   "first_type": "family",
+   "first_family": "447242",
+   "first_title": "МТС Линк (Webinar Group) МТС Линк Стандарт (лицензия), на 1 год",
+   "route": "B",
+   "normalized": "мтс линк стандарт",
+   "cards": 4,
+   "http": 200,
+   "ms": 122
+  },
+  {
+   "vendor": "positive-technologies",
+   "query": "макс патрол",
+   "kind": "транслит",
+   "distortion": "транслит",
+   "target_type": "family",
+   "group_ids": [
+    "437421"
+   ],
+   "expected": [
+    "https://store.softline.ru/positive-technologies/maxpatrol-endpoint-protection-platform/"
+   ],
+   "strict": true,
+   "top4": true,
+   "rank": 1,
+   "first_url": "https://store.softline.ru/positive-technologies/maxpatrol-endpoint-protection-platform/",
+   "first_type": "family",
+   "first_family": "437421",
+   "first_title": "Positive Technologies MaxPatrol Endpoint Protection Platform конфигурация Endpoint Protection, для обеспечения",
+   "route": "B",
+   "normalized": "maxpatrol",
+   "cards": 4,
+   "http": 200,
+   "ms": 255
+  },
+  {
+   "vendor": "positive-technologies",
+   "query": "maxpatrol",
+   "kind": "слитно",
+   "distortion": "написание",
+   "target_type": "family",
+   "group_ids": [
+    "437421"
+   ],
+   "expected": [
+    "https://store.softline.ru/positive-technologies/maxpatrol-endpoint-protection-platform/"
+   ],
+   "strict": true,
+   "top4": true,
+   "rank": 1,
+   "first_url": "https://store.softline.ru/positive-technologies/maxpatrol-endpoint-protection-platform/",
+   "first_type": "family",
+   "first_family": "437421",
+   "first_title": "Positive Technologies MaxPatrol Endpoint Protection Platform конфигурация Endpoint Protection, для обеспечения",
+   "route": "A",
+   "normalized": "maxpatrol",
+   "cards": 4,
+   "http": 200,
+   "ms": 181
+  },
+  {
+   "vendor": "positive-technologies",
+   "query": "макспатрол",
+   "kind": "слитно + транслит",
+   "distortion": "транслит",
+   "target_type": "family",
+   "group_ids": [
+    "437421"
+   ],
+   "expected": [
+    "https://store.softline.ru/positive-technologies/maxpatrol-endpoint-protection-platform/"
+   ],
+   "strict": true,
+   "top4": true,
+   "rank": 1,
+   "first_url": "https://store.softline.ru/positive-technologies/maxpatrol-endpoint-protection-platform/",
+   "first_type": "family",
+   "first_family": "437421",
+   "first_title": "Positive Technologies MaxPatrol Endpoint Protection Platform конфигурация Endpoint Protection, для обеспечения",
+   "route": "B",
+   "normalized": "maxpatrol",
+   "cards": 4,
+   "http": 200,
+   "ms": 233
+  },
+  {
+   "vendor": "positive-technologies",
+   "query": "max patrol epp",
+   "kind": "сокращение",
+   "distortion": "написание",
+   "target_type": "family",
+   "group_ids": [
+    "437421"
+   ],
+   "expected": [
+    "https://store.softline.ru/positive-technologies/maxpatrol-endpoint-protection-platform/"
+   ],
+   "strict": true,
+   "top4": true,
+   "rank": 1,
+   "first_url": "https://store.softline.ru/positive-technologies/maxpatrol-endpoint-protection-platform/",
+   "first_type": "family",
+   "first_family": "437421",
+   "first_title": "Positive Technologies MaxPatrol Endpoint Protection Platform конфигурация Endpoint Protection, для обеспечения",
+   "route": "A",
+   "normalized": "maxpatrol epp",
+   "cards": 4,
+   "http": 200,
+   "ms": 200
+  },
+  {
+   "vendor": "positive-technologies",
+   "query": "maxpatrol endpoint protection",
+   "kind": "неполное название",
+   "distortion": "название",
+   "target_type": "family",
+   "group_ids": [
+    "437421"
+   ],
+   "expected": [
+    "https://store.softline.ru/positive-technologies/maxpatrol-endpoint-protection-platform/"
+   ],
+   "strict": true,
+   "top4": true,
+   "rank": 1,
+   "first_url": "https://store.softline.ru/positive-technologies/maxpatrol-endpoint-protection-platform/",
+   "first_type": "family",
+   "first_family": "437421",
+   "first_title": "Positive Technologies MaxPatrol Endpoint Protection Platform конфигурация Endpoint Protection, для обеспечения",
+   "route": "A",
+   "normalized": "maxpatrol endpoint protection",
+   "cards": 7,
+   "http": 200,
+   "ms": 303
+  },
+  {
+   "vendor": "positive-technologies",
+   "query": "макс патрола",
+   "kind": "склонение",
+   "distortion": "склонение",
+   "target_type": "family",
+   "group_ids": [
+    "437421"
+   ],
+   "expected": [
+    "https://store.softline.ru/positive-technologies/maxpatrol-endpoint-protection-platform/"
+   ],
+   "strict": true,
+   "top4": true,
+   "rank": 1,
+   "first_url": "https://store.softline.ru/positive-technologies/maxpatrol-endpoint-protection-platform/",
+   "first_type": "family",
+   "first_family": "437421",
+   "first_title": "Positive Technologies MaxPatrol Endpoint Protection Platform конфигурация Endpoint Protection, для обеспечения",
+   "route": "B",
+   "normalized": "maxpatrol",
+   "cards": 4,
+   "http": 200,
+   "ms": 264
+  },
+  {
+   "vendor": "positive-technologies",
+   "query": "xspider",
+   "kind": "соседнее семейство",
+   "distortion": "название",
+   "target_type": "family",
+   "group_ids": [
+    "28574",
+    "428013"
+   ],
+   "expected": [
+    "https://store.softline.ru/positive-technologies/positive-technologies-xspider/",
+    "https://store.softline.ru/positive-technologies/positive-technologies-xspider-pro/"
+   ],
+   "strict": true,
+   "top4": true,
+   "rank": 1,
+   "first_url": "https://store.softline.ru/positive-technologies/positive-technologies-xspider/",
+   "first_type": "family",
+   "first_family": "28574",
+   "first_title": "Positive Technologies XSpider (дополнительный хост к лицензии, гарантийные обязательства в течение 1 года), количество",
+   "route": "A",
+   "normalized": "xspider",
+   "cards": 4,
+   "http": 200,
+   "ms": 106
+  },
+  {
+   "vendor": "positive-technologies",
+   "query": "позитив технолоджис",
+   "kind": "бренд",
+   "distortion": "название",
+   "target_type": "vendor",
+   "group_ids": [],
+   "expected": [
+    "https://store.softline.ru/positive-technologies/"
+   ],
+   "strict": true,
+   "top4": true,
+   "rank": null,
+   "first_url": "https://store.softline.ru/positive-technologies/",
+   "first_type": "vendor",
+   "first_family": "28574",
+   "first_title": "Positive Technologies XSpider (дополнительный хост к лицензии, гарантийные обязательства в течение 1 года), количество",
+   "route": "B",
+   "normalized": "positive technologies",
+   "cards": 4,
+   "http": 200,
+   "ms": 95
+  }
+ ]
+}

@@ -1,0 +1,647 @@
+{
+ "api": "http://127.0.0.1:8091",
+ "rows": [
+  {
+   "query": "astra linux",
+   "type": "name",
+   "ok": true,
+   "route": "A",
+   "normalized": "astra linux",
+   "first": "Astra Linux Special Edition на базе п/а Эльбрус, для аппаратных платфо",
+   "first_family": "121231",
+   "cards": 5
+  },
+  {
+   "query": "Microsoft Office для дома и бизнеса",
+   "type": "name",
+   "ok": true,
+   "route": "B",
+   "normalized": "microsoft office для дома и бизнеса",
+   "first": "Microsoft Office для дома и бизнеса 2024, Электронная лицензия на 1 ПК",
+   "first_family": "391338",
+   "cards": 15
+  },
+  {
+   "query": "kaspersky small office security",
+   "type": "name",
+   "ok": true,
+   "route": "B",
+   "normalized": "kaspersky small office security",
+   "first": "Kaspersky Small Office Security новая лицензия на 5 ПК/мобильных устро",
+   "first_family": "3761",
+   "cards": 15
+  },
+  {
+   "query": "крипто про csp 5.0",
+   "type": "name",
+   "ok": true,
+   "route": "B",
+   "normalized": "криптопро csp 5.0",
+   "first": "КриптоПро CSP версии 4.0 (Номер ЕРРП: 515), Лицензия на право использо",
+   "first_family": "22268",
+   "cards": 12
+  },
+  {
+   "query": "anydesk",
+   "type": "name",
+   "ok": true,
+   "route": "B",
+   "normalized": "anydesk",
+   "first": "AnyDesk (лицензия на 1 год), Solo",
+   "first_family": "306539",
+   "cards": 4
+  },
+  {
+   "query": "kaspersky endpoint security",
+   "type": "name",
+   "ok": true,
+   "route": "B",
+   "normalized": "kaspersky endpoint security",
+   "first": "Kaspersky Стандартный Certified media Pack Russian Edition Media Pack ",
+   "first_family": "3953",
+   "cards": 19
+  },
+  {
+   "query": "windows 11 pro",
+   "type": "name",
+   "ok": true,
+   "route": "A",
+   "normalized": "windows 11 pro",
+   "first": "Microsoft Windows 11 Pro FQC-10572, электронный ключ",
+   "first_family": "286676",
+   "cards": 4
+  },
+  {
+   "query": "secret net studio",
+   "type": "name",
+   "ok": true,
+   "route": "A",
+   "normalized": "secret net studio",
+   "first": "Код безопасности Secret Net Studio 8 (дополнительная защита), Электрон",
+   "first_family": "42240",
+   "cards": 4
+  },
+  {
+   "query": "termidesk",
+   "type": "name",
+   "ok": true,
+   "route": "A",
+   "normalized": "termidesk",
+   "first": "Лицензия на Программный комплекс для организации виртуальных рабочих м",
+   "first_family": "299975",
+   "cards": 4
+  },
+  {
+   "query": "workspad",
+   "type": "name",
+   "ok": true,
+   "route": "A",
+   "normalized": "workspad",
+   "first": "Группа Астра WorksPad (клиентские лицензии, бессрочные), WorksPad клие",
+   "first_family": "300796",
+   "cards": 4
+  },
+  {
+   "query": "компас-3d",
+   "type": "name",
+   "ok": true,
+   "route": "A",
+   "normalized": "компас-3d",
+   "first": "АСКОН КОМПАС-3D V25, Библиотеки (лицензия), Каталог: Электродвигатели",
+   "first_family": "11571",
+   "cards": 23
+  },
+  {
+   "query": "nanocad",
+   "type": "name",
+   "ok": true,
+   "route": "A",
+   "normalized": "nanocad",
+   "first": "Нанософт Платформа nanoCAD 26 (лицензия на 2 года), Платформа nanoCAD ",
+   "first_family": "268540",
+   "cards": 20
+  },
+  {
+   "query": "альт сервер",
+   "type": "name",
+   "ok": true,
+   "route": "B",
+   "normalized": "альт сервер",
+   "first": "BaseALT Альт Сервер 11 (бессрочная лицензия на флеш-носителе), архитек",
+   "first_family": "408335",
+   "cards": 8
+  },
+  {
+   "query": "postgres pro",
+   "type": "name",
+   "ok": true,
+   "route": "A",
+   "normalized": "postgres pro",
+   "first": "Postgres Professional Postgres Pro Standard (лицензии), Лицензия на 1 ",
+   "first_family": "69434",
+   "cards": 11
+  },
+  {
+   "query": "яндекс 360",
+   "type": "name",
+   "ok": true,
+   "route": "B",
+   "normalized": "яндекс 360",
+   "first": "Яндекс 360 для бизнеса (предоставление доступа к сервисам на 1 учетную",
+   "first_family": "316177",
+   "cards": 10
+  },
+  {
+   "query": "usergate",
+   "type": "name",
+   "ok": true,
+   "route": "B",
+   "normalized": "usergate",
+   "first": "UserGate Подписка Mail Security для защиты от спама, 1 год, цена за 1 ",
+   "first_family": "43337",
+   "cards": 4
+  },
+  {
+   "query": "кибер бэкап",
+   "type": "name",
+   "ok": true,
+   "route": "A",
+   "normalized": "кибер бэкап",
+   "first": "Киберпротект Кибер Бэкап Стандартная редакция (лицензия для коммерческ",
+   "first_family": "173614",
+   "cards": 11
+  },
+  {
+   "query": "dr.web",
+   "type": "name",
+   "ok": true,
+   "route": "B",
+   "normalized": "dr.web",
+   "first": "Доктор Веб Dr.Web Katana (лицензия на 1 год), на 1 ПК",
+   "first_family": "196438",
+   "cards": 11
+  },
+  {
+   "query": "мтс линк",
+   "type": "name",
+   "ok": true,
+   "route": "B",
+   "normalized": "мтс линк",
+   "first": "МТС Линк (Webinar Group) МТС Линк Стандарт (лицензия), на 1 год",
+   "first_family": "447242",
+   "cards": 4
+  },
+  {
+   "query": "365",
+   "type": "number",
+   "ok": true,
+   "route": "B",
+   "normalized": "365",
+   "first": "Microsoft 365 для семьи (Family) 6GQ-00084: подписка на 6 пользователе",
+   "first_family": "165034",
+   "cards": 8
+  },
+  {
+   "query": "сканер-вс",
+   "type": "code",
+   "ok": true,
+   "route": "A",
+   "normalized": "сканер-вс",
+   "first": "НПО «Эшелон» СКАНЕР-ВС 7, Основная лицензия Enterprise на 1 год, рег (",
+   "first_family": "46421",
+   "cards": 8
+  },
+  {
+   "query": "сканер вс",
+   "type": "code",
+   "ok": true,
+   "route": "B",
+   "normalized": "сканер-вс",
+   "first": "НПО «Эшелон» СКАНЕР-ВС 7, Основная лицензия Enterprise на 1 год, рег (",
+   "first_family": "46421",
+   "cards": 9
+  },
+  {
+   "query": "max patrol",
+   "type": "code",
+   "ok": true,
+   "route": "A",
+   "normalized": "maxpatrol",
+   "first": "Positive Technologies MaxPatrol Endpoint Protection Platform конфигура",
+   "first_family": "437421",
+   "cards": 4
+  },
+  {
+   "query": "maxpatrol",
+   "type": "code",
+   "ok": true,
+   "route": "A",
+   "normalized": "maxpatrol",
+   "first": "Positive Technologies MaxPatrol Endpoint Protection Platform конфигура",
+   "first_family": "437421",
+   "cards": 4
+  },
+  {
+   "query": "антивирь",
+   "type": "jargon",
+   "ok": true,
+   "route": "B",
+   "normalized": "антивирус",
+   "first": "Доктор Веб Антивирус + Центр Управления лицензия на 1 год на 1 год на ",
+   "first_family": "409060",
+   "cards": 20
+  },
+  {
+   "query": "винда",
+   "type": "jargon",
+   "ok": true,
+   "route": "B",
+   "normalized": "windows",
+   "first": "Microsoft Windows 11 Home (Домашняя) KW9-00664, электронный ключ",
+   "first_family": "310176",
+   "cards": 17
+  },
+  {
+   "query": "офис",
+   "type": "jargon",
+   "ok": true,
+   "route": "B",
+   "normalized": "office",
+   "first": "Microsoft Office для дома и бизнеса 2024, Электронная лицензия на 1 ПК",
+   "first_family": "391338",
+   "cards": 20
+  },
+  {
+   "query": "касперыч",
+   "type": "jargon",
+   "ok": true,
+   "route": "B",
+   "normalized": "kaspersky",
+   "first": "Kaspersky Standard лицензия Base Download Pack Russian Edition на 1 го",
+   "first_family": "341252",
+   "cards": 4
+  },
+  {
+   "query": "ворд",
+   "type": "jargon",
+   "ok": true,
+   "route": "B",
+   "normalized": "word",
+   "first": "Microsoft Office Word 2019 (лицензия Open License + Software Assurance",
+   "first_family": "162037",
+   "cards": 10
+  },
+  {
+   "query": "астра линукс",
+   "type": "spelling",
+   "ok": true,
+   "route": "B",
+   "normalized": "astra linux",
+   "first": "Astra Linux Special Edition на базе п/а Эльбрус, для аппаратных платфо",
+   "first_family": "121231",
+   "cards": 9
+  },
+  {
+   "query": "астралинукс",
+   "type": "spelling",
+   "ok": true,
+   "route": "B",
+   "normalized": "astra linux",
+   "first": "Astra Linux Special Edition на базе п/а Эльбрус, для аппаратных платфо",
+   "first_family": "121231",
+   "cards": 8
+  },
+  {
+   "query": "мдаемон",
+   "type": "spelling",
+   "ok": true,
+   "route": "B",
+   "normalized": "mdaemon",
+   "first": "MDaemon Technologies, Ltd. MDaemon (лицензия на 2 года), 9 пользовател",
+   "first_family": "394683",
+   "cards": 5
+  },
+  {
+   "query": "мдемон",
+   "type": "spelling",
+   "ok": true,
+   "route": "B",
+   "normalized": "mdaemon",
+   "first": "MDaemon Technologies, Ltd. MDaemon (лицензия на 2 года), 9 пользовател",
+   "first_family": "394683",
+   "cards": 5
+  },
+  {
+   "query": "доктор веб",
+   "type": "spelling",
+   "ok": true,
+   "route": "B",
+   "normalized": "dr.web",
+   "first": "Доктор Веб Dr.Web Katana (лицензия на 1 год), на 1 ПК",
+   "first_family": "196438",
+   "cards": 11
+  },
+  {
+   "query": "др веб",
+   "type": "spelling",
+   "ok": true,
+   "route": "B",
+   "normalized": "dr.web",
+   "first": "Доктор Веб Dr.Web Katana (лицензия на 1 год), на 1 ПК",
+   "first_family": "196438",
+   "cards": 11
+  },
+  {
+   "query": "касперский",
+   "type": "spelling",
+   "ok": true,
+   "route": "B",
+   "normalized": "kaspersky",
+   "first": "Kaspersky Standard лицензия Base Download Pack Russian Edition на 1 го",
+   "first_family": "341252",
+   "cards": 4
+  },
+  {
+   "query": "виндовс 11",
+   "type": "spelling",
+   "ok": true,
+   "route": "B",
+   "normalized": "windows 11",
+   "first": "Microsoft Windows 11 Pro FQC-10572, электронный ключ",
+   "first_family": "286676",
+   "cards": 15
+  },
+  {
+   "query": "ред ос",
+   "type": "spelling",
+   "ok": true,
+   "route": "B",
+   "normalized": "ред ос",
+   "first": "РЕД СОФТ РЕД ОС для образовательных организаций (конфигурация Рабочая ",
+   "first_family": "165644",
+   "cards": 5
+  },
+  {
+   "query": "альт линукс",
+   "type": "spelling",
+   "ok": true,
+   "route": "B",
+   "normalized": "альт",
+   "first": "BaseALT Альт Домен на основе Альт СП Сервер релиз 10 (бессрочная лицен",
+   "first_family": "387995",
+   "cards": 8
+  },
+  {
+   "query": "секрет нет",
+   "type": "spelling",
+   "ok": true,
+   "route": "B",
+   "normalized": "secret net",
+   "first": "Код безопасности: Secret Net LSP (максимальная защита), Электронная ли",
+   "first_family": "263917",
+   "cards": 4
+  },
+  {
+   "query": "термидеск",
+   "type": "spelling",
+   "ok": true,
+   "route": "B",
+   "normalized": "termidesk",
+   "first": "Лицензия на Программный комплекс для организации виртуальных рабочих м",
+   "first_family": "299975",
+   "cards": 4
+  },
+  {
+   "query": "rfcgthcrbq",
+   "type": "layout",
+   "ok": true,
+   "route": "B",
+   "normalized": "kaspersky",
+   "first": "Kaspersky Standard лицензия Base Download Pack Russian Edition на 1 го",
+   "first_family": "341252",
+   "cards": 4
+  },
+  {
+   "query": "rhbgnjghj",
+   "type": "layout",
+   "ok": true,
+   "route": "B",
+   "normalized": "криптопро",
+   "first": "КриптоПро JavaCSP (Номер ЕРРП: 2011), Лицензия на право использования ",
+   "first_family": "385279",
+   "cards": 13
+  },
+  {
+   "query": "kaspersky totl security",
+   "type": "typo",
+   "ok": true,
+   "route": "B",
+   "normalized": "kaspersky total security",
+   "first": "Kaspersky Total Security для бизнеса базовая лицензия на 2 года по кол",
+   "first_family": "3971",
+   "cards": 14
+  },
+  {
+   "query": "астра линкус",
+   "type": "typo",
+   "ok": true,
+   "route": "B",
+   "normalized": "astra linux",
+   "first": "Astra Linux Special Edition на базе п/а Эльбрус, для аппаратных платфо",
+   "first_family": "121231",
+   "cards": 9
+  },
+  {
+   "query": "eset",
+   "type": "successor",
+   "ok": true,
+   "route": "B",
+   "normalized": "pro32",
+   "first": "PRO32 Total Security лицензии на 1 год и на 1 устройство",
+   "first_family": "325686",
+   "cards": 6
+  },
+  {
+   "query": "nod32",
+   "type": "successor",
+   "ok": true,
+   "route": "B",
+   "normalized": "pro32",
+   "first": "PRO32 Total Security лицензии на 1 год и на 1 устройство",
+   "first_family": "325686",
+   "cards": 6
+  },
+  {
+   "query": "abbyy finereader",
+   "type": "successor",
+   "ok": true,
+   "route": "B",
+   "normalized": "content ai",
+   "first": "Content AI FineReader 15 Corporate (лицензия Standalone на 1 год), Эле",
+   "first_family": "205543",
+   "cards": 9
+  },
+  {
+   "query": "acronis",
+   "type": "successor",
+   "ok": true,
+   "route": "B",
+   "normalized": "киберпротект",
+   "first": "Киберпротект Кибер Файлы (лицензия), Количество пользователей",
+   "first_family": "394620",
+   "cards": 7
+  },
+  {
+   "query": "сервер",
+   "type": "category",
+   "ok": true,
+   "route": "C",
+   "normalized": "сервер",
+   "first": "Сервер INFERIT RS212 R1G3D32/2x6346/32x64GB/12x900GB/9361-8i/2х1600W",
+   "first_family": "offer-542026",
+   "cards": 14
+  },
+  {
+   "query": "почтовый сервер",
+   "type": "pair",
+   "ok": true,
+   "route": "C",
+   "normalized": "почтовый сервер",
+   "first": "Лаборатория МБК Tegu Enterprise, Пользовательская лицензия на почтовый",
+   "first_family": "354934",
+   "cards": 9
+  },
+  {
+   "query": "антивирус для сервера",
+   "type": "pair",
+   "ok": true,
+   "route": "B",
+   "normalized": "антивирус для сервера",
+   "first": "Доктор Веб Антивирус + Центр Управления лицензия на 1 год на 1 год на ",
+   "first_family": "409060",
+   "cards": 20
+  },
+  {
+   "query": "серверная память",
+   "type": "pair",
+   "ok": true,
+   "route": "C",
+   "normalized": "серверная память",
+   "first": "Оперативная память Kingston Server Premier DDR5 6400 МГц 64GB, KSM64R5",
+   "first_family": "offer-490542",
+   "cards": 20
+  },
+  {
+   "query": "антивирус",
+   "type": "category",
+   "ok": true,
+   "route": "C",
+   "normalized": "антивирус",
+   "first": "PRO32 Endpoint Security Advanced версия на 1 год  и 142 узлов",
+   "first_family": "325675",
+   "cards": 20
+  },
+  {
+   "query": "оперативная память",
+   "type": "category",
+   "ok": true,
+   "route": "C",
+   "normalized": "оперативная память",
+   "first": "Память оперативная/ Hynix 64GB 5600MHz DDR5 RDIMM",
+   "first_family": "offer-541825",
+   "cards": 5
+  },
+  {
+   "query": "ноутбук",
+   "type": "category",
+   "ok": true,
+   "route": "C",
+   "normalized": "ноутбук",
+   "first": "Ноутбук Гравитон Н14И-ТП Intel Core i5-1135G7 (черный)",
+   "first_family": "offer-539400",
+   "cards": 16
+  },
+  {
+   "query": "сканер",
+   "type": "category",
+   "ok": true,
+   "route": "C",
+   "normalized": "сканер",
+   "first": "Сканер Avision FB5100",
+   "first_family": "offer-462428",
+   "cards": 19
+  },
+  {
+   "query": "монитор",
+   "type": "category",
+   "ok": true,
+   "route": "C",
+   "normalized": "монитор",
+   "first": "Монитор Philips 275B1 27.0-inch черный",
+   "first_family": "offer-452610",
+   "cards": 19
+  },
+  {
+   "query": "kaspersky",
+   "type": "name",
+   "ok": true,
+   "route": "B",
+   "normalized": "kaspersky",
+   "first": "Kaspersky Standard лицензия Base Download Pack Russian Edition на 1 го",
+   "first_family": "341252",
+   "cards": 4
+  },
+  {
+   "query": "видеоконференции",
+   "type": "category",
+   "ok": true,
+   "route": "C",
+   "normalized": "видеоконференции",
+   "first": "Конференц-связь Yealink MeetingEye 900",
+   "first_family": "offer-475274",
+   "cards": 15
+  },
+  {
+   "query": "1с на 5 пользователей",
+   "type": "regular",
+   "ok": true,
+   "route": "B",
+   "normalized": "1с на 5 пользователей",
+   "first": "1С-Битрикс24 (лицензия Энтерпрайз на 12 месцев), цена за 1 лицензию",
+   "first_family": "312889",
+   "cards": 4
+  },
+  {
+   "query": "электронная подпись",
+   "type": "jargon",
+   "ok": true,
+   "route": "B",
+   "normalized": "эцп",
+   "first": "Актив «Рутокен ЭЦП», Rutoken (смарт-карта), 3.0",
+   "first_family": "37267",
+   "cards": 9
+  },
+  {
+   "query": "windows server 2025",
+   "type": "name",
+   "ok": true,
+   "route": "A",
+   "normalized": "windows server 2025",
+   "first": "Microsoft Windows Server Datacenter 2022 (лицензия Single OLV 2 Licens",
+   "first_family": "281974",
+   "cards": 15
+  },
+  {
+   "query": "продлить касперский на 100 пк на 2 года",
+   "type": "regular",
+   "ok": true,
+   "route": "B",
+   "normalized": "продлить kaspersky на 100 пк на 2 года",
+   "first": "Kaspersky Endpoint Security для бизнеса Стандартный продление лицензии",
+   "first_family": "3953",
+   "cards": 17
+  }
+ ],
+ "passed": 64,
+ "total": 64
+}

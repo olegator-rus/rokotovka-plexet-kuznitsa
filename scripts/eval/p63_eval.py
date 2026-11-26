@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Набор волны (): продление Kaspersky на 100 узлов на 2 года, «Windows Server» по запросу →
+"""Набор по продлениям (): продление Kaspersky на 100 узлов на 2 года, «Windows Server» по запросу →
 «Можно купить сейчас», строка сравнения цены за место. Ожидания — из фида (data/softline/feed/products.jsonl).
 
 Набор — data/softline/eval/p63-set.jsonl: id, query, note, expect.

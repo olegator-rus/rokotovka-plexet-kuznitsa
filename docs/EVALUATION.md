@@ -49,9 +49,9 @@ N = 15 000. На наборах фида (195 запросов) маршрут D
 ```bash
 cd backend
 export DATA_SOURCE=generic DATA_MAPPING=../data/softline/mapping.yaml
-go run . eval --set etalon,tz,neighbors,understanding --cold --configs BM25,B1,B2,live --report ../data/softline/eval/report
-go run . eval --set etalon,tz,neighbors,understanding --configs live --report ../data/softline/eval/report   # тёплый
-go run . eval --summary ../data/softline/eval/report/REPORT.md
+go run . eval --set etalon,tz,neighbors,understanding --cold --configs BM25,B1,B2,live --report ../data/softline/eval/results
+go run . eval --set etalon,tz,neighbors,understanding --configs live --report ../data/softline/eval/results   # тёплый
+go run . eval --summary ../data/softline/eval/results/REPORT.md
 ```
 
 Экран — «Доказательства → На данных заказчика» (`GET /api/evaluations/feed`).

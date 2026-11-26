@@ -1,0 +1,392 @@
+[
+ {
+  "id": "cryptopro_workstation_not_server",
+  "vendor": "kripto-pro",
+  "family_ids": [
+   "22268"
+  ],
+  "when": {
+   "object": "server"
+  },
+  "forbid": {
+   "license_scope": "workstation"
+  },
+  "message": "Лицензия на рабочее место не действует в серверной ОС — нужна серверная",
+  "source": "https://cryptopro.ru/buy/price",
+  "sources": [
+   {
+    "source_url": "https://cryptopro.ru/buy/price",
+    "source_section": "Прайс-лист КриптоПро, дата формирования 02.10.2026, поз. 1 «Лицензия … версии 5.0 на одном рабочем месте»",
+    "excerpt": "* Лицензия на рабочее место не позволит использовать КриптоПро CSP в среде серверных операционных систем",
+    "source_kind": "vendor",
+    "fetch_method": "webfetch_pdf_pdftotext",
+    "source_date": "2026-10-02"
+   }
+  ],
+  "status": "verified_agent",
+  "checked_at": "",
+  "checked_by": "agent:knowledge",
+  "reviewed_by": null,
+  "reviewed_at": null,
+  "used_in": [
+   "D2"
+  ],
+  "change": null
+ },
+ {
+  "id": "cryptopro_tls_separate",
+  "vendor": "kripto-pro",
+  "family_ids": [
+   "22268",
+   "385280"
+  ],
+  "when": {
+   "use": "tls_server",
+   "server_os_not": "windows"
+  },
+  "require": {
+   "license_scope": "tls_server"
+  },
+  "message": "Для TLS-сервера на серверной ОС, отличной от Windows, у КриптоПро нужна отдельная лицензия на TLS-сервер",
+  "source": "https://cryptopro.ru/buy/price",
+  "sources": [
+   {
+    "source_url": "https://cryptopro.ru/buy/price",
+    "source_section": "Прайс-лист КриптоПро, дата формирования 02.10.2026, поз. 4 «Лицензия … версии 5.0 на сервере»",
+    "excerpt": "* данная лицензия не предоставляет право использования TLS-сервера в среде серверных ОС, отличных от Windows. Для использования TLS-сервера необходимо приобретать Лицензию на право использования СКЗИ \"КриптоПро CSP\" версии 5.0 TLS-сервер (см. раздел «КриптоПро CSP» TLS)",
+    "source_kind": "vendor",
+    "fetch_method": "webfetch_pdf_pdftotext",
+    "source_date": "2026-10-02"
+   },
+   {
+    "source_url": "https://cryptopro.ru/buy/price",
+    "source_section": "Прайс-лист КриптоПро, дата формирования 02.10.2026, поз. 61–64 (КС3, Astra Linux SE или Альт 8 СП)",
+    "excerpt": "* данная лицензия должна приобретаться для использования TLS-сервера в ОС Astra Linux Special Edition или Альт 8 СП с защитой по классу КС3",
+    "source_kind": "vendor",
+    "fetch_method": "webfetch_pdf_pdftotext",
+    "source_date": "2026-10-02"
+   }
+  ],
+  "status": "verified_agent",
+  "checked_at": "",
+  "checked_by": "agent:knowledge",
+  "reviewed_by": null,
+  "reviewed_at": null,
+  "used_in": [
+   "D2"
+  ],
+  "change": "Было: любой TLS-сервер → семейство 385280. Источник ограничивает правило серверными ОС, отличными от Windows; для Windows прайс прямо не говорит — правило не применять, ответ «уточним в запросе КП». Требование теперь — область действия оффера tls_server (см. offer_scope.jsonl): TLS-лицензии КС3 для Astra/Альт лежат в семействе 22268 (офферы 458219–458222), не в 385280."
+ },
+ {
+  "id": "cyberbackup_linux_is_server",
+  "vendor": "cyberprotect",
+  "family_ids": [
+   "173614",
+   "173615"
+  ],
+  "when": {
+   "platform": "linux"
+  },
+  "require": {
+   "object": "server"
+  },
+  "message": "Linux-машина лицензируется как сервер",
+  "source": "https://cyberprotect.ru/products/backup/licensing/",
+  "status": "rejected",
+  "checked_at": "",
+  "checked_by": "agent:knowledge",
+  "reviewed_by": null,
+  "reviewed_at": null,
+  "used_in": [],
+  "change": "Источник это не подтверждает: на странице лицензирования Linux есть и у лицензии на рабочую станцию (Расширенная редакция), и у лицензии на физический сервер. Заменено правилом cyberbackup_linux_workstation_advanced. Привязка ключей к мажорной версии на странице не найдена — правило не заводим."
+ },
+ {
+  "id": "cyberbackup_linux_workstation_advanced",
+  "vendor": "cyberprotect",
+  "family_ids": [
+   "173614",
+   "173615"
+  ],
+  "when": {
+   "platform": "linux",
+   "object": "workstation"
+  },
+  "forbid": {
+   "family_id": "173614"
+  },
+  "message": "Рабочие станции под Linux покрывает только лицензия Расширенной редакции для рабочей станции",
+  "source": "https://cyberprotect.ru/products/backup/licensing/",
+  "sources": [
+   {
+    "source_url": "https://cyberprotect.ru/products/backup/licensing/",
+    "source_section": "Лицензирование → Лицензия для рабочей станции",
+    "excerpt": "Стандартная редакция: Клиентские редакции ОС Windows; Виртуальные машины под управлением VMware или Hyper-V · Расширенная редакция: … Физические рабочие станции под управлением OC Linux; Виртуальные рабочие станции под управлением ОС Linux в отечественных и свободно распространяемых системах виртуализации",
+    "source_kind": "vendor",
+    "fetch_method": "curl",
+    "source_date": null
+   },
+   {
+    "source_url": "https://files.softline.com/fileStorage/cyber-backup-editions-comparison-2026.pdf",
+    "source_section": "Кибер Бэкап 18 | Сравнение редакций, сноска",
+    "excerpt": "* Требуется лицензия «Расширенная редакция для рабочей станции Linux»",
+    "source_kind": "vendor_doc_via_store",
+    "fetch_method": "pdftotext",
+    "source_date": null
+   }
+  ],
+  "status": "verified_agent",
+  "checked_at": "",
+  "checked_by": "agent:knowledge",
+  "reviewed_by": null,
+  "reviewed_at": null,
+  "used_in": [],
+  "change": "Новое правило вместо cyberbackup_linux_is_server."
+ },
+ {
+  "id": "astra_orel_scope",
+  "vendor": "astralinux",
+  "family_ids": [
+   "121231"
+  ],
+  "when": {
+   "variant": "Орел"
+  },
+  "note": "Только для систем без информации, требующей защиты; уровень система сама не выбирает",
+  "message": "«Орёл» — для систем, где нет информации, требующей защиты",
+  "source": "https://store.softline.ru/astralinux/astra-linux-special-edition/",
+  "sources": [
+   {
+    "source_url": "https://store.softline.ru/astralinux/astra-linux-special-edition/",
+    "source_section": "Описание: Редакция «ОРЕЛ»",
+    "excerpt": "Не может применяться в системах, обрабатывающих информацию ограниченного доступа, к которым предъявляются требования по защите информации.",
+    "source_kind": "store",
+    "fetch_method": "curl",
+    "source_date": null
+   }
+  ],
+  "status": "verified_agent",
+  "checked_at": "",
+  "checked_by": "agent:knowledge",
+  "reviewed_by": null,
+  "reviewed_at": null,
+  "used_in": [
+   "D3"
+  ],
+  "change": "Источник заменён: политика лицензирования на astra.ru с этой машины не открылась (таймаут), правило подтверждено текстом страницы магазина. Сверить с политикой вендора, когда откроется."
+ },
+ {
+  "id": "astra_ws_server_separate",
+  "vendor": "astralinux",
+  "family_ids": [
+   "121231"
+  ],
+  "when": {
+   "objects": [
+    "workstation",
+    "server"
+   ]
+  },
+  "require": {
+   "separate_lines": true
+  },
+  "message": "Рабочие станции и серверы лицензируются отдельно",
+  "source": "https://store.softline.ru/astralinux/astra-linux-special-edition/",
+  "sources": [
+   {
+    "source_url": "https://store.softline.ru/astralinux/astra-linux-special-edition/",
+    "source_section": "Описание: лицензирование",
+    "excerpt": "Операционная система Astra Linux Special Edition лицензируется на рабочую станцию, физический сервер до 2 сокетов, виртуальный сервер.",
+    "source_kind": "store",
+    "fetch_method": "curl",
+    "source_date": null
+   },
+   {
+    "source_url": "https://store.softline.ru/astralinux/astra-linux-special-edition/",
+    "source_section": "Конфигуратор, шаг «Выберите назначение лицензии»",
+    "excerpt": "Выберите тип устройства, на которое приобретается лицензия. … Рабочая станция — Для обычных компьютеров и ноутбуков сотрудников. Виртуальный сервер — Лицензия для отдельной виртуальной машины (ВМ).",
+    "source_kind": "store",
+    "fetch_method": "curl",
+    "source_date": null
+   }
+  ],
+  "status": "verified_agent",
+  "checked_at": "",
+  "checked_by": "agent:knowledge",
+  "reviewed_by": null,
+  "reviewed_at": null,
+  "used_in": [
+   "D3"
+  ],
+  "change": "Источник заменён на страницу магазина (политика вендора не открылась). Объект лицензии — атрибут оффера «Назначение»."
+ },
+ {
+  "id": "m365_business_max_300",
+  "vendor": "microsoft",
+  "family_ids": [
+   "65743",
+   "169704"
+  ],
+  "when": {
+   "plan": "business"
+  },
+  "require": {
+   "users_max": 300
+  },
+  "message": "Бизнес-планы Microsoft 365 — до 300 пользователей",
+  "source": "https://learn.microsoft.com/ru-ru/microsoft-365/business-premium/microsoft-365-business-faqs",
+  "sources": [
+   {
+    "source_url": "https://learn.microsoft.com/ru-ru/microsoft-365/business-premium/microsoft-365-business-faqs",
+    "source_section": "Microsoft 365 бизнес премиум: вопросы и ответы",
+    "excerpt": "Организации могут предоставлять только до 300 рабочих мест для всех наших бизнес-планов (Бизнес Базовый, Бизнес Standard, Бизнес Премиум).",
+    "source_kind": "vendor",
+    "fetch_method": "curl",
+    "source_date": null
+   }
+  ],
+  "status": "verified_agent",
+  "checked_at": "",
+  "checked_by": "agent:knowledge",
+  "reviewed_by": null,
+  "reviewed_at": null,
+  "used_in": [],
+  "change": "Источник заменён: на странице сравнения продуктов (ru-ru) числа 300 для бизнес-планов в статическом тексте нет. Семейства: 65743 Business Basic, 169704 бизнес стандарт (по названиям фида). Корпоративные планы (65824, 255172) правилу не подлежат; таблица магазина пишет «не более 300» и у E1 — с вендором не сверено, не использовать."
+ },
+ {
+  "id": "anydesk_three_limits",
+  "vendor": "anydesk",
+  "family_ids": [
+   "306539"
+  ],
+  "require": {
+   "check": [
+    "operators",
+    "managed_devices",
+    "concurrent_sessions"
+   ]
+  },
+  "message": "Сотрудники, управляемые устройства и одновременные подключения считаются отдельно",
+  "source": "https://anydesk.com/en/pricing",
+  "sources": [
+   {
+    "source_url": "https://anydesk.com/en/pricing",
+    "source_section": "Plan cards: Standard",
+    "excerpt": "Starts with 1 connection … Team size: up to 20 users … Starts with 500 managed devices (Unattended Access)",
+    "source_kind": "vendor",
+    "fetch_method": "browser",
+    "source_date": null
+   },
+   {
+    "source_url": "https://anydesk.com/en/pricing",
+    "source_section": "Access & Control",
+    "excerpt": "Concurrent connections | 1 | 1 | 2 | 5 users … Managed Devices (Unattended Access) | 100 | 500 | 1000 | 2000",
+    "source_kind": "vendor",
+    "fetch_method": "browser",
+    "source_date": null
+   }
+  ],
+  "status": "verified_agent",
+  "checked_at": "",
+  "checked_by": "agent:knowledge",
+  "reviewed_by": null,
+  "reviewed_at": null,
+  "used_in": [
+   "D7"
+  ],
+  "change": null
+ },
+ {
+  "id": "renewal_needs_base",
+  "vendor": "*",
+  "when": {
+   "operation": "renewal"
+  },
+  "require": {
+   "license_type": "Продление",
+   "same_edition": true
+  },
+  "message": "Продление — только для действующей лицензии той же редакции",
+  "source": "каталог, параметр «Тип лицензии»",
+  "status": "unconfirmed",
+  "checked_at": "",
+  "checked_by": "agent:knowledge",
+  "reviewed_by": null,
+  "reviewed_at": null,
+  "used_in": [],
+  "change": "Общего источника для всех вендоров нет; условие «той же редакции» ни на одной открытой странице не найдено. Не включать. Для Astra есть частный текст конфигуратора: «Техподдержка — Приобретается, если у вас уже есть лицензия (полная версия)»."
+ },
+ {
+  "id": "new_excludes_renewal",
+  "vendor": "*",
+  "when": {
+   "operation": "new"
+  },
+  "forbid": {
+   "license_type": [
+    "Продление",
+    "Обновление",
+    "Миграция",
+    "Перекрестное обновление"
+   ]
+  },
+  "message": "Для новой покупки продления и переходы не подходят",
+  "source": "каталог, параметр «Тип лицензии»",
+  "sources": [
+   {
+    "source_url": "https://store.softline.ru/astralinux/astra-linux-special-edition/",
+    "source_section": "Конфигуратор, шаг «Выберите тип лицензии»",
+    "excerpt": "Полная версия — Приобретается, если у вас еще нет лицензии на Astra Linux. … Техподдержка — Приобретается, если у вас уже есть лицензия (полная версия), но истек срок поддержки.",
+    "source_kind": "store",
+    "fetch_method": "curl",
+    "source_date": null
+   },
+   {
+    "source_url": "https://store.softline.ru/pro32/pro32-pss-ns-1-81-398991/",
+    "source_section": "Описание оффера",
+    "excerpt": "Код типа лицензии: NS — новая лицензия, RN — продление (renewal), AP — дозакупка (расширение на дополнительные узлы).",
+    "source_kind": "store",
+    "fetch_method": "curl",
+    "source_date": null
+   }
+  ],
+  "status": "verified_agent",
+  "checked_at": "",
+  "checked_by": "agent:knowledge",
+  "reviewed_by": null,
+  "reviewed_at": null,
+  "used_in": [
+   "D1",
+   "D3"
+  ],
+  "change": "Правило каталога (вид лицензии), не утверждение вендора о продукте. Подтверждено текстами магазина для Astra и PRO32; для остальных — по полю license_kind."
+ },
+ {
+  "id": "quantity_in_tier",
+  "vendor": "*",
+  "require": {
+   "count_within_tier": true,
+   "unit_known": true
+  },
+  "message": "Количество должно попадать в ступень оффера",
+  "source": "каталог, sales_notes",
+  "sources": [
+   {
+    "source_url": "https://store.softline.ru/kaspersky/kl4863lapfs-4985/",
+    "source_section": "Характеристики оффера",
+    "excerpt": "К-во узлов от 25 до 49 … 70 335 ₽ … 2 813,40 ₽/шт",
+    "source_kind": "store",
+    "fetch_method": "curl",
+    "source_date": null
+   }
+  ],
+  "status": "verified_agent",
+  "checked_at": "",
+  "checked_by": "agent:knowledge",
+  "reviewed_by": null,
+  "reviewed_at": null,
+  "used_in": [
+   "D1"
+  ],
+  "change": "Правило каталога. Единица продажи — sale_units.jsonl."
+ }
+]

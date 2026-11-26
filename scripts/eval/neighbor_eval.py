@@ -17,8 +17,8 @@ vendor_category), kind (вид формулировки), group_ids, vendor_slug
 Отчёт: по вендорам, по виду искажения (склонение, транслит, опечатка, раскладка, атрибут, написание, название) и
 по исходному виду формулировки; список промахов с первой целью и местом ожидаемого семейства.
 
-  API=http://127.0.0.1:8092 python3 scripts/eval/neighbor_eval.py --out data/softline/eval/neighbors-after
-  python3 scripts/eval/neighbor_eval.py --before data/softline/eval/neighbors-before.json --out …
+  API=http://127.0.0.1:8092 python3 scripts/eval/neighbor_eval.py --out data/softline/eval/results/neighbors-after
+  python3 scripts/eval/neighbor_eval.py --before data/softline/eval/results/neighbors-before.json --out …
 """
 import argparse
 import json

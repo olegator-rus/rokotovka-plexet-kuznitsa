@@ -1,0 +1,287 @@
+{
+ "api": "http://127.0.0.1:8092",
+ "same": 35,
+ "total": 35,
+ "pairs": [
+  {
+   "vendor": "astralinux",
+   "base": "астра линукс",
+   "form": "астры линукс",
+   "same": true,
+   "base_target": "family https://store.softline.ru/astralinux/astra-linux-special-edition",
+   "form_target": "family https://store.softline.ru/astralinux/astra-linux-special-edition"
+  },
+  {
+   "vendor": "astralinux",
+   "base": "астра линукс",
+   "form": "для астра линукс",
+   "same": true,
+   "base_target": "family https://store.softline.ru/astralinux/astra-linux-special-edition",
+   "form_target": "family https://store.softline.ru/astralinux/astra-linux-special-edition"
+  },
+  {
+   "vendor": "astralinux",
+   "base": "астра линукс",
+   "form": "астрой линукс",
+   "same": true,
+   "base_target": "family https://store.softline.ru/astralinux/astra-linux-special-edition",
+   "form_target": "family https://store.softline.ru/astralinux/astra-linux-special-edition"
+  },
+  {
+   "vendor": "astralinux",
+   "base": "астра",
+   "form": "астры",
+   "same": true,
+   "base_target": "vendor https://store.softline.ru/astralinux",
+   "form_target": "vendor https://store.softline.ru/astralinux"
+  },
+  {
+   "vendor": "microsoft",
+   "base": "офис для дома и бизнеса",
+   "form": "офиса для дома и бизнеса",
+   "same": true,
+   "base_target": "family https://store.softline.ru/microsoft/microsoft-office-dlya-doma-i-biznesa-2024",
+   "form_target": "family https://store.softline.ru/microsoft/microsoft-office-dlya-doma-i-biznesa-2024"
+  },
+  {
+   "vendor": "microsoft",
+   "base": "офис для дома и учебы",
+   "form": "офиса для дома и учебы",
+   "same": true,
+   "base_target": "family https://store.softline.ru/microsoft/microsoft-office-dlya-doma-i-ucheby-2024",
+   "form_target": "family https://store.softline.ru/microsoft/microsoft-office-dlya-doma-i-ucheby-2024"
+  },
+  {
+   "vendor": "microsoft",
+   "base": "офис 365",
+   "form": "офиса 365",
+   "same": true,
+   "base_target": "family https://store.softline.ru/microsoft/microsoft-365-for-family",
+   "form_target": "family https://store.softline.ru/microsoft/microsoft-365-for-family"
+  },
+  {
+   "vendor": "microsoft",
+   "base": "виндовс 11 про",
+   "form": "для виндовс 11 про",
+   "same": true,
+   "base_target": "family https://store.softline.ru/microsoft/microsoft-windows-professional-11",
+   "form_target": "family https://store.softline.ru/microsoft/microsoft-windows-professional-11"
+  },
+  {
+   "vendor": "kaspersky",
+   "base": "касперский",
+   "form": "касперского",
+   "same": true,
+   "base_target": "vendor https://store.softline.ru/kaspersky",
+   "form_target": "vendor https://store.softline.ru/kaspersky"
+  },
+  {
+   "vendor": "kaspersky",
+   "base": "касперский",
+   "form": "касперскому",
+   "same": true,
+   "base_target": "vendor https://store.softline.ru/kaspersky",
+   "form_target": "vendor https://store.softline.ru/kaspersky"
+  },
+  {
+   "vendor": "kaspersky",
+   "base": "касперский смол офис",
+   "form": "касперского смол офиса",
+   "same": true,
+   "base_target": "family https://store.softline.ru/kaspersky/kaspersky-small-office-security",
+   "form_target": "family https://store.softline.ru/kaspersky/kaspersky-small-office-security"
+  },
+  {
+   "vendor": "kaspersky",
+   "base": "kaspersky small office security",
+   "form": "для kaspersky small office security",
+   "same": true,
+   "base_target": "family https://store.softline.ru/kaspersky/kaspersky-small-office-security",
+   "form_target": "family https://store.softline.ru/kaspersky/kaspersky-small-office-security"
+  },
+  {
+   "vendor": "kripto-pro",
+   "base": "криптопро csp",
+   "form": "для криптопро csp",
+   "same": true,
+   "base_target": "family https://store.softline.ru/kripto-pro/cryptopro-csp",
+   "form_target": "family https://store.softline.ru/kripto-pro/cryptopro-csp"
+  },
+  {
+   "vendor": "kripto-pro",
+   "base": "крипто про csp 5.0",
+   "form": "к крипто про csp 5.0",
+   "same": true,
+   "base_target": "family https://store.softline.ru/kripto-pro/cryptopro-csp",
+   "form_target": "family https://store.softline.ru/kripto-pro/cryptopro-csp"
+  },
+  {
+   "vendor": "kripto-pro",
+   "base": "криптопро ключ",
+   "form": "криптопро ключа",
+   "same": true,
+   "base_target": "family https://store.softline.ru/kripto-pro/kriptopro-klyuch",
+   "form_target": "family https://store.softline.ru/kripto-pro/kriptopro-klyuch"
+  },
+  {
+   "vendor": "anydesk",
+   "base": "энидеск",
+   "form": "энидеска",
+   "same": true,
+   "base_target": "family https://store.softline.ru/anydesk/anydesk",
+   "form_target": "family https://store.softline.ru/anydesk/anydesk"
+  },
+  {
+   "vendor": "anydesk",
+   "base": "энидеск",
+   "form": "энидеском",
+   "same": true,
+   "base_target": "family https://store.softline.ru/anydesk/anydesk",
+   "form_target": "family https://store.softline.ru/anydesk/anydesk"
+  },
+  {
+   "vendor": "anydesk",
+   "base": "anydesk",
+   "form": "для anydesk",
+   "same": true,
+   "base_target": "family https://store.softline.ru/anydesk/anydesk",
+   "form_target": "family https://store.softline.ru/anydesk/anydesk"
+  },
+  {
+   "vendor": "cyberprotect",
+   "base": "кибер бэкап",
+   "form": "кибер бэкапа",
+   "same": true,
+   "base_target": "vendor_category https://store.softline.ru/cyberprotect?filter[category][]=1033",
+   "form_target": "vendor_category https://store.softline.ru/cyberprotect?filter[category][]=1033"
+  },
+  {
+   "vendor": "cyberprotect",
+   "base": "кибер бэкап",
+   "form": "кибер бэкапом",
+   "same": true,
+   "base_target": "vendor_category https://store.softline.ru/cyberprotect?filter[category][]=1033",
+   "form_target": "vendor_category https://store.softline.ru/cyberprotect?filter[category][]=1033"
+  },
+  {
+   "vendor": "cyberprotect",
+   "base": "кибер бэкап стандартная",
+   "form": "кибер бэкапа стандартного",
+   "same": true,
+   "base_target": "family https://store.softline.ru/cyberprotect/kiber-bekap",
+   "form_target": "family https://store.softline.ru/cyberprotect/kiber-bekap"
+  },
+  {
+   "vendor": "cyberprotect",
+   "base": "кибер хранилище",
+   "form": "кибер хранилища",
+   "same": true,
+   "base_target": "family https://store.softline.ru/cyberprotect/kiber-khranilishche",
+   "form_target": "family https://store.softline.ru/cyberprotect/kiber-khranilishche"
+  },
+  {
+   "vendor": "npo-echelon",
+   "base": "сканер вс",
+   "form": "сканера вс",
+   "same": true,
+   "base_target": "family https://store.softline.ru/npo-echelon/eshelon-skaner-vs",
+   "form_target": "family https://store.softline.ru/npo-echelon/eshelon-skaner-vs"
+  },
+  {
+   "vendor": "npo-echelon",
+   "base": "сканер вс",
+   "form": "сканером вс",
+   "same": true,
+   "base_target": "family https://store.softline.ru/npo-echelon/eshelon-skaner-vs",
+   "form_target": "family https://store.softline.ru/npo-echelon/eshelon-skaner-vs"
+  },
+  {
+   "vendor": "npo-echelon",
+   "base": "эшелон",
+   "form": "эшелона",
+   "same": true,
+   "base_target": "vendor https://store.softline.ru/npo-echelon",
+   "form_target": "vendor https://store.softline.ru/npo-echelon"
+  },
+  {
+   "vendor": "webinar",
+   "base": "мтс линк",
+   "form": "мтс линка",
+   "same": true,
+   "base_target": "vendor https://store.softline.ru/webinar",
+   "form_target": "vendor https://store.softline.ru/webinar"
+  },
+  {
+   "vendor": "webinar",
+   "base": "мтс линк",
+   "form": "мтс линком",
+   "same": true,
+   "base_target": "vendor https://store.softline.ru/webinar",
+   "form_target": "vendor https://store.softline.ru/webinar"
+  },
+  {
+   "vendor": "webinar",
+   "base": "мтс линк про",
+   "form": "мтс линка про",
+   "same": true,
+   "base_target": "family https://store.softline.ru/webinar/mts-link-pro",
+   "form_target": "family https://store.softline.ru/webinar/mts-link-pro"
+  },
+  {
+   "vendor": "positive-technologies",
+   "base": "макс патрол",
+   "form": "макс патрола",
+   "same": true,
+   "base_target": "family https://store.softline.ru/positive-technologies/maxpatrol-endpoint-protection-platform",
+   "form_target": "family https://store.softline.ru/positive-technologies/maxpatrol-endpoint-protection-platform"
+  },
+  {
+   "vendor": "positive-technologies",
+   "base": "макс патрол",
+   "form": "макс патролом",
+   "same": true,
+   "base_target": "family https://store.softline.ru/positive-technologies/maxpatrol-endpoint-protection-platform",
+   "form_target": "family https://store.softline.ru/positive-technologies/maxpatrol-endpoint-protection-platform"
+  },
+  {
+   "vendor": "positive-technologies",
+   "base": "maxpatrol",
+   "form": "для maxpatrol",
+   "same": true,
+   "base_target": "family https://store.softline.ru/positive-technologies/maxpatrol-endpoint-protection-platform",
+   "form_target": "family https://store.softline.ru/positive-technologies/maxpatrol-endpoint-protection-platform"
+  },
+  {
+   "vendor": "tz",
+   "base": "сервер",
+   "form": "серверы",
+   "same": true,
+   "base_target": "category Rack-серверы",
+   "form_target": "category Rack-серверы"
+  },
+  {
+   "vendor": "tz",
+   "base": "сервер",
+   "form": "серверов",
+   "same": true,
+   "base_target": "category Rack-серверы",
+   "form_target": "category Rack-серверы"
+  },
+  {
+   "vendor": "tz",
+   "base": "антивирус",
+   "form": "антивирусы",
+   "same": true,
+   "base_target": "category Антивирусы для организаций",
+   "form_target": "category Антивирусы для организаций"
+  },
+  {
+   "vendor": "tz",
+   "base": "антивирус",
+   "form": "антивируса",
+   "same": true,
+   "base_target": "category Антивирусы для организаций",
+   "form_target": "category Антивирусы для организаций"
+  }
+ ]
+}

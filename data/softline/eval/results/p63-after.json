@@ -1,0 +1,140 @@
+{
+ "api": "http://127.0.0.1:8091",
+ "rows": [
+  {
+   "id": "S3",
+   "query": "продлить касперский на 100 пк на 2 года",
+   "ok": true,
+   "fails": [],
+   "cards": [
+    "exact: Kaspersky Endpoint Security для бизнеса Стандарт — 3070.80 ₽",
+    "exact: Kaspersky Endpoint Security Cloud Plus продление — 3010.50 ₽",
+    "exact: Kaspersky Endpoint Security для бизнеса Расширен — 4451.94 ₽",
+    "exact: Kaspersky Endpoint Security для бизнеса Расширен — 6806.70 ₽",
+    "exact: Kaspersky EDR для бизнеса Оптимальный продление  — 6046.20 ₽",
+    "exact: Kaspersky Embedded Systems Security продление ли — 9480.60 ₽"
+   ],
+   "comparison": "При этих условиях Стандартный на 31% дешевле, чем Расширенный, за узел"
+  },
+  {
+   "id": "S3-neg",
+   "query": "антивирус на 100 пк",
+   "ok": true,
+   "fails": [],
+   "cards": [
+    "exact: PRO32 Endpoint Security Advanced версия на 1 год — 144000.00 ₽",
+    "exact: Kaspersky Endpoint Security Cloud лицензия на 1  — 1771.20 ₽",
+    "exact: PRO32 Endpoint Security Standard версия на 1 год — 96000.00 ₽",
+    "exact: Kaspersky Security для систем хранения данных дл — 341558.37 ₽",
+    "exact: Kaspersky Security для Microsoft Office 365 лице — 1463.40 ₽",
+    "exact: Kaspersky EDR для бизнеса Оптимальный лицензия н — 3022.20 ₽"
+   ],
+   "comparison": "При этих условиях Standard на 33% дешевле, чем Advanced, за узел"
+  },
+  {
+   "id": "S3-10",
+   "query": "касперский на 10 пк",
+   "ok": true,
+   "fails": [],
+   "cards": [
+    "exact: Kaspersky Endpoint Security для бизнеса Стандарт — 1991.70 ₽",
+    "exact: Kaspersky Endpoint Security для бизнеса Расширен — 2889.00 ₽",
+    "exact: Kaspersky Endpoint Security Cloud лицензия KL474 — 2518.20 ₽",
+    "exact: Kaspersky Endpoint Security для бизнеса Расширен — 4802.40 ₽",
+    "exact: Kaspersky Embedded Systems Security лицензия на  — 6273.90 ₽",
+    "exact: Kaspersky EDR для бизнеса Оптимальный лицензия н — 3923.10 ₽"
+   ],
+   "comparison": "При этих условиях Стандартный на 31% дешевле, чем Расширенный, за узел"
+  },
+  {
+   "id": "S4",
+   "query": "windows server",
+   "ok": true,
+   "fails": [],
+   "cards": [
+    "exact: Microsoft Windows Server Standard 2019 (бессрочн — по запросу",
+    "alternative: Astra Linux Special Edition 1.8, х86-64, «Орел», — 20000.00 ₽",
+    "alternative: BaseALT Альт Сервер 11 (лицензия на 1 год), архи — 6080.00 ₽",
+    "alternative: РЕД СОФТ РЕД ОС Стандартная редакция, Конфигурац — 15000.00 ₽",
+    "related: Доктор Веб Dr.Web Server Security Suite, Антивир — 4225.00 ₽",
+    "related: Microsoft Windows Server CAL (лицензия), 1 User  — по запросу"
+   ],
+   "comparison": null
+  },
+  {
+   "id": "S4-2022",
+   "query": "windows server 2022",
+   "ok": true,
+   "fails": [],
+   "cards": [
+    "exact: Microsoft Windows Server Datacenter 2022 (лиценз — по запросу",
+    "alternative: Astra Linux Special Edition 1.8, х86-64, «Орел», — 20000.00 ₽",
+    "alternative: BaseALT Альт Сервер 11 (лицензия на 1 год), архи — 6080.00 ₽",
+    "alternative: РЕД СОФТ РЕД ОС Стандартная редакция, Конфигурац — 15000.00 ₽",
+    "exact: Microsoft Windows Server Essentials 2022 (лиценз — по запросу",
+    "exact: Microsoft Windows Server CAL 2022 (лицензия Sing — по запросу"
+   ],
+   "comparison": null
+  },
+  {
+   "id": "S4-2025",
+   "query": "windows server 2025",
+   "ok": true,
+   "fails": [],
+   "cards": [
+    "exact: Microsoft Windows Server Datacenter 2022 (лиценз — по запросу",
+    "alternative: Astra Linux Special Edition 1.8, х86-64, «Орел», — 20000.00 ₽",
+    "alternative: BaseALT Альт Сервер 11 (лицензия на 1 год), архи — 6080.00 ₽",
+    "alternative: РЕД СОФТ РЕД ОС Стандартная редакция, Конфигурац — 15000.00 ₽",
+    "related: Microsoft Windows Server CAL (лицензия), 1 User  — по запросу",
+    "related: Microsoft Windows Server Essentials 2022 (лиценз — по запросу"
+   ],
+   "comparison": null
+  },
+  {
+   "id": "S4-office",
+   "query": "microsoft office",
+   "ok": true,
+   "fails": [],
+   "cards": [
+    "exact: Microsoft Office для дома и бизнеса 2024, Электр — 36584.00 ₽",
+    "exact: Microsoft Office для дома 2024, Электронная лице — 16547.00 ₽",
+    "exact: Microsoft 365 Персональный, Электронная подписка — 9105.00 ₽",
+    "exact: Microsoft Office Standard 2019 (лицензия OpenLic — по запросу",
+    "exact: Microsoft Exchange Online Archiving (Subscriptio — по запросу",
+    "exact: Microsoft Office Professional Plus, Open Value ( — по запросу"
+   ],
+   "comparison": null
+  },
+  {
+   "id": "S4-photoshop",
+   "query": "adobe photoshop",
+   "ok": true,
+   "fails": [],
+   "cards": [
+    "exact: Adobe Systems Adobe Photoshop CC ( Лицензии для  — по запросу",
+    "exact: Adobe Systems Adobe Photoshop Elements (бессрочн — по запросу",
+    "exact: Adobe Systems Adobe Photoshop Pro (подписка for  — по запросу",
+    "exact: Adobe Systems Adobe Lightroom Pro (подписка for  — по запросу",
+    "exact: Adobe Systems Adobe After Effects Pro (подписка  — по запросу",
+    "exact: Adobe Systems Adobe InDesign Pro (подписка for e — по запросу"
+   ],
+   "comparison": null
+  },
+  {
+   "id": "S4-vinda",
+   "query": "винда",
+   "ok": true,
+   "fails": [],
+   "cards": [
+    "exact: Microsoft Windows 11 Home (Домашняя) KW9-00664,  — 20183.00 ₽",
+    "exact: Microsoft Windows 11 Pro FQC-10572, электронный  — 30448.00 ₽",
+    "related: Windows 10 Pro (бессрочная лицензия GGWA для лег — по запросу",
+    "related: Microsoft Windows Server CAL (лицензия), 1 User  — по запросу",
+    "related: Microsoft Windows Server CAL (лицензия OLV + Sof — по запросу",
+    "related: Microsoft Windows Server Remote Desktop Services — по запросу"
+   ],
+   "comparison": null
+  }
+ ]
+}

@@ -1,0 +1,2273 @@
+{
+ "started": "",
+ "api": "http://127.0.0.1:8088",
+ "meta_catalog_version": "mock-2",
+ "meta_rules_version": 3,
+ "configs": [
+  "live",
+  "B1"
+ ],
+ "runs": {
+  "live": {
+   "note": "текущая сборка: витрина, конвейер B3 на последней принятой версии правил",
+   "summary": {
+    "matched": 0,
+    "etalons": 10,
+    "families_ge4": {
+     "n": 7,
+     "of": 17
+    },
+    "skus_ge4": {
+     "n": 11,
+     "of": 17
+    },
+    "cards_ge4": {
+     "n": 7,
+     "of": 17
+    },
+    "families_ge4_etalon": {
+     "n": 3,
+     "of": 10
+    },
+    "families_ge4_tz": {
+     "n": 4,
+     "of": 7
+    },
+    "skus_ge4_etalon": {
+     "n": 5,
+     "of": 10
+    },
+    "skus_ge4_tz": {
+     "n": 6,
+     "of": 7
+    },
+    "p50_ms": 58,
+    "p95_ms": 5802,
+    "http_errors": 0,
+    "responses_ok": 17,
+    "with_url": 0,
+    "catalog_versions": [
+     "mock-2"
+    ],
+    "routes": {
+     "B": 10,
+     "D": 5,
+     "A": 1,
+     "C": 1
+    },
+    "cost_rub": 0.891,
+    "miss_reasons": {
+     "цель": 10
+    }
+   },
+   "results": [
+    {
+     "query": "astra linux",
+     "kind": "эталон",
+     "target_type": "family",
+     "target_url": "/astralinux/astra-linux-special-edition/",
+     "group_id": "121231",
+     "http": 200,
+     "error": null,
+     "ms": 45,
+     "first_url": "",
+     "first_url_norm": "",
+     "first_type": "",
+     "first_source": "items[0] без URL",
+     "first_title": "Astra Linux Special Edition 1.8 «Воронеж», серверная, 1 сервер, бессрочная лицензия",
+     "first_family_id": "astra-linux-se",
+     "route": "B",
+     "effective_config": "B4",
+     "server_ms": 43.5,
+     "cost_rub": 0,
+     "catalog_version": "mock-2",
+     "config": "live",
+     "top": [
+      {
+       "product_id": "astra-srv-vrn",
+       "offer_id": null,
+       "family_id": "astra-linux-se",
+       "title": "Astra Linux Special Edition 1.8 «Воронеж», серверная, 1 сервер, бессрочная лицензия",
+       "family_url": null,
+       "offer_url": null,
+       "match_type": null,
+       "group": "exact"
+      }
+     ],
+     "cards": 1,
+     "families": 1,
+     "skus": 5,
+     "match_type": {},
+     "group": {
+      "exact": 1
+     },
+     "server_counts": {
+      "families": 1,
+      "variants": 5
+     },
+     "matched": false,
+     "miss_reason": "цель"
+    },
+    {
+     "query": "Microsoft Office для дома и бизнеса",
+     "kind": "эталон",
+     "target_type": "family",
+     "target_url": "/microsoft/microsoft-office-dlya-doma-i-biznesa-2024/",
+     "group_id": "391338",
+     "http": 200,
+     "error": null,
+     "ms": 16,
+     "first_url": "",
+     "first_url_norm": "",
+     "first_type": "",
+     "first_source": "items[0] без URL",
+     "first_title": "Microsoft Office 2024 для дома и бизнеса, 1 ПК, бессрочная лицензия",
+     "first_family_id": "office-2024",
+     "route": "B",
+     "effective_config": "B4",
+     "server_ms": 14.09,
+     "cost_rub": 0,
+     "catalog_version": "mock-2",
+     "config": "live",
+     "top": [
+      {
+       "product_id": "off24-hb",
+       "offer_id": null,
+       "family_id": "office-2024",
+       "title": "Microsoft Office 2024 для дома и бизнеса, 1 ПК, бессрочная лицензия",
+       "family_url": null,
+       "offer_url": null,
+       "match_type": null,
+       "group": "exact"
+      },
+      {
+       "product_id": "off21-hb",
+       "offer_id": null,
+       "family_id": "office-2021",
+       "title": "Microsoft Office 2021 для дома и бизнеса, 1 ПК, бессрочная лицензия",
+       "family_url": null,
+       "offer_url": null,
+       "match_type": null,
+       "group": "exact"
+      },
+      {
+       "product_id": "m365b-bp",
+       "offer_id": null,
+       "family_id": "microsoft-365-business",
+       "title": "Microsoft 365 Business Premium, 1 пользователь, 1 год",
+       "family_url": null,
+       "offer_url": null,
+       "match_type": null,
+       "group": "exact"
+      },
+      {
+       "product_id": "m365h-fam",
+       "offer_id": null,
+       "family_id": "microsoft-365-home",
+       "title": "Microsoft 365 Для семьи, до 6 пользователей, 1 год",
+       "family_url": null,
+       "offer_url": null,
+       "match_type": null,
+       "group": "exact"
+      }
+     ],
+     "cards": 4,
+     "families": 4,
+     "skus": 14,
+     "match_type": {},
+     "group": {
+      "exact": 4
+     },
+     "server_counts": {
+      "families": 4,
+      "variants": 14
+     },
+     "matched": false,
+     "miss_reason": "цель"
+    },
+    {
+     "query": "kaspersky small office security",
+     "kind": "эталон",
+     "target_type": "family",
+     "target_url": "/kaspersky/kaspersky-small-office-security/",
+     "group_id": "3761",
+     "http": 200,
+     "error": null,
+     "ms": 317,
+     "first_url": "",
+     "first_url_norm": "",
+     "first_type": "",
+     "first_source": "items[0] без URL",
+     "first_title": "Kaspersky Small Office Security, 10 ПК + 1 файловый сервер, 1 год",
+     "first_family_id": "kaspersky-small-office-security",
+     "route": "B",
+     "effective_config": "B4",
+     "server_ms": 314.7,
+     "cost_rub": 0,
+     "catalog_version": "mock-2",
+     "config": "live",
+     "top": [
+      {
+       "product_id": "ksos-10pc-1y",
+       "offer_id": null,
+       "family_id": "kaspersky-small-office-security",
+       "title": "Kaspersky Small Office Security, 10 ПК + 1 файловый сервер, 1 год",
+       "family_url": null,
+       "offer_url": null,
+       "match_type": null,
+       "group": "exact"
+      },
+      {
+       "product_id": "kis-3dev-1y",
+       "offer_id": null,
+       "family_id": "kaspersky-internet-security",
+       "title": "Kaspersky Internet Security, 3 устройства, 1 год",
+       "family_url": null,
+       "offer_url": null,
+       "match_type": null,
+       "group": "exact"
+      },
+      {
+       "product_id": "kplus-1dev-1y",
+       "offer_id": null,
+       "family_id": "kaspersky-plus",
+       "title": "Kaspersky Plus, 1 устройство, 1 год",
+       "family_url": null,
+       "offer_url": null,
+       "match_type": null,
+       "group": "exact"
+      },
+      {
+       "product_id": "kstd-5dev-1y",
+       "offer_id": null,
+       "family_id": "kaspersky-standard",
+       "title": "Kaspersky Standard, 5 устройств, 1 год",
+       "family_url": null,
+       "offer_url": null,
+       "match_type": null,
+       "group": "exact"
+      },
+      {
+       "product_id": "kprem-1dev-1y",
+       "offer_id": null,
+       "family_id": "kaspersky-premium",
+       "title": "Kaspersky Premium, 1 устройство, 1 год",
+       "family_url": null,
+       "offer_url": null,
+       "match_type": null,
+       "group": "exact"
+      }
+     ],
+     "cards": 6,
+     "families": 6,
+     "skus": 33,
+     "match_type": {},
+     "group": {
+      "exact": 6
+     },
+     "server_counts": {
+      "families": 6,
+      "variants": 33
+     },
+     "matched": false,
+     "miss_reason": "цель"
+    },
+    {
+     "query": "крипто про csp 5.0",
+     "kind": "эталон",
+     "target_type": "family",
+     "target_url": "/kripto-pro/cryptopro-csp/",
+     "group_id": "22268",
+     "http": 200,
+     "error": null,
+     "ms": 5802,
+     "first_url": "",
+     "first_url_norm": "",
+     "first_type": "",
+     "first_source": "items[0] без URL",
+     "first_title": "КриптоПро CSP 5.0, серверная лицензия, бессрочная",
+     "first_family_id": "cryptopro-csp",
+     "route": "D",
+     "effective_config": "B4",
+     "server_ms": 5801.12,
+     "cost_rub": 0.1794,
+     "catalog_version": "mock-2",
+     "config": "live",
+     "top": [
+      {
+       "product_id": "cpcsp-srv",
+       "offer_id": null,
+       "family_id": "cryptopro-csp",
+       "title": "КриптоПро CSP 5.0, серверная лицензия, бессрочная",
+       "family_url": null,
+       "offer_url": null,
+       "match_type": null,
+       "group": "exact"
+      }
+     ],
+     "cards": 1,
+     "families": 1,
+     "skus": 3,
+     "match_type": {},
+     "group": {
+      "exact": 1
+     },
+     "server_counts": {
+      "families": 1,
+      "variants": 3
+     },
+     "matched": false,
+     "miss_reason": "цель"
+    },
+    {
+     "query": "anydesk",
+     "kind": "эталон",
+     "target_type": "family",
+     "target_url": "/anydesk/anydesk/",
+     "group_id": "306539",
+     "http": 200,
+     "error": null,
+     "ms": 7,
+     "first_url": "",
+     "first_url_norm": "",
+     "first_type": "",
+     "first_source": "items[0] без URL",
+     "first_title": "AnyDesk Standard, 1 пользователь, 1 год",
+     "first_family_id": "anydesk",
+     "route": "B",
+     "effective_config": "B4",
+     "server_ms": 6.38,
+     "cost_rub": 0,
+     "catalog_version": "mock-2",
+     "config": "live",
+     "top": [
+      {
+       "product_id": "ad-std1y",
+       "offer_id": null,
+       "family_id": "anydesk",
+       "title": "AnyDesk Standard, 1 пользователь, 1 год",
+       "family_url": null,
+       "offer_url": null,
+       "match_type": null,
+       "group": "exact"
+      }
+     ],
+     "cards": 1,
+     "families": 1,
+     "skus": 3,
+     "match_type": {},
+     "group": {
+      "exact": 1
+     },
+     "server_counts": {
+      "families": 1,
+      "variants": 3
+     },
+     "matched": false,
+     "miss_reason": "цель"
+    },
+    {
+     "query": "кибер бэкап",
+     "kind": "эталон",
+     "target_type": "vendor_category",
+     "target_url": "/cyberprotect/?filter[category][]=1033",
+     "group_id": null,
+     "http": 200,
+     "error": null,
+     "ms": 327,
+     "first_url": "",
+     "first_url_norm": "",
+     "first_type": "",
+     "first_source": "items[0] без URL",
+     "first_title": "Кибер Бэкап 17 Стандартная, для сервера, 1 сервер, 1 год",
+     "first_family_id": "cyber-backup",
+     "route": "A",
+     "effective_config": "B4",
+     "server_ms": 324.9,
+     "cost_rub": 0,
+     "catalog_version": "mock-2",
+     "config": "live",
+     "top": [
+      {
+       "product_id": "cyb-srv1y",
+       "offer_id": null,
+       "family_id": "cyber-backup",
+       "title": "Кибер Бэкап 17 Стандартная, для сервера, 1 сервер, 1 год",
+       "family_url": null,
+       "offer_url": null,
+       "match_type": null,
+       "group": "exact"
+      },
+      {
+       "product_id": "veeam-vul10-1y",
+       "offer_id": null,
+       "family_id": "veeam-backup",
+       "title": "Veeam Backup & Replication Universal License, 10 экземпляров, 1 год",
+       "family_url": null,
+       "offer_url": null,
+       "match_type": null,
+       "group": "match"
+      }
+     ],
+     "cards": 2,
+     "families": 2,
+     "skus": 8,
+     "match_type": {},
+     "group": {
+      "exact": 1,
+      "match": 1
+     },
+     "server_counts": {
+      "families": 2,
+      "variants": 8
+     },
+     "matched": false,
+     "miss_reason": "цель"
+    },
+    {
+     "query": "сканер-вс",
+     "kind": "эталон",
+     "target_type": "family",
+     "target_url": "/npo-echelon/eshelon-skaner-vs/",
+     "group_id": "46421",
+     "http": 200,
+     "error": null,
+     "ms": 3193,
+     "first_url": "",
+     "first_url_norm": "",
+     "first_type": "",
+     "first_source": "items[0] без URL",
+     "first_title": "Secret Net Studio 8, 1 рабочая станция, бессрочная лицензия",
+     "first_family_id": "secret-net-studio",
+     "route": "D",
+     "effective_config": "B4",
+     "server_ms": 3191.5,
+     "cost_rub": 0.1775,
+     "catalog_version": "mock-2",
+     "config": "live",
+     "top": [
+      {
+       "product_id": "sns-ws",
+       "offer_id": null,
+       "family_id": "secret-net-studio",
+       "title": "Secret Net Studio 8, 1 рабочая станция, бессрочная лицензия",
+       "family_url": null,
+       "offer_url": null,
+       "match_type": null,
+       "group": "match"
+      },
+      {
+       "product_id": "cpcsp-1y",
+       "offer_id": null,
+       "family_id": "cryptopro-csp",
+       "title": "КриптоПро CSP 5.0, лицензия на рабочее место, 1 год",
+       "family_url": null,
+       "offer_url": null,
+       "match_type": null,
+       "group": "match"
+      },
+      {
+       "product_id": "mpvm-100n-1y",
+       "offer_id": null,
+       "family_id": "maxpatrol-vm",
+       "title": "MaxPatrol VM, 100 узлов, 1 год",
+       "family_url": null,
+       "offer_url": null,
+       "match_type": null,
+       "group": "match"
+      },
+      {
+       "product_id": "ptaf-perp",
+       "offer_id": null,
+       "family_id": "pt-application-firewall",
+       "title": "PT Application Firewall, 1 сервер, бессрочная лицензия",
+       "family_url": null,
+       "offer_url": null,
+       "match_type": null,
+       "group": "match"
+      },
+      {
+       "product_id": "iwtm-500u",
+       "offer_id": null,
+       "family_id": "infowatch-traffic-monitor",
+       "title": "InfoWatch Traffic Monitor Enterprise, 500 пользователей, бессрочная лицензия",
+       "family_url": null,
+       "offer_url": null,
+       "match_type": null,
+       "group": "match"
+      }
+     ],
+     "cards": 5,
+     "families": 5,
+     "skus": 12,
+     "match_type": {},
+     "group": {
+      "match": 5
+     },
+     "server_counts": {
+      "families": 5,
+      "variants": 12
+     },
+     "matched": false,
+     "miss_reason": "цель"
+    },
+    {
+     "query": "мтс",
+     "kind": "эталон",
+     "target_type": "vendor",
+     "target_url": "/webinar/",
+     "group_id": null,
+     "http": 200,
+     "error": null,
+     "ms": 4128,
+     "first_url": "",
+     "first_url_norm": "",
+     "first_type": "",
+     "first_source": "пусто",
+     "first_title": "",
+     "first_family_id": "",
+     "route": "D",
+     "effective_config": "B4",
+     "server_ms": 4125.48,
+     "cost_rub": 0.1801,
+     "catalog_version": "mock-2",
+     "config": "live",
+     "top": [],
+     "cards": 0,
+     "families": 0,
+     "skus": 0,
+     "match_type": {},
+     "group": {},
+     "server_counts": {
+      "families": 0,
+      "variants": 0
+     },
+     "matched": false,
+     "miss_reason": "цель"
+    },
+    {
+     "query": "max patrol",
+     "kind": "эталон",
+     "target_type": "family",
+     "target_url": "/positive-technologies/maxpatrol-endpoint-protection-platform/",
+     "group_id": "437421",
+     "http": 200,
+     "error": null,
+     "ms": 4734,
+     "first_url": "",
+     "first_url_norm": "",
+     "first_type": "",
+     "first_source": "items[0] без URL",
+     "first_title": "MaxPatrol VM, 100 узлов, 1 год",
+     "first_family_id": "maxpatrol-vm",
+     "route": "D",
+     "effective_config": "B4",
+     "server_ms": 4732.65,
+     "cost_rub": 0.1775,
+     "catalog_version": "mock-2",
+     "config": "live",
+     "top": [
+      {
+       "product_id": "mpvm-100n-1y",
+       "offer_id": null,
+       "family_id": "maxpatrol-vm",
+       "title": "MaxPatrol VM, 100 узлов, 1 год",
+       "family_url": null,
+       "offer_url": null,
+       "match_type": null,
+       "group": "exact"
+      }
+     ],
+     "cards": 1,
+     "families": 1,
+     "skus": 2,
+     "match_type": {},
+     "group": {
+      "exact": 1
+     },
+     "server_counts": {
+      "families": 1,
+      "variants": 2
+     },
+     "matched": false,
+     "miss_reason": "цель"
+    },
+    {
+     "query": "365",
+     "kind": "эталон",
+     "target_type": "family",
+     "target_url": "/microsoft/microsoft-365-for-family/",
+     "group_id": "165034",
+     "http": 200,
+     "error": null,
+     "ms": 50,
+     "first_url": "",
+     "first_url_norm": "",
+     "first_type": "",
+     "first_source": "пусто",
+     "first_title": "",
+     "first_family_id": "",
+     "route": "B",
+     "effective_config": "B4",
+     "server_ms": 46.92,
+     "cost_rub": 0,
+     "catalog_version": "mock-2",
+     "config": "live",
+     "top": [],
+     "cards": 0,
+     "families": 0,
+     "skus": 0,
+     "match_type": {},
+     "group": {},
+     "server_counts": {
+      "families": 0,
+      "variants": 0
+     },
+     "matched": false,
+     "miss_reason": "цель"
+    },
+    {
+     "query": "сервер",
+     "kind": "ТЗ",
+     "target_type": null,
+     "target_url": null,
+     "group_id": null,
+     "http": 200,
+     "error": null,
+     "ms": 355,
+     "first_url": "",
+     "first_url_norm": "",
+     "first_type": "",
+     "first_source": "items[0] без URL",
+     "first_title": "Сервер Dell PowerEdge R740, 2× Xeon Silver 4210R, 64 ГБ, 2× SSD 960 ГБ",
+     "first_family_id": "dell-poweredge-r740",
+     "route": "C",
+     "effective_config": "B4",
+     "server_ms": 353.87,
+     "cost_rub": 0,
+     "catalog_version": "mock-2",
+     "config": "live",
+     "top": [
+      {
+       "product_id": "srv-r740-s4210",
+       "offer_id": null,
+       "family_id": "dell-poweredge-r740",
+       "title": "Сервер Dell PowerEdge R740, 2× Xeon Silver 4210R, 64 ГБ, 2× SSD 960 ГБ",
+       "family_url": null,
+       "offer_url": null,
+       "match_type": null,
+       "group": "match"
+      },
+      {
+       "product_id": "srv-r750-s4314",
+       "offer_id": null,
+       "family_id": "dell-poweredge-r750",
+       "title": "Сервер Dell PowerEdge R750, 2× Xeon Silver 4314, 128 ГБ, 2× SSD 1,92 ТБ",
+       "family_url": null,
+       "offer_url": null,
+       "match_type": null,
+       "group": "match"
+      },
+      {
+       "product_id": "srv-dl380g11-4410y",
+       "offer_id": null,
+       "family_id": "hpe-proliant-dl380-gen11",
+       "title": "Сервер HPE ProLiant DL380 Gen11, 2× Xeon Silver 4410Y, 64 ГБ DDR5, 2× SSD 960 ГБ",
+       "family_url": null,
+       "offer_url": null,
+       "match_type": null,
+       "group": "match"
+      },
+      {
+       "product_id": "srv-vegman-r220-base",
+       "offer_id": null,
+       "family_id": "yadro-vegman-r220-g2",
+       "title": "Сервер YADRO VEGMAN R220 G2, 2× Xeon Gold 6330, 256 ГБ, 2× SSD 960 ГБ",
+       "family_url": null,
+       "offer_url": null,
+       "match_type": null,
+       "group": "match"
+      },
+      {
+       "product_id": "srv-dl380g10-5218",
+       "offer_id": null,
+       "family_id": "hpe-proliant-dl380-gen10",
+       "title": "Сервер HPE ProLiant DL380 Gen10, 2× Xeon Gold 5218, 128 ГБ, 4× SSD 960 ГБ",
+       "family_url": null,
+       "offer_url": null,
+       "match_type": null,
+       "group": "match"
+      }
+     ],
+     "cards": 5,
+     "families": 5,
+     "skus": 10,
+     "match_type": {},
+     "group": {
+      "match": 5
+     },
+     "server_counts": {
+      "families": 5,
+      "variants": 10
+     }
+    },
+    {
+     "query": "антивирь",
+     "kind": "ТЗ",
+     "target_type": null,
+     "target_url": null,
+     "group_id": null,
+     "http": 200,
+     "error": null,
+     "ms": 50,
+     "first_url": "",
+     "first_url_norm": "",
+     "first_type": "",
+     "first_source": "items[0] без URL",
+     "first_title": "ESET NOD32 Антивирус, 1 устройство, 1 год",
+     "first_family_id": "eset-nod32-antivirus",
+     "route": "B",
+     "effective_config": "B4",
+     "server_ms": 48.67,
+     "cost_rub": 0,
+     "catalog_version": "mock-2",
+     "config": "live",
+     "top": [
+      {
+       "product_id": "nod-1dev-1y",
+       "offer_id": null,
+       "family_id": "eset-nod32-antivirus",
+       "title": "ESET NOD32 Антивирус, 1 устройство, 1 год",
+       "family_url": null,
+       "offer_url": null,
+       "match_type": null,
+       "group": "match"
+      },
+      {
+       "product_id": "kprem-1dev-1y",
+       "offer_id": null,
+       "family_id": "kaspersky-premium",
+       "title": "Kaspersky Premium, 1 устройство, 1 год",
+       "family_url": null,
+       "offer_url": null,
+       "match_type": null,
+       "group": "match"
+      },
+      {
+       "product_id": "kis-2dev-1y",
+       "offer_id": null,
+       "family_id": "kaspersky-internet-security",
+       "title": "Kaspersky Internet Security, 2 устройства, 1 год",
+       "family_url": null,
+       "offer_url": null,
+       "match_type": null,
+       "group": "match"
+      },
+      {
+       "product_id": "kplus-1dev-1y",
+       "offer_id": null,
+       "family_id": "kaspersky-plus",
+       "title": "Kaspersky Plus, 1 устройство, 1 год",
+       "family_url": null,
+       "offer_url": null,
+       "match_type": null,
+       "group": "match"
+      },
+      {
+       "product_id": "drss-1pc-1y",
+       "offer_id": null,
+       "family_id": "drweb-security-space",
+       "title": "Dr.Web Security Space, 1 ПК, 1 год",
+       "family_url": null,
+       "offer_url": null,
+       "match_type": null,
+       "group": "match"
+      }
+     ],
+     "cards": 8,
+     "families": 8,
+     "skus": 33,
+     "match_type": {},
+     "group": {
+      "match": 8
+     },
+     "server_counts": {
+      "families": 8,
+      "variants": 33
+     }
+    },
+    {
+     "query": "офис",
+     "kind": "ТЗ",
+     "target_type": null,
+     "target_url": null,
+     "group_id": null,
+     "http": 200,
+     "error": null,
+     "ms": 32,
+     "first_url": "",
+     "first_url_norm": "",
+     "first_type": "",
+     "first_source": "items[0] без URL",
+     "first_title": "Microsoft Office 2021 профессиональный плюс, 1 ПК, бессрочная лицензия",
+     "first_family_id": "office-2021",
+     "route": "B",
+     "effective_config": "B4",
+     "server_ms": 30.29,
+     "cost_rub": 0,
+     "catalog_version": "mock-2",
+     "config": "live",
+     "top": [
+      {
+       "product_id": "off21-pp",
+       "offer_id": null,
+       "family_id": "office-2021",
+       "title": "Microsoft Office 2021 профессиональный плюс, 1 ПК, бессрочная лицензия",
+       "family_url": null,
+       "offer_url": null,
+       "match_type": null,
+       "group": "match"
+      },
+      {
+       "product_id": "off24-home",
+       "offer_id": null,
+       "family_id": "office-2024",
+       "title": "Microsoft Office 2024 для дома, 1 ПК, бессрочная лицензия",
+       "family_url": null,
+       "offer_url": null,
+       "match_type": null,
+       "group": "match"
+      },
+      {
+       "product_id": "m365b-e3",
+       "offer_id": null,
+       "family_id": "microsoft-365-business",
+       "title": "Microsoft 365 E3, 1 пользователь, 1 год",
+       "family_url": null,
+       "offer_url": null,
+       "match_type": null,
+       "group": "match"
+      },
+      {
+       "product_id": "r7-p1",
+       "offer_id": null,
+       "family_id": "r7-office-professional",
+       "title": "Р7-Офис Профессиональный десктопная версия, 1 рабочее место, бессрочная лицензия",
+       "family_url": null,
+       "offer_url": null,
+       "match_type": null,
+       "group": "match"
+      },
+      {
+       "product_id": "myo-p1",
+       "offer_id": null,
+       "family_id": "myoffice-standard",
+       "title": "МойОфис Стандартный, 1 пользователь, бессрочная лицензия",
+       "family_url": null,
+       "offer_url": null,
+       "match_type": null,
+       "group": "match"
+      }
+     ],
+     "cards": 6,
+     "families": 6,
+     "skus": 24,
+     "match_type": {},
+     "group": {
+      "match": 6
+     },
+     "server_counts": {
+      "families": 6,
+      "variants": 24
+     }
+    },
+    {
+     "query": "винда",
+     "kind": "ТЗ",
+     "target_type": null,
+     "target_url": null,
+     "group_id": null,
+     "http": 200,
+     "error": null,
+     "ms": 58,
+     "first_url": "",
+     "first_url_norm": "",
+     "first_type": "",
+     "first_source": "items[0] без URL",
+     "first_title": "Microsoft Windows 10 Pro, 1 устройство, бессрочная лицензия",
+     "first_family_id": "windows-10-pro",
+     "route": "B",
+     "effective_config": "B4",
+     "server_ms": 56.46,
+     "cost_rub": 0,
+     "catalog_version": "mock-2",
+     "config": "live",
+     "top": [
+      {
+       "product_id": "w10p-esd",
+       "offer_id": null,
+       "family_id": "windows-10-pro",
+       "title": "Microsoft Windows 10 Pro, 1 устройство, бессрочная лицензия",
+       "family_url": null,
+       "offer_url": null,
+       "match_type": null,
+       "group": "exact"
+      },
+      {
+       "product_id": "w11p-esd",
+       "offer_id": null,
+       "family_id": "windows-11-pro",
+       "title": "Microsoft Windows 11 Pro, 1 устройство, бессрочная лицензия",
+       "family_url": null,
+       "offer_url": null,
+       "match_type": null,
+       "group": "exact"
+      },
+      {
+       "product_id": "w11h-esd",
+       "offer_id": null,
+       "family_id": "windows-11-home",
+       "title": "Microsoft Windows 11 Home, 1 устройство, бессрочная лицензия",
+       "family_url": null,
+       "offer_url": null,
+       "match_type": null,
+       "group": "exact"
+      },
+      {
+       "product_id": "wscal25-u5",
+       "offer_id": null,
+       "family_id": "windows-server-cal-2025",
+       "title": "Microsoft Windows Server 2025 CAL, 5 клиентских лицензий на пользователя",
+       "family_url": null,
+       "offer_url": null,
+       "match_type": null,
+       "group": "exact"
+      },
+      {
+       "product_id": "ws22-std2",
+       "offer_id": null,
+       "family_id": "windows-server-2022",
+       "title": "Microsoft Windows Server 2022 Standard, дополнительная лицензия на 2 ядра",
+       "family_url": null,
+       "offer_url": null,
+       "match_type": null,
+       "group": "exact"
+      }
+     ],
+     "cards": 9,
+     "families": 9,
+     "skus": 27,
+     "match_type": {},
+     "group": {
+      "exact": 7,
+      "match": 2
+     },
+     "server_counts": {
+      "families": 9,
+      "variants": 27
+     }
+    },
+    {
+     "query": "астра линукс",
+     "kind": "ТЗ",
+     "target_type": null,
+     "target_url": null,
+     "group_id": null,
+     "http": 200,
+     "error": null,
+     "ms": 39,
+     "first_url": "",
+     "first_url_norm": "",
+     "first_type": "",
+     "first_source": "items[0] без URL",
+     "first_title": "Astra Linux Special Edition 1.8 «Воронеж», серверная, 1 сервер, бессрочная лицензия",
+     "first_family_id": "astra-linux-se",
+     "route": "B",
+     "effective_config": "B4",
+     "server_ms": 37.13,
+     "cost_rub": 0,
+     "catalog_version": "mock-2",
+     "config": "live",
+     "top": [
+      {
+       "product_id": "astra-srv-vrn",
+       "offer_id": null,
+       "family_id": "astra-linux-se",
+       "title": "Astra Linux Special Edition 1.8 «Воронеж», серверная, 1 сервер, бессрочная лицензия",
+       "family_url": null,
+       "offer_url": null,
+       "match_type": null,
+       "group": "exact"
+      }
+     ],
+     "cards": 1,
+     "families": 1,
+     "skus": 5,
+     "match_type": {},
+     "group": {
+      "exact": 1
+     },
+     "server_counts": {
+      "families": 1,
+      "variants": 5
+     }
+    },
+    {
+     "query": "мдаемон",
+     "kind": "ТЗ",
+     "target_type": null,
+     "target_url": null,
+     "group_id": null,
+     "http": 200,
+     "error": null,
+     "ms": 4212,
+     "first_url": "",
+     "first_url_norm": "",
+     "first_type": "",
+     "first_source": "пусто",
+     "first_title": "",
+     "first_family_id": "",
+     "route": "D",
+     "effective_config": "B4",
+     "server_ms": 4209.93,
+     "cost_rub": 0.1765,
+     "catalog_version": "mock-2",
+     "config": "live",
+     "top": [],
+     "cards": 0,
+     "families": 0,
+     "skus": 0,
+     "match_type": {},
+     "group": {},
+     "server_counts": {
+      "families": 0,
+      "variants": 0
+     }
+    },
+    {
+     "query": "Astra Linux",
+     "kind": "ТЗ",
+     "target_type": null,
+     "target_url": null,
+     "group_id": null,
+     "http": 200,
+     "error": null,
+     "ms": 13,
+     "first_url": "",
+     "first_url_norm": "",
+     "first_type": "",
+     "first_source": "items[0] без URL",
+     "first_title": "Astra Linux Special Edition 1.8 «Воронеж», серверная, 1 сервер, бессрочная лицензия",
+     "first_family_id": "astra-linux-se",
+     "route": "B",
+     "effective_config": "B4",
+     "server_ms": 10.05,
+     "cost_rub": 0,
+     "catalog_version": "mock-2",
+     "config": "live",
+     "top": [
+      {
+       "product_id": "astra-srv-vrn",
+       "offer_id": null,
+       "family_id": "astra-linux-se",
+       "title": "Astra Linux Special Edition 1.8 «Воронеж», серверная, 1 сервер, бессрочная лицензия",
+       "family_url": null,
+       "offer_url": null,
+       "match_type": null,
+       "group": "exact"
+      }
+     ],
+     "cards": 1,
+     "families": 1,
+     "skus": 5,
+     "match_type": {},
+     "group": {
+      "exact": 1
+     },
+     "server_counts": {
+      "families": 1,
+      "variants": 5
+     }
+    }
+   ]
+  },
+  "B1": {
+   "note": "BM25 без улучшений (ближайшая): multi_match по мультиполям + нормализация и словари v1",
+   "summary": {
+    "matched": 0,
+    "etalons": 10,
+    "families_ge4": {
+     "n": 10,
+     "of": 17
+    },
+    "skus_ge4": {
+     "n": 12,
+     "of": 17
+    },
+    "cards_ge4": {
+     "n": 10,
+     "of": 17
+    },
+    "families_ge4_etalon": {
+     "n": 4,
+     "of": 10
+    },
+    "families_ge4_tz": {
+     "n": 6,
+     "of": 7
+    },
+    "skus_ge4_etalon": {
+     "n": 6,
+     "of": 10
+    },
+    "skus_ge4_tz": {
+     "n": 6,
+     "of": 7
+    },
+    "p50_ms": 11,
+    "p95_ms": 17,
+    "http_errors": 0,
+    "responses_ok": 17,
+    "with_url": 0,
+    "catalog_versions": [
+     "mock-2"
+    ],
+    "routes": {
+     "A": 17
+    },
+    "cost_rub": 0,
+    "miss_reasons": {
+     "цель": 10
+    }
+   },
+   "results": [
+    {
+     "query": "astra linux",
+     "kind": "эталон",
+     "target_type": "family",
+     "target_url": "/astralinux/astra-linux-special-edition/",
+     "group_id": "121231",
+     "http": 200,
+     "error": null,
+     "ms": 12,
+     "first_url": "",
+     "first_url_norm": "",
+     "first_type": "",
+     "first_source": "items[0] без URL",
+     "first_title": "Astra Linux Special Edition 1.8 «Воронеж», серверная, 1 сервер, бессрочная лицензия",
+     "first_family_id": "astra-linux-se",
+     "route": "A",
+     "effective_config": "B1",
+     "server_ms": 8.88,
+     "cost_rub": 0,
+     "catalog_version": "mock-2",
+     "config": "B1",
+     "top": [
+      {
+       "product_id": "astra-srv-vrn",
+       "offer_id": null,
+       "family_id": "astra-linux-se",
+       "title": "Astra Linux Special Edition 1.8 «Воронеж», серверная, 1 сервер, бессрочная лицензия",
+       "family_url": null,
+       "offer_url": null,
+       "match_type": null,
+       "group": "exact"
+      },
+      {
+       "product_id": "nb-ns685-i5-8-256",
+       "offer_id": null,
+       "family_id": "aquarius-cmp-ns685",
+       "title": "Ноутбук Аквариус Cmp NS685U R11, 15,6\", Core i5-1135G7, 8 ГБ, SSD 256 ГБ, без ОС",
+       "family_url": null,
+       "offer_url": null,
+       "match_type": null,
+       "group": "match"
+      },
+      {
+       "product_id": "kes-ext10",
+       "offer_id": null,
+       "family_id": "kaspersky-endpoint-security",
+       "title": "Kaspersky Endpoint Security для бизнеса Расширенный, 10 узлов, 1 год",
+       "family_url": null,
+       "offer_url": null,
+       "match_type": null,
+       "group": "match"
+      },
+      {
+       "product_id": "myo-p25",
+       "offer_id": null,
+       "family_id": "myoffice-standard",
+       "title": "МойОфис Стандартный, 25 пользователей, бессрочная лицензия",
+       "family_url": null,
+       "offer_url": null,
+       "match_type": null,
+       "group": "match"
+      },
+      {
+       "product_id": "alt-srv",
+       "offer_id": null,
+       "family_id": "alt-os",
+       "title": "Альт Сервер 10, 1 сервер, бессрочная лицензия",
+       "family_url": null,
+       "offer_url": null,
+       "match_type": null,
+       "group": "match"
+      }
+     ],
+     "cards": 10,
+     "families": 10,
+     "skus": 50,
+     "match_type": {},
+     "group": {
+      "exact": 1,
+      "match": 9
+     },
+     "server_counts": null,
+     "matched": false,
+     "miss_reason": "цель"
+    },
+    {
+     "query": "Microsoft Office для дома и бизнеса",
+     "kind": "эталон",
+     "target_type": "family",
+     "target_url": "/microsoft/microsoft-office-dlya-doma-i-biznesa-2024/",
+     "group_id": "391338",
+     "http": 200,
+     "error": null,
+     "ms": 13,
+     "first_url": "",
+     "first_url_norm": "",
+     "first_type": "",
+     "first_source": "items[0] без URL",
+     "first_title": "Microsoft Office 2024 для дома и бизнеса, 1 ПК, бессрочная лицензия",
+     "first_family_id": "office-2024",
+     "route": "A",
+     "effective_config": "B1",
+     "server_ms": 10.21,
+     "cost_rub": 0,
+     "catalog_version": "mock-2",
+     "config": "B1",
+     "top": [
+      {
+       "product_id": "off24-hb",
+       "offer_id": null,
+       "family_id": "office-2024",
+       "title": "Microsoft Office 2024 для дома и бизнеса, 1 ПК, бессрочная лицензия",
+       "family_url": null,
+       "offer_url": null,
+       "match_type": null,
+       "group": "match"
+      },
+      {
+       "product_id": "off21-hb",
+       "offer_id": null,
+       "family_id": "office-2021",
+       "title": "Microsoft Office 2021 для дома и бизнеса, 1 ПК, бессрочная лицензия",
+       "family_url": null,
+       "offer_url": null,
+       "match_type": null,
+       "group": "match"
+      },
+      {
+       "product_id": "m365h-fam",
+       "offer_id": null,
+       "family_id": "microsoft-365-home",
+       "title": "Microsoft 365 Для семьи, до 6 пользователей, 1 год",
+       "family_url": null,
+       "offer_url": null,
+       "match_type": null,
+       "group": "match"
+      },
+      {
+       "product_id": "m365b-bp",
+       "offer_id": null,
+       "family_id": "microsoft-365-business",
+       "title": "Microsoft 365 Business Premium, 1 пользователь, 1 год",
+       "family_url": null,
+       "offer_url": null,
+       "match_type": null,
+       "group": "match"
+      },
+      {
+       "product_id": "y360-base",
+       "offer_id": null,
+       "family_id": "yandex-360",
+       "title": "Яндекс 360 для бизнеса Базовый, 1 пользователь, 1 год",
+       "family_url": null,
+       "offer_url": null,
+       "match_type": null,
+       "group": "match"
+      }
+     ],
+     "cards": 12,
+     "families": 12,
+     "skus": 50,
+     "match_type": {},
+     "group": {
+      "match": 12
+     },
+     "server_counts": null,
+     "matched": false,
+     "miss_reason": "цель"
+    },
+    {
+     "query": "kaspersky small office security",
+     "kind": "эталон",
+     "target_type": "family",
+     "target_url": "/kaspersky/kaspersky-small-office-security/",
+     "group_id": "3761",
+     "http": 200,
+     "error": null,
+     "ms": 11,
+     "first_url": "",
+     "first_url_norm": "",
+     "first_type": "",
+     "first_source": "items[0] без URL",
+     "first_title": "Kaspersky Small Office Security, 5 ПК + 1 файловый сервер, 1 год",
+     "first_family_id": "kaspersky-small-office-security",
+     "route": "A",
+     "effective_config": "B1",
+     "server_ms": 9.39,
+     "cost_rub": 0,
+     "catalog_version": "mock-2",
+     "config": "B1",
+     "top": [
+      {
+       "product_id": "ksos-5pc-1y",
+       "offer_id": null,
+       "family_id": "kaspersky-small-office-security",
+       "title": "Kaspersky Small Office Security, 5 ПК + 1 файловый сервер, 1 год",
+       "family_url": null,
+       "offer_url": null,
+       "match_type": null,
+       "group": "exact"
+      },
+      {
+       "product_id": "kis-3dev-1y",
+       "offer_id": null,
+       "family_id": "kaspersky-internet-security",
+       "title": "Kaspersky Internet Security, 3 устройства, 1 год",
+       "family_url": null,
+       "offer_url": null,
+       "match_type": null,
+       "group": "match"
+      },
+      {
+       "product_id": "kes-ext10",
+       "offer_id": null,
+       "family_id": "kaspersky-endpoint-security",
+       "title": "Kaspersky Endpoint Security для бизнеса Расширенный, 10 узлов, 1 год",
+       "family_url": null,
+       "offer_url": null,
+       "match_type": null,
+       "group": "match"
+      },
+      {
+       "product_id": "off24-home",
+       "offer_id": null,
+       "family_id": "office-2024",
+       "title": "Microsoft Office 2024 для дома, 1 ПК, бессрочная лицензия",
+       "family_url": null,
+       "offer_url": null,
+       "match_type": null,
+       "group": "match"
+      },
+      {
+       "product_id": "off21-pp",
+       "offer_id": null,
+       "family_id": "office-2021",
+       "title": "Microsoft Office 2021 профессиональный плюс, 1 ПК, бессрочная лицензия",
+       "family_url": null,
+       "offer_url": null,
+       "match_type": null,
+       "group": "match"
+      }
+     ],
+     "cards": 9,
+     "families": 9,
+     "skus": 50,
+     "match_type": {},
+     "group": {
+      "exact": 1,
+      "match": 8
+     },
+     "server_counts": null,
+     "matched": false,
+     "miss_reason": "цель"
+    },
+    {
+     "query": "крипто про csp 5.0",
+     "kind": "эталон",
+     "target_type": "family",
+     "target_url": "/kripto-pro/cryptopro-csp/",
+     "group_id": "22268",
+     "http": 200,
+     "error": null,
+     "ms": 16,
+     "first_url": "",
+     "first_url_norm": "",
+     "first_type": "",
+     "first_source": "items[0] без URL",
+     "first_title": "КриптоПро CSP 5.0, серверная лицензия, бессрочная",
+     "first_family_id": "cryptopro-csp",
+     "route": "A",
+     "effective_config": "B1",
+     "server_ms": 12.14,
+     "cost_rub": 0,
+     "catalog_version": "mock-2",
+     "config": "B1",
+     "top": [
+      {
+       "product_id": "cpcsp-srv",
+       "offer_id": null,
+       "family_id": "cryptopro-csp",
+       "title": "КриптоПро CSP 5.0, серверная лицензия, бессрочная",
+       "family_url": null,
+       "offer_url": null,
+       "match_type": null,
+       "group": "match"
+      },
+      {
+       "product_id": "w11p-upg",
+       "offer_id": null,
+       "family_id": "windows-11-pro",
+       "title": "Microsoft Windows 11 Pro, обновление с Home до Pro, 1 устройство",
+       "family_url": null,
+       "offer_url": null,
+       "match_type": null,
+       "group": "match"
+      },
+      {
+       "product_id": "pgpro-std1y",
+       "offer_id": null,
+       "family_id": "postgres-pro",
+       "title": "Postgres Pro Standard, 1 сервер, 1 год",
+       "family_url": null,
+       "offer_url": null,
+       "match_type": null,
+       "group": "match"
+      },
+      {
+       "product_id": "w10p-oem",
+       "offer_id": null,
+       "family_id": "windows-10-pro",
+       "title": "Microsoft Windows 10 Pro, 1 устройство, OEM-версия",
+       "family_url": null,
+       "offer_url": null,
+       "match_type": null,
+       "group": "match"
+      },
+      {
+       "product_id": "ups-ippon-spp-2200",
+       "offer_id": null,
+       "family_id": "ippon-smart-power-pro-ii",
+       "title": "ИБП Ippon Smart Power Pro II 2200, 1200 Вт",
+       "family_url": null,
+       "offer_url": null,
+       "match_type": null,
+       "group": "match"
+      }
+     ],
+     "cards": 20,
+     "families": 20,
+     "skus": 42,
+     "match_type": {},
+     "group": {
+      "match": 20
+     },
+     "server_counts": null,
+     "matched": false,
+     "miss_reason": "цель"
+    },
+    {
+     "query": "anydesk",
+     "kind": "эталон",
+     "target_type": "family",
+     "target_url": "/anydesk/anydesk/",
+     "group_id": "306539",
+     "http": 200,
+     "error": null,
+     "ms": 5,
+     "first_url": "",
+     "first_url_norm": "",
+     "first_type": "",
+     "first_source": "items[0] без URL",
+     "first_title": "AnyDesk Standard, 1 пользователь, 1 год",
+     "first_family_id": "anydesk",
+     "route": "A",
+     "effective_config": "B1",
+     "server_ms": 4.04,
+     "cost_rub": 0,
+     "catalog_version": "mock-2",
+     "config": "B1",
+     "top": [
+      {
+       "product_id": "ad-std1y",
+       "offer_id": null,
+       "family_id": "anydesk",
+       "title": "AnyDesk Standard, 1 пользователь, 1 год",
+       "family_url": null,
+       "offer_url": null,
+       "match_type": null,
+       "group": "exact"
+      }
+     ],
+     "cards": 1,
+     "families": 1,
+     "skus": 3,
+     "match_type": {},
+     "group": {
+      "exact": 1
+     },
+     "server_counts": null,
+     "matched": false,
+     "miss_reason": "цель"
+    },
+    {
+     "query": "кибер бэкап",
+     "kind": "эталон",
+     "target_type": "vendor_category",
+     "target_url": "/cyberprotect/?filter[category][]=1033",
+     "group_id": null,
+     "http": 200,
+     "error": null,
+     "ms": 6,
+     "first_url": "",
+     "first_url_norm": "",
+     "first_type": "",
+     "first_source": "items[0] без URL",
+     "first_title": "Кибер Бэкап 17 Стандартная, для сервера, 1 сервер, 1 год",
+     "first_family_id": "cyber-backup",
+     "route": "A",
+     "effective_config": "B1",
+     "server_ms": 4.59,
+     "cost_rub": 0,
+     "catalog_version": "mock-2",
+     "config": "B1",
+     "top": [
+      {
+       "product_id": "cyb-srv1y",
+       "offer_id": null,
+       "family_id": "cyber-backup",
+       "title": "Кибер Бэкап 17 Стандартная, для сервера, 1 сервер, 1 год",
+       "family_url": null,
+       "offer_url": null,
+       "match_type": null,
+       "group": "exact"
+      }
+     ],
+     "cards": 1,
+     "families": 1,
+     "skus": 5,
+     "match_type": {},
+     "group": {
+      "exact": 1
+     },
+     "server_counts": null,
+     "matched": false,
+     "miss_reason": "цель"
+    },
+    {
+     "query": "сканер-вс",
+     "kind": "эталон",
+     "target_type": "family",
+     "target_url": "/npo-echelon/eshelon-skaner-vs/",
+     "group_id": "46421",
+     "http": 200,
+     "error": null,
+     "ms": 5,
+     "first_url": "",
+     "first_url_norm": "",
+     "first_type": "",
+     "first_source": "пусто",
+     "first_title": "",
+     "first_family_id": "",
+     "route": "A",
+     "effective_config": "B1",
+     "server_ms": 3.51,
+     "cost_rub": 0,
+     "catalog_version": "mock-2",
+     "config": "B1",
+     "top": [],
+     "cards": 0,
+     "families": 0,
+     "skus": 0,
+     "match_type": {},
+     "group": {},
+     "server_counts": null,
+     "matched": false,
+     "miss_reason": "цель"
+    },
+    {
+     "query": "мтс",
+     "kind": "эталон",
+     "target_type": "vendor",
+     "target_url": "/webinar/",
+     "group_id": null,
+     "http": 200,
+     "error": null,
+     "ms": 6,
+     "first_url": "",
+     "first_url_norm": "",
+     "first_type": "",
+     "first_source": "пусто",
+     "first_title": "",
+     "first_family_id": "",
+     "route": "A",
+     "effective_config": "B1",
+     "server_ms": 4.26,
+     "cost_rub": 0,
+     "catalog_version": "mock-2",
+     "config": "B1",
+     "top": [],
+     "cards": 0,
+     "families": 0,
+     "skus": 0,
+     "match_type": {},
+     "group": {},
+     "server_counts": null,
+     "matched": false,
+     "miss_reason": "цель"
+    },
+    {
+     "query": "max patrol",
+     "kind": "эталон",
+     "target_type": "family",
+     "target_url": "/positive-technologies/maxpatrol-endpoint-protection-platform/",
+     "group_id": "437421",
+     "http": 200,
+     "error": null,
+     "ms": 5,
+     "first_url": "",
+     "first_url_norm": "",
+     "first_type": "",
+     "first_source": "items[0] без URL",
+     "first_title": "MaxPatrol VM, 100 узлов, 1 год",
+     "first_family_id": "maxpatrol-vm",
+     "route": "A",
+     "effective_config": "B1",
+     "server_ms": 3.96,
+     "cost_rub": 0,
+     "catalog_version": "mock-2",
+     "config": "B1",
+     "top": [
+      {
+       "product_id": "mpvm-100n-1y",
+       "offer_id": null,
+       "family_id": "maxpatrol-vm",
+       "title": "MaxPatrol VM, 100 узлов, 1 год",
+       "family_url": null,
+       "offer_url": null,
+       "match_type": null,
+       "group": "match"
+      }
+     ],
+     "cards": 1,
+     "families": 1,
+     "skus": 2,
+     "match_type": {},
+     "group": {
+      "match": 1
+     },
+     "server_counts": null,
+     "matched": false,
+     "miss_reason": "цель"
+    },
+    {
+     "query": "365",
+     "kind": "эталон",
+     "target_type": "family",
+     "target_url": "/microsoft/microsoft-365-for-family/",
+     "group_id": "165034",
+     "http": 200,
+     "error": null,
+     "ms": 8,
+     "first_url": "",
+     "first_url_norm": "",
+     "first_type": "",
+     "first_source": "items[0] без URL",
+     "first_title": "Microsoft 365 E3, 1 пользователь, 1 год",
+     "first_family_id": "microsoft-365-business",
+     "route": "A",
+     "effective_config": "B1",
+     "server_ms": 5.44,
+     "cost_rub": 0,
+     "catalog_version": "mock-2",
+     "config": "B1",
+     "top": [
+      {
+       "product_id": "m365b-e3",
+       "offer_id": null,
+       "family_id": "microsoft-365-business",
+       "title": "Microsoft 365 E3, 1 пользователь, 1 год",
+       "family_url": null,
+       "offer_url": null,
+       "match_type": null,
+       "group": "exact"
+      },
+      {
+       "product_id": "m365h-pers",
+       "offer_id": null,
+       "family_id": "microsoft-365-home",
+       "title": "Microsoft 365 Персональный, 1 пользователь, 1 год",
+       "family_url": null,
+       "offer_url": null,
+       "match_type": null,
+       "group": "exact"
+      },
+      {
+       "product_id": "off24-hb",
+       "offer_id": null,
+       "family_id": "office-2024",
+       "title": "Microsoft Office 2024 для дома и бизнеса, 1 ПК, бессрочная лицензия",
+       "family_url": null,
+       "offer_url": null,
+       "match_type": null,
+       "group": "match"
+      }
+     ],
+     "cards": 3,
+     "families": 3,
+     "skus": 10,
+     "match_type": {},
+     "group": {
+      "exact": 2,
+      "match": 1
+     },
+     "server_counts": null,
+     "matched": false,
+     "miss_reason": "цель"
+    },
+    {
+     "query": "сервер",
+     "kind": "ТЗ",
+     "target_type": null,
+     "target_url": null,
+     "group_id": null,
+     "http": 200,
+     "error": null,
+     "ms": 13,
+     "first_url": "",
+     "first_url_norm": "",
+     "first_type": "",
+     "first_source": "items[0] без URL",
+     "first_title": "1С:Предприятие 8.3. Лицензия на сервер КОРП (x86-64), 1 сервер, бессрочная лицензия",
+     "first_family_id": "1c-server",
+     "route": "A",
+     "effective_config": "B1",
+     "server_ms": 9.88,
+     "cost_rub": 0,
+     "catalog_version": "mock-2",
+     "config": "B1",
+     "top": [
+      {
+       "product_id": "1csrv-corp64",
+       "offer_id": null,
+       "family_id": "1c-server",
+       "title": "1С:Предприятие 8.3. Лицензия на сервер КОРП (x86-64), 1 сервер, бессрочная лицензия",
+       "family_url": null,
+       "offer_url": null,
+       "match_type": null,
+       "group": "exact"
+      },
+      {
+       "product_id": "asst-srv",
+       "offer_id": null,
+       "family_id": "assistant",
+       "title": "Ассистент корпоративный сервер, 1 сервер, бессрочная лицензия",
+       "family_url": null,
+       "offer_url": null,
+       "match_type": null,
+       "group": "exact"
+      },
+      {
+       "product_id": "alt-srv",
+       "offer_id": null,
+       "family_id": "alt-os",
+       "title": "Альт Сервер 10, 1 сервер, бессрочная лицензия",
+       "family_url": null,
+       "offer_url": null,
+       "match_type": null,
+       "group": "exact"
+      },
+      {
+       "product_id": "cyb-srv",
+       "offer_id": null,
+       "family_id": "cyber-backup",
+       "title": "Кибер Бэкап 17 Стандартная, для сервера, 1 сервер, бессрочная лицензия",
+       "family_url": null,
+       "offer_url": null,
+       "match_type": null,
+       "group": "exact"
+      },
+      {
+       "product_id": "redos-srv",
+       "offer_id": null,
+       "family_id": "red-os",
+       "title": "РЕД ОС 8 Сервер, стандартная редакция, 1 сервер, бессрочная лицензия",
+       "family_url": null,
+       "offer_url": null,
+       "match_type": null,
+       "group": "exact"
+      }
+     ],
+     "cards": 20,
+     "families": 20,
+     "skus": 48,
+     "match_type": {},
+     "group": {
+      "exact": 17,
+      "match": 3
+     },
+     "server_counts": null
+    },
+    {
+     "query": "антивирь",
+     "kind": "ТЗ",
+     "target_type": null,
+     "target_url": null,
+     "group_id": null,
+     "http": 200,
+     "error": null,
+     "ms": 14,
+     "first_url": "",
+     "first_url_norm": "",
+     "first_type": "",
+     "first_source": "items[0] без URL",
+     "first_title": "ESET NOD32 Антивирус, 1 устройство, 1 год",
+     "first_family_id": "eset-nod32-antivirus",
+     "route": "A",
+     "effective_config": "B1",
+     "server_ms": 10.8,
+     "cost_rub": 0,
+     "catalog_version": "mock-2",
+     "config": "B1",
+     "top": [
+      {
+       "product_id": "nod-1dev-1y",
+       "offer_id": null,
+       "family_id": "eset-nod32-antivirus",
+       "title": "ESET NOD32 Антивирус, 1 устройство, 1 год",
+       "family_url": null,
+       "offer_url": null,
+       "match_type": null,
+       "group": "exact"
+      },
+      {
+       "product_id": "kes-ext-mig12",
+       "offer_id": null,
+       "family_id": "kaspersky-endpoint-security",
+       "title": "Kaspersky Endpoint Security для бизнеса Расширенный, миграция с другого антивируса, за 1 у",
+       "family_url": null,
+       "offer_url": null,
+       "match_type": null,
+       "group": "exact"
+      },
+      {
+       "product_id": "esp-5dev-1y",
+       "offer_id": null,
+       "family_id": "eset-smart-security-premium",
+       "title": "ESET NOD32 Smart Security Premium, 5 устройств, 1 год",
+       "family_url": null,
+       "offer_url": null,
+       "match_type": null,
+       "group": "match"
+      },
+      {
+       "product_id": "kprem-10dev-1y",
+       "offer_id": null,
+       "family_id": "kaspersky-premium",
+       "title": "Kaspersky Premium, 10 устройств, 1 год",
+       "family_url": null,
+       "offer_url": null,
+       "match_type": null,
+       "group": "match"
+      },
+      {
+       "product_id": "kis-3dev-1y",
+       "offer_id": null,
+       "family_id": "kaspersky-internet-security",
+       "title": "Kaspersky Internet Security, 3 устройства, 1 год",
+       "family_url": null,
+       "offer_url": null,
+       "match_type": null,
+       "group": "match"
+      }
+     ],
+     "cards": 15,
+     "families": 15,
+     "skus": 50,
+     "match_type": {},
+     "group": {
+      "exact": 2,
+      "match": 13
+     },
+     "server_counts": null
+    },
+    {
+     "query": "офис",
+     "kind": "ТЗ",
+     "target_type": null,
+     "target_url": null,
+     "group_id": null,
+     "http": 200,
+     "error": null,
+     "ms": 9,
+     "first_url": "",
+     "first_url_norm": "",
+     "first_type": "",
+     "first_source": "items[0] без URL",
+     "first_title": "Р7-Офис Профессиональный облачная версия, 1 пользователь, 1 год",
+     "first_family_id": "r7-office-professional",
+     "route": "A",
+     "effective_config": "B1",
+     "server_ms": 6.45,
+     "cost_rub": 0,
+     "catalog_version": "mock-2",
+     "config": "B1",
+     "top": [
+      {
+       "product_id": "r7-cloud",
+       "offer_id": null,
+       "family_id": "r7-office-professional",
+       "title": "Р7-Офис Профессиональный облачная версия, 1 пользователь, 1 год",
+       "family_url": null,
+       "offer_url": null,
+       "match_type": null,
+       "group": "match"
+      },
+      {
+       "product_id": "off24-home",
+       "offer_id": null,
+       "family_id": "office-2024",
+       "title": "Microsoft Office 2024 для дома, 1 ПК, бессрочная лицензия",
+       "family_url": null,
+       "offer_url": null,
+       "match_type": null,
+       "group": "exact"
+      },
+      {
+       "product_id": "off21-pp",
+       "offer_id": null,
+       "family_id": "office-2021",
+       "title": "Microsoft Office 2021 профессиональный плюс, 1 ПК, бессрочная лицензия",
+       "family_url": null,
+       "offer_url": null,
+       "match_type": null,
+       "group": "exact"
+      },
+      {
+       "product_id": "ksos-5pc-1y",
+       "offer_id": null,
+       "family_id": "kaspersky-small-office-security",
+       "title": "Kaspersky Small Office Security, 5 ПК + 1 файловый сервер, 1 год",
+       "family_url": null,
+       "offer_url": null,
+       "match_type": null,
+       "group": "exact"
+      },
+      {
+       "product_id": "mon-huawei-se24",
+       "offer_id": null,
+       "family_id": "huawei-mateview-se",
+       "title": "Монитор Huawei MateView SE, 23,8\", IPS, 1920×1080, 75 Гц",
+       "family_url": null,
+       "offer_url": null,
+       "match_type": null,
+       "group": "match"
+      }
+     ],
+     "cards": 11,
+     "families": 11,
+     "skus": 37,
+     "match_type": {},
+     "group": {
+      "match": 8,
+      "exact": 3
+     },
+     "server_counts": null
+    },
+    {
+     "query": "винда",
+     "kind": "ТЗ",
+     "target_type": null,
+     "target_url": null,
+     "group_id": null,
+     "http": 200,
+     "error": null,
+     "ms": 12,
+     "first_url": "",
+     "first_url_norm": "",
+     "first_type": "",
+     "first_source": "items[0] без URL",
+     "first_title": "Microsoft Windows 10 Pro, 1 устройство, OEM-версия",
+     "first_family_id": "windows-10-pro",
+     "route": "A",
+     "effective_config": "B1",
+     "server_ms": 10.02,
+     "cost_rub": 0,
+     "catalog_version": "mock-2",
+     "config": "B1",
+     "top": [
+      {
+       "product_id": "w10p-oem",
+       "offer_id": null,
+       "family_id": "windows-10-pro",
+       "title": "Microsoft Windows 10 Pro, 1 устройство, OEM-версия",
+       "family_url": null,
+       "offer_url": null,
+       "match_type": null,
+       "group": "exact"
+      },
+      {
+       "product_id": "w11p-upg",
+       "offer_id": null,
+       "family_id": "windows-11-pro",
+       "title": "Microsoft Windows 11 Pro, обновление с Home до Pro, 1 устройство",
+       "family_url": null,
+       "offer_url": null,
+       "match_type": null,
+       "group": "exact"
+      },
+      {
+       "product_id": "w11h-esd",
+       "offer_id": null,
+       "family_id": "windows-11-home",
+       "title": "Microsoft Windows 11 Home, 1 устройство, бессрочная лицензия",
+       "family_url": null,
+       "offer_url": null,
+       "match_type": null,
+       "group": "exact"
+      },
+      {
+       "product_id": "wscal25-u1",
+       "offer_id": null,
+       "family_id": "windows-server-cal-2025",
+       "title": "Microsoft Windows Server 2025 CAL, клиентская лицензия на 1 пользователя",
+       "family_url": null,
+       "offer_url": null,
+       "match_type": null,
+       "group": "exact"
+      },
+      {
+       "product_id": "wscal-d5",
+       "offer_id": null,
+       "family_id": "windows-server-cal",
+       "title": "Microsoft Windows Server 2022 CAL, 5 клиентских лицензий на устройство",
+       "family_url": null,
+       "offer_url": null,
+       "match_type": null,
+       "group": "exact"
+      }
+     ],
+     "cards": 12,
+     "families": 12,
+     "skus": 50,
+     "match_type": {},
+     "group": {
+      "exact": 7,
+      "match": 5
+     },
+     "server_counts": null
+    },
+    {
+     "query": "астра линукс",
+     "kind": "ТЗ",
+     "target_type": null,
+     "target_url": null,
+     "group_id": null,
+     "http": 200,
+     "error": null,
+     "ms": 17,
+     "first_url": "",
+     "first_url_norm": "",
+     "first_type": "",
+     "first_source": "items[0] без URL",
+     "first_title": "Astra Linux Special Edition 1.8 «Воронеж», серверная, 1 сервер, бессрочная лицензия",
+     "first_family_id": "astra-linux-se",
+     "route": "A",
+     "effective_config": "B1",
+     "server_ms": 13.27,
+     "cost_rub": 0,
+     "catalog_version": "mock-2",
+     "config": "B1",
+     "top": [
+      {
+       "product_id": "astra-srv-vrn",
+       "offer_id": null,
+       "family_id": "astra-linux-se",
+       "title": "Astra Linux Special Edition 1.8 «Воронеж», серверная, 1 сервер, бессрочная лицензия",
+       "family_url": null,
+       "offer_url": null,
+       "match_type": null,
+       "group": "match"
+      },
+      {
+       "product_id": "nb-ns685-i5-8-256",
+       "offer_id": null,
+       "family_id": "aquarius-cmp-ns685",
+       "title": "Ноутбук Аквариус Cmp NS685U R11, 15,6\", Core i5-1135G7, 8 ГБ, SSD 256 ГБ, без ОС",
+       "family_url": null,
+       "offer_url": null,
+       "match_type": null,
+       "group": "match"
+      },
+      {
+       "product_id": "kes-ext10",
+       "offer_id": null,
+       "family_id": "kaspersky-endpoint-security",
+       "title": "Kaspersky Endpoint Security для бизнеса Расширенный, 10 узлов, 1 год",
+       "family_url": null,
+       "offer_url": null,
+       "match_type": null,
+       "group": "match"
+      },
+      {
+       "product_id": "alt-srv",
+       "offer_id": null,
+       "family_id": "alt-os",
+       "title": "Альт Сервер 10, 1 сервер, бессрочная лицензия",
+       "family_url": null,
+       "offer_url": null,
+       "match_type": null,
+       "group": "match"
+      },
+      {
+       "product_id": "myo-p25",
+       "offer_id": null,
+       "family_id": "myoffice-standard",
+       "title": "МойОфис Стандартный, 25 пользователей, бессрочная лицензия",
+       "family_url": null,
+       "offer_url": null,
+       "match_type": null,
+       "group": "match"
+      }
+     ],
+     "cards": 10,
+     "families": 10,
+     "skus": 50,
+     "match_type": {},
+     "group": {
+      "match": 10
+     },
+     "server_counts": null
+    },
+    {
+     "query": "мдаемон",
+     "kind": "ТЗ",
+     "target_type": null,
+     "target_url": null,
+     "group_id": null,
+     "http": 200,
+     "error": null,
+     "ms": 4,
+     "first_url": "",
+     "first_url_norm": "",
+     "first_type": "",
+     "first_source": "пусто",
+     "first_title": "",
+     "first_family_id": "",
+     "route": "A",
+     "effective_config": "B1",
+     "server_ms": 2.63,
+     "cost_rub": 0,
+     "catalog_version": "mock-2",
+     "config": "B1",
+     "top": [],
+     "cards": 0,
+     "families": 0,
+     "skus": 0,
+     "match_type": {},
+     "group": {},
+     "server_counts": null
+    },
+    {
+     "query": "Astra Linux",
+     "kind": "ТЗ",
+     "target_type": null,
+     "target_url": null,
+     "group_id": null,
+     "http": 200,
+     "error": null,
+     "ms": 14,
+     "first_url": "",
+     "first_url_norm": "",
+     "first_type": "",
+     "first_source": "items[0] без URL",
+     "first_title": "Astra Linux Special Edition 1.8 «Воронеж», серверная, 1 сервер, бессрочная лицензия",
+     "first_family_id": "astra-linux-se",
+     "route": "A",
+     "effective_config": "B1",
+     "server_ms": 11.23,
+     "cost_rub": 0,
+     "catalog_version": "mock-2",
+     "config": "B1",
+     "top": [
+      {
+       "product_id": "astra-srv-vrn",
+       "offer_id": null,
+       "family_id": "astra-linux-se",
+       "title": "Astra Linux Special Edition 1.8 «Воронеж», серверная, 1 сервер, бессрочная лицензия",
+       "family_url": null,
+       "offer_url": null,
+       "match_type": null,
+       "group": "exact"
+      },
+      {
+       "product_id": "nb-ns685-i5-8-256",
+       "offer_id": null,
+       "family_id": "aquarius-cmp-ns685",
+       "title": "Ноутбук Аквариус Cmp NS685U R11, 15,6\", Core i5-1135G7, 8 ГБ, SSD 256 ГБ, без ОС",
+       "family_url": null,
+       "offer_url": null,
+       "match_type": null,
+       "group": "match"
+      },
+      {
+       "product_id": "kes-ext10",
+       "offer_id": null,
+       "family_id": "kaspersky-endpoint-security",
+       "title": "Kaspersky Endpoint Security для бизнеса Расширенный, 10 узлов, 1 год",
+       "family_url": null,
+       "offer_url": null,
+       "match_type": null,
+       "group": "match"
+      },
+      {
+       "product_id": "myo-p25",
+       "offer_id": null,
+       "family_id": "myoffice-standard",
+       "title": "МойОфис Стандартный, 25 пользователей, бессрочная лицензия",
+       "family_url": null,
+       "offer_url": null,
+       "match_type": null,
+       "group": "match"
+      },
+      {
+       "product_id": "alt-srv",
+       "offer_id": null,
+       "family_id": "alt-os",
+       "title": "Альт Сервер 10, 1 сервер, бессрочная лицензия",
+       "family_url": null,
+       "offer_url": null,
+       "match_type": null,
+       "group": "match"
+      }
+     ],
+     "cards": 10,
+     "families": 10,
+     "skus": 50,
+     "match_type": {},
+     "group": {
+      "exact": 1,
+      "match": 9
+     },
+     "server_counts": null
+    }
+   ]
+  }
+ },
+ "catalog_version": "mock-2",
+ "mock": true,
+ "command": "python3 scripts/eval/customer_eval.py --configs live,B1 --out data/softline/eval/results/baseline-mock-2"
+}

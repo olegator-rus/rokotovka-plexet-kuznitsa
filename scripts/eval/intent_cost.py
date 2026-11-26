@@ -6,7 +6,7 @@
 не обходится: запросы подобраны новые, а после смены промпта ключ кэша меняется сам — оба прогона идут в модель.
 Ответ из кэша (вызова не было) в средние не входит и помечен.
 
-  API=http://127.0.0.1:8092 python3 scripts/eval/intent_cost.py --out data/softline/eval/intent-cost-after
+  API=http://127.0.0.1:8092 python3 scripts/eval/intent_cost.py --out data/softline/eval/results/intent-cost-after
 """
 import argparse
 import json

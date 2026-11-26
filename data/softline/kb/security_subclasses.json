@@ -1,0 +1,196 @@
+{
+ "note": "Привязка семейств к направлениям — по смыслу, не по реестру. Идентификаторы сверены с фидом softline-feed: все 37 есть, у всех есть покупаемые офферы (цена > 0, наличие не false).",
+ "subclasses": [
+  {
+   "id": "endpoint",
+   "title": "Рабочие места и серверы",
+   "families": [
+    [
+     "3761",
+     "Kaspersky Small Office Security"
+    ],
+    [
+     "3953",
+     "KES для бизнеса Стандартный"
+    ],
+    [
+     "3935",
+     "KES для бизнеса Расширенный"
+    ],
+    [
+     "419620",
+     "KES для бизнеса Расширенный Плюс"
+    ],
+    [
+     "4052",
+     "Kaspersky Endpoint Security Cloud"
+    ],
+    [
+     "420044",
+     "Kaspersky EDR Оптимальный"
+    ],
+    [
+     "4069",
+     "Dr.Web Desktop Security Suite"
+    ],
+    [
+     "4092",
+     "Dr.Web Server Security Suite"
+    ],
+    [
+     "329406",
+     "PRO32 Endpoint Security Standard"
+    ]
+   ]
+  },
+  {
+   "id": "mail_gateway",
+   "title": "Почта и интернет-шлюз",
+   "families": [
+    [
+     "3707",
+     "Kaspersky Security для почтовых серверов"
+    ],
+    [
+     "124091",
+     "Kaspersky Security для Microsoft Office 365"
+    ],
+    [
+     "3723",
+     "Kaspersky Security для интернет-шлюзов"
+    ],
+    [
+     "4115",
+     "Dr.Web Mail Security Suite"
+    ],
+    [
+     "4143",
+     "Dr.Web Gateway Security Suite"
+    ],
+    [
+     "438682",
+     "Positive Technologies Email Gateway"
+    ]
+   ]
+  },
+  {
+   "id": "network",
+   "title": "Сеть",
+   "note": "Покупаемых позиций мало; «Континент» и С-Терра — по запросу",
+   "families": [
+    [
+     "43606",
+     "UserGate NGFW"
+    ],
+    [
+     "447309",
+     "Ideco NGFW Novum"
+    ]
+   ]
+  },
+  {
+   "id": "backup",
+   "title": "Резервное копирование",
+   "families": [
+    [
+     "173615",
+     "Кибер Бэкап Расширенная"
+    ],
+    [
+     "173614",
+     "Кибер Бэкап Стандартная"
+    ],
+    [
+     "444870",
+     "Кибер Бэкап Старт"
+    ],
+    [
+     "442025",
+     "Кибер Бэкап Облачный"
+    ],
+    [
+     "277036",
+     "Handy Backup"
+    ],
+    [
+     "406074",
+     "RuBackup OneClick"
+    ]
+   ]
+  },
+  {
+   "id": "crypto",
+   "title": "Электронная подпись и шифрование",
+   "families": [
+    [
+     "22268",
+     "КриптоПро CSP 5.0"
+    ],
+    [
+     "385280",
+     "КриптоПро CSP TLS"
+    ],
+    [
+     "22211",
+     "КриптоПро JCP 2.0"
+    ],
+    [
+     "167189",
+     "КриптоПро NGate"
+    ],
+    [
+     "23021",
+     "КриптоАРМ"
+    ],
+    [
+     "413744",
+     "Рутокен ЭЦП 3.0"
+    ]
+   ]
+  },
+  {
+   "id": "vuln",
+   "title": "Поиск уязвимостей",
+   "families": [
+    [
+     "46421",
+     "СКАНЕР-ВС"
+    ],
+    [
+     "28574",
+     "XSpider"
+    ],
+    [
+     "428013",
+     "XSpider PRO"
+    ],
+    [
+     "33366",
+     "RedCheck"
+    ]
+   ]
+  },
+  {
+   "id": "access",
+   "title": "Защита от несанкционированного доступа",
+   "note": "Обычно под требования регулятора; в чипы первого вопроса не выносить",
+   "families": [
+    [
+     "42240",
+     "Secret Net Studio 8"
+    ],
+    [
+     "263917",
+     "Secret Net LSP"
+    ],
+    [
+     "42011",
+     "ПАК «Соболь» 4.0"
+    ]
+   ]
+  }
+ ],
+ "checked_at": "",
+ "checked_by": "agent:knowledge",
+ "feed_version": "softline-feed"
+}

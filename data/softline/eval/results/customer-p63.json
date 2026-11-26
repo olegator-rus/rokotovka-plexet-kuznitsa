@@ -1,0 +1,1631 @@
+{
+ "started": "",
+ "api": "http://127.0.0.1:8091",
+ "command": "python3 scripts/eval/customer_eval.py --configs live --out data/softline/eval/results/customer-p63",
+ "meta_catalog_version": "softline-feed",
+ "meta_rules_version": 4,
+ "configs": [
+  "live"
+ ],
+ "runs": {
+  "live": {
+   "note": "текущая сборка: витрина, конвейер B3 на последней принятой версии правил",
+   "summary": {
+    "matched": 10,
+    "etalons": 10,
+    "families_ge4": {
+     "n": 17,
+     "of": 17
+    },
+    "skus_ge4": {
+     "n": 17,
+     "of": 17
+    },
+    "cards_ge4": {
+     "n": 17,
+     "of": 17
+    },
+    "families_ge4_etalon": {
+     "n": 10,
+     "of": 10
+    },
+    "families_ge4_tz": {
+     "n": 7,
+     "of": 7
+    },
+    "skus_ge4_etalon": {
+     "n": 10,
+     "of": 10
+    },
+    "skus_ge4_tz": {
+     "n": 7,
+     "of": 7
+    },
+    "p50_ms": 128,
+    "p95_ms": 324,
+    "http_errors": 0,
+    "responses_ok": 17,
+    "with_url": 13,
+    "catalog_versions": [
+     "softline-feed"
+    ],
+    "routes": {
+     "A": 6,
+     "B": 10,
+     "C": 1
+    },
+    "cost_rub": 0,
+    "miss_reasons": {}
+   },
+   "results": [
+    {
+     "query": "astra linux",
+     "kind": "эталон",
+     "target_type": "family",
+     "target_url": "/astralinux/astra-linux-special-edition/",
+     "group_id": "121231",
+     "http": 200,
+     "error": null,
+     "ms": 128,
+     "first_url": "https://store.softline.ru/astralinux/astra-linux-special-edition/",
+     "first_url_norm": "https://store.softline.ru/astralinux/astra-linux-special-edition",
+     "first_type": "family",
+     "first_source": "target",
+     "first_title": "Astra Linux Special Edition на базе п/а Эльбрус, для аппаратных платформ Эльбрус-8С, Эльбрус-1С, РУСБ.10265-01 (МО),",
+     "first_family_id": "121231",
+     "route": "A",
+     "effective_config": "B4",
+     "server_ms": 117.22,
+     "cost_rub": 0,
+     "catalog_version": "softline-feed",
+     "config": "live",
+     "top": [
+      {
+       "product_id": "487733",
+       "offer_id": null,
+       "family_id": "121231",
+       "title": "Astra Linux Special Edition на базе п/а Эльбрус, для аппаратных платформ Эльбрус-8С, Эльбр",
+       "family_url": "https://store.softline.ru/astralinux/astra-linux-special-edition/",
+       "offer_url": "https://store.softline.ru/astralinux/os2310elb81box000ws01-po36-487733/",
+       "match_type": "exact",
+       "group": "match"
+      },
+      {
+       "product_id": "445080",
+       "offer_id": null,
+       "family_id": "287015",
+       "title": "Группа Астра Программный комплекс ALD Pro, серверные лицензии, срочные, Лицензия на ПК ALD",
+       "family_url": "https://store.softline.ru/astralinux/ald-pro/",
+       "offer_url": "https://store.softline.ru/astralinux/ad2100x8610dig1d8sr02-po12-445080/",
+       "match_type": "related",
+       "group": "match"
+      },
+      {
+       "product_id": "501844",
+       "offer_id": null,
+       "family_id": "414023",
+       "title": "Granulex Insight (лицензия на 1 год с правом последующего бессрочного использования на Ast",
+       "family_url": "https://store.softline.ru/mdis/granulex-insight/",
+       "offer_url": "https://store.softline.ru/mdis/grx-is-st-ald-501844/",
+       "match_type": "related",
+       "group": "match"
+      },
+      {
+       "product_id": "527216",
+       "offer_id": null,
+       "family_id": "413988",
+       "title": "Granulex Recovery (бессрочная лицензия для резервного копирования на платформе Astra Linux",
+       "family_url": "https://store.softline.ru/mdis/granulex-recovery/",
+       "offer_url": "https://store.softline.ru/mdis/grx-re-ext-ald-reg-527216/",
+       "match_type": "related",
+       "group": "match"
+      },
+      {
+       "product_id": "442693",
+       "offer_id": null,
+       "family_id": "365726",
+       "title": "РОСА Поставщик для интеграции с провайдером публичного облака (лицензция),",
+       "family_url": "https://store.softline.ru/rosa/rosa-tsentr-upravleniya/",
+       "offer_url": "https://store.softline.ru/rosa/rl-137-1s-mr-442693/",
+       "match_type": "related",
+       "group": "match"
+      }
+     ],
+     "cards": 5,
+     "families": 5,
+     "skus": 827,
+     "match_type": {
+      "exact": 1,
+      "related": 4
+     },
+     "group": {
+      "match": 5
+     },
+     "server_counts": {
+      "families": 5,
+      "variants": 827,
+      "skus": 827,
+      "by_match_type": {
+       "exact": 1,
+       "related": 4
+      }
+     },
+     "matched": true,
+     "miss_reason": ""
+    },
+    {
+     "query": "Microsoft Office для дома и бизнеса",
+     "kind": "эталон",
+     "target_type": "family",
+     "target_url": "/microsoft/microsoft-office-dlya-doma-i-biznesa-2024/",
+     "group_id": "391338",
+     "http": 200,
+     "error": null,
+     "ms": 143,
+     "first_url": "https://store.softline.ru/microsoft/microsoft-office-dlya-doma-i-biznesa-2024/",
+     "first_url_norm": "https://store.softline.ru/microsoft/microsoft-office-dlya-doma-i-biznesa-2024",
+     "first_type": "family",
+     "first_source": "target",
+     "first_title": "Microsoft Office для дома и бизнеса 2024, Электронная лицензия на 1 ПК, бессрочная",
+     "first_family_id": "391338",
+     "route": "B",
+     "effective_config": "B4",
+     "server_ms": 134.89,
+     "cost_rub": 0,
+     "catalog_version": "softline-feed",
+     "config": "live",
+     "top": [
+      {
+       "product_id": "473582",
+       "offer_id": null,
+       "family_id": "391338",
+       "title": "Microsoft Office для дома и бизнеса 2024, Электронная лицензия на 1 ПК, бессрочная",
+       "family_url": "https://store.softline.ru/microsoft/microsoft-office-dlya-doma-i-biznesa-2024/",
+       "offer_url": "https://store.softline.ru/microsoft/ep2-06605-473582/",
+       "match_type": "exact",
+       "group": "exact"
+      },
+      {
+       "product_id": "473568",
+       "offer_id": null,
+       "family_id": "391335",
+       "title": "Microsoft Office для дома 2024, Электронная лицензия на 1 ПК, бессрочная",
+       "family_url": "https://store.softline.ru/microsoft/microsoft-office-dlya-doma-i-ucheby-2024/",
+       "offer_url": "https://store.softline.ru/microsoft/ep2-06797-473568/",
+       "match_type": "exact",
+       "group": "exact"
+      },
+      {
+       "product_id": "195981",
+       "offer_id": null,
+       "family_id": "165034",
+       "title": "Microsoft 365 для семьи (Family) 6GQ-00084: подписка на 6 пользователей, 1 год",
+       "family_url": "https://store.softline.ru/microsoft/microsoft-365-for-family/",
+       "offer_url": "https://store.softline.ru/microsoft/6gq-00084-195981/",
+       "match_type": "exact",
+       "group": "exact"
+      },
+      {
+       "product_id": "195982",
+       "offer_id": null,
+       "family_id": "283494",
+       "title": "Microsoft 365 Персональный, Электронная подписка для 1 пользователя, на 1 год",
+       "family_url": "https://store.softline.ru/microsoft/microsoft-365-personal/",
+       "offer_url": "https://store.softline.ru/microsoft/qq2-00004-195982/",
+       "match_type": "exact",
+       "group": "exact"
+      },
+      {
+       "product_id": "109553",
+       "offer_id": null,
+       "family_id": "3224",
+       "title": "Microsoft Exchange Online Archiving (Subscription license, 1 month), 1 user - Open Value -",
+       "family_url": null,
+       "offer_url": "https://store.softline.ru/microsoft/tua-00003-12mo-109553/",
+       "match_type": "exact",
+       "group": "exact"
+      }
+     ],
+     "cards": 15,
+     "families": 15,
+     "skus": 517,
+     "match_type": {
+      "exact": 15
+     },
+     "group": {
+      "exact": 15
+     },
+     "server_counts": {
+      "families": 15,
+      "variants": 517,
+      "skus": 517,
+      "by_match_type": {
+       "exact": 15
+      }
+     },
+     "matched": true,
+     "miss_reason": ""
+    },
+    {
+     "query": "kaspersky small office security",
+     "kind": "эталон",
+     "target_type": "family",
+     "target_url": "/kaspersky/kaspersky-small-office-security/",
+     "group_id": "3761",
+     "http": 200,
+     "error": null,
+     "ms": 112,
+     "first_url": "https://store.softline.ru/kaspersky/kaspersky-small-office-security/",
+     "first_url_norm": "https://store.softline.ru/kaspersky/kaspersky-small-office-security",
+     "first_type": "family",
+     "first_source": "target",
+     "first_title": "Kaspersky Small Office Security новая лицензия на 5 ПК/мобильных устройств/пользователей на 1 год",
+     "first_family_id": "3761",
+     "route": "B",
+     "effective_config": "B4",
+     "server_ms": 98.76,
+     "cost_rub": 0,
+     "catalog_version": "softline-feed",
+     "config": "live",
+     "top": [
+      {
+       "product_id": "248970",
+       "offer_id": null,
+       "family_id": "3761",
+       "title": "Kaspersky Small Office Security новая лицензия на 5 ПК/мобильных устройств/пользователей н",
+       "family_url": "https://store.softline.ru/kaspersky/kaspersky-small-office-security/",
+       "offer_url": "https://store.softline.ru/kaspersky/kl4141rcefs-248970/",
+       "match_type": "exact",
+       "group": "exact"
+      },
+      {
+       "product_id": "311065",
+       "offer_id": null,
+       "family_id": "379232",
+       "title": "Kaspersky Small Office Security for Desktops, Mobiles and File Servers, fixed-date Russian",
+       "family_url": null,
+       "offer_url": "https://store.softline.ru/kaspersky/kl4542raefg-311065/",
+       "match_type": "exact",
+       "group": "exact"
+      },
+      {
+       "product_id": "130063",
+       "offer_id": null,
+       "family_id": "124091",
+       "title": "Kaspersky Security для Microsoft Office 365 лицензия на 1 год. Количество почтовых ящиков",
+       "family_url": "https://store.softline.ru/kaspersky/kaspersky-security-dlya-microsoft-office/",
+       "offer_url": "https://store.softline.ru/kaspersky/kl4312rakfs-130063/",
+       "match_type": "exact",
+       "group": "exact"
+      },
+      {
+       "product_id": "160794",
+       "offer_id": null,
+       "family_id": "3872",
+       "title": "Kaspersky Security для виртуальных  и облачных сред, базовая лицензия Desktop на 1 год по ",
+       "family_url": "https://store.softline.ru/kaspersky/kaspersky-security-for-virtualization/",
+       "offer_url": "https://store.softline.ru/kaspersky/kl4155rasfs-160794/",
+       "match_type": "exact",
+       "group": "exact"
+      },
+      {
+       "product_id": "524826",
+       "offer_id": null,
+       "family_id": "428850",
+       "title": "Softline Expert Services Kaspersky Услуги ( Сертификат 2 часа, дистанционно, на 1 год)",
+       "family_url": "https://store.softline.ru/kaspersky/kaspersky-softline-expert-services/",
+       "offer_url": "https://store.softline.ru/kaspersky/ses-kl-pbrzfy-524826/",
+       "match_type": "exact",
+       "group": "exact"
+      }
+     ],
+     "cards": 15,
+     "families": 15,
+     "skus": 1022,
+     "match_type": {
+      "exact": 15
+     },
+     "group": {
+      "exact": 15
+     },
+     "server_counts": {
+      "families": 15,
+      "variants": 1022,
+      "skus": 1022,
+      "by_match_type": {
+       "exact": 15
+      }
+     },
+     "matched": true,
+     "miss_reason": ""
+    },
+    {
+     "query": "крипто про csp 5.0",
+     "kind": "эталон",
+     "target_type": "family",
+     "target_url": "/kripto-pro/cryptopro-csp/",
+     "group_id": "22268",
+     "http": 200,
+     "error": null,
+     "ms": 97,
+     "first_url": "https://store.softline.ru/kripto-pro/cryptopro-csp/",
+     "first_url_norm": "https://store.softline.ru/kripto-pro/cryptopro-csp",
+     "first_type": "family",
+     "first_source": "target",
+     "first_title": "КриптоПро CSP версии 4.0 (Номер ЕРРП: 515), Лицензия на право использования СКЗИ КриптоПро CSP версии 4.0 на одном",
+     "first_family_id": "22268",
+     "route": "B",
+     "effective_config": "B4",
+     "server_ms": 88.52,
+     "cost_rub": 0,
+     "catalog_version": "softline-feed",
+     "config": "live",
+     "top": [
+      {
+       "product_id": "25266",
+       "offer_id": null,
+       "family_id": "22268",
+       "title": "КриптоПро CSP версии 4.0 (Номер ЕРРП: 515), Лицензия на право использования СКЗИ КриптоПро",
+       "family_url": "https://store.softline.ru/kripto-pro/cryptopro-csp/",
+       "offer_url": "https://store.softline.ru/kripto-pro/-25266/",
+       "match_type": "exact",
+       "group": "exact"
+      },
+      {
+       "product_id": "365870",
+       "offer_id": null,
+       "family_id": "385280",
+       "title": "КриптоПро CSP TLS (Номер ЕРРП: 4332), Лицензия на право использования СКЗИ КриптоПро CSP в",
+       "family_url": "https://store.softline.ru/kripto-pro/kriptopro-csp-tls/",
+       "offer_url": "https://store.softline.ru/kripto-pro/-365870/",
+       "match_type": "exact",
+       "group": "exact"
+      },
+      {
+       "product_id": "449970",
+       "offer_id": null,
+       "family_id": "22181",
+       "title": "КриптоПро TSP Server (лицензия на право использования из состава ПАК Службы УЦ версии 2.0)",
+       "family_url": "https://store.softline.ru/kripto-pro/kripto-pro-tsp/",
+       "offer_url": "https://store.softline.ru/kripto-pro/-449970/",
+       "match_type": "exact",
+       "group": "exact"
+      },
+      {
+       "product_id": "198378",
+       "offer_id": null,
+       "family_id": "385279",
+       "title": "КриптоПро JavaCSP (Номер ЕРРП: 2011), Лицензия на право использования ПО КриптоПро JavaCSP",
+       "family_url": "https://store.softline.ru/kripto-pro/kriptopro-javacsp/",
+       "offer_url": "https://store.softline.ru/kripto-pro/-198378/",
+       "match_type": "exact",
+       "group": "exact"
+      },
+      {
+       "product_id": "458843",
+       "offer_id": null,
+       "family_id": "375232",
+       "title": "КриптоПро Ключ Сервер (лицензия на расширение права использования версии 1.0 на одном серв",
+       "family_url": "https://store.softline.ru/kripto-pro/kriptopro-klyuch/",
+       "offer_url": "https://store.softline.ru/kripto-pro/-458843/",
+       "match_type": "exact",
+       "group": "exact"
+      }
+     ],
+     "cards": 12,
+     "families": 12,
+     "skus": 629,
+     "match_type": {
+      "exact": 11,
+      "related": 1
+     },
+     "group": {
+      "exact": 12
+     },
+     "server_counts": {
+      "families": 12,
+      "variants": 629,
+      "skus": 629,
+      "by_match_type": {
+       "exact": 11,
+       "related": 1
+      }
+     },
+     "matched": true,
+     "miss_reason": ""
+    },
+    {
+     "query": "anydesk",
+     "kind": "эталон",
+     "target_type": "family",
+     "target_url": "/anydesk/anydesk/",
+     "group_id": "306539",
+     "http": 200,
+     "error": null,
+     "ms": 78,
+     "first_url": "https://store.softline.ru/anydesk/anydesk/",
+     "first_url_norm": "https://store.softline.ru/anydesk/anydesk",
+     "first_type": "family",
+     "first_source": "target",
+     "first_title": "AnyDesk (лицензия на 1 год), Solo",
+     "first_family_id": "306539",
+     "route": "B",
+     "effective_config": "B4",
+     "server_ms": 77.03,
+     "cost_rub": 0,
+     "catalog_version": "softline-feed",
+     "config": "live",
+     "top": [
+      {
+       "product_id": "402265",
+       "offer_id": null,
+       "family_id": "306539",
+       "title": "AnyDesk (лицензия на 1 год), Solo",
+       "family_url": "https://store.softline.ru/anydesk/anydesk/",
+       "offer_url": "https://store.softline.ru/anydesk/-402265/",
+       "match_type": "exact",
+       "group": "exact"
+      },
+      {
+       "product_id": "173820",
+       "offer_id": null,
+       "family_id": "33846",
+       "title": "TektonIT RMS Удалённый доступ 7.1 (лицензия), Классическая лицензия. Количество компьютеро",
+       "family_url": "https://store.softline.ru/tektonit/remote-manipulator-system/",
+       "offer_url": "https://store.softline.ru/tektonit/-173820/",
+       "match_type": "fallback",
+       "group": "analog"
+      },
+      {
+       "product_id": "311549",
+       "offer_id": null,
+       "family_id": "66054",
+       "title": "AutoSoft АвтоПредприятие AX (лицензия), Базовый пакет на одно рабочее",
+       "family_url": "https://store.softline.ru/autosoft/avtopredpriyatie/",
+       "offer_url": "https://store.softline.ru/autosoft/-311549/",
+       "match_type": "fallback",
+       "group": "analog"
+      },
+      {
+       "product_id": "112685",
+       "offer_id": null,
+       "family_id": "110979",
+       "title": "Nazarenko Библиотеки трафаретов Visio (лицензии), Комплект для черчения электрических схем",
+       "family_url": "https://store.softline.ru/nazarenko/biblioteki-trafaretov-visio/",
+       "offer_url": "https://store.softline.ru/nazarenko/-112685/",
+       "match_type": "fallback",
+       "group": "analog"
+      }
+     ],
+     "cards": 4,
+     "families": 4,
+     "skus": 30,
+     "match_type": {
+      "exact": 1,
+      "fallback": 3
+     },
+     "group": {
+      "exact": 1,
+      "analog": 3
+     },
+     "server_counts": {
+      "families": 1,
+      "variants": 11,
+      "skus": 30,
+      "by_match_type": {
+       "exact": 1,
+       "fallback": 3
+      }
+     },
+     "matched": true,
+     "miss_reason": ""
+    },
+    {
+     "query": "кибер бэкап",
+     "kind": "эталон",
+     "target_type": "vendor_category",
+     "target_url": "/cyberprotect/?filter[category][]=1033",
+     "group_id": null,
+     "http": 200,
+     "error": null,
+     "ms": 121,
+     "first_url": "https://store.softline.ru/cyberprotect/?filter[category][]=1033",
+     "first_url_norm": "https://store.softline.ru/cyberprotect?filter[category][]=1033",
+     "first_type": "vendor_category",
+     "first_source": "target",
+     "first_title": "Киберпротект Кибер Бэкап Стандартная редакция (лицензия для коммерческих организаций), для физического сервера",
+     "first_family_id": "173614",
+     "route": "A",
+     "effective_config": "B4",
+     "server_ms": 108.64,
+     "cost_rub": 0,
+     "catalog_version": "softline-feed",
+     "config": "live",
+     "top": [
+      {
+       "product_id": "418697",
+       "offer_id": null,
+       "family_id": "173614",
+       "title": "Киберпротект Кибер Бэкап Стандартная редакция (лицензия для коммерческих организаций), для",
+       "family_url": "https://store.softline.ru/cyberprotect/kiber-bekap/",
+       "offer_url": "https://store.softline.ru/cyberprotect/ps16nl-418697/",
+       "match_type": "exact",
+       "group": "exact"
+      },
+      {
+       "product_id": "536456",
+       "offer_id": null,
+       "family_id": "442025",
+       "title": "Киберпротект Кибер Бэкап Облачный (лицензия), Лицензия для физического сервера",
+       "family_url": "https://store.softline.ru/cyberprotect/kiber-bekap-oblacnyi/",
+       "offer_url": "https://store.softline.ru/cyberprotect/speam1-536456/",
+       "match_type": "exact",
+       "group": "exact"
+      },
+      {
+       "product_id": "418698",
+       "offer_id": null,
+       "family_id": "173615",
+       "title": "Киберпротект Кибер Бэкап Расширенная редакция (бессрочная лицензия для коммерческих органи",
+       "family_url": "https://store.softline.ru/cyberprotect/kiber-bekap-rasshirennaya/",
+       "offer_url": "https://store.softline.ru/cyberprotect/pa16nl-418698/",
+       "match_type": "exact",
+       "group": "exact"
+      },
+      {
+       "product_id": "539763",
+       "offer_id": null,
+       "family_id": "444870",
+       "title": "Киберпротект Кибер Бэкап Старт (подписка на 1 год, включая услугу по технической поддержке",
+       "family_url": "https://store.softline.ru/cyberprotect/kiber-bekap-start/",
+       "offer_url": "https://store.softline.ru/cyberprotect/bss1pc0gb-1y-sub-539763/",
+       "match_type": "exact",
+       "group": "exact"
+      },
+      {
+       "product_id": "419438",
+       "offer_id": null,
+       "family_id": "344905",
+       "title": "Хайстекс Лицензия на бэкап, 1 вирт/физ машины (помесячная)",
+       "family_url": "https://store.softline.ru/hystax/khaysteks-akura-rezervnoe-kopirovanie/",
+       "offer_url": "https://store.softline.ru/hystax/hx-bc-one12-1m-419438/",
+       "match_type": "related",
+       "group": "match"
+      }
+     ],
+     "cards": 11,
+     "families": 11,
+     "skus": 589,
+     "match_type": {
+      "exact": 4,
+      "related": 7
+     },
+     "group": {
+      "exact": 4,
+      "match": 7
+     },
+     "server_counts": {
+      "families": 11,
+      "variants": 589,
+      "skus": 589,
+      "by_match_type": {
+       "exact": 4,
+       "related": 7
+      }
+     },
+     "matched": true,
+     "miss_reason": ""
+    },
+    {
+     "query": "сканер-вс",
+     "kind": "эталон",
+     "target_type": "family",
+     "target_url": "/npo-echelon/eshelon-skaner-vs/",
+     "group_id": "46421",
+     "http": 200,
+     "error": null,
+     "ms": 122,
+     "first_url": "https://store.softline.ru/npo-echelon/eshelon-skaner-vs/",
+     "first_url_norm": "https://store.softline.ru/npo-echelon/eshelon-skaner-vs",
+     "first_type": "family",
+     "first_source": "target",
+     "first_title": "НПО «Эшелон» СКАНЕР-ВС 7, Основная лицензия Enterprise на 1 год, рег (№ 231), на 256 IP активов",
+     "first_family_id": "46421",
+     "route": "A",
+     "effective_config": "B4",
+     "server_ms": 96.31,
+     "cost_rub": 0,
+     "catalog_version": "softline-feed",
+     "config": "live",
+     "top": [
+      {
+       "product_id": "486957",
+       "offer_id": null,
+       "family_id": "46421",
+       "title": "НПО «Эшелон» СКАНЕР-ВС 7, Основная лицензия Enterprise на 1 год, рег (№ 231), на 256 IP ак",
+       "family_url": "https://store.softline.ru/npo-echelon/eshelon-skaner-vs/",
+       "offer_url": "https://store.softline.ru/npo-echelon/scaner-vs-7-256-e-f-486957/",
+       "match_type": "exact",
+       "group": "match"
+      },
+      {
+       "product_id": "320795",
+       "offer_id": null,
+       "family_id": "offer-320795",
+       "title": "Сканер штрихкодов Honeywell Voyager 1472g",
+       "family_url": null,
+       "offer_url": "https://store.softline.ru/honeywell/1472g2d-2usb-5-r-320795/",
+       "match_type": "related",
+       "group": "match"
+      },
+      {
+       "product_id": "501407",
+       "offer_id": null,
+       "family_id": "offer-501407",
+       "title": "Сканер штрихкодов Honeywell Voyager 1470G2D",
+       "family_url": null,
+       "offer_url": "https://store.softline.ru/honeywell/1470g2d-2usb-r-501407/",
+       "match_type": "related",
+       "group": "match"
+      },
+      {
+       "product_id": "461546",
+       "offer_id": null,
+       "family_id": "offer-461546",
+       "title": "Сканер штрихкодов Mindeo CS2291-SR",
+       "family_url": null,
+       "offer_url": "https://store.softline.ru/mindeo/cs2291-sr-461546/",
+       "match_type": "related",
+       "group": "match"
+      },
+      {
+       "product_id": "518887",
+       "offer_id": null,
+       "family_id": "offer-518887",
+       "title": "Сканер штрихкодов Zebra DS4608-SR",
+       "family_url": null,
+       "offer_url": "https://store.softline.ru/zebra/ds4608-sr7u2100azw-518887/",
+       "match_type": "related",
+       "group": "match"
+      }
+     ],
+     "cards": 8,
+     "families": 8,
+     "skus": 481,
+     "match_type": {
+      "exact": 1,
+      "related": 7
+     },
+     "group": {
+      "match": 8
+     },
+     "server_counts": {
+      "families": 10,
+      "variants": 481,
+      "skus": 481,
+      "by_match_type": {
+       "exact": 1,
+       "related": 7
+      }
+     },
+     "matched": true,
+     "miss_reason": ""
+    },
+    {
+     "query": "мтс",
+     "kind": "эталон",
+     "target_type": "vendor",
+     "target_url": "/webinar/",
+     "group_id": null,
+     "http": 200,
+     "error": null,
+     "ms": 267,
+     "first_url": "https://store.softline.ru/webinar/",
+     "first_url_norm": "https://store.softline.ru/webinar",
+     "first_type": "vendor",
+     "first_source": "target",
+     "first_title": "МТС Линк (Webinar Group) МТС Линк Стандарт (лицензия), на 1 год",
+     "first_family_id": "447242",
+     "route": "A",
+     "effective_config": "B4",
+     "server_ms": 264.19,
+     "cost_rub": 0,
+     "catalog_version": "softline-feed",
+     "config": "live",
+     "top": [
+      {
+       "product_id": "541589",
+       "offer_id": null,
+       "family_id": "447242",
+       "title": "МТС Линк (Webinar Group) МТС Линк Стандарт (лицензия), на 1 год",
+       "family_url": "https://store.softline.ru/webinar/mts-link-standart/",
+       "offer_url": "https://store.softline.ru/webinar/-541589/",
+       "match_type": "exact",
+       "group": "exact"
+      },
+      {
+       "product_id": "541591",
+       "offer_id": null,
+       "family_id": "447243",
+       "title": "МТС Линк (Webinar Group) МТС Линк Про (лицензия), на 1 год",
+       "family_url": "https://store.softline.ru/webinar/mts-link-pro/",
+       "offer_url": "https://store.softline.ru/webinar/-541591/",
+       "match_type": "exact",
+       "group": "exact"
+      },
+      {
+       "product_id": "535950",
+       "offer_id": null,
+       "family_id": "414326",
+       "title": "МТС Линк (Webinar Group) МТС Линк Optimum 30 (лицензия в месяц при покупке на год, до 30 у",
+       "family_url": "https://store.softline.ru/webinar/mts-link-optimum-30/",
+       "offer_url": "https://store.softline.ru/webinar/-535950/",
+       "match_type": "exact",
+       "group": "exact"
+      },
+      {
+       "product_id": "203958",
+       "offer_id": null,
+       "family_id": "65257",
+       "title": "AGG Software GPS Tracker Monitor (лицензия),",
+       "family_url": "https://store.softline.ru/aggsoftware/gps-tracker-data-logger/",
+       "offer_url": "https://store.softline.ru/aggsoftware/44156-203958/",
+       "match_type": "fallback",
+       "group": "analog"
+      }
+     ],
+     "cards": 4,
+     "families": 4,
+     "skus": 10,
+     "match_type": {
+      "exact": 3,
+      "fallback": 1
+     },
+     "group": {
+      "exact": 3,
+      "analog": 1
+     },
+     "server_counts": {
+      "families": 3,
+      "variants": 3,
+      "skus": 10,
+      "by_match_type": {
+       "exact": 3,
+       "fallback": 1
+      }
+     },
+     "matched": true,
+     "miss_reason": ""
+    },
+    {
+     "query": "max patrol",
+     "kind": "эталон",
+     "target_type": "family",
+     "target_url": "/positive-technologies/maxpatrol-endpoint-protection-platform/",
+     "group_id": "437421",
+     "http": 200,
+     "error": null,
+     "ms": 191,
+     "first_url": "https://store.softline.ru/positive-technologies/maxpatrol-endpoint-protection-platform/",
+     "first_url_norm": "https://store.softline.ru/positive-technologies/maxpatrol-endpoint-protection-platform",
+     "first_type": "family",
+     "first_source": "target",
+     "first_title": "Positive Technologies MaxPatrol Endpoint Protection Platform конфигурация Endpoint Protection, для обеспечения",
+     "first_family_id": "437421",
+     "route": "A",
+     "effective_config": "B4",
+     "server_ms": 173.39,
+     "cost_rub": 0,
+     "catalog_version": "softline-feed",
+     "config": "live",
+     "top": [
+      {
+       "product_id": "531243",
+       "offer_id": null,
+       "family_id": "437421",
+       "title": "Positive Technologies MaxPatrol Endpoint Protection Platform конфигурация Endpoint Protect",
+       "family_url": "https://store.softline.ru/positive-technologies/maxpatrol-endpoint-protection-platform/",
+       "offer_url": "https://store.softline.ru/positive-technologies/pt-mxepp-ep-1-50-531243/",
+       "match_type": "exact",
+       "group": "exact"
+      },
+      {
+       "product_id": "130063",
+       "offer_id": null,
+       "family_id": "124091",
+       "title": "Kaspersky Security для Microsoft Office 365 лицензия на 1 год. Количество почтовых ящиков",
+       "family_url": "https://store.softline.ru/kaspersky/kaspersky-security-dlya-microsoft-office/",
+       "offer_url": "https://store.softline.ru/kaspersky/kl4312rakfs-130063/",
+       "match_type": "fallback",
+       "group": "analog"
+      },
+      {
+       "product_id": "222172",
+       "offer_id": null,
+       "family_id": "4052",
+       "title": "Kaspersky Endpoint Security Cloud лицензия на 1 год по количеству рабочих станций/файловых",
+       "family_url": "https://store.softline.ru/kaspersky/kaspersky-endpoint-security-dlya-biznesa-cloud/",
+       "offer_url": "https://store.softline.ru/kaspersky/kl4742ramfs-222172/",
+       "match_type": "fallback",
+       "group": "analog"
+      },
+      {
+       "product_id": "228680",
+       "offer_id": null,
+       "family_id": "4069",
+       "title": "Доктор Веб Комплексная защита + Центр управления на 1 год на 20 ПК",
+       "family_url": "https://store.softline.ru/drweb/drweb-desktop-security-suite/",
+       "offer_url": "https://store.softline.ru/drweb/lbw-bc-12m-20-a3-228680/",
+       "match_type": "fallback",
+       "group": "analog"
+      }
+     ],
+     "cards": 4,
+     "families": 4,
+     "skus": 3156,
+     "match_type": {
+      "exact": 1,
+      "fallback": 3
+     },
+     "group": {
+      "exact": 1,
+      "analog": 3
+     },
+     "server_counts": {
+      "families": 1,
+      "variants": 6,
+      "skus": 3156,
+      "by_match_type": {
+       "exact": 1,
+       "fallback": 3
+      }
+     },
+     "matched": true,
+     "miss_reason": ""
+    },
+    {
+     "query": "365",
+     "kind": "эталон",
+     "target_type": "family",
+     "target_url": "/microsoft/microsoft-365-for-family/",
+     "group_id": "165034",
+     "http": 200,
+     "error": null,
+     "ms": 138,
+     "first_url": "https://store.softline.ru/microsoft/microsoft-365-for-family/",
+     "first_url_norm": "https://store.softline.ru/microsoft/microsoft-365-for-family",
+     "first_type": "family",
+     "first_source": "target",
+     "first_title": "Microsoft 365 для семьи (Family) 6GQ-00084: подписка на 6 пользователей, 1 год",
+     "first_family_id": "165034",
+     "route": "B",
+     "effective_config": "B4",
+     "server_ms": 131.05,
+     "cost_rub": 0,
+     "catalog_version": "softline-feed",
+     "config": "live",
+     "top": [
+      {
+       "product_id": "195981",
+       "offer_id": null,
+       "family_id": "165034",
+       "title": "Microsoft 365 для семьи (Family) 6GQ-00084: подписка на 6 пользователей, 1 год",
+       "family_url": "https://store.softline.ru/microsoft/microsoft-365-for-family/",
+       "offer_url": "https://store.softline.ru/microsoft/6gq-00084-195981/",
+       "match_type": "exact",
+       "group": "exact"
+      },
+      {
+       "product_id": "195982",
+       "offer_id": null,
+       "family_id": "283494",
+       "title": "Microsoft 365 Персональный, Электронная подписка для 1 пользователя, на 1 год",
+       "family_url": "https://store.softline.ru/microsoft/microsoft-365-personal/",
+       "offer_url": "https://store.softline.ru/microsoft/qq2-00004-195982/",
+       "match_type": "exact",
+       "group": "exact"
+      },
+      {
+       "product_id": "236001",
+       "offer_id": null,
+       "family_id": "197780",
+       "title": "Microsoft Dynamics 365 (подписка на 1 месяц), Additional Portal",
+       "family_url": null,
+       "offer_url": "https://store.softline.ru/microsoft/aaa-18154-236001/",
+       "match_type": "exact",
+       "group": "exact"
+      },
+      {
+       "product_id": "64029",
+       "offer_id": null,
+       "family_id": "65824",
+       "title": "Microsoft 365 для предприятий на 1 месяц, Цена за одно рабочее место на 1 месяц",
+       "family_url": null,
+       "offer_url": "https://store.softline.ru/microsoft/1-subscription-64029/",
+       "match_type": "exact",
+       "group": "exact"
+      },
+      {
+       "product_id": "103886",
+       "offer_id": null,
+       "family_id": "101359",
+       "title": "Microsoft Dynamics 365 for Team Members (Software assurance), 1 user CAL - Open License - ",
+       "family_url": null,
+       "offer_url": "https://store.softline.ru/microsoft/emj-00062-103886/",
+       "match_type": "exact",
+       "group": "exact"
+      }
+     ],
+     "cards": 8,
+     "families": 8,
+     "skus": 298,
+     "match_type": {
+      "exact": 8
+     },
+     "group": {
+      "exact": 8
+     },
+     "server_counts": {
+      "families": 8,
+      "variants": 298,
+      "skus": 298,
+      "by_match_type": {
+       "exact": 8
+      }
+     },
+     "matched": true,
+     "miss_reason": ""
+    },
+    {
+     "query": "сервер",
+     "kind": "ТЗ",
+     "target_type": null,
+     "target_url": null,
+     "group_id": null,
+     "http": 200,
+     "error": null,
+     "ms": 84,
+     "first_url": "",
+     "first_url_norm": "",
+     "first_type": "category",
+     "first_source": "target",
+     "first_title": "Сервер INFERIT RS212 R1G3D32/2x6346/32x64GB/12x900GB/9361-8i/2х1600W",
+     "first_family_id": "offer-542026",
+     "route": "C",
+     "effective_config": "B4",
+     "server_ms": 82.62,
+     "cost_rub": 0,
+     "catalog_version": "softline-feed",
+     "config": "live",
+     "top": [
+      {
+       "product_id": "542026",
+       "offer_id": null,
+       "family_id": "offer-542026",
+       "title": "Сервер INFERIT RS212 R1G3D32/2x6346/32x64GB/12x900GB/9361-8i/2х1600W",
+       "family_url": null,
+       "offer_url": "https://store.softline.ru/inferit/ifs-00909-542026/",
+       "match_type": "exact",
+       "group": "match"
+      },
+      {
+       "product_id": "542030",
+       "offer_id": null,
+       "family_id": "offer-542030",
+       "title": "Сервер INFERIT RS212 R1G2D24R1/2x4216/8x32GB/2x960GB/6x2.4ТB/9361-8i/2x1200W",
+       "family_url": null,
+       "offer_url": "https://store.softline.ru/inferit/ifs-00910-542030/",
+       "match_type": "exact",
+       "group": "match"
+      },
+      {
+       "product_id": "542028",
+       "offer_id": null,
+       "family_id": "offer-542028",
+       "title": "Сервер INFERIT RS110 R1G2D24/2x4216/4x32GB/2x960GB/6x1.8ТB/9361-8i/2x800W",
+       "family_url": null,
+       "offer_url": "https://store.softline.ru/inferit/ifs-00911-542028/",
+       "match_type": "exact",
+       "group": "match"
+      },
+      {
+       "product_id": "542029",
+       "offer_id": null,
+       "family_id": "offer-542029",
+       "title": "Сервер INFERIT RS108 R1G2D24/1x4216/2x16GB/4x240GB/9361-8i/2x800W",
+       "family_url": null,
+       "offer_url": "https://store.softline.ru/inferit/ifs-00912-542029/",
+       "match_type": "exact",
+       "group": "match"
+      },
+      {
+       "product_id": "467607",
+       "offer_id": null,
+       "family_id": "offer-467607",
+       "title": "Rack-сервер DEPO Storm 3470E2A",
+       "family_url": null,
+       "offer_url": "https://store.softline.ru/depo/3470e2a-6-467607/",
+       "match_type": "exact",
+       "group": "match"
+      }
+     ],
+     "cards": 14,
+     "families": 14,
+     "skus": 19,
+     "match_type": {
+      "exact": 14
+     },
+     "group": {
+      "match": 14
+     },
+     "server_counts": {
+      "families": 19,
+      "variants": 19,
+      "skus": 19,
+      "by_match_type": {
+       "exact": 14
+      }
+     }
+    },
+    {
+     "query": "антивирь",
+     "kind": "ТЗ",
+     "target_type": null,
+     "target_url": null,
+     "group_id": null,
+     "http": 200,
+     "error": null,
+     "ms": 324,
+     "first_url": "",
+     "first_url_norm": "",
+     "first_type": "category",
+     "first_source": "target",
+     "first_title": "Доктор Веб Антивирус + Центр Управления лицензия на 1 год на 1 год на 5 ПК",
+     "first_family_id": "409060",
+     "route": "B",
+     "effective_config": "B4",
+     "server_ms": 204.66,
+     "cost_rub": 0,
+     "catalog_version": "softline-feed",
+     "config": "live",
+     "top": [
+      {
+       "product_id": "496050",
+       "offer_id": null,
+       "family_id": "409060",
+       "title": "Доктор Веб Антивирус + Центр Управления лицензия на 1 год на 1 год на 5 ПК",
+       "family_url": "https://store.softline.ru/drweb/drweb-server-security-suite-1/",
+       "offer_url": "https://store.softline.ru/drweb/lbs-ac-12m-5-a3-496050/",
+       "match_type": "exact",
+       "group": "match"
+      },
+      {
+       "product_id": "398794",
+       "offer_id": null,
+       "family_id": "325675",
+       "title": "PRO32 Endpoint Security Advanced версия на 1 год  и 142 узлов",
+       "family_url": "https://store.softline.ru/pro32/pro32-endpoint-security/",
+       "offer_url": "https://store.softline.ru/pro32/pro32-psa-ns-1-142-398794/",
+       "match_type": "exact",
+       "group": "match"
+      },
+      {
+       "product_id": "356893",
+       "offer_id": null,
+       "family_id": "286521",
+       "title": "Доктор Веб Dr.Web CureNet! Неисключительное право на использование на 1 год 5 рабочих стан",
+       "family_url": "https://store.softline.ru/drweb/drweb-curenet/",
+       "offer_url": "https://store.softline.ru/drweb/lyw-ac-12m-5-a3-356893/",
+       "match_type": "exact",
+       "group": "match"
+      },
+      {
+       "product_id": "222172",
+       "offer_id": null,
+       "family_id": "4052",
+       "title": "Kaspersky Endpoint Security Cloud лицензия на 1 год по количеству рабочих станций/файловых",
+       "family_url": "https://store.softline.ru/kaspersky/kaspersky-endpoint-security-dlya-biznesa-cloud/",
+       "offer_url": "https://store.softline.ru/kaspersky/kl4742ramfs-222172/",
+       "match_type": "exact",
+       "group": "match"
+      },
+      {
+       "product_id": "292183",
+       "offer_id": null,
+       "family_id": "420044",
+       "title": "Kaspersky EDR для бизнеса Оптимальный лицензия на 1 год по количеству узлов",
+       "family_url": "https://store.softline.ru/kaspersky/kaspersky-edr-dlya-biznesa-optimalnyy/",
+       "offer_url": "https://store.softline.ru/kaspersky/kl4708ratfs-292183/",
+       "match_type": "exact",
+       "group": "match"
+      }
+     ],
+     "cards": 20,
+     "families": 20,
+     "skus": 4713,
+     "match_type": {
+      "exact": 16,
+      "related": 4
+     },
+     "group": {
+      "match": 20
+     },
+     "server_counts": {
+      "families": 47,
+      "variants": 8524,
+      "skus": 4713,
+      "by_match_type": {
+       "exact": 16,
+       "related": 4
+      }
+     }
+    },
+    {
+     "query": "офис",
+     "kind": "ТЗ",
+     "target_type": null,
+     "target_url": null,
+     "group_id": null,
+     "http": 200,
+     "error": null,
+     "ms": 81,
+     "first_url": "",
+     "first_url_norm": "",
+     "first_type": "category",
+     "first_source": "target",
+     "first_title": "Microsoft Office для дома и бизнеса 2024, Электронная лицензия на 1 ПК, бессрочная",
+     "first_family_id": "391338",
+     "route": "B",
+     "effective_config": "B4",
+     "server_ms": 76.84,
+     "cost_rub": 0,
+     "catalog_version": "softline-feed",
+     "config": "live",
+     "top": [
+      {
+       "product_id": "473582",
+       "offer_id": null,
+       "family_id": "391338",
+       "title": "Microsoft Office для дома и бизнеса 2024, Электронная лицензия на 1 ПК, бессрочная",
+       "family_url": "https://store.softline.ru/microsoft/microsoft-office-dlya-doma-i-biznesa-2024/",
+       "offer_url": "https://store.softline.ru/microsoft/ep2-06605-473582/",
+       "match_type": "exact",
+       "group": "match"
+      },
+      {
+       "product_id": "473568",
+       "offer_id": null,
+       "family_id": "391335",
+       "title": "Microsoft Office для дома 2024, Электронная лицензия на 1 ПК, бессрочная",
+       "family_url": "https://store.softline.ru/microsoft/microsoft-office-dlya-doma-i-ucheby-2024/",
+       "offer_url": "https://store.softline.ru/microsoft/ep2-06797-473568/",
+       "match_type": "exact",
+       "group": "match"
+      },
+      {
+       "product_id": "195982",
+       "offer_id": null,
+       "family_id": "283494",
+       "title": "Microsoft 365 Персональный, Электронная подписка для 1 пользователя, на 1 год",
+       "family_url": "https://store.softline.ru/microsoft/microsoft-365-personal/",
+       "offer_url": "https://store.softline.ru/microsoft/qq2-00004-195982/",
+       "match_type": "exact",
+       "group": "match"
+      },
+      {
+       "product_id": "195981",
+       "offer_id": null,
+       "family_id": "165034",
+       "title": "Microsoft 365 для семьи (Family) 6GQ-00084: подписка на 6 пользователей, 1 год",
+       "family_url": "https://store.softline.ru/microsoft/microsoft-365-for-family/",
+       "offer_url": "https://store.softline.ru/microsoft/6gq-00084-195981/",
+       "match_type": "exact",
+       "group": "match"
+      },
+      {
+       "product_id": "473583",
+       "offer_id": null,
+       "family_id": "391341",
+       "title": "Microsoft Project Professional 2024, электронная лицензия на 1 ПК, бессрочная",
+       "family_url": "https://store.softline.ru/microsoft/microsoft-project-professional-2024/",
+       "offer_url": "https://store.softline.ru/microsoft/ep2-07001-473583/",
+       "match_type": "exact",
+       "group": "match"
+      }
+     ],
+     "cards": 20,
+     "families": 20,
+     "skus": 173,
+     "match_type": {
+      "exact": 12,
+      "related": 8
+     },
+     "group": {
+      "match": 20
+     },
+     "server_counts": {
+      "families": 43,
+      "variants": 852,
+      "skus": 173,
+      "by_match_type": {
+       "exact": 12,
+       "related": 8
+      }
+     }
+    },
+    {
+     "query": "винда",
+     "kind": "ТЗ",
+     "target_type": null,
+     "target_url": null,
+     "group_id": null,
+     "http": 200,
+     "error": null,
+     "ms": 49,
+     "first_url": "",
+     "first_url_norm": "",
+     "first_type": "category",
+     "first_source": "target",
+     "first_title": "Microsoft Windows 11 Home (Домашняя) KW9-00664, электронный ключ",
+     "first_family_id": "310176",
+     "route": "B",
+     "effective_config": "B4",
+     "server_ms": 46.16,
+     "cost_rub": 0,
+     "catalog_version": "softline-feed",
+     "config": "live",
+     "top": [
+      {
+       "product_id": "380389",
+       "offer_id": null,
+       "family_id": "310176",
+       "title": "Microsoft Windows 11 Home (Домашняя) KW9-00664, электронный ключ",
+       "family_url": "https://store.softline.ru/microsoft/microsoft-windows-11-home/",
+       "offer_url": "https://store.softline.ru/microsoft/kw9-00664-380389/",
+       "match_type": "exact",
+       "group": "match"
+      },
+      {
+       "product_id": "380385",
+       "offer_id": null,
+       "family_id": "286676",
+       "title": "Microsoft Windows 11 Pro FQC-10572, электронный ключ",
+       "family_url": "https://store.softline.ru/microsoft/microsoft-windows-professional-11/",
+       "offer_url": "https://store.softline.ru/microsoft/fqc-10572-380385/",
+       "match_type": "exact",
+       "group": "match"
+      },
+      {
+       "product_id": "353874",
+       "offer_id": null,
+       "family_id": "295882",
+       "title": "Windows 10 Pro (бессрочная лицензия GGWA для легализации нелицензионных копий Microsoft), ",
+       "family_url": null,
+       "offer_url": "https://store.softline.ru/microsoft/dg7gmgf0cgsh-0005-353874/",
+       "match_type": "related",
+       "group": "match"
+      },
+      {
+       "product_id": "274923",
+       "offer_id": null,
+       "family_id": "228208",
+       "title": "Microsoft Windows Server CAL (лицензия), 1 User 3 year",
+       "family_url": null,
+       "offer_url": "https://store.softline.ru/microsoft/1-subscription-274923/",
+       "match_type": "related",
+       "group": "match"
+      },
+      {
+       "product_id": "28237",
+       "offer_id": null,
+       "family_id": "24309",
+       "title": "Microsoft Windows Server CAL (лицензия OLV + Software Assurance, LicSAPk на 1 год), No Lev",
+       "family_url": null,
+       "offer_url": "https://store.softline.ru/microsoft/r18-01850-28237/",
+       "match_type": "related",
+       "group": "match"
+      }
+     ],
+     "cards": 17,
+     "families": 17,
+     "skus": 150,
+     "match_type": {
+      "exact": 2,
+      "related": 15
+     },
+     "group": {
+      "match": 17
+     },
+     "server_counts": {
+      "families": 17,
+      "variants": 150,
+      "skus": 150,
+      "by_match_type": {
+       "exact": 2,
+       "related": 15
+      }
+     }
+    },
+    {
+     "query": "астра линукс",
+     "kind": "ТЗ",
+     "target_type": null,
+     "target_url": null,
+     "group_id": null,
+     "http": 200,
+     "error": null,
+     "ms": 135,
+     "first_url": "https://store.softline.ru/astralinux/astra-linux-special-edition/",
+     "first_url_norm": "https://store.softline.ru/astralinux/astra-linux-special-edition",
+     "first_type": "family",
+     "first_source": "target",
+     "first_title": "Astra Linux Special Edition на базе п/а Эльбрус, для аппаратных платформ Эльбрус-8С, Эльбрус-1С, РУСБ.10265-01 (МО),",
+     "first_family_id": "121231",
+     "route": "B",
+     "effective_config": "B4",
+     "server_ms": 123.95,
+     "cost_rub": 0,
+     "catalog_version": "softline-feed",
+     "config": "live",
+     "top": [
+      {
+       "product_id": "487733",
+       "offer_id": null,
+       "family_id": "121231",
+       "title": "Astra Linux Special Edition на базе п/а Эльбрус, для аппаратных платформ Эльбрус-8С, Эльбр",
+       "family_url": "https://store.softline.ru/astralinux/astra-linux-special-edition/",
+       "offer_url": "https://store.softline.ru/astralinux/os2310elb81box000ws01-po36-487733/",
+       "match_type": "exact",
+       "group": "match"
+      },
+      {
+       "product_id": "501844",
+       "offer_id": null,
+       "family_id": "414023",
+       "title": "Granulex Insight (лицензия на 1 год с правом последующего бессрочного использования на Ast",
+       "family_url": "https://store.softline.ru/mdis/granulex-insight/",
+       "offer_url": "https://store.softline.ru/mdis/grx-is-st-ald-501844/",
+       "match_type": "related",
+       "group": "match"
+      },
+      {
+       "product_id": "445080",
+       "offer_id": null,
+       "family_id": "287015",
+       "title": "Группа Астра Программный комплекс ALD Pro, серверные лицензии, срочные, Лицензия на ПК ALD",
+       "family_url": "https://store.softline.ru/astralinux/ald-pro/",
+       "offer_url": "https://store.softline.ru/astralinux/ad2100x8610dig1d8sr02-po12-445080/",
+       "match_type": "related",
+       "group": "match"
+      },
+      {
+       "product_id": "527216",
+       "offer_id": null,
+       "family_id": "413988",
+       "title": "Granulex Recovery (бессрочная лицензия для резервного копирования на платформе Astra Linux",
+       "family_url": "https://store.softline.ru/mdis/granulex-recovery/",
+       "offer_url": "https://store.softline.ru/mdis/grx-re-ext-ald-reg-527216/",
+       "match_type": "related",
+       "group": "match"
+      },
+      {
+       "product_id": "442693",
+       "offer_id": null,
+       "family_id": "365726",
+       "title": "РОСА Поставщик для интеграции с провайдером публичного облака (лицензция),",
+       "family_url": "https://store.softline.ru/rosa/rosa-tsentr-upravleniya/",
+       "offer_url": "https://store.softline.ru/rosa/rl-137-1s-mr-442693/",
+       "match_type": "related",
+       "group": "match"
+      }
+     ],
+     "cards": 9,
+     "families": 9,
+     "skus": 849,
+     "match_type": {
+      "exact": 1,
+      "related": 8
+     },
+     "group": {
+      "match": 9
+     },
+     "server_counts": {
+      "families": 9,
+      "variants": 849,
+      "skus": 849,
+      "by_match_type": {
+       "exact": 1,
+       "related": 8
+      }
+     }
+    },
+    {
+     "query": "мдаемон",
+     "kind": "ТЗ",
+     "target_type": null,
+     "target_url": null,
+     "group_id": null,
+     "http": 200,
+     "error": null,
+     "ms": 147,
+     "first_url": "https://store.softline.ru/alt-n-technologies-ltd/",
+     "first_url_norm": "https://store.softline.ru/alt-n-technologies-ltd",
+     "first_type": "vendor",
+     "first_source": "target",
+     "first_title": "MDaemon Technologies, Ltd. MDaemon (лицензия на 2 года), 9 пользователей",
+     "first_family_id": "394683",
+     "route": "B",
+     "effective_config": "B4",
+     "server_ms": 133.63,
+     "cost_rub": 0,
+     "catalog_version": "softline-feed",
+     "config": "live",
+     "top": [
+      {
+       "product_id": "477649",
+       "offer_id": null,
+       "family_id": "394683",
+       "title": "MDaemon Technologies, Ltd. MDaemon (лицензия на 2 года), 9 пользователей",
+       "family_url": "https://store.softline.ru/alt-n-technologies-ltd/mdaemon/",
+       "offer_url": "https://store.softline.ru/alt-n-technologies-ltd/-477649/",
+       "match_type": "exact",
+       "group": "exact"
+      },
+      {
+       "product_id": "359880",
+       "offer_id": null,
+       "family_id": "17104",
+       "title": "MDaemon Technologies, Ltd. MDaemon ActiveSync (лицензия на 1 год), 8 пользователей",
+       "family_url": "https://store.softline.ru/alt-n-technologies-ltd/activesync-for-mdaemon/",
+       "offer_url": "https://store.softline.ru/alt-n-technologies-ltd/-359880/",
+       "match_type": "exact",
+       "group": "exact"
+      },
+      {
+       "product_id": "477878",
+       "offer_id": null,
+       "family_id": "367165",
+       "title": "MDaemon Technologies, Ltd. MDaemon AntiVirus (лицензия на 2 года), 100 пользователей",
+       "family_url": "https://store.softline.ru/alt-n-technologies-ltd/mdaemon-antivirus/",
+       "offer_url": "https://store.softline.ru/alt-n-technologies-ltd/-477878/",
+       "match_type": "exact",
+       "group": "exact"
+      },
+      {
+       "product_id": "359835",
+       "offer_id": null,
+       "family_id": "17067",
+       "title": "MDaemon Technologies, Ltd. MDaemon Connector for Outlook (лицензия на 1 год), 5 пользовате",
+       "family_url": "https://store.softline.ru/alt-n-technologies-ltd/alt-n-technologies-outlook-connector-for-mdaemon/",
+       "offer_url": "https://store.softline.ru/alt-n-technologies-ltd/-359835/",
+       "match_type": "exact",
+       "group": "exact"
+      },
+      {
+       "product_id": "19574",
+       "offer_id": null,
+       "family_id": "16940",
+       "title": "MDaemon Technologies, Ltd. MDaemon Messaging Server (лицензия с подпиской на обновления на",
+       "family_url": "https://store.softline.ru/alt-n-technologies-ltd/alt-n-technologies-mdaemon-email-server/",
+       "offer_url": "https://store.softline.ru/alt-n-technologies-ltd/-19574/",
+       "match_type": "exact",
+       "group": "exact"
+      }
+     ],
+     "cards": 5,
+     "families": 5,
+     "skus": 495,
+     "match_type": {
+      "exact": 5
+     },
+     "group": {
+      "exact": 5
+     },
+     "server_counts": {
+      "families": 5,
+      "variants": 495,
+      "skus": 495,
+      "by_match_type": {
+       "exact": 5
+      }
+     }
+    },
+    {
+     "query": "Astra Linux",
+     "kind": "ТЗ",
+     "target_type": null,
+     "target_url": null,
+     "group_id": null,
+     "http": 200,
+     "error": null,
+     "ms": 143,
+     "first_url": "https://store.softline.ru/astralinux/astra-linux-special-edition/",
+     "first_url_norm": "https://store.softline.ru/astralinux/astra-linux-special-edition",
+     "first_type": "family",
+     "first_source": "target",
+     "first_title": "Astra Linux Special Edition на базе п/а Эльбрус, для аппаратных платформ Эльбрус-8С, Эльбрус-1С, РУСБ.10265-01 (МО),",
+     "first_family_id": "121231",
+     "route": "A",
+     "effective_config": "B4",
+     "server_ms": 130.69,
+     "cost_rub": 0,
+     "catalog_version": "softline-feed",
+     "config": "live",
+     "top": [
+      {
+       "product_id": "487733",
+       "offer_id": null,
+       "family_id": "121231",
+       "title": "Astra Linux Special Edition на базе п/а Эльбрус, для аппаратных платформ Эльбрус-8С, Эльбр",
+       "family_url": "https://store.softline.ru/astralinux/astra-linux-special-edition/",
+       "offer_url": "https://store.softline.ru/astralinux/os2310elb81box000ws01-po36-487733/",
+       "match_type": "exact",
+       "group": "match"
+      },
+      {
+       "product_id": "445080",
+       "offer_id": null,
+       "family_id": "287015",
+       "title": "Группа Астра Программный комплекс ALD Pro, серверные лицензии, срочные, Лицензия на ПК ALD",
+       "family_url": "https://store.softline.ru/astralinux/ald-pro/",
+       "offer_url": "https://store.softline.ru/astralinux/ad2100x8610dig1d8sr02-po12-445080/",
+       "match_type": "related",
+       "group": "match"
+      },
+      {
+       "product_id": "501844",
+       "offer_id": null,
+       "family_id": "414023",
+       "title": "Granulex Insight (лицензия на 1 год с правом последующего бессрочного использования на Ast",
+       "family_url": "https://store.softline.ru/mdis/granulex-insight/",
+       "offer_url": "https://store.softline.ru/mdis/grx-is-st-ald-501844/",
+       "match_type": "related",
+       "group": "match"
+      },
+      {
+       "product_id": "527216",
+       "offer_id": null,
+       "family_id": "413988",
+       "title": "Granulex Recovery (бессрочная лицензия для резервного копирования на платформе Astra Linux",
+       "family_url": "https://store.softline.ru/mdis/granulex-recovery/",
+       "offer_url": "https://store.softline.ru/mdis/grx-re-ext-ald-reg-527216/",
+       "match_type": "related",
+       "group": "match"
+      },
+      {
+       "product_id": "442693",
+       "offer_id": null,
+       "family_id": "365726",
+       "title": "РОСА Поставщик для интеграции с провайдером публичного облака (лицензция),",
+       "family_url": "https://store.softline.ru/rosa/rosa-tsentr-upravleniya/",
+       "offer_url": "https://store.softline.ru/rosa/rl-137-1s-mr-442693/",
+       "match_type": "related",
+       "group": "match"
+      }
+     ],
+     "cards": 5,
+     "families": 5,
+     "skus": 827,
+     "match_type": {
+      "exact": 1,
+      "related": 4
+     },
+     "group": {
+      "match": 5
+     },
+     "server_counts": {
+      "families": 5,
+      "variants": 827,
+      "skus": 827,
+      "by_match_type": {
+       "exact": 1,
+       "related": 4
+      }
+     }
+    }
+   ]
+  }
+ },
+ "catalog_version": "softline-feed",
+ "mock": false
+}
