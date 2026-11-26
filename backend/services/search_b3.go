@@ -39,6 +39,7 @@ func (s *Services) searchB3(ctx context.Context, requestID string, req in.Search
 	resp := &out.SearchResponse{
 		RequestID: requestID, Query: req.Query, Config: cfg,
 		Chips: []out.Chip{}, Items: []out.SearchItem{}, Relaxed: []out.Relaxed{}, RelatedQueries: []string{},
+		Complements: []out.Complement{},
 	}
 
 	// normalize
@@ -353,6 +354,9 @@ func (s *Services) searchB3(ctx context.Context, requestID string, req in.Search
 	relaxStep := domain.RelaxationStep{StepBase: domain.StepBase{Name: domain.StepRelaxation}, Ladder: ladder}
 	rerankStep := skipped(domain.StepRerank, "disabled")
 	resp.RelatedQueries = s.relatedQueries(ctx, lx, resp)
+	if len(resp.Items) > 0 {
+		resp.Complements = complementsOf(lx, resp.Items[0].FamilyID, map[string]bool{resp.Items[0].FamilyID: true})
+	}
 
 	trace.Steps = []any{normStep, attrStep, routeStep, intentStep, bm.step, dn.step, fusionStep, rerankStep, businessStep, relaxStep}
 	trace.TotalMs = msSince(started)
@@ -484,4 +488,38 @@ func strictFilters(attrs queryAttrs, ent queryEntities) []any {
 		f = append(f, map[string]any{"terms": map[string]any{"vendor_id": ent.vendors}})
 	}
 	return f
+}
+
+// maxComplements — сколько сопутствующих семейств показывать в блоке «С этим покупают».
+const maxComplements = 3
+
+// complementsOf — «С этим покупают» для семейства: связи complement из справочника, кроме семейств shown;
+// от каждого семейства — самая популярная позиция. Семейства ниже в выдаче не исключаются: блок стоит рядом с
+// первой позицией, и CAL к Windows Server нужен, даже если он есть в списке пятым.
+func complementsOf(lx *searchLexicon, familyID string, shown map[string]bool) []out.Complement {
+	res := []out.Complement{}
+	for _, l := range lx.complements[familyID] {
+		if len(res) == maxComplements {
+			break
+		}
+		if shown[l.Family] {
+			continue
+		}
+		var best *indexDoc
+		for _, pid := range lx.families[l.Family] {
+			d := lx.docs[pid]
+			if best == nil || d.Popularity > best.Popularity {
+				best = &d
+			}
+		}
+		if best == nil {
+			continue
+		}
+		res = append(res, out.Complement{
+			FamilyID: l.Family, FamilyName: best.FamilyName, ProductID: best.ProductID, Title: best.Title,
+			Vendor: best.Vendor, Category: best.Category, LicenseLine: licenseLine(*best), PriceRub: best.PriceRub,
+			PriceOnRequest: best.PriceOnRequest, Note: l.Note,
+		})
+	}
+	return res
 }

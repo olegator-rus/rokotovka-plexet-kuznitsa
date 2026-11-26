@@ -109,14 +109,31 @@ func (s *Services) Costs(ctx context.Context, limit, offset int) (*out.Costs, er
 		sum.AvgLLMLatencyMs = costsRatio(totals.AvgLatencyMs, 1, 1)
 	}
 	sum.EvalCalls, sum.EvalCostRub = totals.EvalCalls, math.Round(totals.EvalCostRub*1e4)/1e4
+	sum.JudgeCalls, sum.JudgeCostRub = totals.JudgeCalls, math.Round(totals.JudgeCostRub*1e4)/1e4
 	sum.AgentRuns = totals.AgentRuns
 	if totals.AgentRuns > 0 {
 		sum.AgentRunAvgCostRub = costsRatio(totals.AgentCostRub, float64(totals.AgentRuns), 4)
 	}
 
+	var ids []string
 	for _, c := range calls {
+		if c.RequestID != nil && llmCallKind(c) == "search" {
+			ids = append(ids, *c.RequestID)
+		}
+	}
+	queries, err := s.repos.QueriesByRequestID(ctx, ids)
+	if err != nil {
+		return nil, err
+	}
+	for _, c := range calls {
+		var query *string
+		if c.RequestID != nil {
+			if q, ok := queries[*c.RequestID]; ok {
+				query = &q
+			}
+		}
 		res.Calls.Items = append(res.Calls.Items, out.CostsCall{
-			ID: c.ID.String(), Kind: llmCallKind(c), CreatedAt: c.CreatedAt, RequestID: c.RequestID, AgentRunID: c.AgentRunID,
+			ID: c.ID.String(), Kind: llmCallKind(c), CreatedAt: c.CreatedAt, RequestID: c.RequestID, Query: query, AgentRunID: c.AgentRunID,
 			Provider: c.Provider, Model: c.Model, InputTokens: c.InputTokens, OutputTokens: c.OutputTokens,
 			CachedTokens: c.CachedTokens, LatencyMs: c.LatencyMs, CostRub: c.CalculatedCost,
 			PricingVersion: c.PricingVersion, Status: c.Status,
@@ -132,7 +149,7 @@ func costsRatio(a, b float64, digits int) *float64 {
 	return &v
 }
 
-// llmCallKind — к чему относится вызов модели: поиск, прогон оценки, агент или ручной прогон.
+// llmCallKind — к чему относится вызов модели: поиск, прогон оценки, судья, агент или ручной прогон.
 func llmCallKind(c domain.LLMUsage) string {
 	switch {
 	case c.AgentRunID != nil:
@@ -141,6 +158,8 @@ func llmCallKind(c domain.LLMUsage) string {
 		return "other"
 	case strings.HasPrefix(*c.RequestID, repositories.EvalRequestPrefix):
 		return "eval"
+	case strings.HasPrefix(*c.RequestID, repositories.JudgeRequestPrefix):
+		return "judge"
 	case strings.HasPrefix(*c.RequestID, "live-"):
 		return "other" // живой прогон разбора из intent_live_test
 	}

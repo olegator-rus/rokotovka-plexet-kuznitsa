@@ -192,3 +192,40 @@ func evalWriteTable(b *strings.Builder, rows [][]string) {
 		b.WriteString("| " + strings.Join(r, " | ") + " |\n")
 	}
 }
+
+// FormatJudgeTable — сводка прогона LLM-судьи для `go run . judge`.
+func FormatJudgeTable(r *out.JudgeRun) string {
+	var b strings.Builder
+	f := func(p *float64, pct bool) string {
+		if p == nil {
+			return "—"
+		}
+		if pct {
+			return fmt.Sprintf("%.1f%%", *p*100)
+		}
+		return fmt.Sprintf("%.3f", *p)
+	}
+	fmt.Fprintf(&b, "Судья %s (%s) · набор %s sha256:%s · пул %d пар (полная глубина топ-%d) из %s · оценено %d\n\n",
+		r.Model, r.PromptVersion, r.Set, r.SetHash, r.Pairs, r.Depth, strings.Join(r.Configs, ","), r.Judged)
+	fmt.Fprintf(&b, "Согласие с разметкой: точное %s, ±1 %s, каппа (квадр. веса) %s\n",
+		f(r.Exact, true), f(r.Within1, true), f(r.Kappa, false))
+	fmt.Fprintf(&b, "Вызовов %d, стоимость %.4f ₽ (%.4f ₽ на пару), %.1f с\n\n", r.Calls, r.CostRub,
+		r.CostRub/float64(max(1, r.Judged)), float64(r.DurationMs)/1000)
+	b.WriteString("Матрица (строка — разметка, столбец — судья)\n\n| | 0 | 1 | 2 | 3 |\n| --- | --- | --- | --- | --- |\n")
+	for i, row := range r.Confusion {
+		fmt.Fprintf(&b, "| %d | %d | %d | %d | %d |\n", i, row[0], row[1], row[2], row[3])
+	}
+	fmt.Fprintf(&b, "\nNDCG@%d на пуле\n\n| Конфигурация | по разметке | по судье |\n| --- | --- | --- |\n", r.Depth)
+	for _, c := range r.ByConfig {
+		fmt.Fprintf(&b, "| %s | %s | %s |\n", c.Config, f(c.NDCGLabels, false), f(c.NDCGJudge, false))
+	}
+	order := "совпадает"
+	if !r.SameOrder {
+		order = "НЕ совпадает"
+	}
+	fmt.Fprintf(&b, "\nПорядок конфигураций по судье и по разметке: %s\n", order)
+	if r.File != "" {
+		fmt.Fprintf(&b, "JSON: %s\n", r.File)
+	}
+	return b.String()
+}

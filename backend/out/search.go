@@ -7,19 +7,37 @@ import "kuznica/api/domain"
 
 // SearchResponse — POST /api/search.
 type SearchResponse struct {
-	RequestID      string        `json:"request_id"`
-	Query          string        `json:"query"`
-	Normalized     string        `json:"normalized"`
-	Config         string        `json:"config"`
-	Correction     *Correction   `json:"correction,omitempty"`
-	Chips          []Chip        `json:"chips"`
-	Clarify        *Clarify      `json:"clarify,omitempty"`
-	Total          int           `json:"total"`
-	Items          []SearchItem  `json:"items"`
-	Relaxed        []Relaxed     `json:"relaxed"`
-	Empty          *Empty        `json:"empty,omitempty"`
-	RelatedQueries []string      `json:"related_queries"`
-	Trace          *domain.Trace `json:"trace"`
+	RequestID      string       `json:"request_id"`
+	Query          string       `json:"query"`
+	Normalized     string       `json:"normalized"`
+	Config         string       `json:"config"`
+	Correction     *Correction  `json:"correction,omitempty"`
+	Chips          []Chip       `json:"chips"`
+	Clarify        *Clarify     `json:"clarify,omitempty"`
+	Total          int          `json:"total"`
+	Items          []SearchItem `json:"items"`
+	Relaxed        []Relaxed    `json:"relaxed"`
+	Empty          *Empty       `json:"empty,omitempty"`
+	RelatedQueries []string     `json:"related_queries"`
+	// Complements — «С этим покупают»: семейства, связанные с первой позицией выдачи (relations complement),
+	// до 3; пустой массив — связей нет или конфигурация без справочников (B0–B2).
+	Complements []Complement  `json:"complements"`
+	Trace       *domain.Trace `json:"trace"`
+}
+
+// Complement — сопутствующий товар: самая популярная позиция связанного семейства.
+type Complement struct {
+	FamilyID       string   `json:"family_id"`
+	FamilyName     string   `json:"family_name"`
+	ProductID      string   `json:"product_id"`
+	Title          string   `json:"title"`
+	Vendor         string   `json:"vendor"`
+	Category       string   `json:"category"`
+	LicenseLine    string   `json:"license_line"`
+	PriceRub       *float64 `json:"price_rub"`
+	PriceOnRequest bool     `json:"price_on_request"`
+	// Note — почему покупают вместе (пояснение связи из справочника).
+	Note string `json:"note"`
 }
 
 // Correction — исправление запроса.

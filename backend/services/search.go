@@ -166,6 +166,7 @@ func (s *Services) SearchWith(ctx context.Context, requestID string, req in.Sear
 	resp := &out.SearchResponse{
 		RequestID: requestID, Query: req.Query, Normalized: normalized, Config: cfg,
 		Chips: []out.Chip{}, Items: []out.SearchItem{}, Relaxed: []out.Relaxed{}, RelatedQueries: []string{},
+		Complements: []out.Complement{},
 	}
 	resp.Items, resp.Total = groupByFamily(ranked, docs, normalized, effective, limit, func(d indexDoc) bool {
 		return st.purchasedBefore(req.ClientID, d.ProductID, d.FamilyID)
@@ -216,6 +217,11 @@ func validateSearch(req *in.SearchRequest) (string, int, error) {
 		if len(v) > maxIDLen {
 			bad = append(bad, errs.FieldError{Field: field, Code: errs.CodeOutOfRange, Message: "Слишком длинный идентификатор"})
 		}
+	}
+	switch req.Source = strings.ToLower(strings.TrimSpace(req.Source)); req.Source {
+	case "", domain.EventSourceLive, domain.EventSourceCompare:
+	default:
+		bad = append(bad, errs.FieldError{Field: "source", Code: errs.CodeInvalidFormat, Message: "Источник — live или compare"})
 	}
 	if len(bad) > 0 {
 		return "", 0, errs.NewValidationError(errs.MsgInvalidFields).WithDetails(bad...)
@@ -407,6 +413,10 @@ func (s *Services) saveSearch(req in.SearchRequest, normalized string, resp *out
 		RequestID: tr.RequestID, Query: req.Query, Normalized: normalized, Route: tr.Route, ParseSource: tr.ParseSource,
 		Config: tr.Config, ResultsCount: resp.Total, RulesVersion: tr.RulesVersion, CatalogVersion: tr.CatalogVersion,
 		ClientID: optional(req.ClientID), SessionID: optional(req.SessionID), TotalMs: int(math.Round(tr.TotalMs)),
+		Source: domain.EventSourceLive,
+	}
+	if req.Source == domain.EventSourceCompare {
+		ev.Source = domain.EventSourceCompare
 	}
 	st := &domain.SearchTrace{RequestID: tr.RequestID, Trace: raw}
 	s.writes.Add(1)

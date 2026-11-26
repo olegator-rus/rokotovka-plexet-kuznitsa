@@ -123,6 +123,8 @@ type EvaluationsResponse struct {
 	Configs []EvaluationView `json:"configs"`
 	Running *EvalJob         `json:"running"`
 	LastJob *EvalJob         `json:"last_job"`
+	// JudgeAgreement — последний прогон LLM-судьи на наборе; null — судья ещё не запускался.
+	JudgeAgreement *JudgeAgreement `json:"judge_agreement"`
 }
 
 // EvaluationView — сохранённый результат конфигурации.
@@ -148,12 +150,71 @@ type EvaluationView struct {
 
 // EvalJob — асинхронный прогон (POST /api/evaluations/run).
 type EvalJob struct {
-	ID         string     `json:"id"`
-	Set        string     `json:"set"`
-	Configs    []string   `json:"configs"`
-	Status     string     `json:"status"` // running | done | failed
+	ID      string   `json:"id"`
+	Set     string   `json:"set"`
+	Configs []string `json:"configs"`
+	Status  string   `json:"status"` // running | done | failed
+	// Done и Total — сколько поисков прогона сделано и сколько всего (запросы × конфигурации); Total 0 —
+	// набор ещё не загружен.
+	Done       int        `json:"done"`
+	Total      int        `json:"total"`
 	StartedAt  time.Time  `json:"started_at"`
 	FinishedAt *time.Time `json:"finished_at,omitempty"`
 	RunID      string     `json:"run_id,omitempty"`
 	Error      string     `json:"error,omitempty"`
+}
+
+// JudgeAgreement — согласие LLM-судьи с разметкой набора (ARCHITECTURE §6, «Разметка»). Разметка mock-набора
+// сделана по построению и служит прокси ручной: судье можно верить в вопросе «какая конфигурация лучше», но
+// не в абсолютных числах.
+type JudgeAgreement struct {
+	RunID         string    `json:"run_id"`
+	Set           string    `json:"set"`
+	SetHash       string    `json:"set_hash"`
+	Model         string    `json:"model"`
+	PromptVersion string    `json:"prompt_version"`
+	Configs       []string  `json:"configs"`
+	CreatedAt     time.Time `json:"created_at"`
+	// Pairs — пар запрос–товар в пуле; Judged — по скольким судья ответил (в согласие входят только они).
+	Pairs  int `json:"pairs"`
+	Judged int `json:"judged"`
+	// Depth — глубина, до которой пул полный: топ-Depth каждой конфигурации оценён целиком (NDCG@Depth ниже).
+	Depth int `json:"depth"`
+	// Exact — доля точного совпадения оценки, Within1 — расхождение не больше 1, Kappa — каппа Коэна
+	// с квадратичными весами (0 — как случайно, 1 — полное согласие).
+	Exact   *float64 `json:"exact"`
+	Within1 *float64 `json:"within1"`
+	Kappa   *float64 `json:"kappa"`
+	// Confusion — матрица 4×4: строка — оценка разметки, столбец — оценка судьи.
+	Confusion [4][4]int `json:"confusion"`
+	// ByConfig — NDCG@Depth конфигураций на пуле по разметке и по судье; SameOrder — порядок конфигураций
+	// по судье тот же, что по разметке.
+	ByConfig  []JudgeConfig `json:"by_config"`
+	SameOrder bool          `json:"same_order"`
+	Calls     int           `json:"calls"`
+	CostRub   float64       `json:"cost_rub"`
+	// DurationMs — время прогона судьи.
+	DurationMs int `json:"duration_ms"`
+}
+
+// JudgeConfig — конфигурация глазами разметки и судьи.
+type JudgeConfig struct {
+	Config     string   `json:"config"`
+	NDCGLabels *float64 `json:"ndcg_labels"`
+	NDCGJudge  *float64 `json:"ndcg_judge"`
+}
+
+// JudgePair — оценка одной пары (JSON прогона судьи).
+type JudgePair struct {
+	QueryID   string `json:"query_id"`
+	ProductID string `json:"product_id"`
+	Label     int    `json:"label"`
+	Judge     *int   `json:"judge"`
+}
+
+// JudgeRun — результат `go run . judge`: согласие и оценки пар.
+type JudgeRun struct {
+	JudgeAgreement
+	Grades []JudgePair `json:"grades"`
+	File   string      `json:"file,omitempty"`
 }

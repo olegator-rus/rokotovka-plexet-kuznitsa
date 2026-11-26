@@ -370,35 +370,52 @@ func mergeParsed(in domain.Intent, attrs *queryAttrs, ent *queryEntities, lx *se
 	if in.Origin == "ru" {
 		attrs.origin = "ru"
 	}
-	for _, c := range append(append([]domain.AttrConstraint{}, in.Constraints...), in.Preferences...) {
+	// Мягкие условия (домыслены моделью, а не названы покупателем): метрика — только предпочтение при выборе
+	// лицензии семейства, происхождение — не фильтр. Тип и срок лицензии мягкие и так.
+	for _, c := range in.Preferences {
 		switch c.Field {
-		case domain.FieldLicenseQuantity:
-			if n := atoi(c.Value); n > 0 && attrs.quantity == 0 {
-				attrs.quantity = n
-				attrs.metricUnresolved = attrs.metric == ""
-			}
 		case domain.FieldLicenseMetric:
 			if attrs.metric == "" && metricForms[c.Value][0] != "" {
-				attrs.metric, attrs.metricUnresolved = c.Value, false
+				attrs.metricPref = c.Value
 			}
-		case domain.FieldLicenseType:
-			if attrs.licType == "" && (c.Value == domain.LicensePerpetual || c.Value == domain.LicenseSubscription) {
-				attrs.licType = c.Value
-			}
-			if c.Value == domain.LicenseRenewal {
-				attrs.renewal = true
-			}
-		case domain.FieldLicenseDuration:
-			if n := atoi(c.Value); n > 0 && attrs.duration == 0 {
-				attrs.duration = n
-			}
-		case domain.FieldOrigin:
-			if c.Value == "ru" {
-				attrs.origin = "ru"
-			}
-		case domain.FieldRenewal:
-			attrs.renewal = attrs.renewal || c.Value == "true"
+		case domain.FieldLicenseType, domain.FieldLicenseDuration, domain.FieldLicenseQuantity:
+			mergeConstraint(c, attrs)
 		}
+	}
+	for _, c := range in.Constraints {
+		mergeConstraint(c, attrs)
+	}
+}
+
+// mergeConstraint — обязательное условие разбора поверх правил: заполняет только пустое.
+func mergeConstraint(c domain.AttrConstraint, attrs *queryAttrs) {
+	switch c.Field {
+	case domain.FieldLicenseQuantity:
+		if n := atoi(c.Value); n > 0 && attrs.quantity == 0 {
+			attrs.quantity = n
+			attrs.metricUnresolved = attrs.metric == ""
+		}
+	case domain.FieldLicenseMetric:
+		if attrs.metric == "" && metricForms[c.Value][0] != "" {
+			attrs.metric, attrs.metricUnresolved = c.Value, false
+		}
+	case domain.FieldLicenseType:
+		if attrs.licType == "" && (c.Value == domain.LicensePerpetual || c.Value == domain.LicenseSubscription) {
+			attrs.licType = c.Value
+		}
+		if c.Value == domain.LicenseRenewal {
+			attrs.renewal = true
+		}
+	case domain.FieldLicenseDuration:
+		if n := atoi(c.Value); n > 0 && attrs.duration == 0 {
+			attrs.duration = n
+		}
+	case domain.FieldOrigin:
+		if c.Value == "ru" {
+			attrs.origin = "ru"
+		}
+	case domain.FieldRenewal:
+		attrs.renewal = attrs.renewal || c.Value == "true"
 	}
 }
 

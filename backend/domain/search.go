@@ -104,4 +104,10 @@ type ConfigVersion struct {
 	Source  string // import | agent | rollback
 	Comment string
 	Rules   JSONB `gorm:"type:jsonb;not null"`
+	// Author — system | agent+human | human; ProposalID — предложение, из которого версия; Diff — разница с
+	// предыдущей версией {"add":[…],"remove":[…]}; Effect — эффект после следующего запуска агента.
+	Author     string
+	ProposalID *string
+	Diff       JSONB `gorm:"type:jsonb"`
+	Effect     JSONB `gorm:"type:jsonb"`
 }

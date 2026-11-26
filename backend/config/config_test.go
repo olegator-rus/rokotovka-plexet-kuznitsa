@@ -9,7 +9,7 @@ import (
 // envKeys — все переменные, которые читает пакет.
 var envKeys = []string{"APP_ENV", "PORT", "PUBLIC_ORIGIN", "DATABASE_URL", "TRUSTED_PROXIES", "OPENSEARCH_URL",
 	"EMBEDDER_URL", "RERANKER_URL", "DATA_DIR", "LLM_PROVIDER", "LLM_BASE_URL", "LLM_MODEL", "LLM_FOLDER_ID",
-	"LLM_API_KEY", "LLM_MODE", "LLM_INTENT_MODEL", "LLM_FALLBACK_MODEL"}
+	"LLM_API_KEY", "LLM_MODE", "LLM_INTENT_MODEL", "LLM_FALLBACK_MODEL", "LLM_JUDGE_MODEL"}
 
 // clearEnv — окружение без наших переменных: t.Setenv запоминает значение для восстановления, Unsetenv
 // убирает переменную (для адресов сервисов «не задана» и «пустая» означают разное).
@@ -171,6 +171,9 @@ func TestLLMConfig(t *testing.T) {
 	}
 	if l.IntentModel != "gpt://b1gfolder/aliceai-llm-flash" || l.FallbackModel != "" {
 		t.Fatalf("модель разбора по умолчанию — Flash, резерва нет: %+v", l)
+	}
+	if l.JudgeModel != "gpt://b1gfolder/qwen3.6-35b-a3b" {
+		t.Fatalf("судья по умолчанию — Qwen3.6 (другое семейство): %+v", l)
 	}
 	t.Setenv("LLM_MODEL", "aliceai-llm")
 	t.Setenv("LLM_FALLBACK_MODEL", "qwen3.6-35b-a3b")

@@ -1,12 +1,14 @@
 // Общее состояние оболочки: /api/meta, выбранный клиент, роль бэк-офиса, номер сессии вкладки.
 import { defineStore } from 'pinia'
 import { computed, ref } from 'vue'
+import { getProposals } from '@/api/agent'
 import { getMeta } from '@/api/meta'
 import type { ConfigId, Meta, MetaClient } from '@/api/types'
 import type { ApiError } from '@/lib/apiError'
 import { isApiError } from '@/lib/apiError'
 import { SEARCH_CONFIGS_FALLBACK } from '@/lib/configs'
 import { newSessionId } from '@/lib/events'
+import { pendingCount } from '@/lib/proposals'
 import { type RoleId, isRoleId } from '@/lib/roles'
 import { GUEST_CLIENT_ID } from '@/lib/searchState'
 
@@ -83,6 +85,18 @@ export const useAppStore = defineStore('app', () => {
     return inflight
   }
 
+  /** Предложения агента, ждущие решения: счётчик у SearchOps. null — неизвестно (API не отвечает). */
+  const pendingProposals = ref<number | null>(null)
+  function loadPending(): Promise<void> {
+    return getProposals({ status: 'pending' })
+      .then((r) => {
+        pendingProposals.value = pendingCount(r.items ?? [])
+      })
+      .catch(() => {
+        pendingProposals.value = null
+      })
+  }
+
   function setClient(id: string) {
     clientId.value = id || GUEST_CLIENT_ID
     writeStorage(CLIENT_KEY, clientId.value)
@@ -104,6 +118,8 @@ export const useAppStore = defineStore('app', () => {
     defaultConfig,
     configs,
     loadMeta,
+    pendingProposals,
+    loadPending,
     setClient,
     setRole,
   }

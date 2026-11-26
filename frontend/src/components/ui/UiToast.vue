@@ -2,6 +2,7 @@
 // Хост тостов (reka Toast): один на приложение. Внизу справа (на мобильном — снизу по центру),
 // ошибки объявляются срочно (foreground), остальное — фоном.
 import {
+  ToastAction,
   ToastClose,
   ToastDescription,
   ToastProvider,
@@ -10,7 +11,13 @@ import {
   ToastViewport,
 } from 'reka-ui'
 import { CircleAlert, CircleCheck, Info, X } from 'lucide-vue-next'
-import { TOAST_LIFE_MS, toastState, useToast, type ToastTone } from './useToast'
+import {
+  TOAST_ACTION_LIFE_MS,
+  TOAST_LIFE_MS,
+  toastState,
+  useToast,
+  type ToastTone,
+} from './useToast'
 
 const { remove } = useToast()
 const icons: Record<ToastTone, typeof Info> = { ok: CircleCheck, error: CircleAlert, info: Info }
@@ -30,6 +37,7 @@ function onOpen(id: number, open: boolean) {
       :key="t.id"
       :open="t.open"
       :type="t.tone === 'error' ? 'foreground' : 'background'"
+      :duration="t.action ? TOAST_ACTION_LIFE_MS : TOAST_LIFE_MS"
       :class="['ui-toast', `ui-toast--${t.tone}`]"
       @update:open="onOpen(t.id, $event)"
     >
@@ -37,6 +45,14 @@ function onOpen(id: number, open: boolean) {
       <div class="ui-toast__text">
         <ToastTitle class="ui-toast__title">{{ t.title }}</ToastTitle>
         <ToastDescription v-if="t.detail" class="ui-toast__detail">{{ t.detail }}</ToastDescription>
+        <ToastAction
+          v-if="t.action"
+          :alt-text="t.action.label"
+          class="btn btn--secondary btn--sm ui-toast__action"
+          @click="t.action.run()"
+        >
+          {{ t.action.label }}
+        </ToastAction>
       </div>
       <ToastClose class="btn btn--ghost btn--icon btn--sm" aria-label="Закрыть уведомление">
         <X :size="16" aria-hidden="true" />
@@ -98,6 +114,9 @@ function onOpen(id: number, open: boolean) {
 }
 .ui-toast__title {
   font-weight: var(--fw-medium);
+}
+.ui-toast__action {
+  margin-top: var(--space-2);
 }
 .ui-toast__detail {
   color: var(--text-2);

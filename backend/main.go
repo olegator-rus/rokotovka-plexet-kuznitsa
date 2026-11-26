@@ -66,6 +66,10 @@ func main() {
 
 		IntentModel:    intentModel(cfg.LLM, cfg.LLM.IntentModel),
 		IntentFallback: intentModel(cfg.LLM, cfg.LLM.FallbackModel),
+		JudgeModel:     intentModel(cfg.LLM, cfg.LLM.JudgeModel),
+
+		AgentModel: agentModel(cfg.LLM, cfg.Agent.Model),
+		Agent:      services.AgentOptions{MaxRegressionWorse: cfg.Agent.MaxRegressionWorse, RegressionSets: cfg.Agent.RegressionSets},
 	})
 
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
@@ -83,7 +87,15 @@ func main() {
 		runEval(ctx, log, svc, os.Args[2:])
 		return
 	}
+	if len(os.Args) > 1 && os.Args[1] == "judge" {
+		runJudge(ctx, log, svc, os.Args[2:])
+		return
+	}
 	svc.LoadCatalogState(ctx)
+	svc.RecoverAgentRuns(ctx)
+	if cfg.Agent.Schedule {
+		svc.StartAgentScheduler(ctx, cfg.Agent.Interval)
+	}
 	defer svc.Wait()
 	h := handlers.NewHandlerManager(svc, handlers.Options{PublicOrigin: cfg.PublicOrigin})
 
@@ -137,6 +149,17 @@ func intentModel(c config.LLMConfig, model string) services.ChatModel {
 		return nil
 	}
 	return llm.New(c.BaseURL, model, c.FolderID, c.APIKey, llmTimeout)
+}
+
+// agentLLMTimeout — срок HTTP-вызова модели агента: ответ с вызовами инструментов длиннее разбора.
+const agentLLMTimeout = 90 * time.Second
+
+// agentModel — клиент модели агента; nil, если модель не настроена.
+func agentModel(c config.LLMConfig, model string) services.ChatModel {
+	if !c.Online() || model == "" {
+		return nil
+	}
+	return llm.New(c.BaseURL, model, c.FolderID, c.APIKey, agentLLMTimeout)
 }
 
 // runImport — `go run . import`: импорт и сводка в stdout; сбой — код выхода 1.

@@ -51,6 +51,8 @@ type Config struct {
 	// LLM — модель для разбора сложных запросов (LLM_PROVIDER, LLM_BASE_URL, LLM_MODEL, LLM_FOLDER_ID,
 	// LLM_API_KEY, LLM_MODE). Пока только читается и проверяется.
 	LLM LLMConfig
+	// Agent — агент SearchOps (AGENT_*): модель, расписание, пороги допуска (agent.go).
+	Agent AgentConfig
 }
 
 func (c Config) IsProduction() bool { return c.AppEnv == EnvProduction }
@@ -81,6 +83,9 @@ func Load() (Config, error) {
 		problems = append(problems, err.Error())
 	}
 	c.LLM = llm
+	if c.Agent, err = loadAgent(llm); err != nil {
+		problems = append(problems, err.Error())
+	}
 	for _, a := range c.TrustedProxies {
 		if !validProxy(a) {
 			problems = append(problems, fmt.Sprintf("TRUSTED_PROXIES: %q — не IP и не CIDR", a))
@@ -127,6 +132,7 @@ func (c Config) Summary() []string {
 		fmt.Sprintf("эмбеддер: %s, реранкер: %s", orOff(c.EmbedderURL), orOff(c.RerankerURL)),
 		fmt.Sprintf("данные для импорта: %s", c.DataDir),
 		c.LLM.summary(),
+		c.Agent.summary(c.LLM),
 	}
 }
 

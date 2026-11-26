@@ -348,7 +348,7 @@ func TestIntentCacheKey(t *testing.T) {
 			t.Errorf("%s не входит в ключ", name)
 		}
 	}
-	if v := newIntentEnv(t, "off", nil, nil, nil).PromptVersion(); !strings.HasPrefix(v, "intent-v1+") {
+	if v := newIntentEnv(t, "off", nil, nil, nil).PromptVersion(); !strings.HasPrefix(v, "intent-v2+") {
 		t.Fatalf("версия промпта: %q", v)
 	}
 }
@@ -415,6 +415,7 @@ func TestLLMCallKind(t *testing.T) {
 		"search": {RequestID: str("01M87VH9WE8RRSHPZ3K0N770QG")},
 		"eval":   {RequestID: str(evalRequestPrefix + "abc-B3-q-0004")},
 		"agent":  {AgentRunID: str("run-1")},
+		"judge":  {RequestID: str(judgeRequestPrefix + "abc123-001")},
 		"other":  {RequestID: str("live-q-0004")},
 	}
 	for want, u := range cases {

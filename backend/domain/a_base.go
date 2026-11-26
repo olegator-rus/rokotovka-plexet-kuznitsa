@@ -36,8 +36,9 @@ func AllModels() []any {
 	return []any{
 		&Product{}, &Vendor{}, &Category{}, &Relation{}, &Alias{}, &Client{},
 		&SearchEvent{}, &SearchTrace{}, &BehaviorEvent{}, &LLMUsage{}, &ConfigVersion{},
-		&Evaluation{},
+		&Evaluation{}, &JudgeRun{},
 		&IntentCache{},
+		&IssueCluster{}, &AgentRun{}, &AgentStep{}, &Proposal{}, &Decision{},
 	}
 }
 

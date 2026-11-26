@@ -18,7 +18,22 @@ func RegisterRoutes(app *fiber.App, h *Handler) {
 	api.Post("/events", h.Events)
 	api.Post("/catalog/import", h.ImportCatalog)
 	api.Get("/costs", h.Costs)
+	api.Get("/traces/:request_id", h.Trace)
 	api.Get("/evaluations", h.Evaluations)
 	api.Post("/evaluations/run", h.RunEvaluation)
 	api.Get("/analytics", h.Analytics)
+
+	// Агент SearchOps, очередь предложений, версии правил.
+	api.Post("/agent/runs", h.StartAgentRun)
+	api.Get("/agent/runs", h.AgentRuns)
+	api.Get("/agent/runs/:id", h.AgentRun)
+	api.Get("/agent/runs/:id/stream", h.AgentRunStream)
+	api.Post("/agent/runs/:id/stop", h.StopAgentRun)
+	api.Get("/agent/memory", h.AgentMemory)
+	api.Get("/proposals", h.Proposals)
+	api.Get("/proposals/:id", h.Proposal)
+	api.Post("/proposals/:id/approve", h.ApproveProposal)
+	api.Post("/proposals/:id/reject", h.RejectProposal)
+	api.Get("/configs", h.Configs)
+	api.Post("/configs/rollback", h.RollbackConfig)
 }

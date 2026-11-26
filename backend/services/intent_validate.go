@@ -318,8 +318,8 @@ func (d *intentDict) validate(r rawIntent, normalized string) domain.Intent {
 				// уже есть в обязательных — мягкое условие то же поле не дублирует
 			default:
 				seen[field] = true
-				if field == domain.FieldOrigin {
-					in.Origin = "ru"
+				if field == domain.FieldOrigin && part.name == "constraints" {
+					in.Origin = "ru" // домысленное «отечественное» (preferences) — не обязательное условие
 				}
 				*part.dst = append(*part.dst, domain.AttrConstraint{Field: field, Value: val})
 			}

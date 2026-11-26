@@ -1,0 +1,215 @@
+// Предложения агента и версии правил: разница правил словами, результат
+// прогона двумя строками, статусы, сортировка, ссылка «Проверить в поиске». Без DOM: tests/proposals.test.ts.
+import type {
+  ConfigVersion,
+  Proposal,
+  ProposalEvaluation,
+  ProposalRejectReason,
+  RulePatch,
+  RulePatchItem,
+} from '@/api/types'
+import { formatInt, plural } from './format.ts'
+
+export const DIAGNOSIS_LABELS: Record<string, string> = {
+  ALIAS_GAP: 'Неизвестный термин',
+  TYPO: 'Опечатка или раскладка',
+  ASSORTMENT_GAP: 'Нет в ассортименте',
+  SUBSTITUTE_AVAILABLE: 'Нет товара, есть аналог',
+  CONTENT_GAP: 'В карточке не хватает слов',
+  RANKING_FAILURE: 'Товар найден, но стоит низко',
+  CONSTRAINT_CONFLICT: 'Такой лицензии не существует',
+  NON_PRODUCT: 'Нетоварный запрос',
+  NOISE: 'Шум',
+  UNKNOWN: 'Требует ручной проверки',
+}
+
+export const diagnosisLabel = (d: string) => DIAGNOSIS_LABELS[d] ?? d
+
+/** Статус предложения: цвет только здесь (токены --status-*), рядом всегда подпись. */
+export const PROPOSAL_STATUSES: readonly { id: string; label: string; tone: string }[] = [
+  { id: 'pending', label: 'Ждёт решения', tone: 'status-pending' },
+  { id: 'accepted', label: 'Принято', tone: 'status-accepted' },
+  { id: 'rejected', label: 'Отклонено', tone: 'status-rejected' },
+  { id: 'rolled_back', label: 'Откачено', tone: 'status-rolled-back' },
+]
+
+/** Решения в памяти агента могут прийти глаголом — сводим к статусу. */
+const STATUS_ALIASES: Record<string, string> = {
+  approve: 'accepted',
+  approved: 'accepted',
+  accept: 'accepted',
+  reject: 'rejected',
+  rollback: 'rolled_back',
+}
+
+export function proposalStatus(id: string): { id: string; label: string; tone: string } {
+  const key = STATUS_ALIASES[id] ?? id
+  return (
+    PROPOSAL_STATUSES.find((s) => s.id === key) ?? { id, label: id, tone: 'status-rolled-back' }
+  )
+}
+
+export const PROPOSAL_ROLES: readonly { id: string; label: string }[] = [
+  { id: 'ecom', label: 'Менеджер e-com' },
+  { id: 'product', label: 'Продукт-менеджер' },
+  { id: 'content', label: 'Контент-менеджер' },
+]
+
+export const proposalRoleLabel = (id: string) =>
+  PROPOSAL_ROLES.find((r) => r.id === id)?.label ?? id
+
+export const REJECT_REASONS: readonly { id: ProposalRejectReason; label: string }[] = [
+  { id: 'too_broad', label: 'Слишком широко' },
+  { id: 'wrong_product', label: 'Неверный товар' },
+  { id: 'not_now', label: 'Не сейчас' },
+  { id: 'other', label: 'Другое' },
+]
+
+export function rejectReasonLabel(id: string | null | undefined): string {
+  if (!id) return ''
+  return REJECT_REASONS.find((r) => r.id === id)?.label ?? id
+}
+
+/** Предложение не меняет правила поиска (задача по карточке или ассортименту) — «Взять в работу». */
+export const isTicket = (p: Pick<Proposal, 'action'>) => p.action === 'ticket'
+
+/** Очередь: по убыванию потерянного спроса, при равенстве — новые выше. */
+export function sortByLostDemand(items: Proposal[]): Proposal[] {
+  return [...items].sort(
+    (a, b) =>
+      (b.cluster?.lost_demand ?? 0) - (a.cluster?.lost_demand ?? 0) ||
+      String(b.created_at).localeCompare(String(a.created_at)),
+  )
+}
+
+export const pendingCount = (items: Proposal[]) =>
+  items.filter((p) => p.status === 'pending').length
+
+/** Запросы кластера по убыванию частоты. */
+export function clusterQueries(p: Pick<Proposal, 'cluster'>): { text: string; freq: number }[] {
+  return [...(p.cluster?.queries ?? [])].sort((a, b) => b.freq - a.freq)
+}
+
+/** Суммарная частота запросов кластера. */
+export const clusterFreq = (p: Pick<Proposal, 'cluster'>) =>
+  (p.cluster?.queries ?? []).reduce((n, q) => n + (q.freq || 0), 0)
+
+/** «Проверить в поиске»: самый частый запрос кластера на действующих правилах (B4). */
+export function searchCheckUrl(p: Pick<Proposal, 'cluster'>): string | null {
+  const q = clusterQueries(p)[0]?.text
+  if (!q) return null
+  return `/search?${new URLSearchParams({ q, config: 'B4' }).toString()}`
+}
+
+// ── Разница правил словами, не JSON ──
+
+const KIND_LABELS: Record<string, string> = {
+  alias: 'алиас',
+  typo: 'исправление',
+  context: 'правило контекста',
+  context_rule: 'правило контекста',
+  demand_gap: 'спрос без предложения',
+  card_field: 'правка карточки',
+  redirect: 'редирект',
+  synonym: 'синоним',
+}
+
+const TARGET_LABELS: Record<string, string> = {
+  term: 'термин',
+  product: 'товар',
+  family: 'линейка',
+  vendor: 'вендор',
+  category: 'категория',
+}
+
+export interface DiffLine {
+  op: 'add' | 'remove'
+  /** Главное: «кис» → «kaspersky internet security». */
+  text: string
+  /** Вид правила и цель: «алиас, односторонний · линейка kis». */
+  note: string
+}
+
+function str(v: unknown): string | null {
+  return typeof v === 'string' && v.trim() ? v : typeof v === 'number' ? String(v) : null
+}
+
+export function patchItemText(item: RulePatchItem): { text: string; note: string } {
+  const kind = KIND_LABELS[item.kind] ?? item.kind
+  const alias = str(item.alias) ?? str(item.from) ?? str(item.term) ?? str(item.query)
+  const canonical = str(item.canonical) ?? str(item.to) ?? str(item.value)
+  const target = item.target ? (TARGET_LABELS[item.target] ?? item.target) : null
+  const targetId = str(item.target_id)
+  const noteParts = [item.kind === 'alias' ? `${kind}, односторонний` : kind]
+  if (target) noteParts.push(targetId ? `${target} ${targetId}` : target)
+  if (item.before !== undefined || item.after !== undefined) {
+    const field = str(item.field)
+    if (field) noteParts.push(`поле ${field}`)
+    return {
+      text: `было «${str(item.before) ?? '—'}» → предлагается «${str(item.after) ?? '—'}»`,
+      note: noteParts.join(' · '),
+    }
+  }
+  if (alias && canonical)
+    return { text: `«${alias}» → «${canonical}»`, note: noteParts.join(' · ') }
+  if (alias) return { text: `«${alias}»`, note: noteParts.join(' · ') }
+  // Незнакомая форма: пары «ключ: значение» без служебных полей, но не сырой JSON.
+  const rest = Object.entries(item)
+    .filter(([k, v]) => k !== 'kind' && v !== null && v !== undefined && v !== '')
+    .map(([k, v]) => `${k}: ${typeof v === 'object' ? JSON.stringify(v) : String(v)}`)
+  return { text: rest.join(', ') || kind, note: noteParts.join(' · ') }
+}
+
+export function diffLines(patch: RulePatch | null | undefined): DiffLine[] {
+  if (!patch) return []
+  return [
+    ...(patch.add ?? []).map((i) => ({ op: 'add' as const, ...patchItemText(i) })),
+    ...(patch.remove ?? []).map((i) => ({ op: 'remove' as const, ...patchItemText(i) })),
+  ]
+}
+
+// ── Результат прогона ──
+
+export interface EvaluationLines {
+  target: string
+  regression: string
+  /** Дополнительно: точные запросы и нарушения условий — только если не нули. */
+  extra: string[]
+  passed: boolean
+  /** Ухудшений нет — строка регрессии нейтральна, иначе помечается. */
+  regressionWorse: number
+}
+
+const qWord = (n: number) => plural(n, ['запрос', 'запроса', 'запросов'])
+
+export function evaluationLines(ev: ProposalEvaluation | null | undefined): EvaluationLines | null {
+  if (!ev?.target) return null
+  const b = ev.target.before
+  const a = ev.target.after
+  const target = `Целевой кластер: находилось ${formatInt(b.found)} из ${formatInt(b.total)}, стало ${formatInt(a.found)} из ${formatInt(a.total)}`
+  const r = ev.regression ?? { worse: 0, better: 0, total: 0 }
+  let regression = `Регрессионный набор: ухудшилось ${formatInt(r.worse)} ${qWord(r.worse)}`
+  if (r.total) regression += ` из ${formatInt(r.total)}`
+  if (r.better) regression += `, улучшилось ${formatInt(r.better)}`
+  const extra: string[] = []
+  if (ev.exact_worse)
+    extra.push(`Точные запросы: ухудшилось ${formatInt(ev.exact_worse)} ${qWord(ev.exact_worse)}`)
+  if (ev.constraint_violations_new)
+    extra.push(`Новых нарушений условий: ${formatInt(ev.constraint_violations_new)}`)
+  return { target, regression, extra, passed: !!ev.passed, regressionWorse: r.worse }
+}
+
+// ── Версии правил ──
+
+export const AUTHOR_LABELS: Record<string, string> = {
+  'agent+human': 'Агент + человек',
+  human: 'Человек',
+  system: 'Система',
+}
+
+export const authorLabel = (a: string) => AUTHOR_LABELS[a] ?? a
+
+/** Новые сверху; действующая — по полю active. */
+export function sortVersions(items: ConfigVersion[]): ConfigVersion[] {
+  return [...items].sort((a, b) => b.version - a.version)
+}

@@ -63,6 +63,7 @@ type LogEvent struct {
 const (
 	EventSourceLive    = "live"     // пишет работающий поиск и POST /api/events
 	EventSourceMockLog = "mock_log" // импорт исторических логов (make import)
+	EventSourceCompare = "compare"  // поиск из вкладки «Один запрос»: не входит в аналитику и стоимость
 )
 
 // RulesSnapshot — снимок словарей и правил поиска: то, что лежит в config_versions. Песочница агента
@@ -96,4 +97,28 @@ type Evaluation struct {
 	// PerQuery — метрики каждого запроса (для «Один запрос» и разбора ухудшений).
 	PerQuery   JSONB `gorm:"type:jsonb"`
 	DurationMs int
+}
+
+// JudgeRun — прогон LLM-судьи (ARCHITECTURE §6, «Разметка»): модель другого семейства, чем разбор и агент,
+// вслепую оценивает пары запрос–товар из пула топ-10 конфигураций; согласие с разметкой и оценки
+// конфигураций по судье.
+type JudgeRun struct {
+	UUIDModel
+	RunID   string `gorm:"index;size:40"`
+	Set     string `gorm:"column:eval_set;size:16;index"`
+	SetHash string `gorm:"size:16"`
+	Model   string
+	// PromptVersion — версия промпта судьи (prompts/judge.md + хэш текста).
+	PromptVersion string
+	Configs       string // через запятую: из чьих топ-10 собран пул
+	Pairs         int    // пар в пуле
+	Judged        int    // пар, по которым судья ответил
+	Calls         int
+	CostRub       float64 `gorm:"type:numeric(12,4)"`
+	DurationMs    int
+	// Agreement — out.JudgeAgreement: точное совпадение, ±1, взвешенная каппа, матрица; ByConfig — NDCG@10
+	// конфигураций по разметке и по судье; Grades — оценки пар.
+	Agreement JSONB `gorm:"type:jsonb;not null"`
+	ByConfig  JSONB `gorm:"type:jsonb"`
+	Grades    JSONB `gorm:"type:jsonb"`
 }

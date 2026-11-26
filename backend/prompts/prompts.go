@@ -14,6 +14,9 @@ import (
 //go:embed intent.md
 var intentText string
 
+//go:embed judge.md
+var judgeText string
+
 // Prompt — текст и версия промпта.
 type Prompt struct {
 	// Text — текст без строки версии.
@@ -38,3 +41,12 @@ func parse(raw string) Prompt {
 // Intent — промпт разбора намерения (маршрут D). Плейсхолдеры {{CATEGORIES}} и {{VENDORS}} заполняет
 // services из справочников каталога.
 func Intent() Prompt { return parse(intentText) }
+
+// Judge — промпт LLM-судьи: вслепую оценивает пары запрос–товар по шкале 0–3 (ARCHITECTURE §6).
+func Judge() Prompt { return parse(judgeText) }
+
+//go:embed agent.md
+var agentText string
+
+// Agent — системный промпт агента SearchOps (services/agent_loop.go).
+func Agent() Prompt { return parse(agentText) }

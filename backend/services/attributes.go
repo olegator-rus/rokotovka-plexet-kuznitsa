@@ -36,6 +36,9 @@ type queryAttrs struct {
 	serverPref bool
 	duration   int    // месяцы, 0 — не указано
 	licType    string // perpetual | subscription | "" (предпочтение)
+	// metricPref — метрика, которую модель домыслила по контексту («для команды» → user): не фильтр, только
+	// предпочтение при выборе лицензии семейства.
+	metricPref string
 	renewal    bool   // продление — обязательное условие
 	origin     string // ru | ""
 	analog     bool   // «аналог», «замена», «вместо»: просят замену

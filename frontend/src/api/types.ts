@@ -473,3 +473,166 @@ export interface CostsResponse {
   routes: CostRouteRow[]
   calls: CostsCalls
 }
+
+// ── SearchOps: агент, предложения, версии правил ──
+
+export type AgentRunStatus = 'running' | 'done' | 'stopped' | 'failed'
+
+export interface AgentRun {
+  id: string
+  status: AgentRunStatus | string
+  trigger: 'manual' | 'schedule' | string
+  started_at: string
+  finished_at: string | null
+  clusters_total: number
+  clusters_done: number
+  proposals_created: number
+  tool_calls: number
+  input_tokens: number
+  output_tokens: number
+  cost_rub: number
+  stop_reason: string | null
+  summary: string | null
+  current_cluster: { id: string; label: string } | null
+  /** Лимит вызовов инструментов на кластер — если сервер присылает. */
+  max_tool_calls?: number
+}
+
+export type AgentStepKind =
+  'tool_call' | 'thought' | 'check' | 'memory' | 'diagnosis' | 'hypothesis' | 'proposal' | 'error'
+
+export interface AgentStep {
+  id: string
+  run_id: string
+  seq: number
+  ts: string
+  kind: AgentStepKind | string
+  cluster_id: string | null
+  tool: string | null
+  title: string
+  args: Record<string, unknown> | null
+  result: Record<string, unknown> | null
+  ok: boolean
+  hypothesis_no: number | null
+  rejected_reason: string | null
+  ms: number | null
+}
+
+export interface AgentRunsResponse {
+  items: AgentRun[]
+}
+
+export interface AgentRunDetail {
+  run: AgentRun
+  steps: AgentStep[]
+}
+
+export interface AgentRunRequest {
+  days: number
+  max_clusters: number
+  trigger: 'manual' | 'schedule'
+}
+
+export type ProposalStatus = 'pending' | 'accepted' | 'rejected' | 'rolled_back'
+export type ProposalRole = 'ecom' | 'product' | 'content'
+export type Diagnosis =
+  | 'ALIAS_GAP'
+  | 'TYPO'
+  | 'ASSORTMENT_GAP'
+  | 'SUBSTITUTE_AVAILABLE'
+  | 'CONTENT_GAP'
+  | 'RANKING_FAILURE'
+  | 'CONSTRAINT_CONFLICT'
+  | 'NON_PRODUCT'
+  | 'NOISE'
+  | 'UNKNOWN'
+
+export interface RulePatchItem {
+  kind: string
+  alias?: string
+  canonical?: string
+  target?: string
+  target_id?: string | null
+  [key: string]: unknown
+}
+
+export interface RulePatch {
+  add: RulePatchItem[]
+  remove: RulePatchItem[]
+}
+
+export interface FoundOf {
+  found: number
+  total: number
+}
+
+export interface ProposalEvaluation {
+  target: { before: FoundOf; after: FoundOf }
+  regression: { worse: number; better: number; total: number }
+  exact_worse: number
+  constraint_violations_new: number
+  passed: boolean
+}
+
+export interface ProposalCluster {
+  id: string
+  label: string
+  queries: { text: string; freq: number }[]
+  lost_demand: number
+}
+
+export interface Proposal {
+  id: string
+  run_id: string
+  cluster: ProposalCluster
+  diagnosis: Diagnosis | string
+  diagnosis_text: string
+  role: ProposalRole | string
+  action: 'rules_patch' | 'ticket' | string
+  patch: RulePatch | null
+  evaluation: ProposalEvaluation | null
+  hypotheses_tried: number
+  status: ProposalStatus | string
+  created_at: string
+  decided_at: string | null
+  decided_reason: string | null
+  config_version: number | null
+}
+
+export interface ProposalsResponse {
+  items: Proposal[]
+}
+
+export type ProposalRejectReason = 'too_broad' | 'wrong_product' | 'not_now' | 'other'
+
+export interface ApproveResponse {
+  proposal: Proposal
+  config_version: number
+}
+
+export interface ConfigVersion {
+  version: number
+  created_at: string
+  author: 'agent+human' | 'human' | 'system' | string
+  description: string
+  proposal_id: string | null
+  diff: RulePatch | null
+  effect: Record<string, unknown> | null
+}
+
+export interface ConfigsResponse {
+  active: number
+  items: ConfigVersion[]
+}
+
+export interface MemoryItem {
+  cluster_label: string
+  proposal_id: string | null
+  decision: string
+  reason: string | null
+  ts: string
+}
+
+export interface MemoryResponse {
+  items: MemoryItem[]
+}

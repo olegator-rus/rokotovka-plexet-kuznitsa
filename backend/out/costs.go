@@ -46,8 +46,11 @@ type CostsSummary struct {
 	AvgLLMLatencyMs  *float64 `json:"avg_llm_latency_ms"`
 	// EvalCalls, EvalCostRub — вызовы модели из прогонов оценки (request_id eval-…): в стоимость запроса
 	// покупателя не входят, показываются отдельно.
-	EvalCalls          int64    `json:"eval_calls"`
-	EvalCostRub        float64  `json:"eval_cost_rub"`
+	EvalCalls   int64   `json:"eval_calls"`
+	EvalCostRub float64 `json:"eval_cost_rub"`
+	// JudgeCalls, JudgeCostRub — вызовы LLM-судьи (request_id judge-…): тоже вне стоимости запроса.
+	JudgeCalls         int64    `json:"judge_calls"`
+	JudgeCostRub       float64  `json:"judge_cost_rub"`
 	AgentRuns          int64    `json:"agent_runs"`
 	AgentRunAvgCostRub *float64 `json:"agent_run_avg_cost_rub"`
 }
@@ -74,18 +77,22 @@ type CostsCalls struct {
 // CostsCall — один вызов модели. request_id ведёт к трассе поиска, agent_run_id — к запуску агента.
 type CostsCall struct {
 	ID string `json:"id"`
-	// Kind — search (поиск покупателя) | eval (прогон оценки) | agent (запуск агента) | other (ручной прогон).
-	Kind           string    `json:"kind"`
-	CreatedAt      time.Time `json:"created_at"`
-	RequestID      *string   `json:"request_id"`
-	AgentRunID     *string   `json:"agent_run_id"`
-	Provider       string    `json:"provider"`
-	Model          string    `json:"model"`
-	InputTokens    int       `json:"input_tokens"`
-	OutputTokens   int       `json:"output_tokens"`
-	CachedTokens   int       `json:"cached_tokens"`
-	LatencyMs      int       `json:"latency_ms"`
-	CostRub        float64   `json:"cost_rub"`
-	PricingVersion string    `json:"pricing_version"`
-	Status         string    `json:"status"`
+	// Kind — search (поиск покупателя) | eval (прогон оценки) | judge (LLM-судья) | agent (запуск агента) |
+	// other (ручной прогон).
+	Kind      string    `json:"kind"`
+	CreatedAt time.Time `json:"created_at"`
+	RequestID *string   `json:"request_id"`
+	// Query — исходный запрос поиска, к которому относится вызов; null — вызов не из поиска или поиск
+	// не записан в журнал (прогон оценки, судья, агент).
+	Query          *string `json:"query"`
+	AgentRunID     *string `json:"agent_run_id"`
+	Provider       string  `json:"provider"`
+	Model          string  `json:"model"`
+	InputTokens    int     `json:"input_tokens"`
+	OutputTokens   int     `json:"output_tokens"`
+	CachedTokens   int     `json:"cached_tokens"`
+	LatencyMs      int     `json:"latency_ms"`
+	CostRub        float64 `json:"cost_rub"`
+	PricingVersion string  `json:"pricing_version"`
+	Status         string  `json:"status"`
 }

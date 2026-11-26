@@ -9,6 +9,7 @@ import { useAppStore } from '@/stores/app'
 const app = useAppStore()
 onMounted(() => {
   void app.loadMeta()
+  void app.loadPending()
 })
 </script>
 

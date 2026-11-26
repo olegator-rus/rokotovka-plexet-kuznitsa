@@ -29,6 +29,8 @@ type Services struct {
 	alias string
 	// intent — разбор намерения на маршруте D (intent.go); не nil всегда: без модели — кэш и правила.
 	intent domain.IntentParser
+	// judge — модель LLM-судьи (eval_judge.go), другого семейства, чем разбор и агент; nil — судьи нет.
+	judge ChatModel
 
 	// catalog — справочники в памяти (клиенты, версия каталога и правил); меняется импортом целиком.
 	catalog atomic.Pointer[catalogState]
@@ -40,6 +42,10 @@ type Services struct {
 	core searchCore
 	// writes — фоновые записи журнала поиска; Wait дожидается их при остановке.
 	writes sync.WaitGroup
+	// agent — агент SearchOps: запуски, лента, расписание (agent.go).
+	agent *agentService
+	// agentStoreOverride — хранилище агента в тестах; nil — repos.
+	agentStoreOverride agentStore
 }
 
 // Options — настройки и клиенты сервисов из config. Нулевые клиенты — шаг выключен.
@@ -57,9 +63,15 @@ type Options struct {
 	IntentModel ChatModel
 	// IntentFallback — резервная модель разбора при сбое основной; nil — без резерва.
 	IntentFallback ChatModel
+	// JudgeModel — модель LLM-судьи оценки (qwen3.6-35b-a3b); nil — `go run . judge` недоступен.
+	JudgeModel ChatModel
 	// IndexAlias — алиас индекса каталога; пусто — products. Живой интеграционный тест берёт свой,
 	// чтобы не трогать индекс разработки.
 	IndexAlias string
+	// AgentModel — модель агента SearchOps; nil — запуск агента недоступен.
+	AgentModel ChatModel
+	// Agent — пороги и наборы проверки правок агента.
+	Agent AgentOptions
 }
 
 // NewServices — граф сервисов. repos == nil — API без базы: health отдаёт db: down, поиск не пишет журнал.
@@ -82,7 +94,9 @@ func NewServices(repos *repositories.Repos, opts Options) *Services {
 		source:   opts.Source,
 		llmMode:  opts.LLMMode,
 		alias:    opts.IndexAlias,
+		judge:    opts.JudgeModel,
 	}
+	s.agent = newAgentService(s, opts.AgentModel, opts.Agent)
 	s.intent = newIntentService(s, opts.IntentModel, opts.IntentFallback, opts.LLMMode)
 	// Маршруту D разборщик нужен, если есть модель или кэш разборов в базе; без того и другого он вернул
 	// бы разбор правил как есть — тогда маршрут D честно работает как C (parser_not_connected).

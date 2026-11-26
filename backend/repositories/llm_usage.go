@@ -55,6 +55,8 @@ type LLMTotals struct {
 	AgentCostRub float64
 	EvalCalls    int64
 	EvalCostRub  float64
+	JudgeCalls   int64
+	JudgeCostRub float64
 	InputTokens  int64
 	OutputTokens int64
 	AvgLatencyMs float64
@@ -72,9 +74,11 @@ SELECT count(*) AS calls, coalesce(sum(calculated_cost), 0) AS cost_rub,
        coalesce(sum(calculated_cost) FILTER (WHERE agent_run_id IS NOT NULL), 0) AS agent_cost_rub,
        count(*) FILTER (WHERE request_id LIKE ?) AS eval_calls,
        coalesce(sum(calculated_cost) FILTER (WHERE request_id LIKE ?), 0) AS eval_cost_rub,
+       count(*) FILTER (WHERE request_id LIKE ?) AS judge_calls,
+       coalesce(sum(calculated_cost) FILTER (WHERE request_id LIKE ?), 0) AS judge_cost_rub,
        coalesce(sum(input_tokens), 0) AS input_tokens, coalesce(sum(output_tokens), 0) AS output_tokens,
        coalesce(avg(latency_ms), 0) AS avg_latency_ms
-FROM llm_usage`, EvalRequestPrefix+"%", EvalRequestPrefix+"%").Scan(&t).Error
+FROM llm_usage`, EvalRequestPrefix+"%", EvalRequestPrefix+"%", JudgeRequestPrefix+"%", JudgeRequestPrefix+"%").Scan(&t).Error
 	return t, err
 }
 

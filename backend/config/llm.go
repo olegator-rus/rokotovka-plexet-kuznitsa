@@ -23,6 +23,7 @@ const (
 const (
 	defaultLLMBaseURL = "https://ai.api.cloud.yandex.net/v1"
 	defaultLLMModel   = "aliceai-llm-flash"
+	defaultJudgeModel = "qwen3.6-35b-a3b"
 )
 
 // LLMConfig — настройки модели. Ключ — только здесь и в клиенте externalApi/llm; в лог не попадает.
@@ -44,6 +45,9 @@ type LLMConfig struct {
 	IntentModel string
 	// FallbackModel — резервная модель разбора (LLM_FALLBACK_MODEL, например qwen3.6-35b-a3b); пусто — нет.
 	FallbackModel string
+	// JudgeModel — модель LLM-судьи оценки (LLM_JUDGE_MODEL, по умолчанию qwen3.6-35b-a3b): другого семейства,
+	// чем разбор и агент; пусто — судьи нет.
+	JudgeModel string
 }
 
 // Online — модель настроена: провайдер openai-compatible и ключ задан.
@@ -64,10 +68,12 @@ func LoadLLM() (LLMConfig, error) {
 
 		IntentModel:   env("LLM_INTENT_MODEL", defaultLLMModel),
 		FallbackModel: env("LLM_FALLBACK_MODEL", ""),
+		JudgeModel:    env("LLM_JUDGE_MODEL", defaultJudgeModel),
 	}
 	l.Model = l.modelURI(l.Model)
 	l.IntentModel = l.modelURI(l.IntentModel)
 	l.FallbackModel = l.modelURI(l.FallbackModel)
+	l.JudgeModel = l.modelURI(l.JudgeModel)
 	switch l.Provider {
 	case "":
 		l.Provider = LLMNone

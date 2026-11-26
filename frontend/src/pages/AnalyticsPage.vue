@@ -1,18 +1,20 @@
 <script setup lang="ts">
 // «Аналитика». Период — в адресе (?days=30), роль — из шапки. Общие для всех ролей
-// плитки и воронка; ниже блок роли: менеджер e-com — проблемные запросы, остальные роли появятся с
-// агентом SearchOps. Каждое число открывает объяснение: из каких событий и как посчитано.
+// плитки и воронка (у руководителя — свой верхний ряд); ниже блок роли: менеджер e-com — проблемные
+// запросы, продукт-менеджер — спрос без предложения, контент-менеджер — карточки и термины. Каждое число открывает объяснение: из каких событий и как посчитано.
 import { computed, ref, watch } from 'vue'
-import { RouterLink, useRoute, useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { storeToRefs } from 'pinia'
-import { Bot } from 'lucide-vue-next'
 import { getAnalytics } from '@/api/analytics'
 import type { AnalyticsResponse } from '@/api/types'
 import BlockError from '@/components/common/BlockError.vue'
 import ExplainDialog, { type Explanation } from '@/components/common/ExplainDialog.vue'
 import StatTile from '@/components/common/StatTile.vue'
 import FunnelBlock from '@/components/analytics/FunnelBlock.vue'
+import ContentRole from '@/components/analytics/ContentRole.vue'
+import HeadRole from '@/components/analytics/HeadRole.vue'
 import ProblemQueries from '@/components/analytics/ProblemQueries.vue'
+import ProductRole from '@/components/analytics/ProductRole.vue'
 import UiSelect from '@/components/ui/UiSelect.vue'
 import { useResource } from '@/composables/useResource'
 import { formatInt, formatPercent, plural } from '@/lib/format'
@@ -191,46 +193,31 @@ const sourcesLine = computed(() => {
     </div>
 
     <template v-else-if="data">
-      <div class="analytics__tiles">
-        <StatTile
-          v-for="t in tiles"
-          :key="t.key"
-          :label="t.label"
-          :value="t.value"
-          :sub="t.sub"
-          :missing="t.missing"
-          @explain="t.explain()"
-        />
-      </div>
+      <HeadRole
+        v-if="role === 'head'"
+        :tiles="data.tiles"
+        :period-label="periodLabel"
+        @explain="explain"
+      />
+      <template v-else>
+        <div class="analytics__tiles">
+          <StatTile
+            v-for="t in tiles"
+            :key="t.key"
+            :label="t.label"
+            :value="t.value"
+            :sub="t.sub"
+            :missing="t.missing"
+            @explain="t.explain()"
+          />
+        </div>
 
-      <FunnelBlock v-if="data.funnel?.length" :funnel="data.funnel" @explain="explain" />
+        <FunnelBlock v-if="data.funnel?.length" :funnel="data.funnel" @explain="explain" />
+      </template>
 
       <ProblemQueries v-if="role === 'ecom'" :problems="data.problems ?? []" @explain="explain" />
-      <div v-else class="panel analytics__role">
-        <Bot :size="20" aria-hidden="true" class="analytics__role-icon" />
-        <div>
-          <p class="analytics__role-title">
-            Блоки роли «{{ roleLabel }}» появятся после запуска агента
-          </p>
-          <p class="t-sm t-muted">
-            <template v-if="role === 'product'">
-              Кластеры спроса без предложения и востребованные аналоги строит агент SearchOps из
-              неудачных запросов.
-            </template>
-            <template v-else-if="role === 'content'">
-              Карточки без характеристик, неизвестные термины и предложенные алиасы — результат
-              разбора агента SearchOps.
-            </template>
-            <template v-else>
-              Потенциальный эффект по сценариям опирается на долю спасённых запросов из разбора
-              агента; стоимость эксплуатации уже есть в
-              <RouterLink to="/costs" class="link">«Экономике»</RouterLink>.
-            </template>
-            Пока агент не запускался, чисел здесь нет.
-          </p>
-          <RouterLink to="/searchops" class="link t-sm">Открыть SearchOps</RouterLink>
-        </div>
-      </div>
+      <ProductRole v-else-if="role === 'product'" />
+      <ContentRole v-else-if="role === 'content'" />
     </template>
 
     <ExplainDialog v-model:open="open" :explanation="explanation" />
@@ -281,23 +268,6 @@ const sourcesLine = computed(() => {
 .analytics__periods {
   display: flex;
   gap: var(--space-2);
-}
-.analytics__role {
-  display: flex;
-  gap: var(--space-3);
-  padding: var(--space-4);
-}
-.analytics__role > div {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-2);
-}
-.analytics__role-icon {
-  flex: none;
-  color: var(--text-2);
-}
-.analytics__role-title {
-  font-weight: var(--fw-medium);
 }
 @media (max-width: 1023px) {
   .analytics__tiles {

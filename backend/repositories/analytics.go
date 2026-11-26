@@ -32,13 +32,14 @@ func (r *Repos) ReplaceMockLog(ctx context.Context, searches []domain.SearchEven
 	})
 }
 
-// SearchEventsSince — поиски с момента since по времени (живые и импортированные), без прогонов оценки.
+// SearchEventsSince — поиски с момента since по времени (живые и импортированные), без прогонов оценки и
+// без поисков вкладки «Один запрос» (source = compare).
 func (r *Repos) SearchEventsSince(ctx context.Context, since time.Time) ([]domain.SearchEvent, error) {
 	if !r.Enabled() {
 		return nil, ErrNoDatabase
 	}
 	var rows []domain.SearchEvent
-	err := r.db.WithContext(ctx).Where("created_at >= ? AND request_id NOT LIKE ?", since, evalRequestPrefix).
+	err := r.db.WithContext(ctx).Where("created_at >= ? AND request_id NOT LIKE ? AND source <> ?", since, evalRequestPrefix, domain.EventSourceCompare).
 		Order("created_at").Find(&rows).Error
 	return rows, err
 }

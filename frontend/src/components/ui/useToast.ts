@@ -3,10 +3,17 @@ import { reactive } from 'vue'
 
 export type ToastTone = 'ok' | 'error' | 'info'
 
+export interface ToastAction {
+  label: string
+  run: () => void
+}
+
 export interface ToastMessage {
   tone: ToastTone
   title: string
   detail?: string
+  /** Кнопка в тосте («Проверить в поиске»); такой тост живёт дольше. */
+  action?: ToastAction
 }
 
 export interface ToastItem extends ToastMessage {
@@ -15,6 +22,7 @@ export interface ToastItem extends ToastMessage {
 }
 
 export const TOAST_LIFE_MS = 4000
+export const TOAST_ACTION_LIFE_MS = 12000
 
 let seq = 0
 export const toastState = reactive<{ items: ToastItem[] }>({ items: [] })

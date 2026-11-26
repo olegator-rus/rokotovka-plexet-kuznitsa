@@ -13,6 +13,9 @@ type SearchRequest struct {
 	RemovedChips []RemovedChip     `json:"removed_chips"`
 	Clarify      map[string]string `json:"clarify"`
 	Limit        int               `json:"limit"`
+	// Source — откуда поиск: "" или live — покупатель; compare — вкладка «Один запрос» (в журнал пишется,
+	// но в аналитику и стоимость запроса не входит).
+	Source string `json:"source"`
 }
 
 // RemovedChip — условие, которое покупатель снял с запроса.

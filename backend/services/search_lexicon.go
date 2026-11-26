@@ -5,6 +5,7 @@ import (
 	"math"
 	"sort"
 	"strings"
+	"unicode/utf8"
 
 	"kuznica/api/domain"
 )
@@ -38,8 +39,16 @@ type searchLexicon struct {
 	categoryRoot map[string]string
 	// substitutes — семейство → его аналоги из relations (substitute), в обе стороны.
 	substitutes map[string][]string
+	// complements — семейство → что с ним покупают (relations complement, от from к to), с пояснением.
+	complements map[string][]familyLink
 	// baseAliases — алиасы снимка: правила версии 1.
 	baseAliases []domain.Alias
+}
+
+// familyLink — связанное семейство и пояснение связи из справочника.
+type familyLink struct {
+	Family string
+	Note   string
 }
 
 // lexStopWords — служебные слова: не сущности, не исправляются, не делают запрос «непонятным».
@@ -80,7 +89,7 @@ func newSearchLexicon(s *domain.CatalogSnapshot) *searchLexicon {
 		familyCat: map[string]string{}, familyWords: map[string]map[string]bool{}, idf: map[string]float64{},
 		vendorName: map[string]string{}, vendorPhrases: map[string]string{}, categoryName: map[string]string{},
 		categoryRoot: map[string]string{},
-		substitutes:  map[string][]string{}, baseAliases: s.Aliases,
+		substitutes:  map[string][]string{}, complements: map[string][]familyLink{}, baseAliases: s.Aliases,
 	}
 	addCore := func(text string) {
 		for _, w := range wordsOf(text) {
@@ -112,7 +121,16 @@ func newSearchLexicon(s *domain.CatalogSnapshot) *searchLexicon {
 	}
 	// generic — слово названия семейства, которое на самом деле называет категорию («антивирус» в «ESET NOD32
 	// Антивирус»): по нему семейство не считается названным в запросе.
+	catWordSet := map[string]bool{}
+	for _, c := range catWords {
+		if utf8.RuneCountInString(c) >= 4 {
+			catWordSet[c] = true
+		}
+	}
 	generic := func(w string) bool {
+		if catWordSet[w] {
+			return true // «дома», «бизнеса»: слово названия категории, а не продукта
+		}
 		rw := []rune(w)
 		if len(rw) < 6 {
 			return false
@@ -157,6 +175,10 @@ func newSearchLexicon(s *domain.CatalogSnapshot) *searchLexicon {
 	}
 	seen := map[string]bool{}
 	for _, r := range s.Relations {
+		if r.Type == domain.RelationComplement && r.FromFamily != r.ToFamily && !seen["c:"+r.FromFamily+">"+r.ToFamily] {
+			seen["c:"+r.FromFamily+">"+r.ToFamily] = true
+			lx.complements[r.FromFamily] = append(lx.complements[r.FromFamily], familyLink{Family: r.ToFamily, Note: r.Note})
+		}
 		if r.Type != domain.RelationSubstitute {
 			continue
 		}

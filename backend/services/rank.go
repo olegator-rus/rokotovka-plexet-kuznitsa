@@ -26,6 +26,10 @@ const (
 	analogBaseRel = 0.5
 	// licenseFitWeight — доля релевантности, которую даёт соответствие количества лицензии.
 	licenseFitWeight = 0.5
+	// licenseTypeMissFactor, licenseDurationMissFactor — доля соответствия лицензии, если у семейства нет
+	// запрошенного типа (бессрочная / подписка) или срока.
+	licenseTypeMissFactor     = 0.5
+	licenseDurationMissFactor = 0.75
 	// maxRejected — сколько отказов писать в трассу.
 	maxRejected = 60
 )
@@ -121,6 +125,9 @@ func (rc rankCtx) fit(d indexDoc) (int, bool) {
 		} else {
 			ok = false
 		}
+	}
+	if a.metricPref != "" && d.LicenseMetric != nil && *d.LicenseMetric == a.metricPref {
+		score += 2
 	}
 	if a.serverPref && d.LicenseMetric != nil && *d.LicenseMetric == domain.MetricServer {
 		score += 2
@@ -322,6 +329,14 @@ func (rc rankCtx) licenseFit(d indexDoc) float64 {
 	}
 	if m := rc.attrs.metric; m != "" && d.LicenseMetric != nil && *d.LicenseMetric != m {
 		fit *= 0.5
+	}
+	// Тип и срок лицензии — мягкие условия: семейство без бессрочной лицензии, когда просили бессрочную,
+	// остаётся в выдаче, но ниже тех, у кого она есть.
+	if t := rc.attrs.licType; t != "" && d.LicenseType != t {
+		fit *= licenseTypeMissFactor
+	}
+	if m := rc.attrs.duration; m > 0 && (d.LicenseDuration == nil || *d.LicenseDuration != m) {
+		fit *= licenseDurationMissFactor
 	}
 	return fit
 }

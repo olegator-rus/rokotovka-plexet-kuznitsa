@@ -40,6 +40,8 @@ type EvalRequest struct {
 	RulesOverride *RulesSnapshot
 	// Persist — записать результат в evaluations.
 	Persist bool
+	// Progress — вызывается после каждого запроса: сделано и всего (запросы × конфигурации); nil — не нужно.
+	Progress func(done, total int)
 }
 
 // EvalResult — результат прогона.
@@ -88,8 +90,18 @@ func (s *Services) RunEvaluation(ctx context.Context, req EvalRequest) (*EvalRes
 		Commit: buildCommit(), StartedAt: started.UTC(), Configs: []out.EvalConfigResult{},
 	}
 	var prev []out.EvalQueryResult
+	total, done := len(queries)*len(configs), 0
+	tick := func() {
+		done++
+		if req.Progress != nil {
+			req.Progress(done, total)
+		}
+	}
+	if req.Progress != nil {
+		req.Progress(0, total)
+	}
 	for i, cfg := range configs {
-		res, err := s.evalConfig(ctx, run.RunID, cfg, queries, cat, req.RulesOverride)
+		res, err := s.evalConfig(ctx, run.RunID, cfg, queries, cat, req.RulesOverride, tick)
 		if err != nil {
 			return nil, err
 		}
@@ -192,7 +204,7 @@ func (s *Services) evalCatalog(ctx context.Context) (*evalCatalog, error) {
 // evalConfig — одна конфигурация по всем запросам, последовательно: время ответа не искажается
 // параллельными запросами.
 func (s *Services) evalConfig(ctx context.Context, runID, cfg string, queries []domain.EvalQuery, cat *evalCatalog,
-	override *RulesSnapshot) (*out.EvalConfigResult, error) {
+	override *RulesSnapshot, tick func()) (*out.EvalConfigResult, error) {
 	started := time.Now()
 	res := &out.EvalConfigResult{Config: cfg, RulesOverride: override != nil, PerQuery: make([]out.EvalQueryResult, 0, len(queries))}
 	rulesSeen := map[int]bool{}
@@ -209,6 +221,7 @@ func (s *Services) evalConfig(ctx context.Context, runID, cfg string, queries []
 			res.CatalogVersion = o.catalogVersion
 		}
 		res.PerQuery = append(res.PerQuery, evalScoreQuery(q, o.evalOutcome, cat))
+		tick()
 	}
 	res.Metrics = evalAggregate(res.PerQuery)
 	res.ByType = evalByType(res.PerQuery)
@@ -381,6 +394,9 @@ func (s *Services) Evaluations(ctx context.Context, set string) (*out.Evaluation
 	if err != nil {
 		return nil, err
 	}
+	if resp.JudgeAgreement, err = s.latestJudge(ctx, set); err != nil {
+		return nil, err
+	}
 	for _, r := range rows {
 		v := out.EvaluationView{
 			RunID: r.RunID, Set: r.Set, SetHash: r.SetHash, Queries: r.Queries, Config: r.Config,
@@ -464,7 +480,12 @@ func (s *Services) StartEvaluation(set string, configs []string) (*out.EvalJob, 
 	go func() {
 		ctx, cancel := context.WithTimeout(context.Background(), evalJobTimeout)
 		defer cancel()
-		run, err := s.RunEvaluation(ctx, EvalRequest{Set: set, Configs: configs, Persist: true})
+		progress := func(done, total int) {
+			jobs.mu.Lock()
+			job.Done, job.Total = done, total
+			jobs.mu.Unlock()
+		}
+		run, err := s.RunEvaluation(ctx, EvalRequest{Set: set, Configs: configs, Persist: true, Progress: progress})
 		jobs.mu.Lock()
 		defer jobs.mu.Unlock()
 		done := s.now().UTC()

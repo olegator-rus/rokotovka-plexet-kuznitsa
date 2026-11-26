@@ -36,6 +36,12 @@ export const router = createRouter({
       meta: { section: 'SearchOps', backoffice: true },
     },
     {
+      path: '/searchops/runs/:id',
+      name: 'agent-run',
+      component: () => import('@/pages/AgentRunPage.vue'),
+      meta: { section: 'Запуск агента', backoffice: true },
+    },
+    {
       path: '/changes',
       name: 'changes',
       component: () => import('@/pages/ChangesPage.vue'),

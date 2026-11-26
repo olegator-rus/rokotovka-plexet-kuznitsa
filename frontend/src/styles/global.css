@@ -223,6 +223,22 @@
     --tone: var(--route-d);
     --tone-bg: var(--route-d-bg);
   }
+  .status-pending {
+    --tone: var(--status-pending);
+    --tone-bg: var(--status-pending-bg);
+  }
+  .status-accepted {
+    --tone: var(--status-accepted);
+    --tone-bg: var(--status-accepted-bg);
+  }
+  .status-rejected {
+    --tone: var(--status-rejected);
+    --tone-bg: var(--status-rejected-bg);
+  }
+  .status-rolled-back {
+    --tone: var(--status-rolled-back);
+    --tone-bg: var(--status-rolled-back-bg);
+  }
   .badge--tone {
     color: var(--tone);
     background: var(--tone-bg);
