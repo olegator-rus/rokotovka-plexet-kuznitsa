@@ -360,3 +360,191 @@ func agentLicenseLine(l domain.License) string {
 	}
 	return strings.Join(parts, " · ")
 }
+
+// Защита от подстановки (ревью M4): цель правки и производитель термина определяет код.
+
+// canonicalWords — значимые слова canonical для сверки с названием цели (латиница и кириллица одного
+// вида — одно слово: «1C» и «1С»).
+func canonicalWords(text string) []string {
+	var res []string
+	for _, w := range wordsOf(text) {
+		if lexStopWords[w] {
+			continue
+		}
+		res = append(res, vendorHomoglyphs.Replace(w))
+	}
+	return res
+}
+
+// nameSet — слова названий в той же нормализации.
+func nameSet(texts ...string) map[string]bool {
+	res := map[string]bool{}
+	for _, t := range texts {
+		for _, w := range wordsOf(t) {
+			res[vendorHomoglyphs.Replace(w)] = true
+		}
+	}
+	return res
+}
+
+// checkCanonical — цель есть в каталоге, и слова canonical — слова её названия (семейство: название
+// семейства, его позиций и производителя; производитель: название, id и алиасы словаря; категория: название
+// категории и родителя). Возвращает производителя цели ("" у категории).
+func (c *agentCatalog) checkCanonical(target, targetID, canonical string) (string, error) {
+	var names map[string]bool
+	var vendor, title string
+	switch target {
+	case domain.AliasTargetVendor:
+		v, ok := c.vendors[targetID]
+		if !ok {
+			return "", terr("производителя %q нет в каталоге", targetID)
+		}
+		vendor, title = v.ID, v.Name
+		texts := []string{v.Name, v.ID}
+		for k, id := range c.vendorWords {
+			if id == v.ID {
+				texts = append(texts, k)
+			}
+		}
+		names = nameSet(texts...)
+	case domain.AliasTargetFamily:
+		f := c.families[targetID]
+		if f == nil {
+			return "", terr("семейства %q нет в каталоге", targetID)
+		}
+		vendor, title = f.VendorID, f.Name
+		texts := []string{f.Name, c.vendorName(f.VendorID)}
+		for _, pid := range f.Products {
+			texts = append(texts, c.products[pid].Title)
+		}
+		names = nameSet(texts...)
+	case domain.AliasTargetCategory:
+		k, ok := c.categories[targetID]
+		if !ok {
+			return "", terr("категории %q нет в каталоге", targetID)
+		}
+		title = k.Name
+		texts := []string{k.Name}
+		if k.ParentID != nil {
+			texts = append(texts, c.categories[*k.ParentID].Name)
+		}
+		names = nameSet(texts...)
+	}
+	ws := canonicalWords(canonical)
+	if len(ws) == 0 {
+		return "", terr("canonical «%s» без значимых слов", canonical)
+	}
+	var extra []string
+	for _, w := range ws {
+		if !names[w] {
+			extra = append(extra, w)
+		}
+	}
+	if len(extra) > 0 {
+		return "", terr("canonical «%s» не называет цель %s «%s» (лишние слова: %s): поиск подставит canonical, а не target_id",
+			canonical, target, title, strings.Join(extra, ", "))
+	}
+	return vendor, nil
+}
+
+// termVendor — производитель канонической формы алиаса на термин: названный в ней производитель, иначе
+// единственный производитель семейств, в словах которых есть все слова формы; общий термин («антивирус»,
+// несколько производителей) — "".
+func (c *agentCatalog) termVendor(canonical string) string {
+	if v := c.vendorOfText(canonical); v != "" {
+		return v
+	}
+	ws := wordsOf(canonical)
+	if len(ws) == 0 {
+		return ""
+	}
+	vendors := map[string]bool{}
+	for _, fid := range c.order {
+		f := c.families[fid]
+		all := true
+		for _, w := range ws {
+			if !lexStopWords[w] && !f.words[w] {
+				all = false
+				break
+			}
+		}
+		if all {
+			vendors[f.VendorID] = true
+		}
+	}
+	if len(vendors) != 1 {
+		return ""
+	}
+	for v := range vendors {
+		return v
+	}
+	return ""
+}
+
+// vendorNames — названия производителей из доказательств, через запятую, по алфавиту.
+func (c *agentCatalog) vendorNames(ev map[string]string) string {
+	var names []string
+	for v := range ev {
+		names = append(names, c.vendorName(v))
+	}
+	sort.Strings(names)
+	return strings.Join(names, ", ")
+}
+
+// termVendorMinScore — совпадение слова с каталогом, которое считается доказательством производителя:
+// слово, начало слова, транслит или смысловая близость не ниже 0,7 (подстрока — 0,5 — нет).
+const termVendorMinScore = 0.7
+
+// termVendors — чей продукт называют словом, по данным, а не по ответу модели: производитель в самом
+// слове; семейства, по которым кликали после переформулировки запросов кластера с этим словом; первое
+// семейство поиска слова по каталогу. Значение — откуда доказательство.
+func (cr *clusterRun) termVendors(ctx context.Context, alias string) map[string]string {
+	cat := cr.rc.cat
+	res := map[string]string{}
+	if v := cat.vendorOfText(alias); v != "" {
+		res[v] = "производитель в слове"
+	}
+	aw := wordsOf(alias)
+	var qs []clusterQuery
+	for _, q := range cr.c.Queries {
+		if containsWords(wordsOf(q.Text), aw) {
+			qs = append(qs, q)
+		}
+	}
+	if len(qs) == 0 {
+		qs = cr.c.Queries
+	}
+	for _, q := range qs {
+		for _, r := range q.ReformulatedTo {
+			if r.Clicked == 0 || r.ClickedOn == "" {
+				continue
+			}
+			if f := cat.families[cat.familyOfProduct(r.ClickedOn)]; f != nil && res[f.VendorID] == "" {
+				res[f.VendorID] = "клик после переформулировки «" + shortText(q.Text, 40) + "» → «" + shortText(r.Text, 40) + "»"
+			}
+		}
+	}
+	if hits := cat.search(ctx, cr.rc.a.s, alias, true, 1); len(hits) > 0 && hits[0].Score >= termVendorMinScore {
+		if res[hits[0].VendorID] == "" {
+			res[hits[0].VendorID] = "каталог: " + hits[0].Name
+		}
+	}
+	return res
+}
+
+// containsWords — все слова sub есть в ws.
+func containsWords(ws, sub []string) bool {
+	if len(sub) == 0 {
+		return false
+	}
+	set := map[string]bool{}
+	for _, w := range ws {
+		set[w] = true
+	}
+	for _, w := range sub {
+		if !set[w] {
+			return false
+		}
+	}
+	return true
+}

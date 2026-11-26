@@ -99,11 +99,17 @@ func (s *Services) ImportCatalog(ctx context.Context) (*out.ImportResult, error)
 		if err != nil {
 			return drop(errs.NewInternalError("Словари не сериализованы").WithCause(err))
 		}
-		if err := s.repos.SaveBaseRules(ctx, rules, "исходные словари: "+res.Source); err != nil {
+		// Новый catalog_version начинает цепочку версий правил заново (прежние — в архив, ждущие предложения —
+		// stale); тот же — перезаписывает базовую версию цепочки, правки агента поверх неё остаются.
+		ir, err := s.repos.SaveImportRules(ctx, snap.Version, rules, "исходные словари: "+res.Source)
+		if err != nil {
 			return drop(errs.NewInternalError("Словари не записаны в базу").WithCause(err))
 		}
-		if v, err := s.repos.RulesVersion(ctx); err == nil && v > 0 {
-			res.RulesVersion = v
+		res.RulesVersion = ir.Version
+		if ir.NewChain {
+			s.core.latest.Store(nil)
+			zap.L().Info("импорт: новый каталог — версии правил начаты заново", zap.Int("version", ir.Version),
+				zap.Int("stale_proposals", ir.Stale))
 		}
 		res.Database = true
 		res.DatabaseMs = time.Since(t).Milliseconds()

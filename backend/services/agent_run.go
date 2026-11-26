@@ -45,8 +45,11 @@ func (a *agentService) execute(ctx context.Context, rs *runState) {
 		episode: map[string]any{}}
 	err := rc.run(ctx)
 	now := a.s.now().UTC()
-	// Учёт: вызовы разбора намерения внутри песочницы пишутся в llm_usage с тем же agent_run_id.
-	a.s.writes.Wait()
+	// Учёт: вызовы разбора намерения внутри песочницы пишутся в llm_usage с тем же agent_run_id — ждём
+	// только записи этого запуска (не общий s.writes, см. runWrites).
+	if !rs.writes.wait(10 * time.Second) {
+		zap.L().Warn("агент: записи учёта запуска не дождались — итог по счётчикам в памяти", zap.String("run_id", rs.run.ID.String()))
+	}
 	var usage *AgentUsage
 	if st := a.s.store(); st != nil {
 		if u, uerr := st.AgentRunUsage(context.WithoutCancel(ctx), rs.run.ID.String()); uerr == nil && u.Calls > 0 {
@@ -98,8 +101,7 @@ func (a *agentService) execute(ctx context.Context, rs *runState) {
 	rs.mu.Lock()
 	cp := *rs.run
 	rs.mu.Unlock()
-	v := a.runView(&cp)
-	a.publish(rs.run.ID, agentEvent{Kind: "done", Run: &v})
+	a.finish(rs, a.runView(&cp))
 	zap.L().Info("агент: запуск завершён", zap.String("run_id", cp.ID.String()), zap.String("status", cp.Status),
 		zap.Int("clusters", cp.ClustersDone), zap.Int("proposals", cp.ProposalsCreated), zap.Int("tool_calls", cp.ToolCalls),
 		zap.Int("input_tokens", cp.InputTokens), zap.Int("output_tokens", cp.OutputTokens), zap.Float64("cost_rub", cp.CostRub))
@@ -133,9 +135,11 @@ func (rc *runCtx) run(ctx context.Context) error {
 
 	// 2. Неудачные запросы за период.
 	t := time.Now()
-	if rc.stats, err = s.queryStatsFor(ctx, rs.run.Days); err != nil {
+	var hold holdoutInfo
+	if rc.stats, hold, err = s.agentQueryStats(ctx, rs.run.Days, a.opts.Holdout); err != nil {
 		return err
 	}
+	rc.episode["holdout"] = hold
 	rc.failed = rc.stats.failed()
 	searches, fails := 0, 0
 	for _, q := range rc.stats.byText {
@@ -148,10 +152,17 @@ func (rc *runCtx) run(ctx context.Context) error {
 	if len(top) > 10 {
 		top = top[:10]
 	}
+	title := fmt.Sprintf("Неудачные запросы за %d дней: %d из %d различных, %d неудачных поисков из %d",
+		rs.run.Days, len(rc.failed), len(rc.stats.byText), fails, searches)
+	if hold.HoldoutFrom != nil {
+		title += fmt.Sprintf("; неделя %s–%s отложена для проверки эффекта", *hold.HoldoutFrom, *hold.HoldoutTo)
+	}
+	if hold.TestTexts > 0 {
+		title += fmt.Sprintf("; тексты test скрыты (%d)", hold.TestTexts)
+	}
 	a.toolStep(ctx, rs, nil, "get_failed_queries", map[string]any{"days": rs.run.Days},
-		map[string]any{"searches": searches, "failed_searches": fails, "failed_queries": len(rc.failed), "top": compactQueries(top)},
-		fmt.Sprintf("Неудачные запросы за %d дней: %d из %d различных, %d неудачных поисков из %d",
-			rs.run.Days, len(rc.failed), len(rc.stats.byText), fails, searches), true, time.Since(t))
+		map[string]any{"searches": searches, "failed_searches": fails, "failed_queries": len(rc.failed), "top": compactQueries(top),
+			"holdout": hold}, title, true, time.Since(t))
 	if len(rc.failed) == 0 {
 		rs.mu.Lock()
 		rs.run.StopReason = StopNoFailedQueries
@@ -567,7 +578,7 @@ func compactQueries(qs []clusterQuery) []map[string]any {
 	res := make([]map[string]any, 0, len(qs))
 	for _, q := range qs {
 		res = append(res, map[string]any{"text": q.Text, "freq": q.Freq, "failures": q.Failures, "empty": q.Empty,
-			"reformulated": q.Reformulated, "no_click": q.NoClick})
+			"reformulated": q.Reformulated, "no_click": q.NoClick, "fail_sessions": q.FailSessions})
 	}
 	return res
 }

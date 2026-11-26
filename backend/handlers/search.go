@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"kuznica/api/in"
+	"kuznica/api/services"
 
 	"github.com/gofiber/fiber/v2"
 )
@@ -12,7 +13,8 @@ func (h *Handler) Search(c *fiber.Ctx) error {
 	if err := bindBody(c, &req); err != nil {
 		return err
 	}
-	resp, err := h.services.Search(c.UserContext(), TraceID(c), req)
+	// Адрес покупателя — для суточной квоты разборов LLM (c.IP(): за Caddy — X-Real-IP от доверенного прокси).
+	resp, err := h.services.Search(services.WithClientIP(c.UserContext(), c.IP()), TraceID(c), req)
 	if err != nil {
 		return err
 	}

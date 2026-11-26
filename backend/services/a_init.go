@@ -24,6 +24,7 @@ type Services struct {
 	search   *opensearch.Client
 	embedder *tei.Client
 	reranker *tei.Client
+	rerankW  float64
 	source   CatalogSource
 	// llm — режим модели (переключается без перезапуска) и дневной бюджет (llmguard.go).
 	llm *llmGuard
@@ -57,6 +58,8 @@ type Options struct {
 	Search   *opensearch.Client
 	Embedder *tei.Client
 	Reranker *tei.Client
+	// RerankWeight — доля оценки реранкера в релевантности на маршрутах C/D; 0 — реранкер не вызывается.
+	RerankWeight float64
 	// Source — источник каталога для импорта; nil — импорт недоступен.
 	Source CatalogSource
 	// LLMMode — on | off (config.LLMConfig.Mode); пусто — off.
@@ -76,6 +79,10 @@ type Options struct {
 	Agent AgentOptions
 	// DailyBudgetRub — дневной бюджет LLM, ₽ (LLM_DAILY_BUDGET_RUB); 0 — без потолка.
 	DailyBudgetRub float64
+	// AgentReserveRub — часть дневного бюджета, недоступная разборам покупателей (AGENT_BUDGET_RESERVE_RUB).
+	AgentReserveRub float64
+	// PerIPDailyRub — суточная квота разборов маршрута D на адрес покупателя, ₽ (LLM_PER_IP_DAILY_RUB); 0 — без квоты.
+	PerIPDailyRub float64
 }
 
 // NewServices — граф сервисов. repos == nil — API без базы: health отдаёт db: down, поиск не пишет журнал.
@@ -95,6 +102,7 @@ func NewServices(repos *repositories.Repos, opts Options) *Services {
 		search:   opts.Search,
 		embedder: opts.Embedder,
 		reranker: opts.Reranker,
+		rerankW:  opts.RerankWeight,
 		source:   opts.Source,
 		alias:    opts.IndexAlias,
 		judge:    opts.JudgeModel,
@@ -104,6 +112,7 @@ func NewServices(repos *repositories.Repos, opts Options) *Services {
 		load = repos.LLMCostSince
 	}
 	s.llm = newLLMGuard(opts.LLMMode, opts.IntentModel != nil || opts.AgentModel != nil, opts.DailyBudgetRub, opts.Now, load)
+	s.llm.reserve, s.llm.perAddr = opts.AgentReserveRub, opts.PerIPDailyRub
 	s.agent = newAgentService(s, opts.AgentModel, opts.Agent)
 	s.intent = newIntentService(s, opts.IntentModel, opts.IntentFallback)
 	// Маршруту D разборщик нужен, если есть модель или кэш разборов в базе; без того и другого он вернул

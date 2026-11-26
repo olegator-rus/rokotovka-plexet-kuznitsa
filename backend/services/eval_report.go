@@ -33,6 +33,7 @@ func FormatEvalTable(run *out.EvalRun) string {
 		{"Пустые выдачи", func(m out.EvalMetrics) *float64 { return m.EmptyRate }, -1, true},
 		{"Пустые (по частоте)", func(m out.EvalMetrics) *float64 { return m.EmptyRateWeighted }, -1, true},
 		{"Нет релевантного в топ-10", func(m out.EvalMetrics) *float64 { return m.NoRelevantTop10 }, -1, true},
+		{"Релевантное в топ-10 (по частоте)", func(m out.EvalMetrics) *float64 { return m.RelevantTop10Weighted }, 1, true},
 		{"NDCG@10", func(m out.EvalMetrics) *float64 { return m.NDCG10 }, 1, false},
 		{"MRR@10", func(m out.EvalMetrics) *float64 { return m.MRR10 }, 1, false},
 		{"Recall@50 (размеч.)", func(m out.EvalMetrics) *float64 { return m.Recall50 }, 1, false},
@@ -67,7 +68,17 @@ func FormatEvalTable(run *out.EvalRun) string {
 	for _, c := range run.Configs {
 		errsRow = append(errsRow, fmt.Sprint(c.Metrics.Errors))
 	}
-	rows = append(rows, lat, regs, errsRow)
+	searches := []string{"Поисков (размечено)"}
+	rescued := []string{"Спасено / потеряно поисков"}
+	for _, c := range run.Configs {
+		searches = append(searches, fmt.Sprintf("%d (%d)", c.Metrics.Searches, c.Metrics.JudgedSearches))
+		if c.Metrics.RescuedSearches == nil || c.Metrics.LostSearches == nil {
+			rescued = append(rescued, "—")
+			continue
+		}
+		rescued = append(rescued, fmt.Sprintf("%d / %d", *c.Metrics.RescuedSearches, *c.Metrics.LostSearches))
+	}
+	rows = append(rows, lat, regs, searches, rescued, errsRow)
 	evalWriteTable(&b, rows)
 
 	// NDCG@10 по типам запросов.

@@ -86,7 +86,10 @@ func (s *Services) loadProposal(ctx context.Context, id string) (*domain.Proposa
 }
 
 // ApproveProposal — POST /api/proposals/{id}/approve. Правка правил → версия N+1 поверх действующей
-// (проверка версии от гонок), сразу в B4. Задача (ticket) → «взята в работу», правила не меняются.
+// (проверка версии от гонок), сразу в B4. Если правила сменились после прогона агента (base_version ≠
+// действующей), правка сначала перепрогоняется на действующих правилах (цель + регрессия): не прошла —
+// 409 с причинами, статус не меняется; прошла — применяется, новый прогон записывается в предложение.
+// Задача (ticket) → «взята в работу», правила не меняются.
 func (s *Services) ApproveProposal(ctx context.Context, id string, req in.ApproveRequest) (*out.ProposalDecision, error) {
 	p, err := s.loadProposal(ctx, id)
 	if err != nil {
@@ -96,12 +99,9 @@ func (s *Services) ApproveProposal(ctx context.Context, id string, req in.Approv
 		return nil, errs.NewConflictError(MsgProposalDecided)
 	}
 	st := s.store()
-	now := s.now().UTC()
 	comment := truncateRunes(strings.TrimSpace(req.Comment), 500)
-	p.Status, p.DecidedAt, p.DecidedReason, p.DecidedComment = domain.ProposalAccepted, &now, "accepted", comment
-	dec := &domain.Decision{ProposalID: p.ID, Decision: domain.ProposalAccepted, Reason: "accepted", Comment: comment,
-		ClusterKey: p.ClusterKey, ClusterLabel: p.ClusterLabel, Diagnosis: p.Diagnosis, PatchKeys: p.PatchKeys}
-	ch := &repositories.RulesChange{Proposal: p, Decision: dec}
+	var version *domain.ConfigVersion
+	base, rechecked := 0, false
 	if p.Action == domain.ActionRulesPatch {
 		var patch RulePatch
 		if err := json.Unmarshal(p.Patch, &patch); err != nil {
@@ -111,17 +111,34 @@ func (s *Services) ApproveProposal(ctx context.Context, id string, req in.Approv
 		if err != nil {
 			return nil, err
 		}
+		if p.BaseVersion != cur.Version {
+			if err := s.recheckProposal(ctx, p, patch, cur); err != nil {
+				return nil, err
+			}
+			rechecked = true
+		}
 		next := cur.applyPatch(patch)
 		diff, _ := json.Marshal(rulesDiff(cur, next))
 		pid := p.ID.String()
 		ver := cur.Version + 1
 		p.ConfigVersion = &ver
-		ch.Base = cur.Version
-		ch.Version = &domain.ConfigVersion{Version: ver, Source: "agent", Author: "agent+human",
+		base = cur.Version
+		version = &domain.ConfigVersion{Version: ver, Source: "agent", Author: "agent+human",
 			Comment: proposalSummary(p, patch), ProposalID: &pid, Rules: next.rulesJSON(), Diff: diff}
 	}
+	now := s.now().UTC()
+	p.Status, p.DecidedAt, p.DecidedReason, p.DecidedComment = domain.ProposalAccepted, &now, "accepted", comment
+	dec := &domain.Decision{ProposalID: p.ID, Decision: domain.ProposalAccepted, Reason: "accepted", Comment: comment,
+		ClusterKey: p.ClusterKey, ClusterLabel: p.ClusterLabel, Diagnosis: p.Diagnosis, PatchKeys: p.PatchKeys}
+	ch := &repositories.RulesChange{Proposal: p, Decision: dec, Base: base, Version: version}
 	if err := st.ApplyRulesChange(ctx, ch); err != nil {
 		return nil, rulesError(err)
+	}
+	if rechecked {
+		// Решение уже записано; новый прогон и база — отдельной записью (ApplyRulesChange меняет только статус).
+		if err := st.SaveProposal(context.WithoutCancel(ctx), p); err != nil {
+			zap.L().Warn("перепроверка: новый прогон не записан в принятое предложение", zap.Error(err))
+		}
 	}
 	res := &out.ProposalDecision{Proposal: proposalView(p), ConfigVersion: p.ConfigVersion}
 	if p.ConfigVersion != nil {
@@ -131,6 +148,54 @@ func (s *Services) ApproveProposal(ctx context.Context, id string, req in.Approv
 		zap.L().Info("предложение взято в работу", zap.String("proposal_id", id))
 	}
 	return res, nil
+}
+
+// MsgRecheckFailed — правка не прошла перепрогон на сменившихся правилах.
+const MsgRecheckFailed = "Правила изменились после проверки агента (v%d → v%d), и на действующих правилах правка не прошла прогон: %s. Предложение осталось в очереди"
+
+// recheckProposal — перепрогон правки на действующих правилах (M2). Результат пишется в предложение:
+// прошла — новая evaluation и base_version (прежний прогон — в evidence.initial_evaluation); не прошла —
+// evidence.recheck и 409, статус не меняется.
+func (s *Services) recheckProposal(ctx context.Context, p *domain.Proposal, patch RulePatch, cur *ruleSet) error {
+	var qs []clusterQuery
+	_ = json.Unmarshal(p.ClusterQueries, &qs)
+	cluster := &failedCluster{Key: p.ClusterKey, Label: p.ClusterLabel, Queries: qs}
+	eval := s.agent.evalHook
+	if eval == nil {
+		sb, err := s.newSandbox(ctx, "recheck-"+p.ID.String()[:8], cur, s.agent.opts)
+		if err != nil {
+			return err
+		}
+		eval = sb.evaluate
+	}
+	ev, err := eval(ctx, cluster, patch)
+	if err != nil {
+		return errs.NewUnavailableError("Перепроверка правки не завершилась — повторите").WithCause(err)
+	}
+	ev.RulesVersion = cur.Version
+	var evidence map[string]any
+	_ = json.Unmarshal(p.Evidence, &evidence)
+	if evidence == nil {
+		evidence = map[string]any{}
+	}
+	recheck := map[string]any{"from_version": p.BaseVersion, "to_version": cur.Version, "passed": ev.Passed,
+		"reasons": ev.Reasons, "evaluation": ev, "checked_at": s.now().UTC()}
+	if !ev.Passed {
+		evidence["recheck"] = recheck
+		p.Evidence = toJSON(evidence)
+		if err := s.store().SaveProposal(ctx, p); err != nil {
+			zap.L().Warn("перепроверка: результат не записан в предложение", zap.Error(err))
+		}
+		zap.L().Info("предложение не прошло перепроверку", zap.String("proposal_id", p.ID.String()),
+			zap.Int("base", p.BaseVersion), zap.Int("active", cur.Version))
+		return errs.NewConflictError(fmt.Sprintf(MsgRecheckFailed, p.BaseVersion, cur.Version, strings.Join(ev.Reasons, "; ")))
+	}
+	evidence["initial_evaluation"] = json.RawMessage(p.Evaluation)
+	evidence["recheck"] = recheck
+	p.Evidence = toJSON(evidence)
+	p.Evaluation = toJSON(ev)
+	p.BaseVersion = cur.Version
+	return nil
 }
 
 // RejectProposal — POST /api/proposals/{id}/reject: причина обязательна, уходит в память агента.

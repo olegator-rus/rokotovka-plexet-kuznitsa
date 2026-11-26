@@ -9,8 +9,9 @@ func RegisterRoutes(app *fiber.App, h *Handler) {
 
 	// Плоскость приложения: фронт ходит сюда через тот же origin (Caddy в проде, прокси Vite в dev).
 	// NoStore — на всех ответах; лимит частоты — до всего остального; Origin — на всех мутациях, до разбора
-	// маршрута и тела; срок обработки — на всё, кроме потока SSE.
-	api := app.Group("/api", NoStore, RateLimit(h.rate), h.Origin, RequestDeadline(APIDeadline))
+	// маршрута и тела; вход в бэк-офис — на всём, кроме витрины покупателя (BACKOFFICE_TOKEN,
+	// middleware_backoffice.go); срок обработки — на всё, кроме потока SSE.
+	api := app.Group("/api", NoStore, RateLimit(h.rate), h.Origin, h.Backoffice, RequestDeadline(APIDeadline))
 
 	api.Get("/health", h.Health)
 	api.Get("/meta", h.Meta)

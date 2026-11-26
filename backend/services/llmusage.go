@@ -97,6 +97,7 @@ type llmCtxKey int
 const (
 	llmCtxRequestID llmCtxKey = iota
 	llmCtxAgentRunID
+	llmCtxClientIP
 )
 
 // WithRequestID — привязать вызовы модели в ctx к поиску request_id (llm_usage.request_id). Поиск
@@ -108,6 +109,18 @@ func WithRequestID(ctx context.Context, requestID string) context.Context {
 // WithAgentRunID — привязать вызовы модели к запуску агента (llm_usage.agent_run_id).
 func WithAgentRunID(ctx context.Context, runID string) context.Context {
 	return context.WithValue(ctx, llmCtxAgentRunID, runID)
+}
+
+// WithClientIP — адрес покупателя для суточной квоты разборов (LLM_PER_IP_DAILY_RUB). Ставит обработчик поиска;
+// без адреса (агент, оценка, прогрев) квота не применяется.
+func WithClientIP(ctx context.Context, ip string) context.Context {
+	return context.WithValue(ctx, llmCtxClientIP, ip)
+}
+
+// clientAddr — адрес покупателя из ctx; пусто — не покупатель.
+func clientAddr(ctx context.Context) string {
+	s, _ := ctx.Value(llmCtxClientIP).(string)
+	return s
 }
 
 func llmCtxString(ctx context.Context, k llmCtxKey) *string {
@@ -125,7 +138,7 @@ func (s *Services) recordLLMUsage(ctx context.Context, c llmCall) float64 {
 			zap.String("pricing_version", PricingVersion))
 	}
 	if s.llm != nil {
-		s.llm.add(cost)
+		s.llm.charge(cost, clientAddr(ctx))
 	}
 	if !s.repos.Enabled() {
 		return cost
@@ -137,9 +150,14 @@ func (s *Services) recordLLMUsage(ctx context.Context, c llmCall) float64 {
 		LatencyMs: int(math.Round(float64(c.Latency.Microseconds()) / 1000)), PricingVersion: PricingVersion,
 		CalculatedCost: cost, Status: c.Status,
 	}
+	// Запуск агента ждёт только свои записи учёта (runWrites), а не общий s.writes: Wait общей группы
+	// параллельно с Add от живых поисков запрещён sync.WaitGroup.
+	tr := runWritesOf(ctx)
+	tr.add()
 	s.writes.Add(1)
 	go func() {
 		defer s.writes.Done()
+		defer tr.done()
 		wctx, cancel := context.WithTimeout(context.Background(), llmUsageSaveTimeout)
 		defer cancel()
 		if err := s.repos.SaveLLMUsage(wctx, row); err != nil {

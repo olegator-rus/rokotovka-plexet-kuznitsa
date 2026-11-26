@@ -111,8 +111,11 @@ func (p *intentService) Parse(ctx context.Context, normalized string, rulesGuess
 	case p.s.LLMMode() != llmModeOn:
 		rules.FallbackReason = fallbackLLMOff
 		return rules, nil
-	case p.s.guard().exceeded(ctx):
+	case p.s.guard().buyerExceeded(ctx):
 		rules.FallbackReason = fallbackBudget
+		return rules, nil
+	case p.s.guard().addrExceeded(ctx):
+		rules.FallbackReason = fallbackIPQuota
 		return rules, nil
 	}
 

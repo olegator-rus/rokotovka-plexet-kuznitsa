@@ -6,9 +6,12 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"math"
+	"runtime/debug"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"kuznica/api/domain"
@@ -66,6 +69,8 @@ const (
 type AgentOptions struct {
 	MaxRegressionWorse int
 	RegressionSets     []string
+	// Holdout — что агенту видно из журнала (agent_holdout.go); нулевое — весь журнал.
+	Holdout HoldoutOptions
 }
 
 // agentService — запуски агента в процессе: один запуск за раз.
@@ -96,6 +101,54 @@ type runState struct {
 	mu     sync.Mutex
 	seq    int
 	stop   string
+	// writes — фоновые записи llm_usage этого запуска (итог запуска считается после них).
+	writes *runWrites
+	// ended — событие done разослано, запуск снят с active.
+	ended bool
+}
+
+// runWrites — счётчик фоновых записей учёта одного запуска. В отличие от sync.WaitGroup, add после
+// начала wait допустим: ожидание — опрос с потолком, без паники.
+type runWrites struct{ n atomic.Int64 }
+
+type runWritesKey struct{}
+
+// withRunWrites — вызовы модели в ctx учитываются в счётчике запуска.
+func withRunWrites(ctx context.Context, w *runWrites) context.Context {
+	return context.WithValue(ctx, runWritesKey{}, w)
+}
+
+// runWritesOf — счётчик запуска из ctx; nil — вызов не из запуска агента.
+func runWritesOf(ctx context.Context) *runWrites {
+	w, _ := ctx.Value(runWritesKey{}).(*runWrites)
+	return w
+}
+
+func (w *runWrites) add() {
+	if w != nil {
+		w.n.Add(1)
+	}
+}
+
+func (w *runWrites) done() {
+	if w != nil {
+		w.n.Add(-1)
+	}
+}
+
+// wait — дождаться записей не дольше d; false — не дождались (итог запуска — по счётчикам в памяти).
+func (w *runWrites) wait(d time.Duration) bool {
+	if w == nil {
+		return true
+	}
+	deadline := time.Now().Add(d)
+	for w.n.Load() > 0 {
+		if time.Now().After(deadline) {
+			return false
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
+	return true
 }
 
 func newAgentService(s *Services, model ChatModel, opts AgentOptions) *agentService {
@@ -165,16 +218,21 @@ func (s *Services) StartAgentRun(ctx context.Context, req in.AgentRunRequest) (*
 		return nil, err
 	}
 	rctx, cancel := context.WithTimeout(context.Background(), agentRunTimeout)
-	rs := &runState{run: run, cancel: cancel}
+	rs := &runState{run: run, cancel: cancel, writes: &runWrites{}}
 	a.active = rs
 	a.mu.Unlock()
-	// Горутина запуска — не в s.writes: в конце она сама ждёт фоновые записи учёта (s.writes.Wait).
+	// Горутина запуска — не в s.writes: в конце она ждёт только свои записи учёта (rs.writes). Паника
+	// внутри запуска не роняет API: запуск помечается failed, подписчики получают done.
 	go func() {
 		defer cancel()
-		a.execute(WithAgentRunID(rctx, run.ID.String()), rs)
-		a.mu.Lock()
-		a.active = nil
-		a.mu.Unlock()
+		defer func() {
+			if r := recover(); r != nil {
+				zap.L().Error("агент: паника в запуске", zap.String("run_id", run.ID.String()), zap.Any("panic", r),
+					zap.ByteString("stack", debug.Stack()))
+				a.failRun(rs, fmt.Sprint(r))
+			}
+		}()
+		a.execute(withRunWrites(WithAgentRunID(rctx, run.ID.String()), rs.writes), rs)
 	}()
 	zap.L().Info("агент: запуск", zap.String("run_id", run.ID.String()), zap.String("trigger", trigger),
 		zap.Int("days", days), zap.Int("max_clusters", clusters))
@@ -288,6 +346,9 @@ func (s *Services) AgentStream(ctx context.Context, id string, afterSeq int) (*o
 				delete(m, ch)
 				close(ch)
 			}
+			if len(m) == 0 {
+				delete(a.subs, run.ID)
+			}
 		}
 		a.mu.Unlock()
 	}
@@ -311,6 +372,10 @@ func (s *Services) AgentStream(ctx context.Context, id string, afterSeq int) (*o
 func (a *agentService) publish(runID uuid.UUID, ev agentEvent) {
 	a.mu.Lock()
 	defer a.mu.Unlock()
+	a.broadcastLocked(runID, ev)
+}
+
+func (a *agentService) broadcastLocked(runID uuid.UUID, ev agentEvent) {
 	for ch := range a.subs[runID] {
 		select {
 		case ch <- ev:
@@ -323,6 +388,50 @@ func (a *agentService) publish(runID uuid.UUID, ev agentEvent) {
 		}
 		delete(a.subs, runID)
 	}
+}
+
+// finish — запуск снят с active и done разослан под одним a.mu: подписчик, пришедший после, видит
+// законченный запуск (из базы), а не живой без done. Повторный вызов — без действия.
+func (a *agentService) finish(rs *runState, v out.AgentRun) {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	rs.mu.Lock()
+	ended := rs.ended
+	rs.ended = true
+	rs.mu.Unlock()
+	if ended {
+		return
+	}
+	if a.active == rs {
+		a.active = nil
+	}
+	a.broadcastLocked(rs.run.ID, agentEvent{Kind: "done", Run: &v})
+}
+
+// failRun — запуск упал с паникой: статус failed, итог в базу, done подписчикам. Сама запись тоже под
+// recover — запуск не должен остаться running в памяти.
+func (a *agentService) failRun(rs *runState, reason string) {
+	defer func() {
+		if r := recover(); r != nil {
+			zap.L().Error("агент: итог упавшего запуска не записан", zap.Any("panic", r))
+		}
+		rs.mu.Lock()
+		cp := *rs.run
+		rs.mu.Unlock()
+		a.finish(rs, a.runView(&cp))
+	}()
+	rs.mu.Lock()
+	if rs.ended {
+		rs.mu.Unlock()
+		return
+	}
+	now := a.s.now().UTC()
+	r := rs.run
+	r.Status, r.StopReason, r.FinishedAt = domain.RunFailed, StopError, &now
+	r.CurrentClusterID, r.CurrentLabel = nil, ""
+	r.Summary = "Внутренняя ошибка запуска: " + shortText(reason, 200)
+	rs.mu.Unlock()
+	a.saveRun(context.Background(), rs)
 }
 
 // step — шаг ленты: в базу и подписчикам.
@@ -436,17 +545,27 @@ func (s *Services) StartAgentScheduler(ctx context.Context, interval time.Durati
 			case <-ctx.Done():
 				return
 			case <-t.C:
-				if _, err := s.StartAgentRun(ctx, in.AgentRunRequest{Trigger: domain.TriggerSchedule}); err != nil {
-					var e *errs.Error
-					if errors.As(err, &e) {
-						zap.L().Info("агент: такт расписания пропущен", zap.String("reason", e.Message))
-					} else {
-						zap.L().Warn("агент: такт расписания не запустился", zap.Error(err))
-					}
-				}
+				s.scheduleTick(ctx)
 			}
 		}
 	}()
+}
+
+// scheduleTick — один такт расписания; паника такта не останавливает расписание и не роняет API.
+func (s *Services) scheduleTick(ctx context.Context) {
+	defer func() {
+		if r := recover(); r != nil {
+			zap.L().Error("агент: паника в такте расписания", zap.Any("panic", r), zap.ByteString("stack", debug.Stack()))
+		}
+	}()
+	if _, err := s.StartAgentRun(ctx, in.AgentRunRequest{Trigger: domain.TriggerSchedule}); err != nil {
+		var e *errs.Error
+		if errors.As(err, &e) {
+			zap.L().Info("агент: такт расписания пропущен", zap.String("reason", e.Message))
+		} else {
+			zap.L().Warn("агент: такт расписания не запустился", zap.Error(err))
+		}
+	}
 }
 
 // RecoverAgentRuns — запуски, оборванные падением процесса, помечаются failed (вызывается при старте).

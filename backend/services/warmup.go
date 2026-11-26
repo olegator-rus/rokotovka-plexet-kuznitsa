@@ -11,6 +11,7 @@ import (
 
 	"kuznica/api/domain"
 	"kuznica/api/in"
+	"kuznica/api/out"
 	"kuznica/api/repositories"
 
 	"go.uber.org/zap"
@@ -106,8 +107,7 @@ func (s *Services) Warmup(ctx context.Context, req WarmupRequest) (*WarmupResult
 			if err := ctx.Err(); err != nil {
 				return res, err
 			}
-			resp, err := s.SearchWith(ctx, warmupRequestID(), in.SearchRequest{Query: text[k], Config: cfg, Limit: 10, SessionID: "warmup"},
-				SearchOptions{NoLog: true})
+			resp, err := s.warmupSearch(ctx, text[k], cfg)
 			res.Searches++
 			if err != nil {
 				res.Errors++
@@ -134,6 +134,18 @@ func (s *Services) Warmup(ctx context.Context, req WarmupRequest) (*WarmupResult
 	zap.L().Info("прогрев кэша разборов", zap.Int("queries", res.Queries), zap.Int("route_d", res.RouteD),
 		zap.Int("llm", res.LLM), zap.Int("cache", res.Cache), zap.Int("fallback", res.Fallback), zap.Float64("cost_rub", res.CostRub))
 	return res, nil
+}
+
+// warmupSearch — один поиск прогрева; паника поиска считается ошибкой запроса, прогрев идёт дальше.
+func (s *Services) warmupSearch(ctx context.Context, q, cfg string) (resp *out.SearchResponse, err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			zap.L().Error("прогрев: паника поиска", zap.Any("panic", r))
+			resp, err = nil, fmt.Errorf("паника поиска: %v", r)
+		}
+	}()
+	return s.SearchWith(ctx, warmupRequestID(), in.SearchRequest{Query: q, Config: cfg, Limit: 10, SessionID: "warmup"},
+		SearchOptions{NoLog: true})
 }
 
 func warmupRequestID() string {

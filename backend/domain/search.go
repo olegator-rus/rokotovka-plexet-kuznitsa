@@ -110,4 +110,8 @@ type ConfigVersion struct {
 	ProposalID *string
 	Diff       JSONB `gorm:"type:jsonb"`
 	Effect     JSONB `gorm:"type:jsonb"`
+	// CatalogVersion — каталог, для которого собраны правила. Импорт с другим catalog_version начинает цепочку
+	// версий заново: прежние помечаются Archived (не удаляются), поиск и агент берут только версии текущего каталога.
+	CatalogVersion string `gorm:"index"`
+	Archived       bool   `gorm:"not null;default:false"`
 }

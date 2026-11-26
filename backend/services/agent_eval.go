@@ -11,6 +11,8 @@ import (
 
 	"kuznica/api/domain"
 	"kuznica/api/out"
+
+	"go.uber.org/zap"
 )
 
 // Песочница агента (ARCHITECTURE §3.1 шаг 7, §6 «Условия допуска»): правка накладывается на действующие
@@ -118,6 +120,18 @@ func (sb *sandbox) searchOne(ctx context.Context, q domain.EvalQuery, rules *dom
 	return r
 }
 
+// searchOneSafe — searchOne в рабочей горутине: паника поиска — ошибка запроса, а не падение API.
+func (sb *sandbox) searchOneSafe(ctx context.Context, q domain.EvalQuery, rules *domain.RulesSnapshot) (r out.EvalQueryResult) {
+	defer func() {
+		if p := recover(); p != nil {
+			zap.L().Error("песочница: паника поиска", zap.String("query_id", q.ID), zap.Any("panic", p))
+			r = out.EvalQueryResult{ID: q.ID, Text: q.Text, Type: q.Type, Freq: q.Freq, Top: []string{}, Grades: []int{},
+				Error: fmt.Sprint("паника поиска: ", p)}
+		}
+	}()
+	return sb.searchOne(ctx, q, rules)
+}
+
 // searchMany — запросы параллельно (4 потока): ответ поиска на одном запросе от других не зависит.
 func (sb *sandbox) searchMany(ctx context.Context, qs []domain.EvalQuery, rules *domain.RulesSnapshot) []out.EvalQueryResult {
 	res := make([]out.EvalQueryResult, len(qs))
@@ -128,7 +142,7 @@ func (sb *sandbox) searchMany(ctx context.Context, qs []domain.EvalQuery, rules 
 		go func() {
 			defer wg.Done()
 			for i := range ch {
-				res[i] = sb.searchOne(ctx, qs[i], rules)
+				res[i] = sb.searchOneSafe(ctx, qs[i], rules)
 			}
 		}()
 	}

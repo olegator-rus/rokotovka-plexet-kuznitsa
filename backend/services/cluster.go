@@ -2,10 +2,10 @@ package services
 
 import (
 	"context"
+	"fmt"
 	"math"
 	"sort"
 	"strings"
-	"time"
 	"unicode/utf8"
 
 	"kuznica/api/domain"
@@ -15,7 +15,8 @@ import (
 // Кластеризация неудачных запросов (ARCHITECTURE §3.1, шаги 2–3): исходы поисков из журналов
 // search_events и behavior_events (живые и исторические) → неудачные запросы (пусто, без клика,
 // быстрая переформулировка) → кластеры по общим непонятным словам и близости векторов BGE-M3 →
-// порядок по потерянному спросу (частота × доля неудач = число неудачных поисков).
+// порядок по потерянному спросу (число различных сессий с неудачным поиском: накрутка из одной сессии
+// кластер наверх не выводит).
 
 const (
 	// clusterMinFailures — неудачных поисков у запроса не меньше; clusterMinFailShare — их доля.
@@ -40,6 +41,10 @@ type clusterQuery struct {
 	Clicks         int            `json:"clicks"`
 	Orders         int            `json:"orders"`
 	ReformulatedTo []reformTarget `json:"reformulated_to,omitempty"`
+	// FailSessions — различные сессии с неудачным поиском: потерянный спрос считается по ним, чтобы сотни
+	// поисков из одной сессии (накрутка) не выводили запрос наверх.
+	FailSessions int `json:"fail_sessions"`
+	failSess     map[string]bool
 }
 
 // reformTarget — во что переформулировали запрос и нашли ли после этого товар.
@@ -59,13 +64,14 @@ type queryStats struct {
 
 // failedCluster — кластер в памяти запуска.
 type failedCluster struct {
-	ID         string
-	Key        string
-	Label      string
-	Terms      []string
-	Queries    []clusterQuery
-	Freq       int
-	Failures   int
+	ID       string
+	Key      string
+	Label    string
+	Terms    []string
+	Queries  []clusterQuery
+	Freq     int
+	Failures int
+	// LostDemand — различные сессии с неудачным поиском по запросам кластера.
 	LostDemand float64
 }
 
@@ -142,7 +148,7 @@ func computeQueryStats(searches []domain.SearchEvent, behavior []domain.Behavior
 		}
 		return q
 	}
-	for _, list := range bySession {
+	for k, list := range bySession {
 		for i, o := range list {
 			key := foldQuery(o.ev.Query)
 			if key == "" {
@@ -179,10 +185,17 @@ func computeQueryStats(searches []domain.SearchEvent, behavior []domain.Behavior
 			case !o.clicked:
 				q.NoClick++
 			}
+			if o.ev.ResultsCount == 0 || reform || !o.clicked {
+				if q.failSess == nil {
+					q.failSess = map[string]bool{}
+				}
+				q.failSess[k] = true
+			}
 		}
 	}
 	for _, q := range st.byText {
 		q.Failures = q.Empty + q.Reformulated + q.NoClick
+		q.FailSessions = len(q.failSess)
 		sort.Slice(q.ReformulatedTo, func(i, j int) bool {
 			a, b := q.ReformulatedTo[i], q.ReformulatedTo[j]
 			if a.Count != b.Count {
@@ -226,27 +239,15 @@ func (st *queryStats) failed() []clusterQuery {
 		}
 	}
 	sort.Slice(res, func(i, j int) bool {
+		if res[i].FailSessions != res[j].FailSessions {
+			return res[i].FailSessions > res[j].FailSessions
+		}
 		if res[i].Failures != res[j].Failures {
 			return res[i].Failures > res[j].Failures
 		}
 		return res[i].Text < res[j].Text
 	})
 	return res
-}
-
-// queryStatsFor — исходы поисков за days дней.
-func (s *Services) queryStatsFor(ctx context.Context, days int) (*queryStats, error) {
-	st := s.store()
-	since := s.now().Add(-time.Duration(days) * 24 * time.Hour)
-	searches, err := st.SearchEventsSince(ctx, since)
-	if err != nil {
-		return nil, err
-	}
-	behavior, err := st.BehaviorEventsSince(ctx, since)
-	if err != nil {
-		return nil, err
-	}
-	return computeQueryStats(searches, behavior), nil
 }
 
 // queryTerms — значимые слова запроса и среди них непонятные поиску (кандидаты в алиасы).
@@ -347,11 +348,21 @@ func clusterFailed(qs []clusterQuery, vecs [][]float32, lx *searchLexicon, rules
 	for _, idx := range groups {
 		c := failedCluster{}
 		terms := map[string]bool{}
+		sessions := map[string]bool{}
 		for _, i := range idx {
 			q := qs[i]
 			c.Queries = append(c.Queries, q)
 			c.Freq += q.Freq
 			c.Failures += q.Failures
+			for k := range q.failSess {
+				sessions[k] = true
+			}
+			if q.failSess == nil {
+				// Статистика без сессий (старые записи) — каждая неудача отдельной сессией.
+				for n := 0; n < q.Failures; n++ {
+					sessions[fmt.Sprintf("%s#%d", q.Text, n)] = true
+				}
+			}
 			for _, w := range unk[i] {
 				terms[w] = true
 			}
@@ -374,7 +385,7 @@ func clusterFailed(qs []clusterQuery, vecs [][]float32, lx *searchLexicon, rules
 		if len(c.Terms) > 0 {
 			c.Key = strings.Join(c.Terms, " ")
 		}
-		c.LostDemand = float64(c.Failures)
+		c.LostDemand = float64(len(sessions))
 		res = append(res, c)
 	}
 	sort.Slice(res, func(i, j int) bool {

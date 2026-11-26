@@ -14,6 +14,7 @@ import (
 	"kuznica/api/externalApi/catalogsource"
 	"kuznica/api/out"
 	"kuznica/api/pkg/errs"
+	"kuznica/api/repositories"
 
 	"go.uber.org/zap"
 )
@@ -77,20 +78,15 @@ func (s *Services) Analytics(ctx context.Context, days int, role string) (*out.A
 	}
 	now := s.now().UTC()
 	since := now.Add(-time.Duration(days) * 24 * time.Hour)
-	var (
-		searches []domain.SearchEvent
-		behavior []domain.BehaviorEvent
-	)
+	// Исходы поисков считает база (repositories/analytics_sql.go): события периода в память не читаются.
+	sum, problems := &repositories.SearchSummary{}, []repositories.QueryOutcome(nil)
 	if s.repos.Enabled() {
 		var err error
-		if searches, err = s.repos.SearchEventsSince(ctx, since); err != nil {
-			return nil, err
-		}
-		if behavior, err = s.repos.BehaviorEventsSince(ctx, since); err != nil {
+		if sum, problems, err = s.repos.SearchOutcomesSince(ctx, since, problemsLimit); err != nil {
 			return nil, err
 		}
 	}
-	resp := computeAnalytics(searches, behavior)
+	resp := analyticsFrom(sum, problems)
 	resp.Role, resp.Days, resp.From, resp.To = role, days, since, now
 	if st := s.store(); st != nil {
 		ps, err := st.ListProposals(ctx, "", "")
@@ -100,7 +96,7 @@ func (s *Services) Analytics(ctx context.Context, days int, role string) (*out.A
 		linkProposals(resp, ps)
 	}
 	if role == "head" {
-		eff, err := s.Effect(ctx, EffectRequest{Days: days})
+		eff, err := s.effect(ctx, EffectRequest{Days: days}, sum)
 		if err != nil {
 			return nil, err
 		}
@@ -115,39 +111,61 @@ type searchOutcome struct {
 	clicked, carted, ordered, reformulated bool
 }
 
-// computeAnalytics — плитки, воронка и проблемные запросы. searches и behavior — по времени.
+// computeAnalytics — плитки, воронка и проблемные запросы по событиям в памяти (эталон SQL-агрегации и путь
+// тестов). searches и behavior — по времени.
 func computeAnalytics(searches []domain.SearchEvent, behavior []domain.BehaviorEvent) *out.AnalyticsResponse {
-	resp := &out.AnalyticsResponse{Funnel: []out.FunnelStep{}, Problems: []out.ProblemQuery{}, Sources: map[string]int{}}
+	sum, problems := aggregateOutcomes(searches, behavior, problemsLimit)
+	return analyticsFrom(sum, problems)
+}
 
+// aggregateOutcomes — то же, что считают repositories.SearchSummarySince и ProblemQueriesSince, но по событиям
+// в памяти: по ним тест сверяет SQL с прежним расчётом.
+func aggregateOutcomes(searches []domain.SearchEvent, behavior []domain.BehaviorEvent, limit int) (*repositories.SearchSummary, []repositories.QueryOutcome) {
 	all := buildOutcomes(searches, behavior)
+	bySource := map[string]*repositories.SearchTotals{}
+	total := &repositories.SearchTotals{}
+	type sessSets struct{ problem, click, order map[string]bool }
+	sets := map[*repositories.SearchTotals]*sessSets{}
+	problems := map[string]*repositories.QueryOutcome{}
 	for _, o := range all {
-		resp.Sources[sourceOf(o.ev.Source)]++
-	}
-
-	// Плитки и воронка.
-	t := &resp.Tiles
-	var clicks, carts int
-	nonEmpty := 0
-	problems := map[string]*out.ProblemQuery{}
-	for _, o := range all {
-		t.Searches++
+		src := sourceOf(o.ev.Source)
+		st := bySource[src]
+		if st == nil {
+			st = &repositories.SearchTotals{Source: src}
+			bySource[src] = st
+		}
+		sess := sessionKey(o.ev.SessionID, o.ev.RequestID)
 		empty := o.ev.ResultsCount == 0
-		if empty {
-			t.Empty++
-		} else {
-			nonEmpty++
-			if !o.clicked {
-				t.NoClick++
+		for _, t := range []*repositories.SearchTotals{st, total} {
+			ss := sets[t]
+			if ss == nil {
+				ss = &sessSets{map[string]bool{}, map[string]bool{}, map[string]bool{}}
+				sets[t] = ss
 			}
-		}
-		if o.clicked {
-			clicks++
-		}
-		if o.carted {
-			carts++
-		}
-		if o.ordered {
-			t.Orders++
+			t.Searches++
+			if empty {
+				t.Empty++
+			} else {
+				t.NonEmpty++
+				if !o.clicked {
+					t.NoClick++
+				}
+			}
+			if empty || !o.clicked {
+				t.Problems++
+				ss.problem[sess] = true
+			}
+			if o.clicked {
+				t.Clicks++
+				ss.click[sess] = true
+			}
+			if o.carted {
+				t.Carts++
+			}
+			if o.ordered {
+				t.Orders++
+				ss.order[sess] = true
+			}
 		}
 		key := foldQuery(o.ev.Query)
 		if key == "" {
@@ -155,7 +173,7 @@ func computeAnalytics(searches []domain.SearchEvent, behavior []domain.BehaviorE
 		}
 		p := problems[key]
 		if p == nil {
-			p = &out.ProblemQuery{Query: key, Diagnosis: diagnosisUnparsed}
+			p = &repositories.QueryOutcome{Query: key}
 			problems[key] = p
 		}
 		p.Freq++
@@ -174,21 +192,59 @@ func computeAnalytics(searches []domain.SearchEvent, behavior []domain.BehaviorE
 			p.Orders++
 		}
 	}
+	for t, ss := range sets {
+		t.ProblemSessions, t.ClickSessions, t.OrderSessions = len(ss.problem), len(ss.click), len(ss.order)
+	}
+	sum := &repositories.SearchSummary{BySource: []repositories.SearchTotals{}, Total: *total}
+	for _, st := range bySource {
+		sum.BySource = append(sum.BySource, *st)
+	}
+	sort.Slice(sum.BySource, func(i, j int) bool { return sum.BySource[i].Source < sum.BySource[j].Source })
+	var list []repositories.QueryOutcome
+	for _, p := range problems {
+		if p.Empty+p.Reformulated+p.NoClick > 0 {
+			list = append(list, *p)
+		}
+	}
+	sort.Slice(list, func(i, j int) bool {
+		a, b := list[i], list[j]
+		fa, fb := a.Empty+a.Reformulated+a.NoClick, b.Empty+b.Reformulated+b.NoClick
+		if fa != fb {
+			return fa > fb
+		}
+		if a.Freq != b.Freq {
+			return a.Freq > b.Freq
+		}
+		return a.Query < b.Query
+	})
+	if len(list) > limit {
+		list = list[:limit]
+	}
+	return sum, list
+}
+
+// analyticsFrom — ответ аналитики из сумм исходов и проблемных запросов (они уже отсортированы и обрезаны).
+func analyticsFrom(sum *repositories.SearchSummary, problems []repositories.QueryOutcome) *out.AnalyticsResponse {
+	resp := &out.AnalyticsResponse{Funnel: []out.FunnelStep{}, Problems: []out.ProblemQuery{}, Sources: map[string]int{}}
+	for _, st := range sum.BySource {
+		resp.Sources[st.Source] = st.Searches
+	}
+	tot := sum.Total
+	t := &resp.Tiles
+	t.Searches, t.Empty, t.NoClick, t.Orders = tot.Searches, tot.Empty, tot.NoClick, tot.Orders
 	t.EmptyRate = share(t.Empty, t.Searches)
-	t.NoClickRate = share(t.NoClick, nonEmpty)
+	t.NoClickRate = share(t.NoClick, tot.NonEmpty)
 	t.OrderRate = share(t.Orders, t.Searches)
 	resp.Funnel = []out.FunnelStep{
 		{Step: "searches", Label: "Поиски", Count: t.Searches, Rate: share(t.Searches, t.Searches)},
-		{Step: "clicks", Label: "Клики", Count: clicks, Rate: share(clicks, t.Searches)},
-		{Step: "carts", Label: "Корзина", Count: carts, Rate: share(carts, t.Searches)},
+		{Step: "clicks", Label: "Клики", Count: tot.Clicks, Rate: share(tot.Clicks, t.Searches)},
+		{Step: "carts", Label: "Корзина", Count: tot.Carts, Rate: share(tot.Carts, t.Searches)},
 		{Step: "orders", Label: "Заказы", Count: t.Orders, Rate: share(t.Orders, t.Searches)},
 	}
-
-	for _, p := range problems {
+	for _, q := range problems {
+		p := out.ProblemQuery{Query: q.Query, Diagnosis: diagnosisUnparsed, Freq: q.Freq, Empty: q.Empty,
+			Reformulated: q.Reformulated, NoClick: q.NoClick, Clicks: q.Clicks, Orders: q.Orders}
 		p.Failures = p.Empty + p.Reformulated + p.NoClick
-		if p.Failures == 0 {
-			continue
-		}
 		p.Outcome = outcomeNoClick
 		if p.Reformulated >= p.NoClick && p.Reformulated > 0 {
 			p.Outcome = outcomeReformulated
@@ -197,20 +253,7 @@ func computeAnalytics(searches []domain.SearchEvent, behavior []domain.BehaviorE
 			p.Outcome = outcomeEmpty
 		}
 		p.OutcomeLabel = outcomeLabels[p.Outcome]
-		resp.Problems = append(resp.Problems, *p)
-	}
-	sort.Slice(resp.Problems, func(i, j int) bool {
-		a, b := resp.Problems[i], resp.Problems[j]
-		if a.Failures != b.Failures {
-			return a.Failures > b.Failures
-		}
-		if a.Freq != b.Freq {
-			return a.Freq > b.Freq
-		}
-		return a.Query < b.Query
-	})
-	if len(resp.Problems) > problemsLimit {
-		resp.Problems = resp.Problems[:problemsLimit]
+		resp.Problems = append(resp.Problems, p)
 	}
 	return resp
 }

@@ -10,6 +10,7 @@ import (
 	"kuznica/api/domain"
 	"kuznica/api/out"
 	"kuznica/api/pkg/errs"
+	"kuznica/api/repositories"
 )
 
 // Вилка эффекта для руководителя. Всё, что можно измерить, измеряется:
@@ -59,6 +60,11 @@ var effectScenarios = []struct {
 
 // Effect — GET /api/effect.
 func (s *Services) Effect(ctx context.Context, req EffectRequest) (*out.Effect, error) {
+	return s.effect(ctx, req, nil)
+}
+
+// effect — вилка; sum — уже посчитанные суммы исходов за тот же период (аналитика роли head), nil — посчитать.
+func (s *Services) effect(ctx context.Context, req EffectRequest, sum *repositories.SearchSummary) (*out.Effect, error) {
 	if req.Days == 0 {
 		req.Days = analyticsDefaultDays
 	}
@@ -81,28 +87,37 @@ func (s *Services) Effect(ctx context.Context, req EffectRequest) (*out.Effect, 
 	}
 	now := s.now().UTC()
 	since := now.Add(-time.Duration(req.Days) * 24 * time.Hour)
+	// Исходы поисков и заказанные товары считает база (repositories/analytics_sql.go): события в память не читаются.
 	var (
-		searches []domain.SearchEvent
-		behavior []domain.BehaviorEvent
-		evals    []domain.Evaluation
+		m     effectLogs
+		evals []domain.Evaluation
 	)
 	if s.repos.Enabled() {
 		var err error
-		if searches, err = s.repos.SearchEventsSince(ctx, since); err != nil {
-			return nil, err
+		if sum == nil {
+			if sum, _, err = s.repos.SearchOutcomesSince(ctx, since, 0); err != nil {
+				return nil, err
+			}
 		}
-		if behavior, err = s.repos.BehaviorEventsSince(ctx, since); err != nil {
+		ordered, err := s.repos.OrderedProductsSince(ctx, since)
+		if err != nil {
 			return nil, err
 		}
 		if evals, err = s.repos.LatestEvaluations(ctx, effectSet); err != nil {
 			return nil, err
 		}
+		m = effectLogsFrom(sum.Total)
+		if cs := s.catalog.Load(); cs != nil && cs.lex != nil {
+			for _, pc := range ordered {
+				if p := cs.lex.docs[pc.ProductID].PriceRub; p != nil && *p > 0 {
+					for range pc.N {
+						m.orderChecks = append(m.orderChecks, *p)
+					}
+				}
+			}
+		}
 	}
-	var price func(string) *float64
-	if cs := s.catalog.Load(); cs != nil && cs.lex != nil {
-		price = func(pid string) *float64 { return cs.lex.docs[pid].PriceRub }
-	}
-	res := computeEffect(searches, behavior, evals, price, req)
+	res := effectFromLogs(m, evals, req)
 	res.Days, res.From, res.To = req.Days, since, now
 	return res, nil
 }
@@ -114,29 +129,16 @@ type effectLogs struct {
 	orderChecks                                 []float64
 }
 
+// effectLogsFrom — замер по суммам исходов (SQL-агрегат или aggregateOutcomes).
+func effectLogsFrom(t repositories.SearchTotals) effectLogs {
+	return effectLogs{searches: t.Searches, problems: t.Problems, problemSessions: t.ProblemSessions, orders: t.Orders,
+		clickSessions: t.ClickSessions, orderSessions: t.OrderSessions}
+}
+
+// measureLogs — замер по событиям в памяти (эталон SQL-агрегации и путь тестов).
 func measureLogs(searches []domain.SearchEvent, behavior []domain.BehaviorEvent, price func(string) *float64) effectLogs {
-	var m effectLogs
-	problemSess := map[string]bool{}
-	clickSess := map[string]bool{}
-	orderSess := map[string]bool{}
-	for _, o := range buildOutcomes(searches, behavior) {
-		m.searches++
-		key := sessionKey(o.ev.SessionID, o.ev.RequestID)
-		if o.ev.ResultsCount == 0 || !o.clicked {
-			m.problems++
-			problemSess[key] = true
-		}
-		if o.clicked {
-			clickSess[key] = true
-			if o.ordered {
-				orderSess[key] = true
-			}
-		}
-		if o.ordered {
-			m.orders++
-		}
-	}
-	m.problemSessions, m.clickSessions, m.orderSessions = len(problemSess), len(clickSess), len(orderSess)
+	sum, _ := aggregateOutcomes(searches, behavior, 0)
+	m := effectLogsFrom(sum.Total)
 	if price != nil {
 		for _, b := range behavior {
 			if b.Type != domain.EventOrder || b.ProductID == nil {
@@ -210,11 +212,15 @@ func wilson(k, n int) (float64, float64) {
 // computeEffect — вилка из измеренного и допущений (чистая функция).
 func computeEffect(searches []domain.SearchEvent, behavior []domain.BehaviorEvent, evals []domain.Evaluation,
 	price func(string) *float64, req EffectRequest) *out.Effect {
+	return effectFromLogs(measureLogs(searches, behavior, price), evals, req)
+}
+
+// effectFromLogs — вилка из замера по журналам, прогонов оценки и допущений (чистая функция).
+func effectFromLogs(m effectLogs, evals []domain.Evaluation, req EffectRequest) *out.Effect {
 	days := req.Days
 	if days == 0 {
 		days = analyticsDefaultDays
 	}
-	m := measureLogs(searches, behavior, price)
 	res := &out.Effect{Note: effectNote, Formula: effectFormula, FormulaKeys: effectFormulaKeys,
 		Assumptions: []out.EffectParam{}, Scenarios: []out.EffectScenario{}, Missing: []string{}}
 	in := &res.Measured

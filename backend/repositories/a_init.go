@@ -123,6 +123,25 @@ func (r *Repos) MigrateDB() error {
 		if err := tx.Exec("SELECT pg_advisory_xact_lock(hashtext(?))", migrateLock).Error; err != nil {
 			return err
 		}
-		return tx.AutoMigrate(models...)
+		if err := tx.AutoMigrate(models...); err != nil {
+			return err
+		}
+		for _, q := range extraMigrations {
+			if err := tx.Exec(q).Error; err != nil {
+				return err
+			}
+		}
+		return nil
 	})
+}
+
+// extraMigrations — то, что не выражается тегами GORM: индексы по времени для агрегатов аналитики за период
+// (analytics_sql.go) и заполнение новых колонок у строк, созданных до них. Каждая — идемпотентна.
+var extraMigrations = []string{
+	`CREATE INDEX IF NOT EXISTS idx_search_events_created_at ON search_events (created_at)`,
+	`CREATE INDEX IF NOT EXISTS idx_behavior_events_created_at ON behavior_events (created_at)`,
+	`CREATE INDEX IF NOT EXISTS idx_llm_usage_created_at ON llm_usage (created_at)`,
+	// Версии правил до цепочек по каталогам (M1): каталог — из снимка правил.
+	`UPDATE config_versions SET catalog_version = rules->>'catalog_version'
+		WHERE COALESCE(catalog_version, '') = '' AND rules->>'catalog_version' IS NOT NULL`,
 }

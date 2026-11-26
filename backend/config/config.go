@@ -12,6 +12,7 @@ import (
 	"net/netip"
 	"net/url"
 	"os"
+	"strconv"
 	"strings"
 )
 
@@ -46,6 +47,9 @@ type Config struct {
 	// в development http://127.0.0.1:8089; пусто или off — шаг пропускается (в трассе skipped).
 	EmbedderURL string
 	RerankerURL string
+	// RerankWeight — SEARCH_RERANK_WEIGHT: доля оценки реранкера в релевантности семейства на маршрутах C и D
+	// (0–1). По умолчанию 0.45 (подобрано на tune); 0 или off — реранкер выключен.
+	RerankWeight float64
 	// DataDir — DATA_DIR: каталог mock-данных для импорта; по умолчанию ../data/mock (запуск из backend/).
 	DataDir string
 	// LLM — модель для разбора сложных запросов (LLM_PROVIDER, LLM_BASE_URL, LLM_MODEL, LLM_FOLDER_ID,
@@ -79,6 +83,11 @@ func Load() (Config, error) {
 		if u.val != "" && !httpURL(u.val) {
 			problems = append(problems, fmt.Sprintf("%s=%q: ожидается http(s)-адрес", u.key, u.val))
 		}
+	}
+	if w, err := rerankWeight(os.Getenv("SEARCH_RERANK_WEIGHT")); err != nil {
+		problems = append(problems, err.Error())
+	} else {
+		c.RerankWeight = w
 	}
 	llm, err := LoadLLM()
 	if err != nil {
@@ -134,7 +143,7 @@ func (c Config) Summary() []string {
 		fmt.Sprintf("база: %s", set(c.DatabaseURL)),
 		fmt.Sprintf("доверенные прокси (X-Real-IP): %s", proxies(c.TrustedProxies)),
 		fmt.Sprintf("OpenSearch: %s", orOff(c.OpenSearchURL)),
-		fmt.Sprintf("эмбеддер: %s, реранкер: %s", orOff(c.EmbedderURL), orOff(c.RerankerURL)),
+		fmt.Sprintf("эмбеддер: %s, реранкер: %s (вес на C/D %.2f)", orOff(c.EmbedderURL), orOff(c.RerankerURL), c.RerankWeight),
 		fmt.Sprintf("данные для импорта: %s", c.DataDir),
 		c.LLM.summary(),
 		c.Agent.summary(c.LLM),
@@ -238,4 +247,23 @@ func proxies(p []string) string {
 		return "нет — адрес соединения"
 	}
 	return strings.Join(p, ", ")
+}
+
+// defaultRerankWeight — вес реранкера на маршрутах C/D по умолчанию (tune: NDCG@10 B3 0.933 → 0.948).
+const defaultRerankWeight = 0.45
+
+// rerankWeight — SEARCH_RERANK_WEIGHT: пусто — по умолчанию, off — 0, иначе число 0–1.
+func rerankWeight(raw string) (float64, error) {
+	raw = strings.TrimSpace(raw)
+	switch strings.ToLower(raw) {
+	case "":
+		return defaultRerankWeight, nil
+	case "off", "false":
+		return 0, nil
+	}
+	w, err := strconv.ParseFloat(raw, 64)
+	if err != nil || w < 0 || w > 1 {
+		return 0, fmt.Errorf("SEARCH_RERANK_WEIGHT=%q: ожидается число 0–1 или off", raw)
+	}
+	return w, nil
 }

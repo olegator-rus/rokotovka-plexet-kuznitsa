@@ -10,7 +10,11 @@ import (
 var envKeys = []string{"APP_ENV", "PORT", "PUBLIC_ORIGIN", "DATABASE_URL", "TRUSTED_PROXIES", "OPENSEARCH_URL",
 	"EMBEDDER_URL", "RERANKER_URL", "DATA_DIR", "LLM_PROVIDER", "LLM_BASE_URL", "LLM_MODEL", "LLM_FOLDER_ID",
 	"LLM_API_KEY", "LLM_MODE", "LLM_INTENT_MODEL", "LLM_FALLBACK_MODEL", "LLM_JUDGE_MODEL",
-	"ADMIN_ENABLED", "RATE_LIMIT_PER_MIN", "LLM_DAILY_BUDGET_RUB"}
+	"ADMIN_ENABLED", "RATE_LIMIT_PER_MIN", "LLM_DAILY_BUDGET_RUB", "AGENT_BUDGET_RESERVE_RUB", "LLM_PER_IP_DAILY_RUB",
+	"BACKOFFICE_TOKEN"}
+
+// testToken — токен бэк-офиса для production-конфигураций тестов.
+const testToken = "test-backoffice-token-0123456789"
 
 // clearEnv — окружение без наших переменных: t.Setenv запоминает значение для восстановления, Unsetenv
 // убирает переменную (для адресов сервисов «не задана» и «пустая» означают разное).
@@ -50,6 +54,7 @@ func TestLoadNormalizesOrigin(t *testing.T) {
 	t.Setenv("PUBLIC_ORIGIN", "https://shop.example.ru/")
 	t.Setenv("DATABASE_URL", "postgres://db")
 	t.Setenv("TRUSTED_PROXIES", "172.16.0.0/12")
+	t.Setenv("BACKOFFICE_TOKEN", testToken)
 	c, err := Load()
 	if err != nil {
 		t.Fatal(err)
@@ -74,7 +79,7 @@ func TestLoadProductionRequirements(t *testing.T) {
 	clearEnv(t)
 	t.Setenv("APP_ENV", EnvProduction)
 	_, err := Load()
-	for _, want := range []string{"PUBLIC_ORIGIN", "DATABASE_URL", "TRUSTED_PROXIES"} {
+	for _, want := range []string{"PUBLIC_ORIGIN", "DATABASE_URL", "TRUSTED_PROXIES", "BACKOFFICE_TOKEN"} {
 		if err == nil || !strings.Contains(err.Error(), want) {
 			t.Fatalf("ожидался отказ с %s, получено: %v", want, err)
 		}
@@ -145,6 +150,7 @@ func TestServiceURLsProductionDefaults(t *testing.T) {
 	t.Setenv("PUBLIC_ORIGIN", "https://shop.example.ru")
 	t.Setenv("DATABASE_URL", "postgres://db")
 	t.Setenv("TRUSTED_PROXIES", "172.16.0.0/12")
+	t.Setenv("BACKOFFICE_TOKEN", testToken)
 	c, err := Load()
 	if err != nil {
 		t.Fatal(err)
@@ -215,21 +221,47 @@ func TestLoadOps(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !c.Ops.AdminEnabled || c.Ops.RatePerMinute != defaultRatePerMinute || c.Ops.DailyBudgetRub != defaultDailyBudgetRub {
+	if !c.Ops.AdminEnabled || c.Ops.RatePerMinute != defaultRatePerMinute || c.Ops.DailyBudgetRub != defaultDailyBudgetRub ||
+		c.Ops.BackofficeToken != "" || c.Ops.PerIPDailyRub != defaultPerIPDailyRub || c.Ops.AgentReserveRub != defaultAgentReserveRub {
 		t.Fatalf("development по умолчанию: %+v", c.Ops)
 	}
 	t.Setenv("APP_ENV", "production")
 	t.Setenv("PUBLIC_ORIGIN", "https://example.ru")
 	t.Setenv("DATABASE_URL", "postgres://x")
 	t.Setenv("TRUSTED_PROXIES", "10.0.0.1")
+	t.Setenv("BACKOFFICE_TOKEN", testToken)
 	t.Setenv("LLM_DAILY_BUDGET_RUB", "250,5")
 	t.Setenv("RATE_LIMIT_PER_MIN", "0")
-	if c, err = Load(); err != nil || c.Ops.AdminEnabled || c.Ops.DailyBudgetRub != 250.5 || c.Ops.RatePerMinute != 0 {
+	if c, err = Load(); err != nil || c.Ops.AdminEnabled || c.Ops.DailyBudgetRub != 250.5 || c.Ops.RatePerMinute != 0 ||
+		c.Ops.BackofficeToken != testToken {
 		t.Fatalf("production: %+v %v", c.Ops, err)
 	}
+	if strings.Contains(strings.Join(c.Summary(), " "), testToken) {
+		t.Fatal("токен бэк-офиса попал в сводку")
+	}
+	t.Setenv("BACKOFFICE_TOKEN", "short")
+	t.Setenv("AGENT_BUDGET_RESERVE_RUB", "300")
+	if _, err = Load(); err == nil || !strings.Contains(err.Error(), "BACKOFFICE_TOKEN") || !strings.Contains(err.Error(), "AGENT_BUDGET_RESERVE_RUB") {
+		t.Fatalf("короткий токен и резерв больше бюджета: %v", err)
+	}
+	t.Setenv("BACKOFFICE_TOKEN", testToken)
+	t.Setenv("AGENT_BUDGET_RESERVE_RUB", "")
 	t.Setenv("ADMIN_ENABLED", "maybe")
 	t.Setenv("LLM_DAILY_BUDGET_RUB", "-1")
 	if _, err = Load(); err == nil || !strings.Contains(err.Error(), "ADMIN_ENABLED") || !strings.Contains(err.Error(), "LLM_DAILY_BUDGET_RUB") {
 		t.Fatalf("ошибки настроек: %v", err)
+	}
+}
+
+func TestRerankWeight(t *testing.T) {
+	for raw, want := range map[string]float64{"": defaultRerankWeight, "off": 0, "0": 0, "0.3": 0.3} {
+		if w, err := rerankWeight(raw); err != nil || w != want {
+			t.Errorf("%q → %v %v, ожидалось %v", raw, w, err, want)
+		}
+	}
+	for _, raw := range []string{"1.5", "-1", "abc"} {
+		if _, err := rerankWeight(raw); err == nil {
+			t.Errorf("%q должен быть ошибкой", raw)
+		}
 	}
 }

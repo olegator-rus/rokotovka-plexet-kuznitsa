@@ -24,8 +24,16 @@ const (
 	llmModeOff = "off"
 )
 
-// fallbackBudget — причина отката разбора на правила: дневной бюджет LLM исчерпан.
+// fallbackBudget — причина отката разбора на правила: дневной бюджет LLM исчерпан (за вычетом резерва агента).
 const fallbackBudget = "budget_exceeded"
+
+// fallbackIPQuota — причина отката разбора на правила: адрес покупателя выбрал свою суточную квоту на модель
+// (LLM_PER_IP_DAILY_RUB, ревью M5): один клиент не выжигает общий бюджет.
+const fallbackIPQuota = "ip_quota"
+
+// maxQuotaAddrs — потолок числа адресов в учёте квоты за сутки: дальше новые адреса учитываются общим бюджетом
+// (защита памяти от перебора адресов).
+const maxQuotaAddrs = 100_000
 
 // budgetRefresh — как часто перечитывать расход за сутки из llm_usage: туда же пишут CLI (eval, judge,
 // warmup), которых процесс API не видит. Между перечитываниями расход копится в памяти.
@@ -52,12 +60,19 @@ type llmGuard struct {
 	online  bool         // модель настроена (ключ и провайдер)
 	limit   float64      // ₽ в сутки; 0 — без потолка
 	changed atomic.Pointer[time.Time]
+	// reserve — часть limit, которую разборы покупателей не тратят: она остаётся агенту (AGENT_BUDGET_RESERVE_RUB).
+	reserve float64
+	// perAddr — ₽ в сутки на разборы с одного адреса (LLM_PER_IP_DAILY_RUB); 0 — без квоты.
+	perAddr float64
 
 	mu        sync.Mutex
 	day       time.Time // начало суток (МСК), к которым относится spent
 	spent     float64
 	refreshed time.Time
 	loading   bool
+	// byAddr — расход разборов по адресам покупателей за сутки day (в памяти процесса: сбрасывается перезапуском).
+	byAddr  map[string]float64
+	addrDay time.Time
 	// load — расход с момента since из llm_usage; nil — без базы (только память).
 	load func(ctx context.Context, since time.Time) (float64, error)
 	now  func() time.Time
@@ -127,7 +142,10 @@ func (g *llmGuard) spentToday(ctx context.Context) float64 {
 }
 
 // add — расход вызова (между чтениями базы).
-func (g *llmGuard) add(cost float64) {
+func (g *llmGuard) add(cost float64) { g.charge(cost, "") }
+
+// charge — расход вызова; addr — адрес покупателя (квота LLM_PER_IP_DAILY_RUB), пусто — не покупатель (агент, CLI).
+func (g *llmGuard) charge(cost float64, addr string) {
 	if cost <= 0 {
 		return
 	}
@@ -138,11 +156,45 @@ func (g *llmGuard) add(cost float64) {
 		g.day, g.spent, g.refreshed = day, 0, time.Time{}
 	}
 	g.spent += cost
+	if addr == "" || g.perAddr <= 0 {
+		return
+	}
+	if g.byAddr == nil || !g.addrDay.Equal(day) {
+		g.byAddr, g.addrDay = map[string]float64{}, day
+	}
+	if _, ok := g.byAddr[addr]; ok || len(g.byAddr) < maxQuotaAddrs {
+		g.byAddr[addr] += cost
+	}
 }
 
-// exceeded — дневной бюджет исчерпан.
+// exceeded — дневной бюджет исчерпан целиком (агент: ему доступен и резерв).
 func (g *llmGuard) exceeded(ctx context.Context) bool {
 	return g.limit > 0 && g.spentToday(ctx) >= g.limit
+}
+
+// buyerLimit — потолок расхода на разборы покупателей: бюджет без резерва агента; 0 — без потолка.
+func (g *llmGuard) buyerLimit() float64 {
+	if g.limit <= 0 {
+		return 0
+	}
+	return max(g.limit-g.reserve, 0)
+}
+
+// buyerExceeded — разборам покупателей бюджета больше нет: расход дошёл до бюджета без резерва агента.
+func (g *llmGuard) buyerExceeded(ctx context.Context) bool {
+	return g.limit > 0 && g.spentToday(ctx) >= g.buyerLimit()
+}
+
+// addrExceeded — адрес из ctx (WithClientIP) выбрал суточную квоту на разборы.
+func (g *llmGuard) addrExceeded(ctx context.Context) bool {
+	addr := clientAddr(ctx)
+	if g.perAddr <= 0 || addr == "" {
+		return false
+	}
+	day := dayStart(g.now())
+	g.mu.Lock()
+	defer g.mu.Unlock()
+	return g.addrDay.Equal(day) && g.byAddr[addr] >= g.perAddr
 }
 
 // llmGuardFor — guard сервиса; в тестах, собранных без NewServices, — выключенный режим.
@@ -171,8 +223,9 @@ func (s *Services) LLMState(ctx context.Context) out.LLMState {
 	switch {
 	case st.Mode == llmModeOff:
 		st.Banner = ptr(bannerLLMOff)
-	case b.Exceeded:
-		st.Banner = ptr(fmt.Sprintf(bannerBudgetFormat, b.SpentTodayRub, g.limit))
+	case g.limit > 0 && b.SpentTodayRub >= g.buyerLimit():
+		// Разборы покупателей уже на правилах, хотя резерв агента ещё не истрачен.
+		st.Banner = ptr(fmt.Sprintf(bannerBudgetFormat, b.SpentTodayRub, g.buyerLimit()))
 	}
 	return st
 }

@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"kuznica/api/domain"
+	"kuznica/api/pkg/errs"
 
 	"github.com/google/uuid"
 	"gorm.io/gorm"
@@ -195,6 +196,9 @@ func (r *Repos) SetConfigVersionEffect(ctx context.Context, version int, effect 
 		Update("effect", effect).Error
 }
 
+// MsgRulesArchived — откат к версии правил прежнего каталога.
+const MsgRulesArchived = "Эта версия правил собрана для прежнего каталога — откатиться к ней нельзя"
+
 // RulesChange — одна атомарная смена правил: новая версия поверх base (оптимистичная блокировка), решение
 // по предложению и смена статусов предложений.
 type RulesChange struct {
@@ -241,6 +245,17 @@ func (r *Repos) ApplyRulesChange(ctx context.Context, ch *RulesChange) error {
 			if latest == nil || *latest != ch.Base {
 				return domain.ErrRulesVersionConflict
 			}
+			// Новая версия — того же каталога, что и база (M1: цепочки версий по каталогам).
+			if ch.Version.CatalogVersion == "" {
+				var cv []string
+				if err := tx.Model(&domain.ConfigVersion{}).Where("version = ?", ch.Base).
+					Pluck("catalog_version", &cv).Error; err != nil {
+					return err
+				}
+				if len(cv) == 1 {
+					ch.Version.CatalogVersion = cv[0]
+				}
+			}
 			if err := tx.Create(ch.Version).Error; err != nil {
 				if errors.Is(err, gorm.ErrDuplicatedKey) || strings.Contains(err.Error(), "23505") {
 					return domain.ErrRulesVersionConflict
@@ -249,6 +264,14 @@ func (r *Repos) ApplyRulesChange(ctx context.Context, ch *RulesChange) error {
 			}
 		}
 		if ch.RollBackAbove > 0 {
+			var archived []bool
+			if err := tx.Model(&domain.ConfigVersion{}).Where("version = ?", ch.RollBackAbove).
+				Pluck("archived", &archived).Error; err != nil {
+				return err
+			}
+			if len(archived) == 1 && archived[0] {
+				return errs.NewConflictError(MsgRulesArchived)
+			}
 			var undone []domain.Proposal
 			if err := tx.Where("status = ? AND config_version > ?", domain.ProposalAccepted, ch.RollBackAbove).
 				Find(&undone).Error; err != nil {

@@ -1,9 +1,15 @@
 package services
 
 import (
+	"encoding/json"
+	"net/http"
+	"net/http/httptest"
+	"strings"
 	"testing"
+	"time"
 
 	"kuznica/api/domain"
+	"kuznica/api/externalApi/tei"
 )
 
 // названное семейство выше вендора, типизированные связи (renewal, compatibility).
@@ -106,5 +112,54 @@ func TestTypedRelations(t *testing.T) {
 	}
 	if len(lx.renewals["kaspersky-plus"]) != 0 {
 		t.Fatal("renewal односторонний")
+	}
+}
+
+// Реранкер: только маршруты C/D; оценка смешивается с релевантностью; сбой — выдача без него.
+func TestRerankFamilies(t *testing.T) {
+	lx, _, _ := mockLexicon(t)
+	fail := false
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if fail {
+			http.Error(w, "down", http.StatusServiceUnavailable)
+			return
+		}
+		var body struct{ Texts []string }
+		_ = json.NewDecoder(r.Body).Decode(&body)
+		var out []tei.RerankHit
+		for i, tx := range body.Texts {
+			sc := 0.1
+			if strings.HasPrefix(tx, "КОМПАС-3D") {
+				sc = 0.9
+			}
+			out = append(out, tei.RerankHit{Index: i, Score: sc})
+		}
+		_ = json.NewEncoder(w).Encode(out)
+	}))
+	defer srv.Close()
+	mk := func() []*familyHit {
+		return []*familyHit{
+			{id: "autodesk-autocad", rel: 1, head: lx.docs[lx.families["autodesk-autocad"][0]]},
+			{id: "kompas-3d", rel: 0.6, head: lx.docs[lx.families["kompas-3d"][0]]},
+		}
+	}
+	s := &Services{reranker: tei.New(srv.URL, time.Second), rerankW: 0.45}
+	fams := mk()
+	if st := s.rerankFamilies(t.Context(), "чертежи по гост", domain.RouteNormalized, fams); !st.Skipped || fams[0].rel != 1 {
+		t.Fatalf("маршрут B — без реранкера: %+v", st)
+	}
+	st := s.rerankFamilies(t.Context(), "чертежи по гост", domain.RouteIntent, fams)
+	if st.Skipped || fams[1].rel <= fams[0].rel {
+		t.Fatalf("КОМПАС должен обойти AutoCAD: %+v %.3f %.3f", st, fams[0].rel, fams[1].rel)
+	}
+	fail = true
+	fams = mk()
+	if st := s.rerankFamilies(t.Context(), "чертежи по гост", domain.RouteIntent, fams); !st.Skipped ||
+		st.Reason != rerankFailed || fams[0].rel != 1 || fams[1].rel != 0.6 {
+		t.Fatalf("сбой реранкера — порядок прежний: %+v", st)
+	}
+	s.rerankW = 0
+	if st := s.rerankFamilies(t.Context(), "x", domain.RouteIntent, mk()); st.Reason != rerankOff {
+		t.Fatalf("вес 0 — выключен: %+v", st)
 	}
 }

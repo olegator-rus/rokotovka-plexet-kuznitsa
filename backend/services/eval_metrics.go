@@ -278,6 +278,7 @@ func evalAggregate(rs []out.EvalQueryResult) out.EvalMetrics {
 	m := out.EvalMetrics{}
 	var (
 		empty, emptyW, weight                   float64
+		judgedW, relW                           float64
 		noRel, relTop, ndcg, mrr, rec           evalMean
 		exact, rescued, falseRescue, violations evalMean
 		latency                                 []float64
@@ -296,6 +297,10 @@ func evalAggregate(rs []out.EvalQueryResult) out.EvalMetrics {
 			emptyW += w
 		}
 		if r.MRR10 != nil {
+			judgedW += w
+			if r.HasRelevant {
+				relW += w
+			}
 			noRel.addBool(!r.Empty && !r.HasRelevant)
 			relTop.addBool(r.HasRelevant)
 			mrr.add(*r.MRR10)
@@ -329,6 +334,11 @@ func evalAggregate(rs []out.EvalQueryResult) out.EvalMetrics {
 	if m.Queries > 0 {
 		m.EmptyRate = evalPtr(evalRound4(empty / float64(m.Queries)))
 		m.EmptyRateWeighted = evalPtr(evalRound4(emptyW / weight))
+		m.Searches = int(weight)
+	}
+	if judgedW > 0 {
+		m.JudgedSearches = int(judgedW)
+		m.RelevantTop10Weighted = evalPtr(evalRound4(relW / judgedW))
 	}
 	m.NoRelevantTop10 = noRel.value()
 	m.RelevantTop10 = relTop.value()
@@ -494,6 +504,29 @@ func evalCompare(prev, cur []out.EvalQueryResult, against string) (regs, imps []
 }
 
 func evalPtr[T any](v T) *T { return &v }
+
+// evalRescuedSearches — поиски (с весом freq), где у prev релевантного в топ-10 не было, а у cur есть, и
+// наоборот; только запросы с релевантным в разметке и без ошибок.
+func evalRescuedSearches(prev, cur []out.EvalQueryResult) (rescued, lost int) {
+	before := make(map[string]out.EvalQueryResult, len(prev))
+	for _, r := range prev {
+		before[r.ID] = r
+	}
+	for _, c := range cur {
+		p, ok := before[c.ID]
+		if !ok || p.Error != "" || c.Error != "" || c.MRR10 == nil {
+			continue
+		}
+		w := max(c.Freq, 1)
+		switch {
+		case !p.HasRelevant && c.HasRelevant:
+			rescued += w
+		case p.HasRelevant && !c.HasRelevant:
+			lost += w
+		}
+	}
+	return rescued, lost
+}
 
 func evalDeref(s *string) string {
 	if s == nil {

@@ -61,7 +61,13 @@ const (
 	ProposalAccepted   = "accepted"
 	ProposalRejected   = "rejected"
 	ProposalRolledBack = "rolled_back"
+	// ProposalStale — ждало решения, но каталог сменился (импорт с другим catalog_version): правка проверялась на
+	// прежнем словаре, принять её нельзя.
+	ProposalStale = "stale"
 )
+
+// ProposalStaleReason — decided_reason предложений, устаревших при смене каталога.
+const ProposalStaleReason = "catalog_changed"
 
 // Кому адресовано предложение.
 const (

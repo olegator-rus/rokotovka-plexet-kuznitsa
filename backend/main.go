@@ -59,20 +59,24 @@ func main() {
 	}
 
 	svc := services.NewServices(repos, services.Options{
-		Search:   opensearch.New(cfg.OpenSearchURL, searchTimeout),
-		Embedder: tei.New(cfg.EmbedderURL, modelsTimeout),
-		Reranker: tei.New(cfg.RerankerURL, modelsTimeout),
-		Source:   catalogsource.MockJSON{Dir: cfg.DataDir},
-		LLMMode:  cfg.LLM.Mode,
+		Search:       opensearch.New(cfg.OpenSearchURL, searchTimeout),
+		Embedder:     tei.New(cfg.EmbedderURL, modelsTimeout),
+		Reranker:     tei.New(cfg.RerankerURL, modelsTimeout),
+		RerankWeight: cfg.RerankWeight,
+		Source:       catalogsource.MockJSON{Dir: cfg.DataDir},
+		LLMMode:      cfg.LLM.Mode,
 
 		IntentModel:    intentModel(cfg.LLM, cfg.LLM.IntentModel),
 		IntentFallback: intentModel(cfg.LLM, cfg.LLM.FallbackModel),
 		JudgeModel:     intentModel(cfg.LLM, cfg.LLM.JudgeModel),
 
 		AgentModel: agentModel(cfg.LLM, cfg.Agent.Model),
-		Agent:      services.AgentOptions{MaxRegressionWorse: cfg.Agent.MaxRegressionWorse, RegressionSets: cfg.Agent.RegressionSets},
+		Agent: services.AgentOptions{MaxRegressionWorse: cfg.Agent.MaxRegressionWorse, RegressionSets: cfg.Agent.RegressionSets,
+			Holdout: services.HoldoutFromEnv()},
 
-		DailyBudgetRub: cfg.Ops.DailyBudgetRub,
+		DailyBudgetRub:  cfg.Ops.DailyBudgetRub,
+		AgentReserveRub: cfg.Ops.AgentReserveRub,
+		PerIPDailyRub:   cfg.Ops.PerIPDailyRub,
 	})
 
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
@@ -105,7 +109,7 @@ func main() {
 	}
 	defer svc.Wait()
 	h := handlers.NewHandlerManager(svc, handlers.Options{PublicOrigin: cfg.PublicOrigin,
-		AdminEnabled: cfg.Ops.AdminEnabled, RatePerMinute: cfg.Ops.RatePerMinute})
+		AdminEnabled: cfg.Ops.AdminEnabled, RatePerMinute: cfg.Ops.RatePerMinute, BackofficeToken: cfg.Ops.BackofficeToken})
 
 	app := fiber.New(handlers.WithTrustedProxies(handlers.ServerConfig(handlers.DefaultTimeouts), cfg.TrustedProxies))
 	// Порядок: recover (самый внешний) → номер запроса → fiberzap → routes.

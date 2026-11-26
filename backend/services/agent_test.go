@@ -499,8 +499,13 @@ func TestAgentCrossVendorRejected(t *testing.T) {
 // Гонка версий: правка поверх устаревшей версии — 409, правила не меняются.
 func TestRulesVersionRace(t *testing.T) {
 	s, ms := agentEnv(t, &scriptModel{})
+	rechecks := 0
+	s.agent.evalHook = func(context.Context, *failedCluster, RulePatch) (*patchEval, error) {
+		rechecks++
+		return evalResult(0, 1, 0), nil
+	}
 	mk := func(alias string) string {
-		p := &domain.Proposal{Status: domain.ProposalPending, Action: domain.ActionRulesPatch, ClusterLabel: alias,
+		p := &domain.Proposal{Status: domain.ProposalPending, Action: domain.ActionRulesPatch, ClusterLabel: alias, BaseVersion: 1,
 			Patch: toJSON(RulePatch{Add: []PatchAlias{{Kind: "alias", Alias: alias, Canonical: "kaspersky", Target: "vendor", TargetID: "kaspersky"}}})}
 		_ = ms.CreateProposal(t.Context(), p)
 		return p.ID.String()
@@ -521,6 +526,10 @@ func TestRulesVersionRace(t *testing.T) {
 	res, err := s.ApproveProposal(t.Context(), b, in.ApproveRequest{})
 	if err != nil || *res.ConfigVersion != 3 {
 		t.Fatalf("второе принятие: %+v %v", res, err)
+	}
+	// Второе предложение проверялось на v1, принималось поверх v2 — перепрогон был ровно один.
+	if rechecks != 1 || res.Proposal.BaseVersion != 2 {
+		t.Fatalf("перепроверка: %d, база %d", rechecks, res.Proposal.BaseVersion)
 	}
 	active, _ := s.activeRules(t.Context())
 	if active.find("кис") == nil || active.find("ксос") == nil {

@@ -11,9 +11,19 @@
 		Referrer-Policy strict-origin-when-cross-origin
 		Permissions-Policy "camera=(), microphone=(), geolocation=()"
 		Strict-Transport-Security "max-age=31536000"
-		# CSP: всё self-host, без внешних CDN; inline-стили нужны PrimeVue.
+		# CSP: всё self-host, без внешних CDN; inline-стили ставят компоненты reka-ui (позиционирование поповеров).
 		Content-Security-Policy "default-src 'self'; img-src 'self' data: blob:; style-src 'self' 'unsafe-inline'; font-src 'self'; script-src 'self'; connect-src 'self'; frame-ancestors 'none'; object-src 'none'; base-uri 'self'; form-action 'self'"
 		-Server
+	}
+
+	# Вход в бэк-офис (ревью B2): экраны менеджера и их API — за basic-auth. Пароль — BACKOFFICE_TOKEN, в Caddy —
+	# его bcrypt-хэш в base64 (BACKOFFICE_HASH, команда — в .env.example). После входа браузер сам шлёт
+	# Authorization на все запросы этого origin; API сверяет пароль с тем же токеном (handlers/middleware_backoffice.go)
+	# и закрывает те же пути и без Caddy. Витрина покупателя (/search, /compare, /api/search, /api/events,
+	# /api/suggest, /api/meta) — без входа.
+	@backoffice path /analytics* /searchops* /changes* /costs* /api/analytics* /api/traces/* /api/costs* /api/effect* /api/agent/* /api/proposals* /api/configs* /api/catalog/* /api/admin/* /api/evaluations/run
+	basic_auth @backoffice bcrypt "PLEXeT SearchOps" {
+		{$BACKOFFICE_USER:manager} {$BACKOFFICE_HASH}
 	}
 
 	# API → Go (Fiber). X-Real-IP — настоящий адрес клиента: API читает его только от доверенного прокси.

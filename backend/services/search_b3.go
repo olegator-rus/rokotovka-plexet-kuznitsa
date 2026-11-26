@@ -289,7 +289,10 @@ func (s *Services) searchB3(ctx context.Context, requestID string, req in.Search
 	}
 	fams = rc.dropQuantityMisfits(fams, &trace.Rejected)
 	fams = rc.dropOtherCategories(fams, &trace.Rejected)
-	rerankStep := s.rerankFamilies(ctx, resp.Normalized, trace.Route, fams)
+	rerankStep := skipped(domain.StepRerank, rerankAnalogs)
+	if !(attrs.analog && len(ent.reference) > 0) {
+		rerankStep = s.rerankFamilies(ctx, resp.Normalized, trace.Route, fams)
+	}
 	for _, fh := range fams {
 		rc.assignGroup(fh)
 		rc.score(fh)

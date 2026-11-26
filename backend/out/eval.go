@@ -31,9 +31,18 @@ type EvalMetrics struct {
 	ViolationRate  *float64 `json:"violation_rate"`
 	ViolationItems int      `json:"violation_items"`
 	// Errors — запросы, на которых поиск вернул ошибку (в метрики не входят).
-	Errors  int                    `json:"errors"`
-	Latency EvalLatency            `json:"latency"`
-	ByRoute map[string]EvalLatency `json:"by_route,omitempty"`
+	Errors int `json:"errors"`
+	// Searches — сумма freq запросов (поисков); JudgedSearches — из них с релевантным в разметке;
+	// RelevantTop10Weighted — доля таких поисков с релевантным в топ-10 (реплей отложенной недели).
+	Searches              int      `json:"searches,omitempty"`
+	JudgedSearches        int      `json:"judged_searches,omitempty"`
+	RelevantTop10Weighted *float64 `json:"relevant_top10_weighted,omitempty"`
+	// RescuedSearches / LostSearches — поиски (с весом freq), где у предыдущей конфигурации прогона
+	// релевантного в топ-10 не было, а у этой есть (и наоборот); только размеченные. nil у первой.
+	RescuedSearches *int                   `json:"rescued_searches,omitempty"`
+	LostSearches    *int                   `json:"lost_searches,omitempty"`
+	Latency         EvalLatency            `json:"latency"`
+	ByRoute         map[string]EvalLatency `json:"by_route,omitempty"`
 }
 
 // EvalLatency — время ответа сервиса поиска, мс.

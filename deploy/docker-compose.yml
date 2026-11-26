@@ -31,6 +31,7 @@ services:
       OPENSEARCH_URL: ${OPENSEARCH_URL:-}
       EMBEDDER_URL: ${EMBEDDER_URL:-}
       RERANKER_URL: ${RERANKER_URL:-}
+      SEARCH_RERANK_WEIGHT: ${SEARCH_RERANK_WEIGHT:-}
       LLM_PROVIDER: ${LLM_PROVIDER:-}
       LLM_BASE_URL: ${LLM_BASE_URL:-}
       LLM_MODEL: ${LLM_MODEL:-}
@@ -43,6 +44,9 @@ services:
       ADMIN_ENABLED: ${ADMIN_ENABLED:-}
       RATE_LIMIT_PER_MIN: ${RATE_LIMIT_PER_MIN:-}
       LLM_DAILY_BUDGET_RUB: ${LLM_DAILY_BUDGET_RUB:-}
+      AGENT_BUDGET_RESERVE_RUB: ${AGENT_BUDGET_RESERVE_RUB:-}
+      LLM_PER_IP_DAILY_RUB: ${LLM_PER_IP_DAILY_RUB:-}
+      BACKOFFICE_TOKEN: ${BACKOFFICE_TOKEN:?set BACKOFFICE_TOKEN in .env}
       TZ: Europe/Moscow
     depends_on:
       db:
@@ -62,6 +66,8 @@ services:
     environment:
       DOMAIN: ${DOMAIN}
       ACME_EMAIL: ${ACME_EMAIL:?set ACME_EMAIL in .env}
+      BACKOFFICE_USER: ${BACKOFFICE_USER:-manager}
+      BACKOFFICE_HASH: ${BACKOFFICE_HASH:?set BACKOFFICE_HASH in .env}
     ports:
       - "80:80"
       - "443:443"

@@ -11,6 +11,9 @@ const (
 	EvalSetTest       = "test"       // замороженный: итоговые цифры, на нём ничего не настраивается
 	EvalSetRegression = "regression" // проверка правок агента
 	EvalSetDemo       = "demo"       // сценарии видео, в метриках test не участвуют
+	// EvalSetHoldoutWeek — реплей отложенной недели журнала (не из queries.json): поиски последних 7 дней,
+	// которых агент не видел, частота = число поисков; разметка — по тексту из queries.json.
+	EvalSetHoldoutWeek = "holdout_week"
 )
 
 // EvalSets — допустимые наборы.

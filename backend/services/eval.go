@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"runtime/debug"
 	"slices"
 	"sort"
 	"strings"
@@ -62,7 +63,17 @@ const (
 	MsgEvalNoQueries = "Наборы запросов с разметкой не найдены (queries.json)"
 	MsgEvalRunning   = "Прогон уже идёт — дождитесь его окончания"
 	MsgEvalEmptySet  = "В наборе нет запросов"
+	MsgEvalSetField  = "Набор — tune, test, regression, demo или holdout_week"
+	MsgEvalNoHoldout = "Отложенная неделя пуста: в журнале нет исторических поисков за это окно (make import)"
 )
+
+// errNoHoldoutLog — реплей отложенной недели не на чем строить.
+var errNoHoldoutLog = errs.NewValidationError(MsgEvalNoHoldout)
+
+// validEvalSet — набор из queries.json или реплей отложенной недели.
+func validEvalSet(set string) bool {
+	return slices.Contains(domain.EvalSets, set) || set == domain.EvalSetHoldoutWeek
+}
 
 // queryLoader — источник, который умеет отдать наборы запросов (MockJSON).
 type queryLoader interface {
@@ -109,6 +120,8 @@ func (s *Services) RunEvaluation(ctx context.Context, req EvalRequest) (*EvalRes
 		if i > 0 {
 			res.Against = configs[i-1]
 			res.Regressions, res.Improvements = evalCompare(prev, res.PerQuery, res.Against)
+			rescued, lost := evalRescuedSearches(prev, res.PerQuery)
+			res.Metrics.RescuedSearches, res.Metrics.LostSearches = &rescued, &lost
 		}
 		prev = res.PerQuery
 		run.Configs = append(run.Configs, *res)
@@ -132,8 +145,8 @@ func validateEval(req EvalRequest) (string, []string, error) {
 	if set == "" {
 		set = domain.EvalSetTest
 	}
-	if !slices.Contains(domain.EvalSets, set) {
-		bad = append(bad, errs.FieldError{Field: "set", Code: errs.CodeInvalidFormat, Message: "Набор — tune, test, regression или demo"})
+	if !validEvalSet(set) {
+		bad = append(bad, errs.FieldError{Field: "set", Code: errs.CodeInvalidFormat, Message: MsgEvalSetField})
 	}
 	configs := []string{}
 	for _, c := range req.Configs {
@@ -158,6 +171,9 @@ func validateEval(req EvalRequest) (string, []string, error) {
 
 // evalQueries — запросы набора (по id, если заданы), по порядку id.
 func (s *Services) evalQueries(ctx context.Context, set string, ids []string) ([]domain.EvalQuery, error) {
+	if set == domain.EvalSetHoldoutWeek {
+		return s.holdoutQueries(ctx)
+	}
 	loader, ok := s.source.(queryLoader)
 	if !ok {
 		return nil, errs.NewUnavailableError(MsgEvalNoQueries)
@@ -381,9 +397,9 @@ func (s *Services) Evaluations(ctx context.Context, set string) (*out.Evaluation
 	if set == "" {
 		set = domain.EvalSetTest
 	}
-	if !slices.Contains(domain.EvalSets, set) {
+	if !validEvalSet(set) {
 		return nil, errs.NewValidationError(errs.MsgInvalidFields).WithDetails(
-			errs.FieldError{Field: "set", Code: errs.CodeInvalidFormat, Message: "Набор — tune, test, regression или demo"})
+			errs.FieldError{Field: "set", Code: errs.CodeInvalidFormat, Message: MsgEvalSetField})
 	}
 	resp := &out.EvaluationsResponse{Set: set, Configs: []out.EvaluationView{}}
 	resp.Running, resp.LastJob = s.evalJobs().snapshot()
@@ -480,6 +496,19 @@ func (s *Services) StartEvaluation(set string, configs []string) (*out.EvalJob, 
 	go func() {
 		ctx, cancel := context.WithTimeout(context.Background(), evalJobTimeout)
 		defer cancel()
+		// Паника прогона не роняет API и не оставляет задание в running.
+		defer func() {
+			if r := recover(); r != nil {
+				zap.L().Error("оценка: паника в фоновом прогоне", zap.String("job", job.ID), zap.Any("panic", r),
+					zap.ByteString("stack", debug.Stack()))
+				jobs.mu.Lock()
+				defer jobs.mu.Unlock()
+				done := s.now().UTC()
+				job.FinishedAt = &done
+				job.Status, job.Error = "failed", "Прогон упал — причина в журнале API"
+				jobs.running, jobs.last = nil, job
+			}
+		}()
 		progress := func(done, total int) {
 			jobs.mu.Lock()
 			job.Done, job.Total = done, total
@@ -509,4 +538,46 @@ func publicEvalError(err error) string {
 		return e.Message
 	}
 	return "Прогон не удался — причина в журнале API"
+}
+
+// RunProposalSandbox — эффект ждущей правки в песочнице, без принятия и без записи в evaluations:
+// набор прогоняется в B3, B4 (действующие правила) и «B4+правка» (снимок действующих правил с правкой
+// предложения). Третий столбец сравнивается с B4: спасённые и потерянные поиски — эффект именно правки.
+func (s *Services) RunProposalSandbox(ctx context.Context, set, proposalID string) (*EvalResult, error) {
+	p, err := s.loadProposal(ctx, proposalID)
+	if err != nil {
+		return nil, err
+	}
+	if p.Action != domain.ActionRulesPatch {
+		return nil, errs.NewValidationError("Это задача человеку, а не правка правил: прогонять нечего")
+	}
+	var patch RulePatch
+	if err := json.Unmarshal(p.Patch, &patch); err != nil {
+		return nil, errs.NewInternalError("Правка предложения не разбирается").WithCause(err)
+	}
+	cur, err := s.activeRules(ctx)
+	if err != nil {
+		return nil, err
+	}
+	run, err := s.RunEvaluation(ctx, EvalRequest{Set: set, Configs: []string{domain.ConfigB3, domain.ConfigB4}})
+	if err != nil {
+		return nil, err
+	}
+	cand := cur.applyPatch(patch)
+	cand.Version = cur.Version
+	sb, err := s.RunEvaluation(ctx, EvalRequest{Set: set, Configs: []string{domain.ConfigB4}, RulesOverride: cand.snapshot()})
+	if err != nil {
+		return nil, err
+	}
+	c := sb.Configs[0]
+	c.Config = "B4+п"
+	prev := run.Configs[len(run.Configs)-1]
+	c.Against = prev.Config
+	c.Regressions, c.Improvements = evalCompare(prev.PerQuery, c.PerQuery, c.Against)
+	rescued, lost := evalRescuedSearches(prev.PerQuery, c.PerQuery)
+	c.Metrics.RescuedSearches, c.Metrics.LostSearches = &rescued, &lost
+	c.Warnings = append(c.Warnings, fmt.Sprintf("песочница: правка предложения %s (%s) поверх правил v%d, не принята", p.ID.String()[:8], patchLine(patch), cur.Version))
+	run.Configs = append(run.Configs, c)
+	run.Repro = reproLine(run.Set, run.SetHash, run.Queries, run.Configs, run.Commit) + " · правка " + p.ID.String()
+	return run, nil
 }

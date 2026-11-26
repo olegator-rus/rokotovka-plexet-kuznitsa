@@ -50,7 +50,7 @@ func agentTools() []llm.Tool {
 			`{"type":"object","properties":{"diagnosis":{"type":"string","enum":["ALIAS_GAP","TYPO"]},"hypothesis":{"type":"string"},`+
 				`"add":{"type":"array","minItems":1,"maxItems":3,"items":{"type":"object","properties":{"alias":{"type":"string"},"canonical":{"type":"string"},`+
 				`"target":{"type":"string","enum":["vendor","family","category","term"]},"target_id":{"type":"string"},"term_vendor":{"type":"string"},`+
-				`"alias_kind":{"type":"string","enum":["slang","abbreviation","transliteration","alias","typo"]}},"required":["alias","canonical","target","term_vendor"]}},`+
+				`"alias_kind":{"type":"string","enum":["slang","abbreviation","transliteration","alias","typo"]}},"required":["alias","canonical","target"]}},`+
 				`"remove":{"type":"array","items":{"type":"object","properties":{"alias":{"type":"string"}},"required":["alias"]}}},"required":["diagnosis","hypothesis","add"]}`),
 		def("run_evaluation", "Прогон правки из песочницы: целевой кластер до/после и регрессионный набор. Возвращает passed и причины.",
 			`{"type":"object","properties":{"patch_id":{"type":"string"}},"required":["patch_id"]}`),
@@ -548,23 +548,16 @@ func (cr *clusterRun) toolCreatePatch(ctx context.Context, raw string) (any, str
 		if !slices.Contains(aliasKinds, a.AliasKind) {
 			return nil, "", terr("alias_kind — slang, abbreviation, transliteration, alias или typo")
 		}
-		targetVendor := ""
+		// Цель и производитель цели — из каталога; canonical обязан называть цель (поиск подставляет
+		// именно canonical, а не target_id).
+		var targetVendor string
 		switch a.Target {
-		case domain.AliasTargetVendor:
-			if _, ok := cat.vendors[a.TargetID]; !ok {
-				return nil, "", terr("производителя %q нет в каталоге", a.TargetID)
+		case domain.AliasTargetVendor, domain.AliasTargetFamily, domain.AliasTargetCategory:
+			v, err := cat.checkCanonical(a.Target, a.TargetID, canonical)
+			if err != nil {
+				return nil, "", err
 			}
-			targetVendor = a.TargetID
-		case domain.AliasTargetFamily:
-			f := cat.families[a.TargetID]
-			if f == nil {
-				return nil, "", terr("семейства %q нет в каталоге", a.TargetID)
-			}
-			targetVendor = f.VendorID
-		case domain.AliasTargetCategory:
-			if _, ok := cat.categories[a.TargetID]; !ok {
-				return nil, "", terr("категории %q нет в каталоге", a.TargetID)
-			}
+			targetVendor = v
 		case domain.AliasTargetTerm:
 			if a.TargetID != "" {
 				return nil, "", terr("для target=term поле target_id должно быть пустым")
@@ -572,7 +565,7 @@ func (cr *clusterRun) toolCreatePatch(ctx context.Context, raw string) (any, str
 			if missing := cat.unknownWords(canonical); len(missing) > 0 {
 				return nil, "", terr("канонической формы «%s» нет в каталоге (нет слов: %s) — алиас вёл бы в никуда", canonical, strings.Join(missing, ", "))
 			}
-			targetVendor = cat.vendorOfText(canonical)
+			targetVendor = cat.termVendor(canonical)
 		default:
 			return nil, "", terr("target — vendor, family, category или term")
 		}
@@ -582,21 +575,28 @@ func (cr *clusterRun) toolCreatePatch(ctx context.Context, raw string) (any, str
 			}
 			return nil, "", terr("алиас «%s» уже ведёт в «%s»; чтобы заменить, добавь его в remove", alias, ex.Canonical)
 		}
-		// Синонимы между разными производителями запрещены (аналог ≠ синоним).
-		termVendor, known := cat.resolveVendor(a.TermVendor)
-		aliasVendor := cat.vendorOfText(alias)
-		switch {
-		case strings.TrimSpace(a.TermVendor) == "":
-			return nil, "", terr("укажи term_vendor — чей продукт называют этим словом")
-		case targetVendor != "" && !known:
-			vendorProblems = append(vendorProblems, fmt.Sprintf("«%s» — продукт %s, а цель — %s: это аналог, а не синоним",
-				alias, strings.TrimSpace(a.TermVendor), cat.vendorName(targetVendor)))
-		case targetVendor != "" && termVendor != targetVendor:
-			vendorProblems = append(vendorProblems, fmt.Sprintf("«%s» — продукт %s, а цель — %s: синоним между разными производителями",
-				alias, cat.vendorName(termVendor), cat.vendorName(targetVendor)))
-		case targetVendor != "" && aliasVendor != "" && aliasVendor != targetVendor:
-			vendorProblems = append(vendorProblems, fmt.Sprintf("слово «%s» называет производителя %s, а цель — %s",
-				alias, cat.vendorName(aliasVendor), cat.vendorName(targetVendor)))
+		// Синонимы между разными производителями запрещены (аналог ≠ синоним). Чей продукт называют словом,
+		// определяет код по данным — производитель в самом слове, клики после переформулировок запросов
+		// кластера, поиск слова по каталогу; term_vendor модели может только добавить отказ, но не разрешить.
+		if targetVendor != "" {
+			evidence := cr.termVendors(ctx, alias)
+			termVendor, known := cat.resolveVendor(a.TermVendor)
+			aliasVendor := cat.vendorOfText(alias)
+			switch {
+			case aliasVendor != "" && aliasVendor != targetVendor:
+				vendorProblems = append(vendorProblems, fmt.Sprintf("слово «%s» называет производителя %s, а цель — %s: синоним между разными производителями",
+					alias, cat.vendorName(aliasVendor), cat.vendorName(targetVendor)))
+			case len(evidence) == 0:
+				vendorProblems = append(vendorProblems, fmt.Sprintf("нет данных, что «%s» — продукт %s: ни кликов после переформулировок, ни совпадения в каталоге "+
+					"(слова модели не доказательство) — синоним между разными производителями не исключён", alias, cat.vendorName(targetVendor)))
+			case evidence[targetVendor] == "":
+				vendorProblems = append(vendorProblems, fmt.Sprintf("«%s» по данным — продукт %s, а цель — %s: синоним между разными производителями",
+					alias, cat.vendorNames(evidence), cat.vendorName(targetVendor)))
+			case strings.TrimSpace(a.TermVendor) != "" && known && termVendor != targetVendor:
+				vendorProblems = append(vendorProblems, fmt.Sprintf("«%s» — продукт %s, а цель — %s: синоним между разными производителями",
+					alias, cat.vendorName(termVendor), cat.vendorName(targetVendor)))
+			}
+			cr.evidence["term_vendor"] = map[string]any{"alias": alias, "target_vendor": targetVendor, "evidence": evidence}
 		}
 		patch.Add = append(patch.Add, PatchAlias{Kind: "alias", Alias: alias, Canonical: canonical, Target: a.Target,
 			TargetID: a.TargetID, AliasKind: a.AliasKind})

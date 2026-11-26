@@ -96,7 +96,7 @@ func (rc *runCtx) investigate(ctx context.Context, c *failedCluster) clusterResu
 	a, rs := rc.a, rc.rs
 	id := c.ID
 	a.step(ctx, rs, &domain.AgentStep{Kind: domain.StepThought, ClusterID: &id, OK: true,
-		Title:  fmt.Sprintf("Кластер «%s»: %d запросов, потерянный спрос %.0f поисков", c.Label, len(c.Queries), c.LostDemand),
+		Title:  fmt.Sprintf("Кластер «%s»: %d запросов, потерянный спрос — %.0f сессий с неудачным поиском (%d неудачных поисков)", c.Label, len(c.Queries), c.LostDemand, c.Failures),
 		Result: toJSON(map[string]any{"queries": compactQueries(c.Queries), "terms": c.Terms})})
 	// Память кластера — всегда шаг ленты (агент читает её до исследования).
 	t := time.Now()
