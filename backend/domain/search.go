@@ -33,6 +33,8 @@ type SearchEvent struct {
 	ClientID       *string `gorm:"index"`
 	SessionID      *string `gorm:"index"`
 	TotalMs        int
+	// Source — live (поиск) | mock_log (импорт исторических логов).
+	Source string `gorm:"size:16;index;default:live"`
 }
 
 // SearchTrace — трасса поиска целиком.
@@ -71,6 +73,8 @@ type BehaviorEvent struct {
 	ProductID *string `gorm:"index"`
 	Position  *int
 	Payload   JSONB `gorm:"type:jsonb"`
+	// Source — live (POST /api/events) | mock_log (импорт исторических логов).
+	Source string `gorm:"size:16;index;default:live"`
 }
 
 // LLMUsage — учёт одного вызова модели (ARCHITECTURE §4).

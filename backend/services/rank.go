@@ -1,0 +1,383 @@
+package services
+
+import (
+	"sort"
+
+	"kuznica/api/domain"
+	"kuznica/api/out"
+)
+
+// Ранжирование B3 (ARCHITECTURE §2.5): допустимость (обязательные условия) → порог релевантности → группы
+// exact/match/analog → бизнес-слой внутри группы. Бизнес-слой не поднимает товар из нижней группы в верхнюю.
+
+// Настройки ранжирования. Стартовые значения подобраны на tune-наборе.
+const (
+	// b3RRFK — константа RRF для B3: меньше, чем 60 в B2, — верх списков весит заметно больше хвоста.
+	b3RRFK = 20
+	// relThreshold — порог релевантности семейства (RRF, нормированный на лучший в выдаче, 0–1).
+	relThreshold = 0.30
+	// denseOnlyMin — кандидат, найденный только векторами, нужен со скором kNN не ниже этого.
+	denseOnlyMin = 0.745
+	// absentDenseMin — аналог для товара, которого нет в каталоге, — только очень близкий по смыслу.
+	absentDenseMin = 0.76
+	// abbrevDenseMin — то же для запроса из непонятного сокращения («кис»): найти можно только по смыслу.
+	abbrevDenseMin = 0.70
+	// analogBaseRel — релевантность аналога из справочника, если поиск его не нашёл сам.
+	analogBaseRel = 0.5
+	// licenseFitWeight — доля релевантности, которую даёт соответствие количества лицензии.
+	licenseFitWeight = 0.5
+	// maxRejected — сколько отказов писать в трассу.
+	maxRejected = 60
+)
+
+// Веса бизнес-слоя: final = 0.80·relevance + 0.10·popularity + 0.05·margin + 0.05·context.
+var businessWeights = map[string]float64{"relevance": 0.80, "popularity": 0.10, "margin": 0.05, "context": 0.05}
+
+// Причины отказа (trace.rejected[].reason).
+const (
+	rejectMetric     = "license_metric_mismatch"
+	rejectType       = "license_type_mismatch"
+	rejectOrigin     = "origin_mismatch"
+	rejectVendor     = "vendor_mismatch"
+	rejectThreshold  = "below_threshold"
+	rejectReference  = "reference_product"
+	rejectDenseScore = "dense_score_too_low"
+	rejectQuantity   = "license_quantity_mismatch"
+	rejectCategory   = "category_mismatch"
+)
+
+var groupOrder = map[string]int{domain.GroupExact: 0, domain.GroupMatch: 1, domain.GroupAnalog: 2}
+
+// rankCtx — всё, что нужно ранжированию одного запроса.
+type rankCtx struct {
+	lx    *searchLexicon
+	attrs queryAttrs
+	ent   queryEntities
+	// purchased — клиент → купленные позиции (p:id) и семейства (f:id).
+	purchased map[string]bool
+	// purchasedQty — купленное количество по семейству: продление того же объёма.
+	purchasedQty map[string]int
+	// boughtVendors — вендоры купленного.
+	boughtVendors map[string]bool
+	// refCats — категории референсов аналога.
+	refCats map[string]bool
+	// productRel — релевантность позиции из слияния (0 — поиск её не нашёл).
+	productRel map[string]float64
+}
+
+// rejectReason — нарушенное обязательное условие позиции; "" — допустима.
+func (rc rankCtx) rejectReason(d indexDoc) (string, string) {
+	a := rc.attrs
+	if a.origin == "ru" && d.Origin != "ru" {
+		return rejectOrigin, "нужно отечественное ПО"
+	}
+	if !a.analog && len(rc.ent.vendors) > 0 && !contains(rc.ent.vendors, d.VendorID) {
+		return rejectVendor, "в запросе назван другой вендор"
+	}
+	if a.renewal && d.LicenseType != domain.LicenseRenewal {
+		return rejectType, "нужно продление"
+	}
+	if a.metric != "" && d.LicenseMetric != nil && *d.LicenseMetric != a.metric && !isPerUnit(d) {
+		return rejectMetric, "лицензия на " + *d.LicenseMetric + ", нужна на " + a.metric
+	}
+	return "", ""
+}
+
+// fit — насколько вариант лицензии подходит под условия запроса; ok — подходит полностью.
+func (rc rankCtx) fit(d indexDoc) (int, bool) {
+	a := rc.attrs
+	score, ok := 0, true
+	q := 0
+	if d.LicenseQuantity != nil {
+		q = *d.LicenseQuantity
+	}
+	if a.quantity > 0 {
+		switch {
+		case q == a.quantity:
+			score += 8
+		case quantityOK(d, a.quantity):
+			score += 6
+		default:
+			ok = false
+		}
+	}
+	if a.metric != "" && d.LicenseMetric != nil {
+		if *d.LicenseMetric == a.metric {
+			score += 4
+		} else {
+			ok = false
+		}
+	}
+	if a.licType != "" {
+		if d.LicenseType == a.licType {
+			score += 3
+		} else {
+			ok = false
+		}
+	}
+	if a.duration > 0 {
+		if d.LicenseDuration != nil && *d.LicenseDuration == a.duration {
+			score += 2
+		} else {
+			ok = false
+		}
+	}
+	if a.serverPref && d.LicenseMetric != nil && *d.LicenseMetric == domain.MetricServer {
+		score += 2
+	}
+	if !a.renewal && d.LicenseType != domain.LicenseRenewal && d.LicenseType != domain.LicenseUpgrade {
+		score++ // без «продлить» — новая лицензия, а не продление
+	}
+	if rc.purchased["p:"+d.ProductID] {
+		score++
+	}
+	if a.analog && rc.refCats[d.CategoryID] {
+		score++ // замена Windows — ОС для рабочих станций, а не серверная
+	}
+	if pq, bought := rc.purchasedQty[d.FamilyID]; bought && a.quantity == 0 && q == pq {
+		score++ // продление того же объёма, что покупал клиент
+	}
+	return score, ok
+}
+
+// contextScore — контекст клиента: 1 — покупал это семейство, 0.5 — покупал у этого вендора.
+func (rc rankCtx) contextScore(d indexDoc) float64 {
+	switch {
+	case rc.purchased["f:"+d.FamilyID]:
+		return 1
+	case rc.boughtVendors[d.VendorID]:
+		return 0.5
+	}
+	return 0
+}
+
+// familyHit — семейство в выдаче: лучшая под условия лицензия и остальные варианты.
+type familyHit struct {
+	id      string
+	rel     float64
+	group   string
+	head    indexDoc
+	headOK  bool
+	heads   []indexDoc // допустимые варианты по убыванию соответствия
+	fits    map[string]bool
+	final   float64
+	parts   domain.ScoreParts
+	context float64
+}
+
+// buildFamily — семейство из всех его позиций: недопустимые уходят в отказы, лучшая по соответствию —
+// во главу, остальные — в варианты. nil — допустимых позиций нет.
+//
+// При равном соответствии условиям голова — позиция, которую поиск поставил выше (точное название,
+// артикул), затем более популярная.
+func (rc rankCtx) buildFamily(fid string, rel float64, rejected *[]domain.RejectedHit) *familyHit {
+	type scored struct {
+		d   indexDoc
+		fit int
+		ok  bool
+	}
+	var ok []scored
+	for _, pid := range rc.lx.families[fid] {
+		d := rc.lx.docs[pid]
+		if reason, detail := rc.rejectReason(d); reason != "" {
+			addRejected(rejected, d.ProductID, reason, detail)
+			continue
+		}
+		f, full := rc.fit(d)
+		ok = append(ok, scored{d, f, full})
+	}
+	if len(ok) == 0 {
+		return nil
+	}
+	sort.SliceStable(ok, func(i, j int) bool {
+		if ok[i].fit != ok[j].fit {
+			return ok[i].fit > ok[j].fit
+		}
+		if ri, rj := rc.productRel[ok[i].d.ProductID], rc.productRel[ok[j].d.ProductID]; ri != rj {
+			return ri > rj
+		}
+		return ok[i].d.Popularity > ok[j].d.Popularity
+	})
+	fh := &familyHit{id: fid, rel: rel, head: ok[0].d, headOK: ok[0].ok, fits: map[string]bool{}}
+	for _, s := range ok {
+		fh.heads = append(fh.heads, s.d)
+		fh.fits[s.d.ProductID] = s.ok
+	}
+	return fh
+}
+
+func addRejected(rejected *[]domain.RejectedHit, pid, reason, detail string) {
+	for _, r := range *rejected {
+		if r.ProductID == pid {
+			return
+		}
+	}
+	if len(*rejected) < maxRejected {
+		*rejected = append(*rejected, domain.RejectedHit{ProductID: pid, Reason: reason, Detail: detail})
+	}
+}
+
+// assignGroup — exact: семейство или вендор названы в запросе и лицензия подходит полностью (или это
+// продление купленного клиентом продукта); match — остальное релевантное.
+func (rc rankCtx) assignGroup(fh *familyHit) {
+	if fh.group == domain.GroupAnalog {
+		return
+	}
+	named := contains(rc.ent.families, fh.id) || contains(rc.ent.vendors, rc.lx.familyVendor[fh.id])
+	switch {
+	case named && fh.headOK:
+		fh.group = domain.GroupExact
+	case rc.attrs.renewal && rc.purchased["f:"+fh.id] && fh.headOK:
+		fh.group = domain.GroupExact
+	default:
+		fh.group = domain.GroupMatch
+	}
+}
+
+// score — бизнес-слой: слагаемые итогового скора (уже умноженные на веса).
+func (rc rankCtx) score(fh *familyHit) {
+	d := fh.head
+	fh.context = rc.contextScore(d)
+	rel := fh.rel * (1 - licenseFitWeight + licenseFitWeight*rc.licenseFit(d))
+	fh.parts = domain.ScoreParts{
+		Relevance:  round4(businessWeights["relevance"] * rel),
+		Popularity: round4(businessWeights["popularity"] * d.Popularity),
+		Margin:     round4(businessWeights["margin"] * d.Margin),
+		Context:    round4(businessWeights["context"] * fh.context),
+	}
+	fh.final = round4(fh.parts.Relevance + fh.parts.Popularity + fh.parts.Margin + fh.parts.Context)
+}
+
+// dropQuantityMisfits — количество и метрика — обязательные условия: если хотя бы одно семейство закрывает
+// их своей лицензией, семейства без такой лицензии уходят в отказы. Если не закрывает никто — остаются, и
+// покупателю говорится, что точного количества нет (relaxedMessages).
+func (rc rankCtx) dropQuantityMisfits(fams []*familyHit, rejected *[]domain.RejectedHit) []*familyHit {
+	a := rc.attrs
+	if a.quantity == 0 {
+		return fams
+	}
+	strictOK := func(d indexDoc) bool {
+		return quantityOK(d, a.quantity) && (a.metric == "" || d.LicenseMetric == nil || *d.LicenseMetric == a.metric)
+	}
+	some := false
+	for _, fh := range fams {
+		some = some || strictOK(fh.head)
+	}
+	if !some {
+		return fams
+	}
+	out := fams[:0]
+	for _, fh := range fams {
+		if strictOK(fh.head) {
+			out = append(out, fh)
+			continue
+		}
+		for _, d := range fh.heads {
+			addRejected(rejected, d.ProductID, rejectQuantity, "нет лицензии на "+quantityLabel(a.quantity, a.metric))
+		}
+	}
+	return out
+}
+
+// dropOtherCategories — категория названа в запросе («офис», «субд», «сзи»): если в выдаче есть семейства этой
+// категории (по корню), семейства других категорий уходят в отказы.
+func (rc rankCtx) dropOtherCategories(fams []*familyHit, rejected *[]domain.RejectedHit) []*familyHit {
+	c := rc.ent.category
+	if c == "" || rc.attrs.analog {
+		return fams
+	}
+	root := rc.lx.categoryRoot[c]
+	in := func(fh *familyHit) bool { return rc.lx.categoryRoot[rc.lx.familyCat[fh.id]] == root }
+	some := false
+	for _, fh := range fams {
+		some = some || in(fh)
+	}
+	if !some {
+		return fams
+	}
+	out := fams[:0]
+	for _, fh := range fams {
+		if in(fh) {
+			out = append(out, fh)
+			continue
+		}
+		addRejected(rejected, fh.head.ProductID, rejectCategory, "в запросе названа категория «"+rc.lx.categoryName[c]+"»")
+	}
+	return out
+}
+
+// licenseFit — насколько лицензия головы закрывает запрошенное количество: ровно столько — 1, поштучно
+// или пакетами — 0.4, нет — 0. Входит в релевантность: «1С на 5 пользователей» — сначала пакет на 5 мест.
+// Метрика не та (поштучная лицензия на устройство, когда просили на пользователя) — вдвое меньше.
+func (rc rankCtx) licenseFit(d indexDoc) float64 {
+	n := rc.attrs.quantity
+	fit := 0.0
+	switch {
+	case n == 0:
+		fit = 1
+	case d.LicenseQuantity != nil && *d.LicenseQuantity == n:
+		fit = 1
+	case quantityOK(d, n):
+		fit = 0.4
+	}
+	if m := rc.attrs.metric; m != "" && d.LicenseMetric != nil && *d.LicenseMetric != m {
+		fit *= 0.5
+	}
+	return fit
+}
+
+// sortFamilies — по группе, внутри группы — по итоговому скору.
+func sortFamilies(fs []*familyHit) {
+	sort.SliceStable(fs, func(i, j int) bool {
+		if gi, gj := groupOrder[fs[i].group], groupOrder[fs[j].group]; gi != gj {
+			return gi < gj
+		}
+		if fs[i].final != fs[j].final {
+			return fs[i].final > fs[j].final
+		}
+		return fs[i].id < fs[j].id
+	})
+}
+
+// toItem — позиция ответа: голова семейства и остальные допустимые варианты.
+func (rc rankCtx) toItem(fh *familyHit) out.SearchItem {
+	mk := func(d indexDoc) out.SearchItem {
+		return out.SearchItem{
+			ProductID: d.ProductID, FamilyID: d.FamilyID, Title: d.Title, Vendor: d.Vendor, Category: d.Category,
+			LicenseLine: licenseLine(d), PriceRub: d.PriceRub, PriceOnRequest: d.PriceOnRequest, Group: fh.group,
+			MatchesQuery:    fh.fits[d.ProductID],
+			PurchasedBefore: rc.purchased["p:"+d.ProductID] || rc.purchased["f:"+d.FamilyID],
+			Final:           fh.final,
+		}
+	}
+	it := mk(fh.head)
+	for _, v := range fh.heads[1:] {
+		it.Variants = append(it.Variants, mk(v))
+	}
+	return it
+}
+
+func contains(xs []string, x string) bool {
+	for _, v := range xs {
+		if v == x {
+			return true
+		}
+	}
+	return false
+}
+
+// quantityOK — позиция закрывает нужное количество: ровно столько, поштучная продажа или пакеты ядер,
+// которыми набирается нужное число.
+func quantityOK(d indexDoc, n int) bool {
+	if d.LicenseQuantity == nil {
+		return false
+	}
+	q := *d.LicenseQuantity
+	switch {
+	case q == n, isPerUnit(d):
+		return true
+	case q > 0 && d.LicenseMetric != nil && *d.LicenseMetric == domain.MetricCore && n%q == 0:
+		return true
+	}
+	return false
+}

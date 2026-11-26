@@ -36,6 +36,8 @@ services:
       LLM_FOLDER_ID: ${LLM_FOLDER_ID:-}
       LLM_API_KEY: ${LLM_API_KEY:-}
       LLM_MODE: ${LLM_MODE:-}
+      LLM_INTENT_MODEL: ${LLM_INTENT_MODEL:-}
+      LLM_FALLBACK_MODEL: ${LLM_FALLBACK_MODEL:-}
       TZ: Europe/Moscow
     depends_on:
       db:

@@ -45,15 +45,47 @@ func bm25Query(normalized string, size int) map[string]any {
 }
 
 // knnQuery — dense: k ближайших по вектору запроса.
-func knnQuery(vector []float32, k int) map[string]any {
+// filters — обязательные условия B3 (продление, отечественное, вендор): фильтр внутри kNN, иначе k ближайших
+// заполнят позиции, которые всё равно будут отсеяны.
+func knnQuery(vector []float32, k int, filters ...any) map[string]any {
+	knn := map[string]any{"vector": vector, "k": k}
+	if len(filters) > 0 {
+		knn["filter"] = map[string]any{"bool": map[string]any{"filter": filters}}
+	}
 	return map[string]any{
 		"size":    k,
 		"_source": sourceExcludes,
-		"query":   map[string]any{"knn": map[string]any{"embedding": map[string]any{"vector": vector, "k": k}}},
+		"query":   map[string]any{"knn": map[string]any{"embedding": knn}},
 	}
 }
 
 // escapeWildcard — экранирование спецсимволов wildcard: * ? и обратная косая.
 func escapeWildcard(s string) string {
 	return strings.NewReplacer(`\`, `\\`, `*`, `\*`, `?`, `\?`).Replace(s)
+}
+
+// b3MinMatch — B3: из 3+ слов запроса может не совпасть треть, 1–2 слова обязательны все. Иначе «pro» в
+// «windows 11 pro» притягивает Acrobat Pro и Zoom Pro.
+const b3MinMatch = "2<-34%"
+
+// bm25QueryB3 — B3: multi_match с minimum_should_match по тексту запроса; исходные слова алиасов — отдельной
+// веткой should (найти «Р7-Офис» по «офис», когда алиас заменил слово на office).
+func bm25QueryB3(text, expansions, minMatch string, size int, filters []any) map[string]any {
+	should := []any{map[string]any{"multi_match": map[string]any{
+		"query": text, "fields": bm25Fields, "type": "best_fields", "tie_breaker": 0.3,
+		"minimum_should_match": minMatch,
+	}}}
+	if expansions != "" {
+		should = append(should, map[string]any{"multi_match": map[string]any{
+			"query": expansions, "fields": bm25Fields, "type": "best_fields", "tie_breaker": 0.3,
+			"boost": 0.5,
+		}})
+	}
+	return map[string]any{
+		"size":    size,
+		"_source": sourceExcludes,
+		"query": map[string]any{"bool": map[string]any{"should": should, "minimum_should_match": 1,
+			"filter": append([]any{}, filters...)}},
+		"sort": []any{"_score", map[string]any{"popularity": "desc"}, map[string]any{"product_id": "asc"}},
+	}
 }

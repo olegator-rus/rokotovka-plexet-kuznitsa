@@ -1,0 +1,300 @@
+package services
+
+import (
+	"encoding/json"
+	"math"
+	"sort"
+	"strings"
+
+	"kuznica/api/domain"
+)
+
+// Словарь каталога для нормализации и ранжирования (ARCHITECTURE §2.1, §2.5). Строится один раз на снимок
+// каталога: слова названий, семейств, вендоров и категорий (по ним исправляются опечатки и раскладка),
+// слова описаний (по ним слово считается известным), семейства и их лицензии (выбор варианта под условия
+// запроса), связи «аналог». Поиску не нужна база: всё в памяти, каталог маленький.
+
+// searchLexicon — словарь одного снимка каталога.
+type searchLexicon struct {
+	// core — слова названий, семейств, вендоров, категорий и редакций с частотой: словарь опечаток.
+	core map[string]int
+	// known — core + слова описаний и атрибутов: слово из этого множества не исправляется.
+	known map[string]bool
+	docs  map[string]indexDoc
+	// families — семейство → его позиции (порядок каталога).
+	families     map[string][]string
+	familyOrder  []string
+	familyName   map[string]string
+	familyVendor map[string]string
+	familyCat    map[string]string
+	// familyWords — значимые слова названия семейства; idf — вес слова по числу семейств с ним.
+	familyWords map[string]map[string]bool
+	idf         map[string]float64
+	vendorName  map[string]string
+	// vendorPhrases — слова названия вендора (через пробел) → вендор.
+	vendorPhrases map[string]string
+	categoryName  map[string]string
+	// categoryRoot — категория → корневая категория.
+	categoryRoot map[string]string
+	// substitutes — семейство → его аналоги из relations (substitute), в обе стороны.
+	substitutes map[string][]string
+	// baseAliases — алиасы снимка: правила версии 1.
+	baseAliases []domain.Alias
+}
+
+// lexStopWords — служебные слова: не сущности, не исправляются, не делают запрос «непонятным».
+var lexStopWords = setOf(
+	"и", "в", "во", "на", "для", "с", "со", "по", "от", "до", "из", "к", "о", "об", "а", "или", "не", "без",
+	"под", "при", "за", "the", "for", "and", "of", "with", "как", "что", "чем", "где", "мой", "мне", "нам",
+	"нужен", "нужна", "нужно", "нужны", "купить", "куплю", "цена", "стоимость", "лицензия", "лицензии",
+	"лицензий", "лицензию", "программа", "программу", "программы", "версия", "версии", "шт", "штук",
+)
+
+// lexServiceWords — слова условий и намерений из правил атрибутов: известны, хотя в каталоге их может не быть.
+var lexServiceWords = setOf(
+	"пк", "комп", "компа", "компов", "компа", "компьютер", "компьютера", "компьютеров", "компьютеры",
+	"устройство", "устройства", "устройств", "девайс", "девайса", "девайсов", "пользователь", "пользователя",
+	"пользователей", "юзер", "юзера", "юзеров", "сотрудник", "сотрудника", "сотрудников", "человек", "ядро",
+	"ядра", "ядер", "сервер", "сервера", "серверов", "место", "места", "мест", "рабочих", "рабочее", "рабочие",
+	"станция", "станции", "станций", "узел", "узла", "узлов", "подключение", "подключения", "подключений",
+	"год", "года", "лет", "месяц", "месяца", "месяцев", "бессрочно", "бессрочная", "бессрочный", "бессрочную",
+	"навсегда", "подписка", "подписку", "подписки", "продлить", "продление", "продления", "продлению",
+	"отечественный", "отечественная", "отечественное", "отечественные", "российский", "российская",
+	"российское", "российские", "реестре", "реестр", "аналог", "аналоги", "аналога", "замена", "замену",
+	"заменить", "вместо", "альтернатива", "похожее", "похожий",
+)
+
+func setOf(words ...string) map[string]bool {
+	m := make(map[string]bool, len(words))
+	for _, w := range words {
+		m[w] = true
+	}
+	return m
+}
+
+// newSearchLexicon — словарь из снимка каталога.
+func newSearchLexicon(s *domain.CatalogSnapshot) *searchLexicon {
+	lx := &searchLexicon{
+		core: map[string]int{}, known: map[string]bool{}, docs: map[string]indexDoc{},
+		families: map[string][]string{}, familyName: map[string]string{}, familyVendor: map[string]string{},
+		familyCat: map[string]string{}, familyWords: map[string]map[string]bool{}, idf: map[string]float64{},
+		vendorName: map[string]string{}, vendorPhrases: map[string]string{}, categoryName: map[string]string{},
+		categoryRoot: map[string]string{},
+		substitutes:  map[string][]string{}, baseAliases: s.Aliases,
+	}
+	addCore := func(text string) {
+		for _, w := range wordsOf(text) {
+			lx.core[w]++
+			lx.known[w] = true
+		}
+	}
+	for _, v := range s.Vendors {
+		lx.vendorName[v.ID] = v.Name
+		addCore(v.Name)
+		if p := strings.Join(wordsOf(v.Name), " "); p != "" {
+			lx.vendorPhrases[p] = v.ID
+		}
+		lx.vendorPhrases[strings.Join(wordsOf(v.ID), " ")] = v.ID
+	}
+	cats := map[string]domain.Category{}
+	var catWords []string
+	for _, c := range s.Categories {
+		cats[c.ID] = c
+		lx.categoryName[c.ID] = c.Name
+		addCore(c.Name)
+		catWords = append(catWords, wordsOf(c.Name)...)
+	}
+	for _, c := range s.Categories {
+		ids, _ := categoryChain(cats, c.ID)
+		if len(ids) > 0 {
+			lx.categoryRoot[c.ID] = ids[0]
+		}
+	}
+	// generic — слово названия семейства, которое на самом деле называет категорию («антивирус» в «ESET NOD32
+	// Антивирус»): по нему семейство не считается названным в запросе.
+	generic := func(w string) bool {
+		rw := []rune(w)
+		if len(rw) < 6 {
+			return false
+		}
+		for _, c := range catWords {
+			if rc := []rune(c); len(rc) >= 6 && string(rc[:6]) == string(rw[:6]) {
+				return true
+			}
+		}
+		return false
+	}
+	for _, d := range buildDocs(s) {
+		lx.docs[d.ProductID] = d
+		if _, ok := lx.families[d.FamilyID]; !ok {
+			lx.familyOrder = append(lx.familyOrder, d.FamilyID)
+			lx.familyName[d.FamilyID] = d.FamilyName
+			lx.familyVendor[d.FamilyID] = d.VendorID
+			lx.familyCat[d.FamilyID] = d.CategoryID
+			ws := map[string]bool{}
+			for _, w := range wordsOf(d.FamilyName) {
+				if !lexStopWords[w] && !generic(w) {
+					ws[w] = true
+				}
+			}
+			lx.familyWords[d.FamilyID] = ws
+		}
+		lx.families[d.FamilyID] = append(lx.families[d.FamilyID], d.ProductID)
+		addCore(d.Title + " " + d.FamilyName + " " + d.LicenseEdition)
+		for _, w := range wordsOf(d.Description + " " + d.Attributes + " " + d.CategoryPath) {
+			lx.known[w] = true
+		}
+	}
+	df := map[string]int{}
+	for _, ws := range lx.familyWords {
+		for w := range ws {
+			df[w]++
+		}
+	}
+	n := float64(len(lx.familyWords))
+	for w, c := range df {
+		lx.idf[w] = math.Log(1 + n/float64(c))
+	}
+	seen := map[string]bool{}
+	for _, r := range s.Relations {
+		if r.Type != domain.RelationSubstitute {
+			continue
+		}
+		for _, pair := range [][2]string{{r.FromFamily, r.ToFamily}, {r.ToFamily, r.FromFamily}} {
+			key := pair[0] + ">" + pair[1]
+			if seen[key] || pair[0] == pair[1] {
+				continue
+			}
+			seen[key] = true
+			lx.substitutes[pair[0]] = append(lx.substitutes[pair[0]], pair[1])
+		}
+	}
+	for w := range lexServiceWords {
+		lx.known[w] = true
+	}
+	for w := range lexStopWords {
+		lx.known[w] = true
+	}
+	return lx
+}
+
+// isKnown — слово есть в каталоге, словаре правил или служебных словах.
+func (lx *searchLexicon) isKnown(w string, rules *searchRules) bool {
+	if lx.known[w] {
+		return true
+	}
+	return rules != nil && rules.words[w]
+}
+
+// searchRules — словари одной версии правил: алиасы «как пишут → как в каталоге».
+type searchRules struct {
+	version int
+	// aliases — ключ (слова алиаса через пробел) → алиас; maxWords — самый длинный ключ в словах.
+	aliases  map[string]domain.Alias
+	maxWords int
+	// words — слова ключей и канонических форм алиасов: они известны и служат словарём опечаток.
+	words map[string]bool
+	// vendorPhrases — слова алиаса вендора и его канонической формы → вендор («dr web» → drweb).
+	vendorPhrases map[string]string
+}
+
+// newSearchRules — правила из списка алиасов.
+func newSearchRules(version int, aliases []domain.Alias) *searchRules {
+	r := &searchRules{version: version, aliases: map[string]domain.Alias{}, words: map[string]bool{},
+		vendorPhrases: map[string]string{}}
+	for _, a := range aliases {
+		ws := strings.Fields(foldText(a.Alias))
+		if len(ws) == 0 || strings.TrimSpace(a.Canonical) == "" {
+			continue
+		}
+		key := strings.Join(ws, " ")
+		if _, dup := r.aliases[key]; dup {
+			continue
+		}
+		r.aliases[key] = a
+		r.maxWords = max(r.maxWords, len(ws))
+		for _, w := range ws {
+			r.words[w] = true
+		}
+		for _, w := range wordsOf(a.Canonical) {
+			r.words[w] = true
+		}
+		if a.Target == domain.AliasTargetVendor && a.TargetID != "" {
+			r.vendorPhrases[strings.Join(wordsOf(a.Alias), " ")] = a.TargetID
+			r.vendorPhrases[strings.Join(wordsOf(a.Canonical), " ")] = a.TargetID
+		}
+	}
+	return r
+}
+
+// rulesFromSnapshot — правила из снимка config_versions ({"aliases": [...]}).
+func rulesFromSnapshot(rs *domain.RulesSnapshot) (*searchRules, error) {
+	var body struct {
+		Aliases []domain.Alias `json:"aliases"`
+	}
+	if len(rs.Rules) > 0 {
+		if err := json.Unmarshal(rs.Rules, &body); err != nil {
+			return nil, err
+		}
+	}
+	return newSearchRules(rs.Version, body.Aliases), nil
+}
+
+// matchFamilies — семейства, названные в запросе: вес совпавших слов названия (idf), остаются лучшие.
+// Слово «11» в «windows 11» отличает Windows 11 от Windows 10: числа участвуют наравне со словами.
+func (lx *searchLexicon) matchFamilies(tokens []string) []string {
+	best := 0.0
+	score := map[string]float64{}
+	for _, f := range lx.familyOrder {
+		sc := 0.0
+		for _, t := range tokens {
+			for _, w := range wordsOf(t) {
+				if lx.familyWords[f][w] {
+					sc += lx.idf[w]
+				}
+			}
+		}
+		if sc > 0 {
+			score[f] = sc
+			best = math.Max(best, sc)
+		}
+	}
+	if best < 1.2 {
+		return nil
+	}
+	var out []string
+	for _, f := range lx.familyOrder {
+		if score[f] >= best-1e-9 {
+			out = append(out, f)
+		}
+	}
+	return out
+}
+
+// matchVendors — вендоры, названные в запросе: фраза названия вендора среди слов запроса.
+func (lx *searchLexicon) matchVendors(tokens []string, rules *searchRules) []string {
+	var words []string
+	for _, t := range tokens {
+		words = append(words, wordsOf(t)...)
+	}
+	found := map[string]bool{}
+	var out []string
+	for n := 3; n >= 1; n-- {
+		for i := 0; i+n <= len(words); i++ {
+			p := strings.Join(words[i:i+n], " ")
+			id, ok := lx.vendorPhrases[p]
+			if !ok && rules != nil {
+				id, ok = rules.vendorPhrases[p]
+			}
+			if ok && !found[id] && lx.vendorName[id] != "" {
+				found[id] = true
+				out = append(out, id)
+			}
+		}
+	}
+	sort.Strings(out)
+	return out
+}
+
+// isPerUnit — позиция продаётся поштучно: нужное число лицензий указывается при заказе.
+func isPerUnit(d indexDoc) bool { return strings.Contains(d.Attributes, "purchase: поштучно") }

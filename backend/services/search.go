@@ -18,11 +18,8 @@ import (
 	"go.uber.org/zap"
 )
 
-// Поиск: нормализация → отбор кандидатов (B0 — подстрока, B1 — BM25, B2 — BM25 + kNN + RRF) →
-// группировка по семействам → ответ и трасса.
-//
-// B3 и B4 пока работают как B2: атрибуты, порог и бизнес-слой — следующая волна. В трассе это видно:
-// effective_config = B2, а шаги attributes, business, relaxation — skipped с причиной not_implemented.
+// Поиск: B0 — подстрока, B1 — BM25 по нормализованному запросу, B2 — BM25 + kNN + RRF (группировка по
+// семействам без атрибутов и порога); B3/B4 — ядро поиска целиком (search_b3.go). Ответ и трасса —
 
 const (
 	defaultLimit    = 20
@@ -37,7 +34,7 @@ const (
 // Причины пропуска шага (StepBase.Reason).
 const (
 	reasonNotInConfig      = "not_in_config"
-	reasonNotImplemented   = "not_implemented"
+	reasonNoCatalog        = "catalog_not_loaded"
 	reasonEmbedderDisabled = "embedder_disabled"
 	reasonEmbedderDown     = "embedder_unavailable"
 	reasonNoVectors        = "index_without_vectors"
@@ -58,6 +55,11 @@ type retrieval struct {
 
 // Search — POST /api/search. requestID — номер HTTP-запроса: он же request_id ответа, трассы и события.
 func (s *Services) Search(ctx context.Context, requestID string, req in.SearchRequest) (*out.SearchResponse, error) {
+	return s.SearchWith(ctx, requestID, req, SearchOptions{})
+}
+
+// SearchWith — поиск с внутренними параметрами: снимок правил песочницы, без записи в журнал (оценка).
+func (s *Services) SearchWith(ctx context.Context, requestID string, req in.SearchRequest, opts SearchOptions) (*out.SearchResponse, error) {
 	started := time.Now()
 	cfg, limit, err := validateSearch(&req)
 	if err != nil {
@@ -68,11 +70,14 @@ func (s *Services) Search(ctx context.Context, requestID string, req in.SearchRe
 	}
 	ctx, cancel := context.WithTimeout(ctx, searchLimit)
 	defer cancel()
+	st := s.catalog.Load()
 	effective := cfg
 	if cfg == domain.ConfigB3 || cfg == domain.ConfigB4 {
-		effective = domain.ConfigB2
+		if st != nil && st.lex != nil {
+			return s.searchB3(ctx, requestID, req, cfg, limit, st, opts, started)
+		}
+		effective = domain.ConfigB2 // справочники не загружены: без словаря каталога — как B2
 	}
-	st := s.catalog.Load()
 	trace := &domain.Trace{
 		RequestID: requestID, Route: domain.RouteExact, ParseSource: domain.ParseRules, Config: cfg,
 		EffectiveConfig: effective, RulesVersion: 1, Items: []domain.TraceItem{}, Rejected: []domain.RejectedHit{},
@@ -84,13 +89,21 @@ func (s *Services) Search(ctx context.Context, requestID string, req in.SearchRe
 	// normalize
 	t := time.Now()
 	normalized, changes := normalizeQuery(req.Query)
+	text := normalized
+	if effective != domain.ConfigB0 && st != nil && st.lex != nil {
+		// B1/B2: нормализация и словари версии 1 (раскладка, опечатки, алиасы), без атрибутов и порога.
+		rules := s.rulesFor(ctx, domain.ConfigB1, st.lex, opts.Rules)
+		nr := normalizeFull(req.Query, st.lex, rules, req.AsTyped)
+		normalized, changes = nr.normalized(), nr.changes
+		text = strings.TrimSpace(normalized + " " + strings.Join(nr.expansions, " "))
+	}
 	normStep := domain.NormalizeStep{StepBase: domain.StepBase{Name: domain.StepNormalize}, Changes: changes}
 	normStep.Ms = msSince(t)
 
 	// Шаги следующих волн: в B0–B2 их нет по определению конфигурации, в B3/B4 они ещё не написаны.
 	later := reasonNotInConfig
 	if effective != cfg {
-		later = reasonNotImplemented
+		later = reasonNoCatalog
 	}
 	attrStep := domain.AttributesStep{StepBase: skipped(domain.StepAttributes, later), Found: []domain.FoundAttribute{}, Unresolved: []string{}}
 	routeStep := domain.RouteStep{StepBase: skipped(domain.StepRoute, later), Route: domain.RouteExact, Signals: []string{}}
@@ -108,9 +121,9 @@ func (s *Services) Search(ctx context.Context, requestID string, req in.SearchRe
 	var denseCh chan retrieval
 	if effective == domain.ConfigB2 {
 		denseCh = make(chan retrieval, 1)
-		go func() { denseCh <- s.dense(ctx, normalized, info) }()
+		go func() { denseCh <- s.dense(ctx, text, info) }()
 	}
-	bm := s.lexical(ctx, effective, normalized)
+	bm := s.lexical(ctx, effective, text)
 	if bm.err != nil {
 		if denseCh != nil {
 			<-denseCh
@@ -165,7 +178,9 @@ func (s *Services) Search(ctx context.Context, requestID string, req in.SearchRe
 	trace.Steps = []any{normStep, attrStep, routeStep, intentStep, bm.step, dn.step, fusionStep, rerankStep, businessStep, relaxStep}
 	trace.TotalMs = msSince(started)
 	resp.Trace = trace
-	s.saveSearch(req, normalized, resp)
+	if !opts.NoLog {
+		s.saveSearch(req, normalized, resp)
+	}
 	return resp, nil
 }
 
@@ -227,9 +242,23 @@ func (s *Services) lexical(ctx context.Context, cfg, normalized string) retrieva
 	return r
 }
 
+// lexicalB3 — текстовый источник B3 (bm25QueryB3).
+func (s *Services) lexicalB3(ctx context.Context, text, expansions, minMatch string, filters []any) retrieval {
+	t := time.Now()
+	r := retrieval{step: domain.RetrievalStep{StepBase: domain.StepBase{Name: domain.StepBM25}, Mode: "multi_match_msm"}}
+	res, err := s.search.Search(ctx, s.alias, bm25QueryB3(text, expansions, minMatch, candidatesTop, filters))
+	if err != nil {
+		r.err = err
+		return r
+	}
+	r.step.Top, r.docs, r.err = parseHits(res)
+	r.step.Ms = msSince(t)
+	return r
+}
+
 // dense — векторный источник: вектор запроса у сервиса моделей, затем kNN. Сбой не роняет поиск: шаг
 // помечается skipped с причиной, выдача остаётся на BM25.
-func (s *Services) dense(ctx context.Context, normalized string, info *indexMeta) retrieval {
+func (s *Services) dense(ctx context.Context, normalized string, info *indexMeta, filters ...any) retrieval {
 	t := time.Now()
 	r := retrieval{step: domain.RetrievalStep{StepBase: domain.StepBase{Name: domain.StepDense}, Mode: "knn", Top: []domain.RankedHit{}}}
 	skip := func(reason string) retrieval {
@@ -249,7 +278,7 @@ func (s *Services) dense(ctx context.Context, normalized string, info *indexMeta
 		zap.L().Warn("поиск: вектор запроса не получен, dense пропущен", zap.Error(err))
 		return skip(reasonEmbedderDown)
 	}
-	res, err := s.search.Search(ctx, s.alias, knnQuery(vecs[0], candidatesTop))
+	res, err := s.search.Search(ctx, s.alias, knnQuery(vecs[0], candidatesTop, filters...))
 	if err == nil {
 		r.step.Top, r.docs, err = parseHits(res)
 	}

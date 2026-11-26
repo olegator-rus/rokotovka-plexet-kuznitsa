@@ -39,6 +39,11 @@ type LLMConfig struct {
 	APIKey string
 	// Mode — LLM_MODE: on | off. Не задан — on, если модель настроена, иначе off.
 	Mode string
+	// IntentModel — модель разбора намерения (LLM_INTENT_MODEL, по умолчанию aliceai-llm-flash), полный URI
+	// как у Model. LLM_MODEL остаётся моделью по умолчанию для остального (агент).
+	IntentModel string
+	// FallbackModel — резервная модель разбора (LLM_FALLBACK_MODEL, например qwen3.6-35b-a3b); пусто — нет.
+	FallbackModel string
 }
 
 // Online — модель настроена: провайдер openai-compatible и ключ задан.
@@ -56,10 +61,13 @@ func LoadLLM() (LLMConfig, error) {
 		FolderID: env("LLM_FOLDER_ID", ""),
 		APIKey:   env("LLM_API_KEY", ""),
 		Mode:     strings.ToLower(env("LLM_MODE", "")),
+
+		IntentModel:   env("LLM_INTENT_MODEL", defaultLLMModel),
+		FallbackModel: env("LLM_FALLBACK_MODEL", ""),
 	}
-	if l.FolderID != "" && !strings.Contains(l.Model, "://") {
-		l.Model = "gpt://" + l.FolderID + "/" + l.Model
-	}
+	l.Model = l.modelURI(l.Model)
+	l.IntentModel = l.modelURI(l.IntentModel)
+	l.FallbackModel = l.modelURI(l.FallbackModel)
 	switch l.Provider {
 	case "":
 		l.Provider = LLMNone
@@ -94,11 +102,28 @@ func LoadLLM() (LLMConfig, error) {
 	return l, nil
 }
 
+// modelURI — короткое имя модели дополняется каталогом до gpt://<каталог>/<модель>; пусто — пусто.
+func (l LLMConfig) modelURI(m string) string {
+	if m != "" && l.FolderID != "" && !strings.Contains(m, "://") {
+		return "gpt://" + l.FolderID + "/" + m
+	}
+	return m
+}
+
+// ShortModel — имя модели без каталога: для журнала, трассы и llm_usage (каталог наружу не уходит).
+func (l LLMConfig) ShortModel(m string) string {
+	return strings.TrimPrefix(m, "gpt://"+l.FolderID+"/")
+}
+
 // summary — строка сводки без значения ключа.
 func (l LLMConfig) summary() string {
 	if !l.Online() {
 		return fmt.Sprintf("LLM: не настроена (LLM_PROVIDER=%s, ключ %s), режим %s", l.Provider, set(l.APIKey), l.Mode)
 	}
-	model := strings.TrimPrefix(l.Model, "gpt://"+l.FolderID+"/") // каталог в журнал не пишем
-	return fmt.Sprintf("LLM: %s, модель %s, %s, ключ %s, режим %s", l.Provider, model, l.BaseURL, set(l.APIKey), l.Mode)
+	fallback := l.ShortModel(l.FallbackModel) // каталог в журнал не пишем
+	if fallback == "" {
+		fallback = "нет"
+	}
+	return fmt.Sprintf("LLM: %s, модель %s, разбор %s, резерв %s, %s, ключ %s, режим %s", l.Provider,
+		l.ShortModel(l.Model), l.ShortModel(l.IntentModel), fallback, l.BaseURL, set(l.APIKey), l.Mode)
 }

@@ -9,7 +9,7 @@ import (
 // envKeys — все переменные, которые читает пакет.
 var envKeys = []string{"APP_ENV", "PORT", "PUBLIC_ORIGIN", "DATABASE_URL", "TRUSTED_PROXIES", "OPENSEARCH_URL",
 	"EMBEDDER_URL", "RERANKER_URL", "DATA_DIR", "LLM_PROVIDER", "LLM_BASE_URL", "LLM_MODEL", "LLM_FOLDER_ID",
-	"LLM_API_KEY", "LLM_MODE"}
+	"LLM_API_KEY", "LLM_MODE", "LLM_INTENT_MODEL", "LLM_FALLBACK_MODEL"}
 
 // clearEnv — окружение без наших переменных: t.Setenv запоминает значение для восстановления, Unsetenv
 // убирает переменную (для адресов сервисов «не задана» и «пустая» означают разное).
@@ -168,6 +168,18 @@ func TestLLMConfig(t *testing.T) {
 	}
 	if strings.Contains(l.summary(), "b1gfolder") || strings.Contains(l.summary(), "=k") {
 		t.Fatalf("сводка выдаёт каталог или ключ: %s", l.summary())
+	}
+	if l.IntentModel != "gpt://b1gfolder/aliceai-llm-flash" || l.FallbackModel != "" {
+		t.Fatalf("модель разбора по умолчанию — Flash, резерва нет: %+v", l)
+	}
+	t.Setenv("LLM_MODEL", "aliceai-llm")
+	t.Setenv("LLM_FALLBACK_MODEL", "qwen3.6-35b-a3b")
+	if l, err = LoadLLM(); err != nil || l.IntentModel != "gpt://b1gfolder/aliceai-llm-flash" ||
+		l.FallbackModel != "gpt://b1gfolder/qwen3.6-35b-a3b" || l.ShortModel(l.FallbackModel) != "qwen3.6-35b-a3b" {
+		t.Fatalf("LLM_MODEL не меняет модель разбора, резерв дополняется каталогом: %+v, %v", l, err)
+	}
+	if s := l.summary(); strings.Contains(s, "b1gfolder") || !strings.Contains(s, "резерв qwen3.6-35b-a3b") {
+		t.Fatalf("сводка: %s", s)
 	}
 	t.Setenv("LLM_MODE", "off")
 	if l, err = LoadLLM(); err != nil || l.Enabled() {

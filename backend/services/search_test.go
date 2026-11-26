@@ -125,21 +125,21 @@ func TestSearchB2DenseSkipped(t *testing.T) {
 	}
 }
 
-// B3 и B4 пока = B2, и трасса это говорит.
-func TestSearchB3IsB2ForNow(t *testing.T) {
+// B3 — ядро поиска: все шаги трассы на месте, атрибуты и маршрут не пропущены, rerank выключен.
+func TestSearchB3Steps(t *testing.T) {
 	env := imported(t, true)
 	resp := search(t, env, "", "касперский", "")
-	if resp.Config != "B3" || resp.Trace.Config != "B3" || resp.Trace.EffectiveConfig != "B2" {
+	if resp.Config != "B3" || resp.Trace.Config != "B3" || resp.Trace.EffectiveConfig != "B3" {
 		t.Fatalf("конфигурация по умолчанию: %s / %+v", resp.Config, resp.Trace)
 	}
 	_, by := stepsByName(t, resp.Trace)
-	for _, name := range []string{"attributes", "route", "intent", "business", "relaxation"} {
-		if by[name]["skipped"] != true || by[name]["reason"] != reasonNotImplemented {
-			t.Fatalf("%s: %v", name, by[name])
+	for _, name := range []string{"normalize", "attributes", "route", "business", "relaxation"} {
+		if by[name]["skipped"] == true {
+			t.Fatalf("%s пропущен: %v", name, by[name])
 		}
 	}
-	if by["rerank"]["reason"] != reasonNotInConfig {
-		t.Fatalf("rerank: %v", by["rerank"])
+	if by["rerank"]["skipped"] != true || by["intent"]["skipped"] != true {
+		t.Fatalf("rerank/intent: %v / %v", by["rerank"], by["intent"])
 	}
 }
 

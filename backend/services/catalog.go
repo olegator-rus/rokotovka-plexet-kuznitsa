@@ -32,6 +32,8 @@ type catalogState struct {
 	purchased map[string]map[string]bool
 	// productNames — id позиции → название семейства (подсказка клиента в meta).
 	productNames map[string]string
+	// lex — словарь каталога для нормализации и ранжирования B3 (search_lexicon.go).
+	lex *searchLexicon
 }
 
 // newCatalogState — состояние из снимка.
@@ -51,6 +53,7 @@ func newCatalogState(s *domain.CatalogSnapshot, rulesVersion int) *catalogState 
 		clients:      clients,
 		purchased:    make(map[string]map[string]bool, len(s.Clients)),
 		productNames: make(map[string]string, len(s.Products)),
+		lex:          newSearchLexicon(s),
 	}
 	family := make(map[string]string, len(s.Products))
 	for _, p := range s.Products {

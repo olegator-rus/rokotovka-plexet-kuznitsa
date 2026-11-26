@@ -174,3 +174,27 @@ func TestChatLive(t *testing.T) {
 	}
 	t.Logf("finish=%s tool_calls=%v text=%q tokens=%d", resp.FinishReason, calls, resp.Message.Content, resp.Usage.TotalTokens)
 }
+
+// Формат ответа JSON и отключение рассуждений уходят в тело только заданными; кэшированные токены читаются.
+func TestChatJSONFormatAndCachedTokens(t *testing.T) {
+	var got map[string]any
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		_ = json.NewDecoder(r.Body).Decode(&got)
+		_, _ = w.Write([]byte(`{"choices":[{"finish_reason":"stop","message":{"role":"assistant","content":"{\"intent\":\"find_product\"}"}}],
+			"usage":{"prompt_tokens":120,"completion_tokens":20,"total_tokens":140,"prompt_tokens_details":{"cached_tokens":64}}}`))
+	}))
+	defer srv.Close()
+	zero := 0.0
+	resp, err := New(srv.URL, "m", "", "k", time.Second).Chat(context.Background(), Request{
+		Messages: []Message{{Role: "user", Content: "q"}}, Temperature: &zero, ResponseFormat: JSONObject, ReasoningEffort: "none",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if rf, _ := got["response_format"].(map[string]any); rf["type"] != "json_object" || got["reasoning_effort"] != "none" || got["temperature"] != 0.0 {
+		t.Fatalf("тело: %v", got)
+	}
+	if resp.Usage.CachedTokens() != 64 || resp.Usage.PromptTokens != 120 {
+		t.Fatalf("usage: %+v", resp.Usage)
+	}
+}

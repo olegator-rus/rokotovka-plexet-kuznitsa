@@ -64,3 +64,51 @@ export function formatFound(total: number, ms: number | null | undefined): strin
   const head = `Найдено ${formatInt(total)}`
   return ms === null || ms === undefined ? head : `${head} · ${formatMs(ms)}`
 }
+
+/** Доля 0..1 → «12,3 %». Целые проценты без дробной части: 1 → «100 %», 0 → «0 %». */
+export function formatPercent(share: number, digits = 1): string {
+  if (!Number.isFinite(share)) return ''
+  const pct = share * 100
+  const rounded = Number(pct.toFixed(digits))
+  const body = Number.isInteger(rounded) ? formatInt(rounded) : formatDecimal(pct, digits)
+  return `${body}${NBSP}%`
+}
+
+/** Знак числа для изменений: «+», «−» или пусто для нуля. */
+export function signOf(n: number): '+' | '−' | '' {
+  if (n > 0) return '+'
+  if (n < 0) return '−'
+  return ''
+}
+
+/** Изменение доли в процентных пунктах: 0.032 → «+3,2 п.п.». */
+export function formatPp(diffShare: number, digits = 1): string {
+  if (!Number.isFinite(diffShare)) return ''
+  const pp = Number((diffShare * 100).toFixed(digits))
+  if (pp === 0) return `0${NBSP}п.п.`
+  return `${signOf(pp)}${formatDecimal(Math.abs(pp), digits)}${NBSP}п.п.`
+}
+
+/** Число со знаком: 0.0512, 3 → «+0,051»; ноль — «0». */
+export function formatSigned(n: number, digits = 2): string {
+  if (!Number.isFinite(n)) return ''
+  const r = Number(n.toFixed(digits))
+  if (r === 0) return '0'
+  return `${signOf(r)}${formatDecimal(Math.abs(r), digits)}`
+}
+
+/** Сумма в рублях для итогов: от 100 ₽ — целые с разрядами, меньше — как formatCost. */
+export function formatRub(rub: number): string {
+  if (!Number.isFinite(rub)) return ''
+  if (Math.abs(rub) >= 100) return `${formatInt(rub)}${NBSP}₽`
+  return formatCost(rub)
+}
+
+/** Дата и время ISO → «27.05.2026, 14:03» (местное время). Невалидная строка — как есть. */
+export function formatDateTime(iso: string | null | undefined): string {
+  if (!iso) return ''
+  const d = new Date(iso)
+  if (Number.isNaN(d.getTime())) return iso
+  const p = (n: number) => String(n).padStart(2, '0')
+  return `${p(d.getDate())}.${p(d.getMonth() + 1)}.${d.getFullYear()}, ${p(d.getHours())}:${p(d.getMinutes())}`
+}

@@ -18,6 +18,7 @@ import (
 
 	"kuznica/api/config"
 	"kuznica/api/externalApi/catalogsource"
+	"kuznica/api/externalApi/llm"
 	"kuznica/api/externalApi/opensearch"
 	"kuznica/api/externalApi/tei"
 	"kuznica/api/handlers"
@@ -62,6 +63,9 @@ func main() {
 		Reranker: tei.New(cfg.RerankerURL, modelsTimeout),
 		Source:   catalogsource.MockJSON{Dir: cfg.DataDir},
 		LLMMode:  cfg.LLM.Mode,
+
+		IntentModel:    intentModel(cfg.LLM, cfg.LLM.IntentModel),
+		IntentFallback: intentModel(cfg.LLM, cfg.LLM.FallbackModel),
 	})
 
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
@@ -69,6 +73,14 @@ func main() {
 
 	if len(os.Args) > 1 && os.Args[1] == "import" {
 		runImport(ctx, log, svc)
+		return
+	}
+	if len(os.Args) > 1 && os.Args[1] == "import-logs" {
+		runImportLogs(ctx, log, svc)
+		return
+	}
+	if len(os.Args) > 1 && os.Args[1] == "eval" {
+		runEval(ctx, log, svc, os.Args[2:])
 		return
 	}
 	svc.LoadCatalogState(ctx)
@@ -116,11 +128,26 @@ const (
 	modelsTimeout = 120 * time.Second
 )
 
+// llmTimeout — срок HTTP-вызова модели; разбор ставит свой, более короткий срок через контекст.
+const llmTimeout = 30 * time.Second
+
+// intentModel — клиент модели разбора; nil, если модель не настроена или имя пустое.
+func intentModel(c config.LLMConfig, model string) services.ChatModel {
+	if !c.Online() || model == "" {
+		return nil
+	}
+	return llm.New(c.BaseURL, model, c.FolderID, c.APIKey, llmTimeout)
+}
+
 // runImport — `go run . import`: импорт и сводка в stdout; сбой — код выхода 1.
 func runImport(ctx context.Context, log *zap.Logger, svc *services.Services) {
 	res, err := svc.ImportCatalog(ctx)
 	if err != nil {
 		log.Fatal("импорт", zap.Error(err))
+	}
+	// Исторические логи поведения — для аналитики и агента (сводка — в журнале).
+	if _, err := svc.ImportSearchLogs(ctx); err != nil {
+		log.Fatal("импорт логов", zap.Error(err))
 	}
 	enc := json.NewEncoder(os.Stdout)
 	enc.SetIndent("", "  ")

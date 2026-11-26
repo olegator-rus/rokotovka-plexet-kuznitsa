@@ -8,7 +8,7 @@ COMPOSE := docker compose -f deploy/docker-compose.yml --env-file .env
 DEV_COMPOSE := docker compose -f deploy/docker-compose.dev.yml --env-file deploy/.env.dev
 
 .DEFAULT_GOAL := help
-.PHONY: help env db db-down ml import install dev run web test test-live lint check check-secrets build deploy
+.PHONY: help env db db-down ml import eval install dev run web test test-live lint check check-secrets build deploy
 
 help: ## показать список целей
 	@grep -hE '^[a-zA-Z0-9_-]+:.*?## ' $(MAKEFILE_LIST) \
@@ -34,6 +34,13 @@ ml: ## эмбеддер и реранкер на 127.0.0.1:8089 (нативно,
 
 import: db ## импорт data/mock в Postgres и индекс OpenSearch (векторы — если make ml запущен)
 	cd backend && go run . import
+
+# Набор и конфигурации прогона: make eval SET=tune CONFIGS=B1,B3
+SET ?= test
+CONFIGS ?= B0,B1,B2,B3
+
+eval: db ## оценка качества: прогон набора SET (test) по CONFIGS (B0–B3) — таблица, evaluations, data/eval/*.json
+	cd backend && go run . eval --set $(SET) --configs $(CONFIGS)
 
 install: ## зависимости фронта (pnpm)
 	cd frontend && pnpm install

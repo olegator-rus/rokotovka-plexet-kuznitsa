@@ -59,14 +59,33 @@ type Request struct {
 	Tools       []Tool    `json:"tools,omitempty"`
 	MaxTokens   int       `json:"max_tokens"`
 	Temperature *float64  `json:"temperature,omitempty"`
+	// ResponseFormat — {"type":"json_object"}: модель отвечает голым JSON (проверено на Alice AI LLM Flash).
+	ResponseFormat *ResponseFormat `json:"response_format,omitempty"`
+	// ReasoningEffort — "none" отключает рассуждения у моделей с ними (Qwen3.6 в AI Studio: без этого весь
+	// max_tokens уходит в рассуждения и контента нет).
+	ReasoningEffort string `json:"reasoning_effort,omitempty"`
 }
+
+// ResponseFormat — формат ответа модели.
+type ResponseFormat struct {
+	Type string `json:"type"` // json_object
+}
+
+// JSONObject — ответ строго JSON-объектом.
+var JSONObject = &ResponseFormat{Type: "json_object"}
 
 // Usage — расход токенов (для llm_usage и расчёта стоимости).
 type Usage struct {
-	PromptTokens     int `json:"prompt_tokens"`
-	CompletionTokens int `json:"completion_tokens"`
-	TotalTokens      int `json:"total_tokens"`
+	PromptTokens        int `json:"prompt_tokens"`
+	CompletionTokens    int `json:"completion_tokens"`
+	TotalTokens         int `json:"total_tokens"`
+	PromptTokensDetails struct {
+		CachedTokens int `json:"cached_tokens"`
+	} `json:"prompt_tokens_details"`
 }
+
+// CachedTokens — входные токены из кэша провайдера (0, если провайдер не сообщил).
+func (u Usage) CachedTokens() int { return u.PromptTokensDetails.CachedTokens }
 
 // Response — ответ модели: первый choice. Рассуждения (reasoning) в структуру не читаются намеренно.
 type Response struct {

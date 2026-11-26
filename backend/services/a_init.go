@@ -7,6 +7,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"kuznica/api/domain"
 	"kuznica/api/externalApi/opensearch"
 	"kuznica/api/externalApi/tei"
 	"kuznica/api/repositories"
@@ -26,6 +27,8 @@ type Services struct {
 	llmMode  string
 	// alias — алиас индекса каталога в OpenSearch.
 	alias string
+	// intent — разбор намерения на маршруте D (intent.go); не nil всегда: без модели — кэш и правила.
+	intent domain.IntentParser
 
 	// catalog — справочники в памяти (клиенты, версия каталога и правил); меняется импортом целиком.
 	catalog atomic.Pointer[catalogState]
@@ -33,6 +36,8 @@ type Services struct {
 	index atomic.Pointer[cachedIndex]
 	// importMu — один импорт за раз.
 	importMu sync.Mutex
+	// core — состояние ядра поиска B3: кеш правил, разборщик намерения, подсказки (search_core.go).
+	core searchCore
 	// writes — фоновые записи журнала поиска; Wait дожидается их при остановке.
 	writes sync.WaitGroup
 }
@@ -48,6 +53,10 @@ type Options struct {
 	Source CatalogSource
 	// LLMMode — on | off (config.LLMConfig.Mode); пусто — off.
 	LLMMode string
+	// IntentModel — модель разбора намерения; nil — маршрут D на кэше и правилах.
+	IntentModel ChatModel
+	// IntentFallback — резервная модель разбора при сбое основной; nil — без резерва.
+	IntentFallback ChatModel
 	// IndexAlias — алиас индекса каталога; пусто — products. Живой интеграционный тест берёт свой,
 	// чтобы не трогать индекс разработки.
 	IndexAlias string
@@ -64,7 +73,7 @@ func NewServices(repos *repositories.Repos, opts Options) *Services {
 	if opts.IndexAlias == "" {
 		opts.IndexAlias = defaultIndexAlias
 	}
-	return &Services{
+	s := &Services{
 		repos:    repos,
 		now:      opts.Now,
 		search:   opts.Search,
@@ -74,6 +83,13 @@ func NewServices(repos *repositories.Repos, opts Options) *Services {
 		llmMode:  opts.LLMMode,
 		alias:    opts.IndexAlias,
 	}
+	s.intent = newIntentService(s, opts.IntentModel, opts.IntentFallback, opts.LLMMode)
+	// Маршруту D разборщик нужен, если есть модель или кэш разборов в базе; без того и другого он вернул
+	// бы разбор правил как есть — тогда маршрут D честно работает как C (parser_not_connected).
+	if opts.IntentModel != nil || repos.Enabled() {
+		s.SetIntentParser(s.intent)
+	}
+	return s
 }
 
 // Wait — дождаться фоновых записей (журнал поиска) перед остановкой процесса.
