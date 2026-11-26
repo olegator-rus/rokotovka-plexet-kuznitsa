@@ -1,0 +1,25 @@
+# Локальная разработка: только Postgres. API и фронт — с хоста (`make dev`).
+# Имя проекта задано явно: соседние проекты тоже поднимают postgres, compose не должен принять
+# чужой контейнер за свой.
+name: kuznica-dev
+
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: kuznica
+      POSTGRES_USER: kuznica
+      # Случайный пароль из deploy/.env.dev (создаёт `make env`, в git не попадает).
+      POSTGRES_PASSWORD: ${DEV_DB_PASSWORD:?нет deploy/.env.dev — выполните make env}
+    # 5441: 5432 — системный, 5435–5440 заняты соседними проектами. Только loopback.
+    ports: ["127.0.0.1:5441:5432"]
+    volumes:
+      - kuznica_dev_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U kuznica -d kuznica"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  kuznica_dev_pgdata:

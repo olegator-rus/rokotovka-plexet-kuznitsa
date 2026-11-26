@@ -1,0 +1,128 @@
+// Package repositories — доступ к PostgreSQL через GORM. Сервисы ходят в базу только отсюда.
+package repositories
+
+import (
+	"context"
+	"log"
+	"os"
+	"time"
+
+	"kuznica/api/domain"
+	"kuznica/api/pkg/errs"
+
+	"go.uber.org/zap"
+	"gorm.io/driver/postgres"
+	"gorm.io/gorm"
+	gormlogger "gorm.io/gorm/logger"
+)
+
+// Repos — доступ к БД. Репозитории добавляются полями и заполняются в newRepos.
+//
+// Выключенное состояние — nil *Repos: метод с указательным получателем вызывается и на nil,
+// поэтому вызывающему достаточно Enabled(). Правило пакета: любой метод Repos начинается с
+// проверки Enabled(), иначе он разыменует nil и уронит процесс.
+type Repos struct {
+	db *gorm.DB
+}
+
+// newRepos — репозитории поверх db (база или транзакция).
+func newRepos(db *gorm.DB) *Repos {
+	return &Repos{db: db}
+}
+
+// Transaction — fn в одной транзакции: tx — те же репозитории поверх неё. Ошибка или паника fn
+// откатывает всё.
+func (r *Repos) Transaction(ctx context.Context, fn func(tx *Repos) error) error {
+	if !r.Enabled() {
+		return ErrNoDatabase
+	}
+	return r.db.WithContext(ctx).Transaction(func(db *gorm.DB) error { return fn(newRepos(db)) })
+}
+
+// ErrNoDatabase — обращение к БД, когда база выключена. Сервис, которому нужна запись, обязан
+// спросить Enabled() раньше.
+var ErrNoDatabase = errs.NewUnavailableError("Сервис запущен без базы данных")
+
+// Enabled — включены ли репозитории.
+func (r *Repos) Enabled() bool { return r != nil && r.db != nil }
+
+// gormLogger — ParameterizedQueries: значения в лог не подставляются, иначе ошибка БД уносила
+// бы в лог данные покупателей. IgnoreRecordNotFoundError: промах First — штатный ответ «такого нет».
+var gormLogger = gormlogger.New(log.New(os.Stdout, "\r\n", log.LstdFlags), gormlogger.Config{
+	SlowThreshold:             200 * time.Millisecond,
+	LogLevel:                  gormlogger.Warn,
+	Colorful:                  true,
+	ParameterizedQueries:      true,
+	IgnoreRecordNotFoundError: true,
+})
+
+// InitRepos — подключение к БД. Пустой dsn → выключенные репозитории (nil) и WARN: каркас
+// поднимается без базы. Заданный, но нерабочий dsn — ошибка: это опечатка в конфиге или не поднятый
+// `make db`, и молча работать без базы тогда хуже, чем упасть.
+func InitRepos(dsn string) (*Repos, error) {
+	if dsn == "" {
+		zap.L().Warn("DATABASE_URL пуст — работаем без базы: миграция не выполняется")
+		return nil, nil
+	}
+	// DisableForeignKeyConstraintWhenMigrating: никаких FK в БД — все связи резолвим в коде.
+	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{
+		DisableForeignKeyConstraintWhenMigrating: true,
+		Logger:                                   gormLogger,
+	})
+	if err != nil {
+		return nil, err
+	}
+	sqlDB, err := db.DB()
+	if err != nil {
+		return nil, err
+	}
+	sqlDB.SetMaxOpenConns(10)
+	sqlDB.SetConnMaxLifetime(10 * time.Minute)
+	zap.L().Info("база подключена")
+	return newRepos(db), nil
+}
+
+// Ping — база отвечает. Для health: выключенная база — ErrNoDatabase.
+func (r *Repos) Ping(ctx context.Context) error {
+	if !r.Enabled() {
+		return ErrNoDatabase
+	}
+	sqlDB, err := r.db.DB()
+	if err != nil {
+		return err
+	}
+	return sqlDB.PingContext(ctx)
+}
+
+// Close — закрыть пул соединений.
+func (r *Repos) Close() error {
+	if !r.Enabled() {
+		return nil
+	}
+	sqlDB, err := r.db.DB()
+	if err != nil {
+		return err
+	}
+	return sqlDB.Close()
+}
+
+// migrateLock — имя advisory-замка миграции.
+const migrateLock = "kuznica_migrate"
+
+// MigrateDB — ЕДИНСТВЕННАЯ точка миграции схемы. Одна транзакция под pg_advisory_xact_lock: процессы,
+// стартовавшие одновременно, не мигрируют наперегонки. Без базы мигрировать нечего — это не отказ.
+func (r *Repos) MigrateDB() error {
+	if !r.Enabled() {
+		return nil
+	}
+	models := domain.AllModels()
+	if len(models) == 0 {
+		return nil
+	}
+	return r.db.Transaction(func(tx *gorm.DB) error {
+		if err := tx.Exec("SELECT pg_advisory_xact_lock(hashtext(?))", migrateLock).Error; err != nil {
+			return err
+		}
+		return tx.AutoMigrate(models...)
+	})
+}

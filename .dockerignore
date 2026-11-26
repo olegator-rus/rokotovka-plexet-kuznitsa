@@ -1,0 +1,14 @@
+# Контекст сборки deploy/ — корень репозитория. Секреты, внутренняя кухня и тяжёлые каталоги
+# в слои образов не едут.
+.git
+.env
+.env.*
+!.env.example
+**/.env
+**/.env.*
+!**/.env.example
+agency/
+docs/
+**/node_modules
+frontend/dist
+backend/api

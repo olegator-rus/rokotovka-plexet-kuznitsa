@@ -1,0 +1,71 @@
+/* Дизайн-токены магазина. Компоненты берут цвета, размеры и радиусы только отсюда: сырых hex
+   в компонентах нет. Тема одна, светлая. Акцент — тёплый оранжевый «кузницы»: заливка основной
+   кнопки, выбранный фильтр, фокус; белый текст на нём — 5,2:1. */
+
+:root {
+  color-scheme: light;
+
+  /* Поверхности и текст: тёплый светлый фон, карточки белые */
+  --bg: #f6f4f1;
+  --surface: #ffffff;
+  --surface-2: #efebe6;
+  --border: #e4ded6;
+  --border-control: #8a8178;
+  --disabled-text: #8f877f;
+  --text: #1d1a17;
+  --text-2: #655d55;
+
+  --accent: #c2410c;
+  --accent-hover: #9a3412;
+  --accent-soft: #fdeee4;
+  --on-accent: #ffffff;
+  --focus-ring: #c2410c;
+
+  --ok: #15803d;
+  --ok-bg: #e7f6ec;
+  --danger: #b91c1c;
+  --danger-bg: #fdecec;
+
+  /* Плитки товаров без фото: мягкий фон по категории, иконка — тон темнее */
+  --tile-1: #fdeee4;
+  --tile-1-ink: #9a3412;
+  --tile-2: #e8f0fb;
+  --tile-2-ink: #1d4ed8;
+  --tile-3: #e7f6ec;
+  --tile-3-ink: #166534;
+  --tile-4: #f4ecfb;
+  --tile-4-ink: #7e22ce;
+  --tile-5: #fdf6dc;
+  --tile-5-ink: #92400e;
+  --tile-6: #e6f6f7;
+  --tile-6-ink: #0f766e;
+
+  /* Типографика: Golos Text — интерфейс, Unbounded — знак и главный заголовок */
+  --font-sans: 'Golos Text', system-ui, -apple-system, 'Segoe UI', Roboto, Arial, sans-serif;
+  --font-display: 'Unbounded', var(--font-sans);
+  --fs-hero: 1.75rem;
+  --lh-hero: 2.25rem;
+  --fs-h2: 1.125rem;
+  --lh-h2: 1.5rem;
+  --fs-body: 1rem;
+  --lh-body: 1.5rem;
+  --fs-body-2: 0.9375rem;
+  --fs-caption: 0.8125rem;
+  --lh-caption: 1.125rem;
+
+  /* Радиусы и тени */
+  --radius-card: 1rem;
+  --radius-control: 0.75rem;
+  --radius-pill: 999px;
+  --shadow-card: 0 1px 2px rgb(29 26 23 / 0.06);
+  --shadow-card-hover: 0 8px 24px rgb(29 26 23 / 0.1);
+
+  --header-h: 4rem;
+}
+
+@media (min-width: 768px) {
+  :root {
+    --fs-hero: 2.5rem;
+    --lh-hero: 3rem;
+  }
+}
