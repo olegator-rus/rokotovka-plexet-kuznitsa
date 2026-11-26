@@ -40,7 +40,7 @@ func AllModels() []any {
 		&IntentCache{},
 		&IssueCluster{}, &AgentRun{}, &AgentStep{}, &Proposal{}, &Decision{}, &MemorySuppress{}, &MemoryEpisode{},
 		&LicenseRule{}, &CompatibilityRule{}, &AttributeDefinition{}, &SolutionTemplate{}, &QuoteRequest{}, &CatalogInfo{},
-		&Suggestion{},
+		&Suggestion{}, &GuideTurn{},
 	}
 }
 

@@ -48,6 +48,10 @@ var publicRoutes = map[string]bool{
 	fiber.MethodPost + " /api/search":       true,
 	fiber.MethodPost + " /api/events":       true,
 	fiber.MethodPost + " /api/quotes":       true,
+	// Контур подбора: режим подбора.
+	fiber.MethodPost + " /api/guide":       true,
+	fiber.MethodPost + " /api/guide/route": true,
+	fiber.MethodPost + " /api/guide/spec":  true,
 	// «К этой позиции» в спецификации: компаньоны из справочника, без цифр маржи.
 	fiber.MethodGet + " /api/companions": true,
 	fiber.MethodGet + " /api/help":       true,

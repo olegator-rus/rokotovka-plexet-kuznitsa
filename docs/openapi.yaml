@@ -482,6 +482,81 @@ paths:
                 type: object
                 properties:
                   items: { type: array, items: { $ref: "#/components/schemas/HelpAnswer" } }
+  /api/guide/route:
+    post:
+      tags: [Подбор]
+      summary: Состояние строки поиска — search | search_offer | guide (контур подбора)
+      description: Правила SPEC §1, модель не вызывается. Витрина, без входа.
+      operationId: guideRoute
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { type: object, properties: { query: { type: string, maxLength: 500 } } }
+      responses:
+        "200":
+          description: Режим и текст строки-предложения
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  mode: { type: string, enum: [search, search_offer, guide] }
+                  reason: { type: string }
+                  offer: { type: string, description: "текст над выдачей; пусто при mode=search" }
+  /api/guide:
+    post:
+      tags: [Подбор]
+      summary: Ход режима подбора (контур подбора)
+      description: |
+        Модель выбирает идентификаторы и пишет связующую фразу; таблицу, карточки, цены и правила лицензий строит код.
+        Сбой модели, бюджет и предел хода — не ошибка: ответ кодом (meta.fallback) или type=fallback. Витрина, без входа.
+      operationId: guide
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/GuideRequest" }
+      responses:
+        "200":
+          description: Ответ подбора
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/GuideResponse" }
+        "400": { $ref: "#/components/responses/Error" }
+        "503": { $ref: "#/components/responses/Error" }
+  /api/guide/spec:
+    post:
+      tags: [Подбор]
+      summary: Строка подбора в черновик спецификации — update_spec
+      description: Цена перечитывается из каталога. Повтор с тем же op_key не дублирует строку (duplicate=true).
+      operationId: guideSpec
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [selection_id, offer_id, quantity, op_key]
+              properties:
+                session_id: { type: string, maxLength: 128 }
+                selection_id: { type: string, maxLength: 128 }
+                version: { type: integer, minimum: 0, description: "версия черновика, которую видел покупатель" }
+                offer_id: { type: string, maxLength: 128 }
+                quantity: { type: integer, minimum: 0, maximum: 100000, description: "0 — убрать строку" }
+                op_key: { type: string, maxLength: 64 }
+      responses:
+        "200":
+          description: Черновик
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/GuideSpec" }
+        "400": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+        "409": { $ref: "#/components/responses/Error" }
   /api/companions:
     get:
       tags: [Поиск]
@@ -1554,6 +1629,159 @@ components:
               embedder: { type: string, enum: [ok, down, off] }
               time: { type: string, format: date-time }
   schemas:
+    GuideRequest:
+      type: object
+      properties:
+        session_id: { type: string, maxLength: 128 }
+        query: { type: string, maxLength: 500 }
+        message: { type: string, maxLength: 500 }
+        chip:
+          type: object
+          properties: { key: { type: string, maxLength: 64 }, value: { type: string, maxLength: 128 } }
+        condition:
+          type: object
+          properties: { key: { type: string, maxLength: 64 }, value: { type: [string, "null"], description: "null — снять условие" } }
+        state: { $ref: "#/components/schemas/GuideState" }
+    GuideState:
+      type: object
+      properties:
+        selection_id: { type: string }
+        intent: { type: string }
+        requirements:
+          type: object
+          properties:
+            task: { type: string }
+            vendor: { type: string }
+            objects: { type: array, items: { type: object, properties: { kind: { type: string, enum: [workstation, server, user, connection] }, count: { type: integer } } } }
+            platform: { type: string }
+            operation: { type: string, enum: [new, renewal] }
+            term_months: { type: integer }
+            org_type: { type: string }
+            required_features: { type: array, items: { type: string } }
+            use: { type: string }
+            variant: { type: string }
+            cheapest: { type: boolean }
+        origin: { type: object, additionalProperties: { type: string, enum: [user, default, inferred] } }
+        candidate_family_ids: { type: array, items: { type: string } }
+        selected_offer_ids: { type: array, items: { type: string } }
+        fact_ids: { type: array, items: { type: string } }
+        unresolved: { type: array, items: { type: string } }
+        feed_version: { type: string }
+        kb_version: { type: string }
+        turn: { type: integer }
+        questions: { type: integer }
+        skipped: { type: integer }
+        pending: { type: string }
+    GuideResponse:
+      type: object
+      properties:
+        type: { type: string, enum: [comparison, selection, clarification, no_data, out_of_scope, fallback] }
+        lead: { type: string }
+        claims:
+          type: array
+          items:
+            type: object
+            properties:
+              fact_id: { type: string }
+              text: { type: string }
+              source: { type: object, properties: { title: { type: string }, url: { type: string }, fragment: { type: string } } }
+              status: { type: string }
+        comparison:
+          type: [object, "null"]
+          properties:
+            columns: { type: array, items: { type: object, properties: { family_id: { type: string }, title: { type: string }, family_url: { type: string } } } }
+            rows:
+              type: array
+              items:
+                type: object
+                properties:
+                  key: { type: string }
+                  label: { type: string }
+                  kind: { type: string, enum: [feature, commercial] }
+                  note: { type: string }
+                  cells:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        kind: { type: string, enum: [yes, no, value, unknown] }
+                        value: { description: "число (₽) или текст" }
+                        fact_id: { type: string }
+        offers:
+          type: array
+          items:
+            type: object
+            properties:
+              offer_id: { type: string }
+              family_id: { type: string }
+              title: { type: string }
+              family_title: { type: string }
+              sku: { type: string }
+              tier: { type: string }
+              unit: { type: string }
+              quantity: { type: integer }
+              price_per_unit: { type: [number, "null"] }
+              total: { type: [number, "null"] }
+              price_state: { type: string, enum: [priced, on_request] }
+              offer_url: { type: string }
+              term: { type: string }
+              role: { type: string, enum: [match, alternative, rejected] }
+              note: { type: string }
+              rule_id: { type: string }
+              rule_source: { type: string }
+        clarification:
+          type: [object, "null"]
+          properties:
+            key: { type: string }
+            question: { type: string }
+            required: { type: boolean }
+            chips: { type: array, items: { type: object, properties: { label: { type: string }, key: { type: string }, value: { type: string } } } }
+        conditions:
+          type: array
+          items: { type: object, properties: { key: { type: string }, label: { type: string }, value: { type: string }, origin: { type: string, enum: [user, default, inferred] } } }
+        changes: { type: array, items: { type: object, properties: { condition: { type: string }, effect: { type: string } } } }
+        next: { type: array, items: { type: string, enum: [add_to_spec, change_conditions, request_quote] } }
+        trace: { type: array, items: { type: object, properties: { step: { type: string }, tool: { type: string }, ms: { type: number }, result: { type: string } } } }
+        state: { $ref: "#/components/schemas/GuideState" }
+        preliminary: { type: boolean }
+        notice: { type: string }
+        gaps: { type: array, items: { type: string } }
+        meta:
+          type: object
+          properties:
+            turn_id: { type: string }
+            llm_calls: { type: integer }
+            input_tokens: { type: integer }
+            output_tokens: { type: integer }
+            cost_rub: { type: number }
+            ms_first: { type: number }
+            ms_checked: { type: number }
+            ms_total: { type: number }
+            fallback: { type: string }
+            removed: { type: integer }
+    GuideSpec:
+      type: object
+      properties:
+        version: { type: integer }
+        lines:
+          type: array
+          items:
+            type: object
+            properties:
+              offer_id: { type: string }
+              family_id: { type: string }
+              title: { type: string }
+              sku: { type: string }
+              tier: { type: string }
+              quantity: { type: integer }
+              price_per_unit: { type: [number, "null"] }
+              total: { type: [number, "null"] }
+              price_state: { type: string, enum: [priced, on_request] }
+              offer_url: { type: string }
+        total_rub: { type: [number, "null"] }
+        on_request: { type: integer }
+        unresolved: { type: array, items: { type: string } }
+        duplicate: { type: boolean }
     MarginApplied:
       type: object
       properties:

@@ -82,6 +82,10 @@ func RegisterRoutes(app *fiber.App, h *Handler) {
 	// Страница товара (витрина).
 	api.Get("/products/:id", h.Product)
 	api.Get("/help", h.Help) // справка магазина (контур доводки)
+	// Контур подбора: режим подбора в поиске (витрина).
+	api.Post("/guide", h.Guide)
+	api.Post("/guide/route", h.GuideRoute)
+	api.Post("/guide/spec", h.GuideSpec)
 
 	// Служебное: режим LLM без перезапуска (ADMIN_ENABLED).
 	api.Post("/admin/llm-mode", h.SetLLMMode)

@@ -79,6 +79,9 @@ type Config struct {
 	// UpsellTitle — UPSELL_BLOCK_TITLE: заголовок блока допродажи; по умолчанию «Дополните решение» («Часто покупают
 	// вместе» — только когда в данных появятся заказы).
 	UpsellTitle string
+	// GuideMinFactStatus — GUIDE_MIN_FACT_STATUS: порог показа фактов и правил подбора (контур подбора): verified_agent (по
+	// умолчанию — разработка и прогоны) | verified (сверено человеком — видео и защита).
+	GuideMinFactStatus string
 	// UpsellSameVendorMaxRatio — UPSELL_SAME_VENDOR_MAX_RATIO: в ярусе «тот же вендор» блока допродажи — только позиции не
 	// дороже якоря в N раз (по умолчанию 20; 0 — без порога). Дороже — карточка идёт по общим правилам.
 	UpsellSameVendorMaxRatio float64
@@ -98,9 +101,14 @@ func Load() (Config, error) {
 		DataMapping:    env("DATA_MAPPING", ""),
 		IndexAlias:     env("INDEX_ALIAS", ""),
 		UpsellTitle:    env("UPSELL_BLOCK_TITLE", "Дополните решение"),
+
+		GuideMinFactStatus: strings.ToLower(env("GUIDE_MIN_FACT_STATUS", "verified_agent")),
 	}
 	var problems []string
 	var err error
+	if c.GuideMinFactStatus != "verified_agent" && c.GuideMinFactStatus != "verified" {
+		problems = append(problems, fmt.Sprintf("GUIDE_MIN_FACT_STATUS=%q: ожидается verified_agent или verified", c.GuideMinFactStatus))
+	}
 	dev := c.AppEnv == EnvDevelopment
 	c.OpenSearchURL = service("OPENSEARCH_URL", devOpenSearchURL, dev)
 	c.EmbedderURL = service("EMBEDDER_URL", devModelsURL, dev)

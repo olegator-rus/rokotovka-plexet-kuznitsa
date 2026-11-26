@@ -152,6 +152,8 @@ func main() {
 		return
 	}
 	svc.LoadCatalogState(ctx)
+	// Контур подбора: порог показа фактов подбора.
+	svc.SetGuideMinFactStatus(cfg.GuideMinFactStatus)
 	go func() { _ = svc.WarmPanel(ctx) }() // словарь подсказок панели — в фоне, старт не ждёт
 	svc.RecoverAgentRuns(ctx)
 	svc.StartAgentTriggers(ctx)

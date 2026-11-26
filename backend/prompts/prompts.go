@@ -69,3 +69,10 @@ var evalSetsClassifyText string
 // EvalSetsClassify — промпт классификации типов запросов журнала при сборке наборов оценки
 // (services/evalsets_classify.go): только запросы, где правила не уверены.
 func EvalSetsClassify() Prompt { return parse(evalSetsClassifyText) }
+
+//go:embed guide.md
+var guideText string
+
+// Guide — промпт режима подбора (контур подбора, services/guide_llm.go): модель выбирает идентификаторы и пишет связующую
+// фразу; всё остальное строит код.
+func Guide() Prompt { return parse(guideText) }

@@ -23,7 +23,7 @@ const (
 )
 
 // quoteOrigins — откуда позиция попала в спецификацию.
-var quoteOrigins = map[string]bool{"search": true, "companion": true, "template": true}
+var quoteOrigins = map[string]bool{"search": true, "companion": true, "template": true, "guide": true}
 
 // priceKnown — цена позиции точная: фиксированная и указана. «от …», по запросу, индивидуальная, нет в
 // наличии — неизвестна.
@@ -87,7 +87,7 @@ func (s *Services) CreateQuote(ctx context.Context, req in.QuoteRequest) (*out.Q
 		case it.Quantity < 1 || it.Quantity > maxQuoteQuantity:
 			bad = append(bad, errs.FieldError{Field: field + ".quantity", Code: errs.CodeOutOfRange, Message: fmt.Sprintf("Количество от 1 до %d", maxQuoteQuantity)})
 		case !quoteOrigins[it.Origin]:
-			bad = append(bad, errs.FieldError{Field: field + ".origin", Code: errs.CodeInvalidFormat, Message: "Происхождение — search, companion или template"})
+			bad = append(bad, errs.FieldError{Field: field + ".origin", Code: errs.CodeInvalidFormat, Message: "Происхождение — search, companion, template или guide"})
 		case it.Origin == "companion" && len(it.CompanionClass) > 32:
 			bad = append(bad, errs.FieldError{Field: field + ".companion_class", Code: errs.CodeOutOfRange, Message: "Неизвестный класс"})
 		}
