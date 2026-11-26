@@ -168,7 +168,8 @@ func applyDelta(st *domain.GuideState, d guideDelta, origin string) []out.GuideC
 			r.Operation, st.Origin[k] = defaultOperation, originDefault
 			resetOffers()
 		case k == "term_months":
-			r.TermMonths, st.Origin[k] = defaultTerm, originDefault
+			// Снять срок — любой срок, а не снова «1 год по умолчанию».
+			r.TermMonths, st.Origin[k] = 0, originUser
 			resetOffers()
 		case k == "org_type":
 			r.OrgType, st.Origin[k] = defaultOrg, originDefault
@@ -206,7 +207,7 @@ func applyDelta(st *domain.GuideState, d guideDelta, origin string) []out.GuideC
 		st.Origin["count:"+o.Kind] = origin
 		resetOffers()
 		if prev > 0 {
-			effect := "ступень и сумма пересчитаны"
+			effect := fmt.Sprintf("было %d — ступень и сумма пересчитаны", prev)
 			if len(r.Objects) > 1 {
 				effect = "пересчитана строка «" + map[bool]string{true: "серверы", false: "рабочие станции"}[o.Kind == "server"] + "», остальные без изменений"
 			}
@@ -393,7 +394,11 @@ func conditionsOf(st domain.GuideState) []out.GuideCondition {
 	}
 	for _, o := range r.Objects {
 		if o.Count > 0 {
-			cs = append(cs, out.GuideCondition{Key: "count:" + o.Kind, Label: countLabel(o.Kind, o.Count),
+			label := countLabel(o.Kind, o.Count)
+			if r.Task == "webinar" && o.Kind == "user" {
+				label = fmt.Sprintf("%d %s", o.Count, guidePlural(o.Count, "участник", "участника", "участников"))
+			}
+			cs = append(cs, out.GuideCondition{Key: "count:" + o.Kind, Label: label,
 				Value: strconv.Itoa(o.Count), Origin: origin("count:" + o.Kind)})
 		} else {
 			cs = append(cs, out.GuideCondition{Key: "object", Label: objectLabel(o.Kind), Value: o.Kind, Origin: origin("count:" + o.Kind)})
@@ -406,7 +411,9 @@ func conditionsOf(st domain.GuideState) []out.GuideCondition {
 		cs = append(cs, out.GuideCondition{Key: "variant", Label: "«" + r.Variant + "»", Value: r.Variant, Origin: origin("variant")})
 	}
 	cs = append(cs, out.GuideCondition{Key: "operation", Label: operationLabel(r.Operation), Value: r.Operation, Origin: origin("operation")})
-	cs = append(cs, out.GuideCondition{Key: "term_months", Label: termWords(r.TermMonths), Value: strconv.Itoa(r.TermMonths), Origin: origin("term_months")})
+	if r.TermMonths > 0 {
+		cs = append(cs, out.GuideCondition{Key: "term_months", Label: termWords(r.TermMonths), Value: strconv.Itoa(r.TermMonths), Origin: origin("term_months")})
+	}
 	if r.OrgType != defaultOrg || st.Origin["org_type"] == originUser {
 		cs = append(cs, out.GuideCondition{Key: "org_type", Label: orgLabel(r.OrgType), Value: r.OrgType, Origin: origin("org_type")})
 	}
@@ -499,24 +506,28 @@ func vendorLabel(v string) string {
 
 // axisLabels — подписи осей сравнения; ось без подписи — подпись из факта (axis_label) или сама ось.
 var axisLabels = map[string]string{
-	"encryption":        "Шифрование данных",
-	"patch_management":  "Установка обновлений программ",
-	"console":           "Единая консоль управления",
-	"adaptive_anomaly":  "Адаптивный контроль аномалий",
-	"app_control":       "Контроль программ",
-	"device_control":    "Контроль устройств",
-	"web_control":       "Веб-контроль",
-	"sysadmin_tools":    "Инструменты системного администрирования",
-	"mail_server":       "Защита почтовых серверов",
-	"web_gateway":       "Защита интернет-шлюзов",
-	"edr":               "EDR",
-	"purpose":           "Назначение",
-	"platforms":         "Платформы",
-	"certificates":      "Сертификаты",
-	"license_unit":      "Единица лицензирования",
-	"support":           "Техподдержка",
-	"mandatory_access":  "Мандатное управление доступом",
-	"integrity_control": "Мандатный контроль целостности",
+	"encryption":             "Шифрование данных",
+	"patch_management":       "Установка обновлений программ",
+	"console":                "Единая консоль управления",
+	"adaptive_anomaly":       "Адаптивный контроль аномалий",
+	"app_control":            "Контроль программ",
+	"device_control":         "Контроль устройств",
+	"web_control":            "Веб-контроль",
+	"sysadmin_tools":         "Инструменты системного администрирования",
+	"mail_server":            "Защита почтовых серверов",
+	"web_gateway":            "Защита интернет-шлюзов",
+	"edr":                    "EDR",
+	"purpose":                "Назначение",
+	"platforms":              "Платформы",
+	"certificates":           "Сертификаты",
+	"license_unit":           "Единица лицензирования",
+	"support":                "Техподдержка",
+	"mandatory_access":       "Мандатное управление доступом",
+	"integrity_control":      "Мандатный контроль целостности",
+	"managed_devices":        "Управляемые устройства",
+	"concurrent_connections": "Одновременные подключения",
+	"licensed_users":         "Сотрудники",
+	"tape_storage":           "Хранение на лентах",
 }
 
 func axisLabel(axis string) string {

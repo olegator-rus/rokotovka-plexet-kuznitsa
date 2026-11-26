@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"math"
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -38,20 +39,30 @@ const (
 
 // guideTurn — ход подбора.
 type guideTurn struct {
-	g       *guideService
-	cat     *guideCatalog
-	kb      *guideKB
-	st      *domain.GuideState
-	started time.Time
-	reads   int
-	calls   int
-	trace   []out.GuideTraceStep
-	meta    out.GuideMeta
-	gaps    []string
-	prelim  bool
-	removed []string
-	changes []out.GuideChange
-	mixed   bool // в реплике была посторонняя часть
+	g        *guideService
+	cat      *guideCatalog
+	kb       *guideKB
+	st       *domain.GuideState
+	started  time.Time
+	reads    int
+	calls    int
+	trace    []out.GuideTraceStep
+	meta     out.GuideMeta
+	gaps     []string
+	prelim   bool
+	removed  []string
+	changes  []out.GuideChange
+	mixed    bool // в реплике была посторонняя часть
+	gapItems []guideGapItem
+	text     string // реплика хода
+	// altFams — семейства, найденные find_alternatives на этом ходе (проверка «из набора хода»).
+	altFams map[string]bool
+	query   string // строка поиска подбора
+	// prevOffers — семейство → оффер, показанный на прошлом ходе (для названного отличия в changes).
+	prevOffers map[string]string
+	cross      bool // сравнение между вендорами
+	// extraNums — тексты, числа из которых фраза хода может называть (пределы тарифов вне фида).
+	extraNums []string
 }
 
 func (t *guideTurn) ms(since time.Time) float64 {
@@ -238,6 +249,11 @@ func (t *guideTurn) run(ctx context.Context, req in.GuideRequest) *out.GuideResp
 		if req.Chip.Key == "start_over" {
 			*st = newGuideState(t.cat.version, t.kb.version)
 			st.Turn, first = 1, true
+		} else if req.Chip.Key == "direction" && t.kb.subclass(req.Chip.Value) != nil {
+			st.Requirements.Task, st.Origin["task"] = req.Chip.Value, originUser
+			st.CandidateFamilyIDs, st.Pending = []string{}, ""
+		} else if req.Chip.Key == "family" && len(t.cat.byFamily[req.Chip.Value]) > 0 {
+			st.CandidateFamilyIDs, st.Pending = []string{req.Chip.Value}, ""
 		} else if req.Chip.Key == "variant" && req.Chip.Value == "unknown" {
 			st.Unresolved = appendUnique(st.Unresolved, "variant")
 			st.Skipped++
@@ -251,6 +267,13 @@ func (t *guideTurn) run(ctx context.Context, req in.GuideRequest) *out.GuideResp
 		}
 	}
 	src := text
+	t.text, t.query = text, req.Query
+	t.prevOffers = map[string]string{}
+	for _, id := range st.SelectedOfferIDs {
+		if p := t.cat.products[id]; p != nil {
+			t.prevOffers[p.FamilyID] = id
+		}
+	}
 	if first && req.Query != "" {
 		qd := extractConditions(req.Query)
 		fixObjectKinds(&qd, *st)
@@ -278,7 +301,20 @@ func (t *guideTurn) run(ctx context.Context, req in.GuideRequest) *out.GuideResp
 
 	compare := src != "" && asksCompare(src)
 	r := &st.Requirements
-	if len(r.Objects) == 0 && !compare && !r.Cheapest && st.Questions < 2 && st.Skipped < 2 {
+	// Вопрос о свойстве продукта (D8): ответ только фактом.
+	if src != "" && !compare && reAsksFeature.MatchString(guideNorm(src)) {
+		if res := t.featureQuestion(src); res != nil {
+			return res
+		}
+	}
+	// Общий запрос по ИБ (D4): сначала «Что защищаем?».
+	if r.Task == "" && r.Vendor == "" && len(r.Objects) == 0 && reGeneralIS.MatchString(guideNorm(src)) && st.Questions < 2 {
+		return t.askDirection()
+	}
+	_, why := routeQuery(req.Query)
+	// Запрос называет продукт («windows server»), а не только вендора («kaspersky»): число мест не спрашиваем.
+	productNamed := req.Query != "" && why == "product_name" && extractConditions(req.Query).vendor == ""
+	if len(r.Objects) == 0 && !compare && !r.Cheapest && !productNamed && st.Questions < 2 && st.Skipped < 2 {
 		return t.askCount()
 	}
 
@@ -286,7 +322,18 @@ func (t *guideTurn) run(ctx context.Context, req in.GuideRequest) *out.GuideResp
 	t1 := time.Now()
 	t.read()
 	var fams []string
-	if compare {
+	if vendors := guideVendorsIn(src); compare && len(vendors) >= 2 {
+		// Сравнение между вендорами: по семейству на вендора внутри направления, только приведённые единицы.
+		fams = t.crossVendorFamilies(vendors, directionOf(orDefault(r.Task, "endpoint")))
+		if len(fams) >= 2 {
+			t.cross, st.Intent = true, "comparison"
+			r.Vendor = ""
+			delete(st.Origin, "vendor")
+		} else {
+			fams = nil
+		}
+	}
+	if compare && len(fams) == 0 {
 		fams = t.cat.editionFamilies(t.kb, src, r.Vendor, st.CandidateFamilyIDs)
 		if len(fams) >= 2 {
 			st.Intent = "comparison"
@@ -300,8 +347,8 @@ func (t *guideTurn) run(ctx context.Context, req in.GuideRequest) *out.GuideResp
 	if len(fams) == 0 {
 		fams = t.g.searchCatalog(ctx, t.cat, strings.TrimSpace(req.Query+" "+text), r.Vendor)
 		fams = t.cat.focusFamilies(fams, strings.TrimSpace(req.Query+" "+text))
-		if r.Task == "endpoint_protection" && r.Vendor == "" {
-			fams = t.directionFamilies(fams, "endpoint")
+		if dir := directionOf(r.Task); dir != "" && r.Vendor == "" {
+			fams = t.directionFamilies(fams, dir)
 		}
 		if len(fams) > 8 {
 			fams = fams[:8]
@@ -310,7 +357,8 @@ func (t *guideTurn) run(ctx context.Context, req in.GuideRequest) *out.GuideResp
 	if r.Use == "tls_server" {
 		fams = t.cat.withTLSFamilies(fams, r.Vendor)
 	}
-	if r.Vendor == "" && len(fams) > 0 && compare {
+	fams = t.cat.demoteCompanions(fams, src+" "+req.Query)
+	if r.Vendor == "" && len(fams) > 0 && compare && !t.cross {
 		r.Vendor = t.cat.famVend[fams[0]]
 		st.Origin["vendor"] = originInferred
 	}
@@ -319,6 +367,22 @@ func (t *guideTurn) run(ctx context.Context, req in.GuideRequest) *out.GuideResp
 	if len(fams) == 0 {
 		t.gap("no_matching_offer")
 		return t.noData("Под эти условия в каталоге ничего не нашли — измените условия или запросите КП")
+	}
+	if line := t.capacityLine(fams, src); line != "" && !compare {
+		t.read()
+		res := t.capacityTurn(line)
+		if t.mixed {
+			res.Changes = append(res.Changes, out.GuideChange{Condition: "посторонняя часть", Effect: "в каталоге ПО и оборудования это не подбираю"})
+		}
+		res.Preliminary = t.prelim
+		return res
+	}
+	if lf := t.limitFamily(fams); lf != "" && !compare {
+		t.read()
+		st.CandidateFamilyIDs = []string{lf}
+		res := t.limitsTurn(lf)
+		res.Preliminary = t.prelim
+		return res
 	}
 	if vf := t.variantFamily(fams); vf != "" && !compare {
 		t.read()
@@ -346,7 +410,11 @@ func (t *guideTurn) run(ctx context.Context, req in.GuideRequest) *out.GuideResp
 		res = t.comparison(data)
 	} else {
 		res = t.selection(data)
+		t.onRequestBlock(res, data, text)
+		t.renewalQuestion(res, data)
 	}
+	t.namedTierChanges(res)
+	t.perpetualTerm(res)
 	if ctx.Err() != nil {
 		return nil
 	}
@@ -613,6 +681,19 @@ func (t *guideTurn) gather(fams []string) *guideData {
 		}
 		data.fams = append(data.fams, fd)
 	}
+	if r.Use == "tls_server" {
+		any := false
+		for _, fd := range data.fams {
+			for _, v := range fd.matched {
+				any = any || v.scope == "tls_server"
+			}
+		}
+		if any {
+			for _, fd := range data.fams {
+				fd.matched = slices.DeleteFunc(fd.matched, func(v guideOfferView) bool { return v.scope != "tls_server" })
+			}
+		}
+	}
 	t.step("Офферы семейств", toolGetFamilyOffers, fmt.Sprintf("позиций: %d", offersSeen), t2)
 	t.step("Правила лицензирования", toolValidateLicense, fmt.Sprintf("подходят: %d, не подходят по праву использования: %d", matchedN, rejectedN), t2)
 	facts := t.kb.factsFor(fams, r.Platform)
@@ -732,10 +813,24 @@ func (g *guideService) saveTurn(ctx context.Context, sessionID string, t *guideT
 	tools, _ := json.Marshal(t.trace)
 	removed, _ := json.Marshal(nonNilStrings(t.removed))
 	gaps, _ := json.Marshal(nonNilStrings(t.gaps))
+	items := []byte("[]")
+	if len(t.gapItems) == 0 {
+		// Пробел без своей записи — с вопросом хода и семействами-кандидатами.
+		q := t.text
+		if q == "" {
+			q = t.query
+		}
+		for _, g := range t.gaps {
+			t.gapItem(g, t.st.CandidateFamilyIDs, "", q)
+		}
+	}
+	if len(t.gapItems) > 0 {
+		items, _ = json.Marshal(t.gapItems)
+	}
 	row := &domain.GuideTurn{SelectionID: t.st.SelectionID, SessionID: optional(sessionID), Turn: t.st.Turn, Type: res.Type,
 		Tools: tools, LLMCalls: t.meta.LLMCalls, InputTokens: t.meta.InputTokens, OutputTokens: t.meta.OutputTokens,
 		CostRub: t.meta.CostRub, MsFirst: int(t.meta.MsFirst), MsChecked: int(t.meta.MsChecked), MsTotal: int(res.Meta.MsTotal),
-		Removed: removed, Gaps: gaps, Fallback: t.meta.Fallback, CatalogVer: t.cat.version, KBVersion: t.kb.version,
+		Removed: removed, Gaps: gaps, GapItems: items, Fallback: t.meta.Fallback, CatalogVer: t.cat.version, KBVersion: t.kb.version,
 		TurnStartedAt: t.started}
 	g.s.writes.Add(1)
 	go func() {
@@ -774,4 +869,128 @@ func (t *guideTurn) directionFamilies(fams []string, dir string) []string {
 		}
 	}
 	return out
+}
+
+// namedTierChanges — смена числа мест: вместо общей фразы — названное отличие по каждому семейству
+// («ступень 25–49 → 50–99, цена за место 2 813,40 → 2 715,30 ₽»; SPEC §9).
+func (t *guideTurn) namedTierChanges(res *out.GuideResponse) {
+	var named []out.GuideChange
+	for _, o := range res.Offers {
+		if o.Role != out.OfferMatch && o.Role != out.OfferAlternative {
+			continue
+		}
+		prevID, ok := t.prevOffers[o.FamilyID]
+		if !ok || prevID == o.OfferID {
+			continue
+		}
+		prev := t.cat.products[prevID]
+		if prev == nil {
+			continue
+		}
+		pv := t.cat.view(prev, t.kb)
+		if pv.tierLabel() == o.Tier || o.Tier == "" || pv.tierLabel() == "" {
+			continue
+		}
+		eff := fmt.Sprintf("«%s»: ступень %s → %s", o.FamilyTitle, pv.tierLabel(), o.Tier)
+		if pv.priced() && o.PricePerUnit != nil {
+			eff += fmt.Sprintf(", цена за место %s → %s ₽", rubRU(*prev.PriceRub), rubRU(*o.PricePerUnit))
+		}
+		named = append(named, out.GuideChange{Condition: "число мест", Effect: eff})
+	}
+	if len(named) == 0 {
+		return
+	}
+	kept := res.Changes[:0:0]
+	for _, c := range res.Changes {
+		if !strings.HasSuffix(c.Effect, "ступень и сумма пересчитаны") {
+			kept = append(kept, c)
+		}
+	}
+	res.Changes = append(named, kept...)
+}
+
+// perpetualTerm — срок по умолчанию не висит над бессрочными позициями: если все подходящие карточки бессрочные,
+// условие «1 год» снимается (D2: серверная лицензия КриптоПро).
+func (t *guideTurn) perpetualTerm(res *out.GuideResponse) {
+	r := &t.st.Requirements
+	if t.st.Origin["term_months"] != originDefault || r.TermMonths == 0 {
+		return
+	}
+	n := 0
+	for _, o := range res.Offers {
+		if o.Role == out.OfferMatch {
+			if o.Term != "бессрочная" {
+				return
+			}
+			n++
+		}
+	}
+	if n > 0 {
+		r.TermMonths = 0
+		delete(t.st.Origin, "term_months")
+	}
+}
+
+// rubRU — «2 813,40».
+func rubRU(v float64) string {
+	s := fmt.Sprintf("%.2f", v)
+	ip, fp := s[:len(s)-3], s[len(s)-2:]
+	var b strings.Builder
+	for i, c := range ip {
+		if i > 0 && (len(ip)-i)%3 == 0 {
+			b.WriteRune(' ')
+		}
+		b.WriteRune(c)
+	}
+	if fp == "00" {
+		return b.String()
+	}
+	return b.String() + "," + fp
+}
+
+// demoteCompanions — клиентские лицензии (CAL) — дополнение к серверу, а не сам продукт: в конец, если запрос
+// не про CAL (D5 «windows server»).
+func (c *guideCatalog) demoteCompanions(fams []string, q string) []string {
+	if strings.Contains(guideNorm(q), "cal") {
+		return fams
+	}
+	isCAL := func(f string) bool {
+		for _, w := range strings.Fields(guideNorm(c.famName[f])) {
+			if w == "cal" {
+				return true
+			}
+		}
+		return false
+	}
+	out := make([]string, 0, len(fams))
+	for _, f := range fams {
+		if !isCAL(f) {
+			out = append(out, f)
+		}
+	}
+	for _, f := range fams {
+		if isCAL(f) {
+			out = append(out, f)
+		}
+	}
+	return out
+}
+
+// renewalQuestion — продление без названной редакции (D6): выдача остаётся, над ней вопрос «Какая редакция у вас
+// сейчас?» с чипами семейств; ответ сужает подбор до одной редакции.
+func (t *guideTurn) renewalQuestion(res *out.GuideResponse, data *guideData) {
+	if t.st.Requirements.Operation != "renewal" || len(t.st.CandidateFamilyIDs) < 2 || t.st.Questions >= 2 {
+		return
+	}
+	chips := []out.GuideChip{}
+	for _, o := range res.Offers {
+		if o.Role == out.OfferMatch && len(chips) < 5 {
+			chips = append(chips, out.GuideChip{Label: t.shortOf(data, o.FamilyID), Key: "family", Value: o.FamilyID})
+		}
+	}
+	if len(chips) < 2 {
+		return
+	}
+	t.st.Pending, t.st.Questions = "family", t.st.Questions+1
+	res.Clarification = &out.GuideClarify{Key: "family", Question: "Какая редакция у вас сейчас?", Chips: chips}
 }

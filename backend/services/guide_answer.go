@@ -114,7 +114,9 @@ func (t *guideTurn) columnOrder(data *guideData) {
 
 // comparison — таблица сравнения редакций (SPEC §8).
 func (t *guideTurn) comparison(data *guideData) *out.GuideResponse {
-	t.columnOrder(data)
+	if !t.cross {
+		t.columnOrder(data) // между вендорами — в порядке, в каком покупатель их назвал
+	}
 	r := t.st.Requirements
 	tbl := &out.GuideComparisonTbl{}
 	for _, fd := range data.fams {
@@ -124,6 +126,9 @@ func (t *guideTurn) comparison(data *guideData) *out.GuideResponse {
 	axes := []string{}
 	for _, fd := range data.fams {
 		for _, f := range t.kb.byFamily[fd.fid] {
+			if t.cross && !guideCrossAxes[f.Axis] {
+				continue // между вендорами функции не сравниваем: состав различается
+			}
 			if f.verified() && f.applies(r.Platform) && !containsStr(axes, f.Axis) {
 				axes = append(axes, f.Axis)
 			}
@@ -150,6 +155,7 @@ func (t *guideTurn) comparison(data *guideData) *out.GuideResponse {
 			}
 			if c.Kind == out.CellUnknown {
 				t.gap("missing_fact")
+				t.gapItem("missing_fact", []string{fd.fid}, axis, orDefault(t.text, t.query))
 			}
 			if c.Kind == out.CellYes {
 				yes = append(yes, f)
@@ -186,9 +192,36 @@ func (t *guideTurn) comparison(data *guideData) *out.GuideResponse {
 		res.Notice = "В базе знаний нет проверенных сведений о функциях этих редакций — сравнение по каталогу"
 	}
 	res.Lead = t.compareLead(data, claims)
+	if t.cross {
+		res.Claims = []out.GuideClaim{}
+		unitRow := out.GuideRow{Key: "license_unit", Label: "Единица лицензирования", Kind: "commercial"}
+		for _, fd := range data.fams {
+			if len(fd.matched) == 0 {
+				unitRow.Cells = append(unitRow.Cells, out.GuideCell{Kind: out.CellUnknown})
+				continue
+			}
+			unitRow.Cells = append(unitRow.Cells, out.GuideCell{Kind: out.CellValue, Value: fd.matched[0].unitLabel(data.kind)})
+		}
+		tbl.Rows = append([]out.GuideRow{unitRow}, tbl.Rows...)
+		dir := "защиту рабочих станций"
+		if d := directionOf(r.Task); d != "" && d != "endpoint" && t.kb.dirTitle[d] != "" {
+			dir = "решения направления «" + t.kb.dirTitle[d] + "»"
+		}
+		res.Lead = "Сравниваю " + dir
+		if data.qty > 1 {
+			res.Lead += " на " + fmt.Sprint(data.qty) + " " + guidePlural(data.qty, "место", "места", "мест")
+		}
+		res.Lead += ". Состав функций у продуктов различается."
+		if len(axes) == 0 {
+			res.Notice = ""
+		}
+	}
 	res.Next = t.nextSteps(res)
 	return res
 }
+
+// guideCrossAxes — строки сравнения между вендорами: назначение, платформы, сертификаты (SPEC §8).
+var guideCrossAxes = map[string]bool{"purpose": true, "platforms": true, "certificates": true, "linux_os": true}
 
 // shortOf — подпись семейства на ходе.
 func (t *guideTurn) shortOf(data *guideData, fid string) string {
@@ -263,8 +296,12 @@ func (t *guideTurn) commercialRows(data *guideData) []out.GuideRow {
 			comparable, reason = false, "цена по запросу или позиции под условия нет"
 		case v.term == 0:
 			comparable, reason = false, "бессрочная лицензия — в цену за год не пересчитывается"
-		case unit != "" && (v.unit != unit || v.tierLabel() != tier || v.term != term):
+		case v.unit == "pack" && v.pack <= 0:
 			comparable, reason = false, "продаются в разных единицах — сравнить цену за место нельзя"
+		case term >= 0 && v.term != term:
+			comparable, reason = false, "разный срок — сравнить цену за год нельзя"
+		case unit != "" && v.unit == unit && v.unit == "node_tier" && v.tierLabel() != tier:
+			comparable, reason = false, "разные ступени количества — сравнить цену за место нельзя"
 		}
 		if v != nil {
 			unit, tier, term = v.unit, v.tierLabel(), v.term
@@ -275,7 +312,7 @@ func (t *guideTurn) commercialRows(data *guideData) []out.GuideRow {
 		noun = "компьютер"
 	}
 	label := "Цена за " + noun + " в год"
-	if tier != "" {
+	if tier != "" && !t.cross {
 		label += ", " + tier + " мест"
 	}
 	perYear := out.GuideRow{Key: "price_per_seat_year", Label: label, Kind: "commercial"}
@@ -311,6 +348,11 @@ func (t *guideTurn) selection(data *guideData) *out.GuideResponse {
 	res := &out.GuideResponse{Type: out.GuideSelection, Changes: t.changes, Claims: []out.GuideClaim{}}
 	var kept []*guideFamData
 	for _, fd := range data.fams {
+		if lim := t.cat.familyLimit(fd.fid, t.kb); lim > 0 && data.qty > lim {
+			res.Changes = append(res.Changes, out.GuideChange{Condition: countLabel(orDefault(data.kind, "workstation"), data.qty),
+				Effect: fmt.Sprintf("«%s» убран — не больше %d мест", fd.short, lim)})
+			continue
+		}
 		if fd.excluded != "" {
 			res.Changes = append(res.Changes, out.GuideChange{Condition: "нужно " + strings.ToLower(axisLabel(r.RequiredFeatures[0])),
 				Effect: fmt.Sprintf("«%s» убран — %s", fd.short, fd.excluded)})
@@ -427,6 +469,9 @@ func (t *guideTurn) selectionLead(data *guideData, matches []out.GuideOffer) str
 
 // nextSteps — следующий шаг: в спецификацию, если есть подходящая позиция с ценой; запрос КП — всегда.
 func (t *guideTurn) nextSteps(res *out.GuideResponse) []string {
+	if len(res.Offers) > 0 && res.Offers[0].Role == out.OfferMatch && res.Offers[0].PriceState == out.PriceOnRequest {
+		return []string{"request_quote", "change_conditions"} // цена по запросу: главный шаг — запрос КП
+	}
 	next := []string{}
 	for _, o := range res.Offers {
 		if o.Role == out.OfferMatch && o.PriceState == out.PricePriced {
@@ -636,6 +681,9 @@ func (t *guideTurn) allowedNumbers(res *out.GuideResponse) map[string]bool {
 	for _, c := range conditionsOf(*t.st) {
 		add(c.Label)
 	}
+	for _, x := range t.extraNums {
+		add(x)
+	}
 	for _, o := range res.Offers {
 		add(o.Tier)
 		add(o.FamilyTitle)
@@ -678,6 +726,9 @@ func (t *guideTurn) checkAnswer(res *out.GuideResponse, data *guideData) {
 	}
 	// Офферы: существуют, из найденных на ходе семейств, подходящие проходят validate_license.
 	r := t.st.Requirements
+	for f := range t.altFams {
+		shown[f] = true
+	}
 	ok := res.Offers[:0:0]
 	for _, o := range res.Offers {
 		p := t.cat.products[o.OfferID]

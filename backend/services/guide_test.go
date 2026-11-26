@@ -174,6 +174,15 @@ func TestGuideD1WithoutModel(t *testing.T) {
 	if alt == nil || alt.Role != out.OfferAlternative || !strings.Contains(alt.Note, "шифрования") {
 		t.Fatalf("ход 4: Стандартный — в «При изменении условий»: %+v", alt)
 	}
+	named := false
+	for _, c := range r4.Changes {
+		if strings.Contains(c.Effect, "ступень 25–49 → 50–99, цена за место 4 081,50 → 3 940,20 ₽") {
+			named = true
+		}
+	}
+	if !named {
+		t.Fatalf("ход 4: смена ступени должна быть названа: %+v", r4.Changes)
+	}
 	removed := false
 	for _, c := range r4.Changes {
 		if strings.Contains(c.Effect, "Стандартный") && strings.Contains(c.Effect, "убран") {
@@ -214,6 +223,11 @@ func TestGuideD2CryptoProServer(t *testing.T) {
 	ws := findOffer(r, "411620")
 	if ws == nil || ws.Role != out.OfferRejected || ws.RuleID != "cryptopro_workstation_not_server" {
 		t.Fatalf("годовая на рабочее место — в «Не подходит» с правилом: %+v", ws)
+	}
+	for _, c := range r.Conditions {
+		if c.Key == "term_months" {
+			t.Fatalf("у бессрочной серверной не висит «1 год по умолчанию»: %+v", r.Conditions)
+		}
 	}
 	if findOffer(r, "197895") != nil {
 		t.Fatal("обновление для новой покупки не показывается")
@@ -289,8 +303,13 @@ func TestGuideDependentReset(t *testing.T) {
 	}
 	st.Requirements.TermMonths = 24
 	applyDelta(&st, d, originUser)
-	if st.Requirements.TermMonths != defaultTerm || st.Origin["term_months"] != originDefault {
-		t.Fatalf("снятый срок возвращается к значению по умолчанию: %+v", st)
+	if st.Requirements.TermMonths != 0 {
+		t.Fatalf("снятый срок — любой срок: %+v", st)
+	}
+	for _, c := range conditionsOf(st) {
+		if c.Key == "term_months" {
+			t.Fatalf("снятый срок не показывается чипом: %+v", c)
+		}
 	}
 }
 
@@ -449,5 +468,113 @@ func TestGuideExtract(t *testing.T) {
 	d = extractConditions("а для tls-сервера?")
 	if d.use != "tls_server" || d.objKind != "server" {
 		t.Fatalf("tls: %+v", d)
+	}
+}
+
+// предел семейства (KSOS до 24 мест), сравнение между вендорами, вопрос о свойстве без факта, пробелы.
+func guideP84Services(t *testing.T) *Services {
+	s := guideTestServices(t, kbVerified, nil, llmModeOff)
+	g := s.guide()
+	ksos, drweb := "Kaspersky Small Office Security", "Dr.Web Desktop Security Suite"
+	extra := []*domain.Product{
+		guideProduct("503609", "3761", ksos, "kaspersky", ksos+" лицензия на 1 год", 2242.8, "base", gi(12), gi(5), gi(9)),
+		guideProduct("503607", "3761", ksos, "kaspersky", ksos+" лицензия на 1 год", 1654.2, "base", gi(12), gi(20), gi(24)),
+		guideProduct("229555", "4069", drweb, "drweb", "Доктор Веб Комплексная защита на 1 год на 40 ПК", 68695.64, "base", gi(12), nil, nil),
+	}
+	for _, p := range extra {
+		g.fixedCatalog.products[p.ID] = p
+	}
+	g.fixedCatalog = newGuideCatalog("test-feed", g.fixedCatalog.products)
+	raw := `[{"id":"endpoint","title":"Рабочие места и серверы","families":[["3761","KSOS"],["3953","KES Std"],["4069","Dr.Web"]]},
+	 {"offer_id":"229555","family_id":"4069","sale_unit":"package","package_size":40},
+	 {"id":"kb_cb_std_tape_storage","family_id":"3953","axis":"tape_storage","label":"Хранение на лентах","value":"no","source_url":"https://x","status":"verified"}]`
+	var recs []map[string]json.RawMessage
+	_ = json.Unmarshal([]byte(raw), &recs)
+	base := guideTestKB(kbVerified)
+	add := newGuideKB(recs, "x")
+	base.subclasses, base.dirOrder, base.dirTitle = add.subclasses, add.dirOrder, add.dirTitle
+	for k, v := range add.marks {
+		base.marks[k] = v
+	}
+	f := add.facts["kb_cb_std_tape_storage"]
+	f.show = true
+	base.facts[f.ID] = f
+	base.byFamily["3953"] = append(base.byFamily["3953"], f)
+	g.kb.kb = base
+	return s
+}
+
+func TestGuideFamilyLimitAndCrossVendor(t *testing.T) {
+	s := guideP84Services(t)
+	cat, kb := s.guide().fixedCatalog, s.guide().kb.kb
+	if lim := cat.familyLimit("3761", kb); lim != 24 {
+		t.Fatalf("предел KSOS: %d", lim)
+	}
+	if lim := cat.familyLimit("4069", kb); lim != 0 {
+		t.Fatalf("у пакетов Dr.Web предела нет: %d", lim)
+	}
+	r := guideTurnReq(t, s, in.GuideRequest{Query: "нужно решение по информационной безопасности"})
+	if r.Clarification == nil || r.Clarification.Key != "direction" {
+		t.Fatalf("общий запрос по ИБ — вопрос «Что защищаем?»: %+v", r)
+	}
+	st := r.State
+	r = guideTurnReq(t, s, in.GuideRequest{Query: "нужно решение по информационной безопасности", State: &st,
+		Chip: &in.GuideChip{Key: "direction", Value: "endpoint"}, Message: "40 компьютеров, сравни касперского и доктор веб"})
+	if r.Type != out.GuideComparison || len(r.Comparison.Columns) != 2 || r.Comparison.Columns[0].FamilyID != "3953" ||
+		r.Comparison.Columns[1].FamilyID != "4069" || !strings.Contains(r.Lead, "Состав функций у продуктов различается") {
+		t.Fatalf("сравнение между вендорами: KES (KSOS до 24 мест — не колонка) и Dr.Web: %+v %q", r.Comparison, r.Lead)
+	}
+	for _, row := range r.Comparison.Rows {
+		if row.Key == "encryption" {
+			t.Fatal("между вендорами функции не сравниваются")
+		}
+		if row.Key == "price_per_seat_year" && (row.Cells[1].Value != 1717.39 || row.Cells[0].Value != 2813.4) {
+			t.Fatalf("цена за место: пакет / мест: %+v", row.Cells)
+		}
+	}
+}
+
+func TestGuideFeatureQuestion(t *testing.T) {
+	s := guideP84Services(t)
+	r := guideTurnReq(t, s, in.GuideRequest{Query: "kaspersky endpoint security стандартный поддерживает ленточные библиотеки?"})
+	if r.Type != out.GuideSelection || len(r.Claims) != 1 || r.Claims[0].FactID != "kb_cb_std_tape_storage" {
+		t.Fatalf("есть факт — ответ фактом: %s %+v", r.Type, r.Claims)
+	}
+	r = guideTurnReq(t, s, in.GuideRequest{Query: "kaspersky endpoint security стандартный поддерживает квантовое шифрование?"})
+	if r.Type != out.GuideNoData || !strings.Contains(r.Lead, "не нашли") || !containsStr(r.Gaps, "missing_fact") || len(r.Claims) != 0 {
+		t.Fatalf("нет факта — «не нашли» и пробел: %+v", r)
+	}
+	if len(r.State.QuoteNotes) != 1 {
+		t.Fatalf("вопрос уходит в запрос КП: %+v", r.State.QuoteNotes)
+	}
+}
+
+// D9: вместимость вебинара — тариф из фида меньше нужного, тариф вне фида только во фразе и запросе КП.
+func TestGuideWebinarCapacity(t *testing.T) {
+	s := guideTestServices(t, kbVerified, nil, llmModeOff)
+	g := s.guide()
+	opt := "МТС Линк Optimum 30"
+	g.fixedCatalog.products["535950"] = guideProduct("535950", "414326", opt, "webinar", opt+" до 30 участников, на 1 год", 6620, "base", gi(12), nil, nil)
+	g.fixedCatalog = newGuideCatalog("test-feed", g.fixedCatalog.products)
+	g.searchFn = func(context.Context, string) ([]string, error) { return []string{"414326"}, nil }
+	raw := `[{"family_id":"414326","line":"mts-link-webinar","vendor_name":"МТС Линк Optimum 30 (вебинары)"},
+	 {"family_id":null,"line":"mts-link-webinar","vendor_name":"МТС Линк Pro 150 (вебинары)"},
+	 {"id":"kb_opt30","family_id":"414326","axis":"webinar_participants","value":{"max":30,"unit":"участников"},"source_url":"https://v","status":"verified"},
+	 {"id":"kb_pro150","family_id":null,"line":"mts-link-webinar","variant":"Pro 150","axis":"webinar_participants","value":{"max":150,"unit":"участников"},"source_url":"https://v","status":"verified"}]`
+	var recs []map[string]json.RawMessage
+	_ = json.Unmarshal([]byte(raw), &recs)
+	g.kb.kb = newGuideKB(recs, "kb-d9")
+	r := guideTurnReq(t, s, in.GuideRequest{Query: "мтс линк для вебинара на 150 человек"})
+	if r.Type != out.GuideNoData || !strings.Contains(r.Lead, "Pro 150") || len(r.Offers) != 1 ||
+		r.Offers[0].OfferID != "535950" || r.Offers[0].Role != out.OfferAlternative {
+		t.Fatalf("D9: %s %q %+v", r.Type, r.Lead, r.Offers)
+	}
+	for _, o := range r.Offers {
+		if o.FamilyID == "" {
+			t.Fatal("из факта вне фида оффер не создаётся")
+		}
+	}
+	if len(r.State.QuoteNotes) != 1 || !strings.Contains(r.State.QuoteNotes[0], "Pro 150") {
+		t.Fatalf("тариф вне фида — в запрос КП: %+v", r.State.QuoteNotes)
 	}
 }

@@ -557,6 +557,36 @@ paths:
         "400": { $ref: "#/components/responses/Error" }
         "404": { $ref: "#/components/responses/Error" }
         "409": { $ref: "#/components/responses/Error" }
+  /api/guide/gaps:
+    get:
+      tags: [Подбор]
+      summary: Вопросы, на которые подбор не ответил — для отчёта SearchOps (бэк-офис)
+      operationId: guideGaps
+      parameters:
+        - { name: days, in: query, schema: { type: integer, minimum: 1, maximum: 90, default: 7 } }
+      responses:
+        "200":
+          description: Пробелы подбора
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  title: { type: string }
+                  days: { type: integer }
+                  total: { type: integer }
+                  cause: { type: object, properties: { code: { type: string }, label: { type: string }, owner: { type: string }, owner_label: { type: string } } }
+                  rows:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        code: { type: string }
+                        label: { type: string }
+                        question: { type: string }
+                        count: { type: integer }
+                        families: { type: array, items: { type: object, properties: { family_id: { type: string }, title: { type: string } } } }
+        "401": { $ref: "#/components/responses/Error" }
   /api/companions:
     get:
       tags: [Поиск]
@@ -804,11 +834,11 @@ paths:
         (разрез AGENT_HOLDOUT_FROM), частота запроса — число его поисков за неделю. Набор собран из журнала
         покупателей, поэтому без входа в бэк-офис `query_id` и `text` в `regressions`/`improvements` пустые —
         остаются метрики и число изменений.
-      operationId: evaluations
-      security: []
         Наборы «по цели» на фиде (контур эталонов): `etalon`, `tz`, `neighbors`, `understanding`, `feed_tune`,
         `feed_regression`, `closed`; их метрики — в `metrics.target`, конфигурации — BM25, B1, B2, live. Тексты
         закрытого набора без входа в бэк-офис не отдаются.
+      operationId: evaluations
+      security: []
       parameters:
         - { name: set, in: query, schema: { type: string, enum: [tune, test, regression, demo, holdout_week, etalon, tz, neighbors, understanding, feed_tune, feed_regression, closed], default: test } }
       responses:
@@ -1672,6 +1702,7 @@ components:
         questions: { type: integer }
         skipped: { type: integer }
         pending: { type: string }
+        quote_notes: { type: array, items: { type: string }, description: "условия покупателя для комментария запроса КП" }
     GuideResponse:
       type: object
       properties:
@@ -1746,6 +1777,7 @@ components:
         preliminary: { type: boolean }
         notice: { type: string }
         gaps: { type: array, items: { type: string } }
+        docs: { type: [object, "null"], properties: { title: { type: string }, url: { type: string } } }
         meta:
           type: object
           properties:

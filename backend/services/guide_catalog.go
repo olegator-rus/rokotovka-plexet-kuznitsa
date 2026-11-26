@@ -22,6 +22,8 @@ type guideCatalog struct {
 	famName  map[string]string
 	famURL   map[string]string
 	famVend  map[string]string
+	limMu    sync.Mutex
+	limits   map[string]int // семейство → предел мест (familyLimit)
 }
 
 // guideCatalogCache — индекс текущего каталога.

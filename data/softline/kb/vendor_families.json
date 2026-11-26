@@ -141,7 +141,8 @@
   "family_id": "447242",
   "feed_family_name": "МТС Линк Стандарт",
   "feed_vendor": "webinar",
-  "in_feed": true
+  "in_feed": true,
+  "line_note": "Тарифы коммуникаций (встречи до 200 участников), не вебинарные"
  },
  {
   "vendor_name": "МТС Линк Про",
@@ -149,7 +150,8 @@
   "family_id": "447243",
   "feed_family_name": "МТС Линк Про",
   "feed_vendor": "webinar",
-  "in_feed": true
+  "in_feed": true,
+  "line_note": "Тарифы коммуникаций (встречи до 200 участников), не вебинарные"
  },
  {
   "vendor_name": "Сканер-ВС",
@@ -179,5 +181,37 @@
   "feed_family_name": "Dr.Web «Малый бизнес» сертифицированный ФСТЭК России (сертификат №3509)",
   "feed_vendor": "drweb",
   "in_feed": true
+ },
+ {
+  "vendor_name": "МТС Линк Optimum 30 (вебинары)",
+  "line": "mts-link-webinar",
+  "family_id": "414326",
+  "feed_family_name": "МТС Линк Optimum 30",
+  "feed_vendor": "webinar",
+  "in_feed": true
+ },
+ {
+  "vendor_name": "МТС Линк Pro 150 (вебинары)",
+  "line": "mts-link-webinar",
+  "family_id": null,
+  "feed_family_name": null,
+  "feed_vendor": null,
+  "in_feed": false
+ },
+ {
+  "vendor_name": "МТС Линк Enterprise (вебинары)",
+  "line": "mts-link-webinar",
+  "family_id": null,
+  "feed_family_name": null,
+  "feed_vendor": null,
+  "in_feed": false
+ },
+ {
+  "vendor_name": "МТС Линк Enterprise Total (вебинары)",
+  "line": "mts-link-webinar",
+  "family_id": null,
+  "feed_family_name": null,
+  "feed_vendor": null,
+  "in_feed": false
  }
 ]

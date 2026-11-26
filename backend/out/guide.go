@@ -37,6 +37,14 @@ type GuideResponse struct {
 	Gaps []string `json:"gaps"`
 	// Meta — время и стоимость хода (SPEC §13).
 	Meta GuideMeta `json:"meta"`
+	// Docs — ссылка на документацию вендора у ответа «нет сведений» (SPEC §9); null — нет.
+	Docs *GuideDocs `json:"docs"`
+}
+
+// GuideDocs — страница вендора или семейства.
+type GuideDocs struct {
+	Title string `json:"title"`
+	URL   string `json:"url"`
 }
 
 // GuideClaim — утверждение о свойстве продукта: только проверенный факт базы знаний с источником.
@@ -203,4 +211,36 @@ type GuideRoute struct {
 	Mode   string `json:"mode"` // search | search_offer | guide
 	Reason string `json:"reason"`
 	Offer  string `json:"offer"`
+}
+
+// GuideGapReport — GET /api/guide/gaps: «Вопросы, на которые подбор не ответил» для отчёта SearchOps.
+type GuideGapReport struct {
+	Title string        `json:"title"`
+	Days  int           `json:"days"`
+	Cause GuideGapCause `json:"cause"`
+	Total int           `json:"total"`
+	Rows  []GuideGapRow `json:"rows"`
+}
+
+// GuideGapCause — причина диагностики SearchOps для пробелов подбора.
+type GuideGapCause struct {
+	Code       string `json:"code"`
+	Label      string `json:"label"`
+	Owner      string `json:"owner"`
+	OwnerLabel string `json:"owner_label"`
+}
+
+// GuideGapRow — событие пробела и вопрос покупателя (ПДн замаскированы).
+type GuideGapRow struct {
+	Code     string           `json:"code"`
+	Label    string           `json:"label"`
+	Question string           `json:"question"`
+	Families []GuideGapFamily `json:"families"`
+	Count    int              `json:"count"`
+}
+
+// GuideGapFamily — семейство, о котором спрашивали.
+type GuideGapFamily struct {
+	FamilyID string `json:"family_id"`
+	Title    string `json:"title"`
 }

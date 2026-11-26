@@ -30,6 +30,8 @@ var (
 	reCount    = regexp.MustCompile(`(\d{1,6})\s*(-?х|-?ти|-?и)?\s*(пк|компьютер[а-яёa-z]*|рабоч[а-яёa-z]*\s+(мест[а-яёa-z]*|станц[а-яёa-z]*)|рабоч[а-яёa-z]*|мест[а-яёa-z]*|узл[а-яёa-z]*|устройств[а-яёa-z]*|машин[а-яёa-z]*|сервер[а-яёa-z]*|пользовател[а-яёa-z]*|сотрудник[а-яёa-z]*|человек|подключени[а-яёa-z]*|лицензи[а-яёa-z]*|шт[а-яёa-z]*)`)
 	reCountRev = regexp.MustCompile(`(пк|компьютер[а-яёa-z]*|мест[а-яёa-z]*|узл[а-яёa-z]*|сервер[а-яёa-z]*|пользовател[а-яёa-z]*)\s+(будет\s+)?(\d{1,6})`)
 	reBudet    = regexp.MustCompile(`будет\s+(\d{1,6})`)
+	// «вообще на 300.» — число без объекта в конце фразы: относится к главному объекту подбора.
+	reBareCount = regexp.MustCompile(`на\s+(\d{1,6})\s*(?:$|[,.;!?])`)
 	// «серверов будет три» — число словом после объекта.
 	reCountWordRev = regexp.MustCompile(`(сервер[а-яёa-z]*|компьютер[а-яёa-z]*|пк|станци[а-яёa-z]*)\s+(будет\s+|нужно\s+)?(один|одна|два|две|три|четыре|пять|десять)(?:$|[^а-яё])`)
 	reTermYear     = regexp.MustCompile(`на\s+(\d{1,2}|один|одн[а-яёa-z]*|два|две|три)\s+(год|года|лет)`)
@@ -40,6 +42,7 @@ var (
 
 // numWords — числительные словами для условий.
 var numWords = map[string]int{"один": 1, "одна": 1, "одно": 1, "два": 2, "две": 2, "три": 3, "четыре": 4, "пять": 5,
+	"двух": 2, "трех": 3, "четырех": 4, "пяти": 5, "десяти": 10,
 	"десять": 10, "двадцать": 20, "тридцать": 30, "сорок": 40, "пятьдесят": 50, "сто": 100}
 
 // guideVendorStems — начало слова → вендор каталога.
@@ -147,6 +150,12 @@ func extractConditions(q string) guideDelta {
 		}
 	}
 	if len(d.objects) == 0 {
+		if m := reBareCount.FindStringSubmatch(q); m != nil {
+			n, _ := strconv.Atoi(m[1])
+			d.objects = append(d.objects, domain.GuideObject{Kind: "", Count: n}) // вид — из состояния
+		}
+	}
+	if len(d.objects) == 0 {
 		if m := reBudet.FindStringSubmatch(q); m != nil {
 			n, _ := strconv.Atoi(m[1])
 			d.objects = append(d.objects, domain.GuideObject{Kind: "", Count: n}) // вид — из состояния
@@ -219,7 +228,8 @@ func objectKind(w string) string {
 	switch {
 	case strings.HasPrefix(w, "сервер"):
 		return "server"
-	case strings.HasPrefix(w, "пользовател") || strings.HasPrefix(w, "сотрудник") || strings.HasPrefix(w, "человек"):
+	case strings.HasPrefix(w, "пользовател") || strings.HasPrefix(w, "сотрудник") || strings.HasPrefix(w, "человек") ||
+		strings.HasPrefix(w, "админ") || strings.HasPrefix(w, "участник"):
 		return "user"
 	case strings.HasPrefix(w, "подключени"):
 		return "connection"

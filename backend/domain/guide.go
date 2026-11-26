@@ -24,6 +24,8 @@ type GuideState struct {
 	Questions int    `json:"questions"`
 	Skipped   int    `json:"skipped"`
 	Pending   string `json:"pending"`
+	// QuoteNotes — условия покупателя для запроса КП («нужен именно Windows, там 1С и домен»; вопрос без факта).
+	QuoteNotes []string `json:"quote_notes"`
 }
 
 // GuideRequirements — условия покупателя (SPEC §2).
@@ -65,6 +67,7 @@ type GuideTurn struct {
 	MsTotal       int
 	Removed       JSONB  `gorm:"type:jsonb"` // удалённые проверкой утверждения
 	Gaps          JSONB  `gorm:"type:jsonb"` // события пробелов
+	GapItems      JSONB  `gorm:"type:jsonb"` // пробелы с вопросом и семействами — отчёт SearchOps
 	Fallback      string `gorm:"size:32"`    // причина ответа без модели
 	CatalogVer    string `gorm:"size:64"`
 	KBVersion     string `gorm:"size:64"`

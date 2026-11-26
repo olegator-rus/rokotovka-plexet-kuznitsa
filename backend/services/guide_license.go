@@ -3,6 +3,8 @@ package services
 import (
 	"encoding/json"
 	"fmt"
+	"regexp"
+	"strconv"
 	"strings"
 
 	"kuznica/api/domain"
@@ -98,6 +100,9 @@ func validateLicense(v guideOfferView, r domain.GuideRequirements, kb *guideKB, 
 	}
 	if v.platform == "astra_alt_ks3" && !strings.Contains(guideNorm(r.Platform), "astra") && !strings.Contains(guideNorm(r.Platform), "альт") {
 		code(ruleCodeScope, "Исполнение для Astra Linux SE / Альт (класс КС3) — для другой ОС не нужно")
+	}
+	if lim := titleLimit(v.p.Title); lim > 0 && n > lim {
+		code(ruleCodeTier, fmt.Sprintf("Тариф до %d — не для %d", lim, n))
 	}
 	if r.Variant != "" && v.variant != "" && guideNorm(v.variant) != guideNorm(r.Variant) {
 		code(ruleCodeVariant, "Другой уровень защищённости: «"+v.variant+"»")
@@ -311,4 +316,15 @@ func reqField(r domain.GuideRequirements, k string) string {
 		return r.Operation
 	}
 	return ""
+}
+
+var reTitleLimit = regexp.MustCompile(`до\s+(\d{1,6})\s+(участник|пользовател|устройств|ящик|подключени)`)
+
+// titleLimit — предел позиции из названия («Optimum 30 … до 30 участников»); 0 — нет.
+func titleLimit(title string) int {
+	if m := reTitleLimit.FindStringSubmatch(strings.ToLower(title)); m != nil {
+		n, _ := strconv.Atoi(m[1])
+		return n
+	}
+	return 0
 }

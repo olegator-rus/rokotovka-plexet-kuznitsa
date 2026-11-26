@@ -300,17 +300,33 @@ func (c *guideCatalog) findAlternatives(fid string, limit int) []string {
 	if len(ps) == 0 {
 		return nil
 	}
-	cat := ps[0].CategoryID
-	var out []string
-	for f, list := range c.byFamily {
-		if f == fid || len(list) == 0 || list[0].CategoryID != cat {
-			continue
+	same := func(level func(p *domain.Product) string) []string {
+		want := level(ps[0])
+		var out []string
+		if want == "" {
+			return nil
 		}
-		if c.baseOffers(f) > 0 {
-			out = append(out, f)
+		for f, list := range c.byFamily {
+			if f == fid || len(list) == 0 || level(list[0]) != want || c.famVend[f] == c.famVend[fid] {
+				continue
+			}
+			if c.baseOffers(f) > 0 {
+				out = append(out, f)
+			}
 		}
+		sort.Strings(out)
+		return out
 	}
-	sort.Strings(out)
+	out := same(func(p *domain.Product) string { return p.CategoryID })
+	if len(out) == 0 {
+		// Категория вся «по запросу» — тот же раздел уровнем выше.
+		out = same(func(p *domain.Product) string {
+			if n := len(p.CategoryPathIDs); n >= 2 {
+				return p.CategoryPathIDs[n-2]
+			}
+			return ""
+		})
+	}
 	if len(out) > limit {
 		out = out[:limit]
 	}

@@ -18,6 +18,9 @@ const (
 	CauseRelationRule  = "relation_rule"
 	CauseNonProduct    = "non_product"
 	CauseNoise         = "noise"
+	// CauseKBMissing — контур подбора: подбор не ответил, в базе знаний нет факта (SPEC §12). Пополняет базу трек знаний,
+	// публикует человек.
+	CauseKBMissing = "kb_missing"
 )
 
 // Cause — причина, её подпричины (коды диагнозов) и владелец.
@@ -48,6 +51,8 @@ var Causes = []Cause{
 		Diagnoses: []string{domain.DiagBrokenRelation, domain.DiagMissingRequired, domain.DiagConstraintConflict}, Owner: RoleProduct},
 	{Code: CauseNonProduct, Label: "Запрос не о товаре",
 		Diagnoses: []string{domain.DiagNonProduct}, Owner: RoleEcom},
+	{Code: CauseKBMissing, Label: "Нет факта в базе знаний",
+		Diagnoses: []string{domain.DiagKBMissingFact}, Owner: RoleProduct},
 	{Code: CauseNoise, Label: "Шум или недостаточно данных",
 		Diagnoses: []string{domain.DiagNoise, domain.DiagUnknown}, Owner: RoleHead},
 }

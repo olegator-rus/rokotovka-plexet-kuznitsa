@@ -45,3 +45,12 @@ func (h *Handler) GuideSpec(c *fiber.Ctx) error {
 	}
 	return c.JSON(res)
 }
+
+// GuideGaps — GET /api/guide/gaps?days=: пробелы подбора для отчёта SearchOps (бэк-офис).
+func (h *Handler) GuideGaps(c *fiber.Ctx) error {
+	res, err := h.services.GuideGaps(c.UserContext(), c.QueryInt("days", 7))
+	if err != nil {
+		return err
+	}
+	return c.JSON(res)
+}

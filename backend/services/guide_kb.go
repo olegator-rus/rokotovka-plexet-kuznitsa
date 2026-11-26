@@ -123,7 +123,13 @@ type guideKB struct {
 	lines    map[string]guideLine      // family_id → линейка
 	// subclasses — направление ИБ → семейства (security-subclasses.json: {id, title, families: [[id, название], …]}).
 	subclasses map[string][]string
-	minStatus  string
+	dirOrder   []string          // направления в порядке файла
+	dirTitle   map[string]string // направление → название
+	// offFeed — факты о тарифах, которых нет в фиде (family_id null, line): только для фразы и запроса КП.
+	offFeed map[string][]*guideFact
+	// offFeedNames — линейка → названия тарифов вне фида (vendor_families.json, family_id null).
+	offFeedNames map[string][]string
+	minStatus    string
 }
 
 // factValue — значение факта: yes | no | unknown | depends или текст (число с единицей, список).
@@ -153,6 +159,20 @@ func (f *guideFact) factValue() (kind string, text string) {
 	var num float64
 	if err := json.Unmarshal(f.Value, &num); err == nil {
 		return "value", trimFloat(num)
+	}
+	// {"value": N, "unit": "…"} или {"max": N, "unit": "…"} (README базы знаний).
+	var obj struct {
+		Value *float64 `json:"value"`
+		Max   *float64 `json:"max"`
+		Unit  string   `json:"unit"`
+	}
+	if err := json.Unmarshal(f.Value, &obj); err == nil {
+		switch {
+		case obj.Value != nil:
+			return "value", strings.TrimSpace(trimFloat(*obj.Value) + " " + obj.Unit)
+		case obj.Max != nil:
+			return "value", strings.TrimSpace("до " + trimFloat(*obj.Max) + " " + obj.Unit)
+		}
 	}
 	return "unknown", ""
 }
@@ -192,6 +212,11 @@ func (kb *guideKB) setMinStatus(min string) {
 	for i := range kb.rules {
 		kb.rules[i].show = statusRank(kb.rules[i].Status) >= r
 	}
+	for _, fs := range kb.offFeed {
+		for _, f := range fs {
+			f.show = statusRank(f.Status) >= r
+		}
+	}
 }
 
 // applies — факт применим к платформе запроса ("" — без условия).
@@ -206,11 +231,32 @@ func (f *guideFact) applies(platform string) bool {
 // newGuideKB — база из сырых записей (загрузчик и тесты).
 func newGuideKB(records []map[string]json.RawMessage, version string) *guideKB {
 	kb := &guideKB{version: version, facts: map[string]*guideFact{}, byFamily: map[string][]*guideFact{},
-		marks: map[string]guideOfferMark{}, lines: map[string]guideLine{}, subclasses: map[string][]string{}}
+		marks: map[string]guideOfferMark{}, lines: map[string]guideLine{}, subclasses: map[string][]string{},
+		dirTitle: map[string]string{}, offFeed: map[string][]*guideFact{}, offFeedNames: map[string][]string{}}
 	for _, r := range records {
 		raw, _ := json.Marshal(r)
 		has := func(k string) bool { _, ok := r[k]; return ok }
+		nullFamily := has("family_id") && string(r["family_id"]) == "null"
 		switch {
+		case nullFamily && has("axis") && has("line"):
+			var f guideFact
+			var ln struct {
+				Line string `json:"line"`
+			}
+			if json.Unmarshal(raw, &f) == nil && json.Unmarshal(raw, &ln) == nil && f.ID != "" && ln.Line != "" {
+				if f.AxisLabel == "" {
+					f.AxisLabel = f.Label
+				}
+				kb.offFeed[ln.Line] = append(kb.offFeed[ln.Line], &f)
+			}
+		case nullFamily && has("line") && has("vendor_name"):
+			var ln struct {
+				Line       string `json:"line"`
+				VendorName string `json:"vendor_name"`
+			}
+			if json.Unmarshal(raw, &ln) == nil && ln.Line != "" {
+				kb.offFeedNames[ln.Line] = append(kb.offFeedNames[ln.Line], ln.VendorName)
+			}
 		case has("axis") && has("family_id"):
 			var f guideFact
 			if json.Unmarshal(raw, &f) == nil && f.ID != "" {
@@ -244,9 +290,14 @@ func newGuideKB(records []map[string]json.RawMessage, version string) *guideKB {
 		case has("id") && has("families") && has("title"):
 			var sc struct {
 				ID       string     `json:"id"`
+				Title    string     `json:"title"`
 				Families [][]string `json:"families"`
 			}
-			if json.Unmarshal(raw, &sc) == nil {
+			if json.Unmarshal(raw, &sc) == nil && sc.ID != "" {
+				if _, ok := kb.dirTitle[sc.ID]; !ok {
+					kb.dirOrder = append(kb.dirOrder, sc.ID)
+				}
+				kb.dirTitle[sc.ID] = sc.Title
 				for _, f := range sc.Families {
 					if len(f) > 0 {
 						kb.subclasses[sc.ID] = append(kb.subclasses[sc.ID], f[0])

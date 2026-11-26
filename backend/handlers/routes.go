@@ -86,6 +86,7 @@ func RegisterRoutes(app *fiber.App, h *Handler) {
 	api.Post("/guide", h.Guide)
 	api.Post("/guide/route", h.GuideRoute)
 	api.Post("/guide/spec", h.GuideSpec)
+	api.Get("/guide/gaps", h.GuideGaps) // бэк-офис: пробелы подбора для SearchOps
 
 	// Служебное: режим LLM без перезапуска (ADMIN_ENABLED).
 	api.Post("/admin/llm-mode", h.SetLLMMode)
