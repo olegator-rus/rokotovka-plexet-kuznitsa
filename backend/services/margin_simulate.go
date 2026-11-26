@@ -80,6 +80,15 @@ func (st *marginSimState) lastResult(key string) *out.MarginSimulation {
 // marginSimKey — ключ кэша набора tune: каталог и версия правил.
 func (s *Services) marginSimKey() string { return s.marginSimKeyFor(domain.EvalSetTune) }
 
+// marginResultKey — ключ кэша результата симуляции: набор, каталог, правила и действующие веса по категориям
+// (числа общего рычага считаются поверх них).
+func (s *Services) marginResultKey(key string, pol activeMargin) string {
+	if ck := pol.catsKey(); ck != "" {
+		return key + "|" + ck
+	}
+	return key
+}
+
 func (s *Services) marginSimKeyFor(set string) string {
 	st := s.catalog.Load()
 	if st == nil {
@@ -118,10 +127,27 @@ func (s *Services) SimulateMargin(ctx context.Context, req in.MarginSimulateRequ
 				Field: "positions", Code: errs.CodeInvalidFormat, Message: MsgMarginWeight})
 		}
 	}
+	category := strings.TrimSpace(req.Category)
+	if category != "" && !s.knownCategory(category) {
+		return nil, errs.NewValidationError(errs.MsgInvalidFields).WithDetails(errs.FieldError{
+			Field: "category", Code: errs.CodeInvalidFormat, Message: MsgMarginCategory})
+	}
 	key := s.marginSimKeyFor(set)
 	sim := &s.margin().sim
+	pol, _ := s.activeMarginPolicy(ctx)
+	if category != "" {
+		capture, cached, err := s.marginCaptureFor(ctx, set, key)
+		if err != nil {
+			return nil, err
+		}
+		res := s.marginSimulateCategory(capture, pol, category, positions)
+		res.Cached = cached
+		res.DurationMs = time.Since(started).Milliseconds()
+		return res, nil
+	}
+	rkey := s.marginResultKey(key, pol)
 	if all {
-		if r := sim.lastResult(key); r != nil {
+		if r := sim.lastResult(rkey); r != nil {
 			c := *r
 			c.Cached = true
 			c.DurationMs = time.Since(started).Milliseconds()
@@ -132,8 +158,9 @@ func (s *Services) SimulateMargin(ctx context.Context, req in.MarginSimulateRequ
 	if err != nil {
 		return nil, err
 	}
-	pol, _ := s.activeMarginPolicy(ctx)
-	res := marginSimulate(capture, MarginPositions(), marginEpsilon)
+	res := marginSimulateW(capture, MarginPositions(), marginEpsilon, func(w float64) marginWeights {
+		return marginWeights{global: w, cats: pol.Categories}
+	})
 	res.CurrentWeight, res.PolicyVersion, res.Synthetic = pol.Weight, pol.Version, s.marginSynthetic()
 	res.Cached = cached
 	sim.mu.Lock()
@@ -141,7 +168,7 @@ func (s *Services) SimulateMargin(ctx context.Context, req in.MarginSimulateRequ
 		sim.last = map[string]*out.MarginSimulation{}
 	}
 	c := *res
-	sim.last[key] = &c
+	sim.last[rkey] = &c
 	sim.mu.Unlock()
 	if !all {
 		items := res.Items[:0:0]
@@ -202,7 +229,7 @@ func (s *Services) runMarginCapture(set, key string, ch chan struct{}) {
 	} else {
 		sim.captures = map[string]*marginCapture{key: c} // держим только последний снимок
 		for k := range sim.last {
-			if k != key {
+			if k != key && !strings.HasPrefix(k, key+"|") {
 				delete(sim.last, k)
 			}
 		}
@@ -293,6 +320,11 @@ func (s *Services) captureMarginBaseline(ctx context.Context, set, key string) (
 
 // marginSimulate — показатели положений рычага на снятой базовой выдаче (чистая функция).
 func marginSimulate(c *marginCapture, positions []float64, eps float64) *out.MarginSimulation {
+	return marginSimulateW(c, positions, eps, func(w float64) marginWeights { return marginWeights{global: w} })
+}
+
+// marginSimulateW — то же; weights — веса перестановки для положения w (общий вес или вес одной категории).
+func marginSimulateW(c *marginCapture, positions []float64, eps float64, weights func(float64) marginWeights) *out.MarginSimulation {
 	res := &out.MarginSimulation{Set: c.set, SetHash: c.setHash, Queries: len(c.queries), Epsilon: eps,
 		BaseWeight: marginBaseWeight, CatalogVersion: c.catalog, RulesVersion: c.rules, Items: []out.MarginPosition{}}
 	var base evalMean
@@ -306,7 +338,7 @@ func marginSimulate(c *marginCapture, positions []float64, eps float64) *out.Mar
 		res.BaseNDCG10 = *v
 	}
 	for _, w := range positions {
-		res.Items = append(res.Items, marginSimulatePosition(c, w, eps))
+		res.Items = append(res.Items, marginSimulatePosition(c, w, weights(w), eps))
 	}
 	// Упор рычага: от 0.05 вверх и вниз — до первого положения, где запросы выходят за ε.
 	sorted := slices.Clone(res.Items)
@@ -329,6 +361,45 @@ func marginSimulate(c *marginCapture, positions []float64, eps float64) *out.Mar
 	}
 	res.Note = fmt.Sprintf("Оценка на %d размеченных запросах набора %s. Маржа по показам в первой десятке "+
 		"(перцентиль в категории). Не прогноз продаж.", res.Judged, c.set)
+	return res
+}
+
+// marginSimulateCategory — положения рычага только для позиций категории cat; остальные — по действующей политике
+// pol. Упор и доступность считаются так же, как у общего рычага (от 0,05 до первого положения с потерей > ε).
+func (s *Services) marginSimulateCategory(c *marginCapture, pol activeMargin, cat string, positions []float64) *out.MarginSimulation {
+	weights := func(w float64) marginWeights {
+		cats := make(map[string]float64, len(pol.Categories)+1)
+		for k, v := range pol.Categories {
+			cats[k] = v
+		}
+		cats[cat] = w
+		return marginWeights{global: pol.Weight, cats: cats}
+	}
+	res := marginSimulateW(c, MarginPositions(), marginEpsilon, weights)
+	res.CurrentWeight, res.PolicyVersion, res.Synthetic = pol.Weight, pol.Version, s.marginSynthetic()
+	scope := &out.MarginScope{CategoryID: cat, Category: s.categoryName(cat), CurrentWeight: pol.weights().of(marginCand{cat: cat}),
+		Others: fmt.Sprintf("остальные позиции — по действующей политике v%d (вес %s)", pol.Version, marginWeightLabel(pol.Weight))}
+	for _, q := range c.queries {
+		if slices.ContainsFunc(q.in.cands, func(cd marginCand) bool { return cd.cat == cat }) {
+			scope.QueriesInScope++
+			if marginNDCG(q, identityOrder(len(q.in.cands))) != nil {
+				scope.JudgedInScope++
+			}
+		}
+	}
+	res.Scope = scope
+	res.Note = fmt.Sprintf("Оценка на %d размеченных запросах набора %s; рычаг двигает только позиции категории «%s» "+
+		"(в выдаче %d запросов). Маржа по показам в первой десятке (перцентиль в категории). Не прогноз продаж.",
+		res.Judged, c.set, scope.Category, scope.QueriesInScope)
+	if len(positions) > 0 && len(positions) < len(res.Items) {
+		items := res.Items[:0:0]
+		for _, it := range res.Items {
+			if slices.ContainsFunc(positions, func(w float64) bool { return sameWeight(w, it.Weight) }) {
+				items = append(items, it)
+			}
+		}
+		res.Items = items
+	}
 	return res
 }
 
@@ -363,7 +434,7 @@ func marginIndexOf(q marginSimQuery, order []int, relevantOnly bool) (float64, b
 	return num / den, true
 }
 
-func marginSimulatePosition(c *marginCapture, w, eps float64) out.MarginPosition {
+func marginSimulatePosition(c *marginCapture, w float64, mw marginWeights, eps float64) out.MarginPosition {
 	p := out.MarginPosition{Weight: w, GuardsByKind: map[string]int{}, Affected: []out.MarginAffected{}}
 	var ndcg, delta, idx, idxRel evalMean
 	var deltas []float64
@@ -372,7 +443,7 @@ func marginSimulatePosition(c *marginCapture, w, eps float64) out.MarginPosition
 	for _, q := range c.queries {
 		n := len(q.in.cands)
 		before := identityOrder(n)
-		r := marginReorder(q.in, w, marginMaxShift)
+		r := marginReorderW(q.in, mw, marginMaxShift)
 		order := r.order
 		guards := slices.Clone(r.guards)
 		nb := marginNDCG(q, before)
@@ -482,6 +553,13 @@ func marginPickAffected(all []out.MarginAffected) []out.MarginAffected {
 		if !seen[worst[i].QueryID] {
 			res = append(res, worst[i])
 			seen[worst[i].QueryID] = true
+		}
+	}
+	// Остальные запросы со сдвигом (в песочнице видно всё, что тронула политика) — до потолка списка.
+	for _, a := range all {
+		if !seen[a.QueryID] {
+			res = append(res, a)
+			seen[a.QueryID] = true
 		}
 	}
 	sort.SliceStable(res, func(i, j int) bool {

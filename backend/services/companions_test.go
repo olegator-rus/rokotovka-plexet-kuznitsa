@@ -161,13 +161,31 @@ func TestScoreCompanions(t *testing.T) {
 }
 
 // Флаг допродажи выключен — выдача та же (позиции, порядок, скоры), блока и строк обязательного нет; включён —
-// меняются только companions и required.
+// меняются только companions и required. Исключение — «сервер на N пользователей»: при включённом
+// флаге количество относится к CAL, сервер первым; выключенном — выдача контура поиска.
 func TestCompanionsFlagOffSameItems(t *testing.T) {
 	on := importedWith(t, Features{Companions: true})
 	off := importedWith(t, Features{})
+	const wsq = "windows server 2025 на 50 пользователей"
+	a, err := on.Search(t.Context(), "r", in.SearchRequest{Query: wsq, Config: "B3"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(a.Items) == 0 || a.Items[0].FamilyID != "windows-server-2025" || a.Items[0].Group != domain.GroupExact ||
+		len(a.Items[0].Required) == 0 || a.Items[0].Required[0].SuggestedQuantity == nil ||
+		*a.Items[0].Required[0].SuggestedQuantity != 50 || len(a.Relaxed) != 0 {
+		t.Fatalf("%q, флаг включён: сервер первым и CAL × 50 в строке обязательного: %+v", wsq, a.Items)
+	}
+	b, err := off.Search(t.Context(), "r", in.SearchRequest{Query: wsq, Config: "B3"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(b.Items) == 0 || b.Items[0].FamilyID == "windows-server-2025" {
+		t.Fatalf("%q, флаг выключен: ожидалась выдача контура поиска (количество — условие выдачи): %+v", wsq, b.Items)
+	}
 	blocks := 0
 	for _, q := range []string{"касперский", "фотошоп", "office 2021", "антивирус на 5 устройств", "dell r740",
-		"windows server 2025 на 50 пользователей", "notion"} {
+		"windows server 2025", "notion"} {
 		a, err := on.Search(t.Context(), "r", in.SearchRequest{Query: q, Config: "B3"})
 		if err != nil {
 			t.Fatal(err)

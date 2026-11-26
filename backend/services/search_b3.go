@@ -210,6 +210,8 @@ func (s *Services) searchB3(ctx context.Context, requestID string, req in.Search
 	t = time.Now()
 	rc := s.rankContext(st, lx, req.ClientID, attrs, ent)
 	rc.hw = hw
+	cq := s.companionQuantity(ctx, lx, attrs, ent) // «на 50 пользователей» к серверу — количество CAL (search_companion_qty.go)
+	cq.apply(&rc)
 	for _, h := range bm.step.Top {
 		if h.Rank <= textTopN {
 			rc.textTop[lx.docs[h.ProductID].FamilyID] = true
@@ -334,6 +336,7 @@ func (s *Services) searchB3(ctx context.Context, requestID string, req in.Search
 		rc.assignGroup(fh)
 		rc.score(fh)
 	}
+	cq.regroup(fams)
 	sortFamilies(fams)
 	fams = rc.dropTail(fams, &trace.Rejected)
 	if absent && len(fams) > 5 {

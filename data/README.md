@@ -251,7 +251,7 @@ AND по словам названия, семейства, вендора, ка
 | Оборудование по категориям | серверы 10, память 14, диски 13, гарантия 5, ИБП 4, ноутбуки 11, мониторы 7, коммутаторы 8 |
 | `price_mode` у новых | fixed 68, quote_required 7, from 2 (базовая сборка сервера), unavailable 1 (снятый DL380 Gen10) |
 | Вендоров / категорий / семейств | +14 / +11 / +42 (всего 48 / 41 / 109) |
-| Связей | 144: 63 прежних (+ поля) и 81 новая; upgrade 5, conditional_required 11 |
+| Связей | 148: 63 прежних (+ поля) и 85 новых (rel-0145…0148 — дополнения к Windows Server); upgrade 5, conditional_required 11 |
 | `license_rules.json` | 6: CAL и RDS CAL к Windows Server 2025/2022, SQL CAL к Server + CAL, клиентские лицензии 1С |
 | `compatibility_rules.json` | 56: verified 31, conditional 11, incompatible 14; пары без правила — unknown |
 | `attribute_definitions.json` | 10 категорий; единицы, синонимы единиц, фасеты |

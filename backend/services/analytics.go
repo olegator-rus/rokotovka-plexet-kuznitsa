@@ -105,6 +105,7 @@ func (s *Services) Analytics(ctx context.Context, days int, role string) (*out.A
 		}
 		resp.Effect = eff
 	}
+	resp.Commerce = s.analyticsCommerce(ctx, role, days, since, sum.Total.Searches)
 	return resp, nil
 }
 

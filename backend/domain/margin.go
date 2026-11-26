@@ -39,8 +39,10 @@ type MarginStep struct {
 	PolicyVersion int     `json:"policy_version"`
 	Weight        float64 `json:"weight"`
 	// BaseWeight — вес контура поиска (0.05): при weight = base выдача та же, что в контуре поиска.
-	BaseWeight float64       `json:"base_weight"`
-	Shifts     []MarginShift `json:"shifts"`
+	BaseWeight float64 `json:"base_weight"`
+	// CategoryWeights — веса по категориям поверх Weight; нет — не пишется.
+	CategoryWeights map[string]float64 `json:"category_weights,omitempty"`
+	Shifts          []MarginShift      `json:"shifts"`
 	// Guards — защиты, которые сработали (не дали сдвинуть), и пометки (unknown/negative).
 	Guards []string `json:"guards"`
 	// Error — политика не прочитана: выдача по весу контура поиска, поиск не сломан.
@@ -50,4 +52,14 @@ type MarginStep struct {
 // MarginPolicyRules — содержимое версии политики маржи (config_versions.rules при kind=margin).
 type MarginPolicyRules struct {
 	Weight float64 `json:"weight"`
+	// Categories — вес по категории позиции поверх Weight (MARGIN_OPPORTUNITY агента); нет — общий вес.
+	Categories map[string]float64 `json:"categories,omitempty"`
 }
+
+// MARGIN_OPPORTUNITY агента «Коммерция» (контур коммерции): сдвиг рычага в категории без потери
+// качества. Предложение — действие margin_policy; применяется на экране «Маржа» (POST /api/margin/policy с
+// proposal_id), из очереди не принимается.
+const (
+	DiagMarginOpportunity = "MARGIN_OPPORTUNITY"
+	ActionMarginPolicy    = "margin_policy"
+)

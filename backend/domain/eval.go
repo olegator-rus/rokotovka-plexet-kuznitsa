@@ -66,6 +66,10 @@ type LogEvent struct {
 	ResultsCount *int      `json:"results_count,omitempty"`
 	ProductID    string    `json:"product_id,omitempty"`
 	Position     *int      `json:"position,omitempty"`
+	// Заказ контура коммерции: номер заказа, аккаунт покупателя, количество; нет — пусто.
+	OrderID   string `json:"order_id,omitempty"`
+	AccountID string `json:"account_id,omitempty"`
+	Quantity  int    `json:"quantity,omitempty"`
 }
 
 // Источники записей журналов (SearchEvent.Source, BehaviorEvent.Source).

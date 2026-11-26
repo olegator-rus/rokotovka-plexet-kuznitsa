@@ -1,5 +1,6 @@
 // Витрина контура коммерции («Правила блока», «События», /rules).
-// Пока бэкенд-треки не отдают поля — на фикстурах контракта (p2-fixtures.ts); P2_LIVE=1 — на живом API.
+// На фикстурах контракта (p2-fixtures.ts); при P2_LIVE=1 тесты с подписями фикстур пропускаются — живые
+// проверки и скриншоты — p2-buyer-live.spec.ts.
 import { mkdirSync } from 'node:fs'
 import {
   expect,
@@ -40,6 +41,7 @@ test.describe('Витрина контура коммерции', () => {
   test('F16: строка «Проверьте необходимость» — раскрытие, «уже есть», RDS, количество из запроса', async ({
     page,
   }) => {
+    test.skip(P2_LIVE, 'подписи фикстур; на живом API — p2-buyer-live.spec.ts')
     const cap = await mockP2(page)
     await openSearch(page)
     await search(page, WS_QUERY)
@@ -84,6 +86,7 @@ test.describe('Витрина контура коммерции', () => {
   test('F17: «Дополните решение» под топом, ничего не выбрано, спецификация и запрос КП', async ({
     page,
   }) => {
+    test.skip(P2_LIVE, 'подписи фикстур; на живом API — p2-buyer-live.spec.ts')
     const cap = await mockP2(page, { synthetic: ['orders', 'margin'] })
     await openSearch(page)
     await search(page, WS_QUERY)
@@ -185,6 +188,7 @@ test.describe('Витрина контура коммерции', () => {
   test('Спецификация: пусто — «Добавьте позиции из поиска»; ошибка КП — позиции сохранены, «Повторить»', async ({
     page,
   }) => {
+    test.skip(P2_LIVE, 'подписи фикстур; на живом API — p2-buyer-live.spec.ts')
     await mockP2(page, { quote: 'error' })
     await openSearch(page)
     await specButton(page).click()
@@ -214,6 +218,7 @@ test.describe('Витрина контура коммерции', () => {
   test('F20–F21: чипы с единицами, значки совместимости, пометка условных, фасеты', async ({
     page,
   }) => {
+    test.skip(P2_LIVE, 'подписи фикстур; на живом API — p2-buyer-live.spec.ts')
     const cap = await mockP2(page)
     await openSearch(page)
     await search(page, MEM_QUERY)
@@ -256,6 +261,7 @@ test.describe('Витрина контура коммерции', () => {
   test('F24: трасса — шаги «Оборудование» и «Компаньоны» с якорем и отклонёнными', async ({
     page,
   }) => {
+    test.skip(P2_LIVE, 'подписи фикстур; на живом API — p2-buyer-live.spec.ts')
     await mockP2(page)
     await openSearch(page)
     await search(page, WS_QUERY)
@@ -280,6 +286,7 @@ test.describe('Витрина контура коммерции', () => {
   })
 
   test('Флаг companions выключен — ни блока, ни строки; поиск работает', async ({ page }) => {
+    test.skip(P2_LIVE, 'подписи фикстур; на живом API — p2-buyer-live.spec.ts')
     const cap = await mockP2(page, {
       features: {
         hardware: true,

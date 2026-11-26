@@ -91,7 +91,13 @@ func (rc *runCtx) runCommerce(ctx context.Context) error {
 	rc.episode["metrics"] = map[string]any{"mode": domain.RunModeCommerce, "relations": len(ch.Active), "rules": cr.scan.Rules,
 		"broken": len(broken), "missing_required": len(missing), "needs_review": cr.scan.NeedsReview,
 		"relations_version": ch.Version}
+	// перебор рычага маржи по категориям (margin_opportunity.go) — до разбора находок справочника.
+	cr.runMarginOpportunity(ctx)
 	if len(cr.scan.Findings) == 0 {
+		// совместные покупки (agent_commerce_stats.go) — этап после детерминированных диагнозов.
+		if cr.runCopurchase(ctx) > 0 {
+			return nil
+		}
 		rs.mu.Lock()
 		rs.run.StopReason = StopNoFindings
 		rs.mu.Unlock()
@@ -173,6 +179,10 @@ func (rc *runCtx) runCommerce(ctx context.Context) error {
 		}
 	}
 	rc.episode["clusters_limited"], rc.episode["clusters_unfinished"] = limited, unfinished
+	// совместные покупки (agent_commerce_stats.go) — этап после детерминированных диагнозов.
+	if ctx.Err() == nil && rs.tokens() < agentTokensPerRun {
+		cr.runCopurchase(ctx)
+	}
 	rs.mu.Lock()
 	if rs.run.StopReason == "" && limited > 0 {
 		rs.run.StopReason = StopStepLimit

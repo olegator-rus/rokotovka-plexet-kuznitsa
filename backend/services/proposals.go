@@ -49,6 +49,7 @@ func (s *Services) Proposals(ctx context.Context, status, role string) (*out.Pro
 	if err != nil {
 		return nil, err
 	}
+	sortByPriority(rows) // контур коммерции: очередь по оценке приоритета (agent_commerce_stats.go)
 	res := &out.ProposalList{Items: make([]out.Proposal, 0, len(rows))}
 	for i := range rows {
 		res.Items = append(res.Items, proposalView(&rows[i]))
@@ -102,6 +103,9 @@ func (s *Services) ApproveProposal(ctx context.Context, id string, req in.Approv
 	comment := truncateRunes(strings.TrimSpace(req.Comment), 500)
 	if p.Action == domain.ActionRelationPatch {
 		return s.approveRelationPatch(ctx, p, comment)
+	}
+	if p.Action == domain.ActionMarginPolicy {
+		return nil, errs.NewValidationError(MsgMarginViaScreen)
 	}
 	var version *domain.ConfigVersion
 	base, rechecked := 0, false

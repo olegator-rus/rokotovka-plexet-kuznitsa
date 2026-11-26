@@ -57,6 +57,13 @@ var agentCommerceText string
 // AgentCommerce — системный промпт агента в режиме «Коммерция»: справочник связей (services/agent_commerce.go).
 func AgentCommerce() Prompt { return parse(agentCommerceText) }
 
+//go:embed agent_commerce_judge.md
+var agentCommerceJudgeText string
+
+// AgentCommerceJudge — судья другого семейства моделей для предложений по совместным покупкам: фильтр на отказ
+// (services/agent_commerce_stats.go).
+func AgentCommerceJudge() Prompt { return parse(agentCommerceJudgeText) }
+
 //go:embed evalsets_classify.md
 var evalSetsClassifyText string
 

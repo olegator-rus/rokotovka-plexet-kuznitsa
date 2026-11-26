@@ -313,6 +313,13 @@ def build_relations(p1_relations):
         compatibility="verified", quantity_strategy="per_user", source="co_purchase", evidence_level="E4")
     for mon in MONITOR_FAMS[2:]:
         add("dell-p2425h", mon, "substitute", "Офисный монитор", source="expert", evidence_level="E3")
+    # F17: «Дополните решение» к серверной ОС — резервное копирование и защита сервера (в конце: id прежних не сдвигаются)
+    for ws in ("windows-server-2025", "windows-server-2022"):
+        add(ws, "cyber-backup", "complement", "Резервное копирование сервера", requirement="recommended",
+            compatibility="verified", quantity_strategy="per_server", source="catalog_rule", evidence_level="E3")
+        add(ws, "kaspersky-endpoint-security", "complement", "Защита сервера от вредоносного ПО",
+            requirement="optional", compatibility="verified", quantity_strategy="per_server", source="catalog_rule",
+            evidence_level="E3")
     return out, n
 
 

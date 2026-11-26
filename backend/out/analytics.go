@@ -17,6 +17,8 @@ type AnalyticsResponse struct {
 	Sources map[string]int `json:"sources"`
 	// Effect — вилка эффекта (как GET /api/effect с допущениями по умолчанию); только для role=head, иначе null.
 	Effect *Effect `json:"effect"`
+	// Commerce — блок «Допродажи» для роли (контур коммерции); nil — блок не собран.
+	Commerce *AnalyticsCommerce `json:"commerce"`
 }
 
 // AnalyticsTiles — сводные доли.
@@ -117,4 +119,49 @@ type LogImportResult struct {
 	From     time.Time `json:"from"`
 	To       time.Time `json:"to"`
 	Ms       int64     `json:"ms"`
+}
+
+// AnalyticsCommerce — блок «Допродажи» аналитики для роли (контур коммерции). Поведенческие числа —
+// события стенда, не трафик магазина; маржа и заказы mock — синтетические.
+type AnalyticsCommerce struct {
+	Role      string `json:"role"`
+	Title     string `json:"title"`
+	Note      string `json:"note"`
+	Synthetic bool   `json:"synthetic"`
+	// Tiles — плитки роли; у каждой источник и ссылка на список (List — ключ из Lists, Link — экран).
+	Tiles []CommerceTile `json:"tiles"`
+	Lists []CommerceList `json:"lists"`
+	// Effect — модель эффекта пакета (как GET /api/effect/commerce по умолчанию); только role=head.
+	Effect  *EffectCommerce `json:"effect"`
+	Missing []string        `json:"missing"`
+}
+
+// CommerceTile — плитка блока «Допродажи». Value — доля или число; nil — не посчитано (причина в Note).
+type CommerceTile struct {
+	Key   string   `json:"key"`
+	Label string   `json:"label"`
+	Value *float64 `json:"value"`
+	Unit  string   `json:"unit"` // share | count | rub
+	// Source — stand_events (события стенда) | offline_eval (прогон лестницы) | catalog (справочники) |
+	// agent (очередь агента) | synthetic (синтетические данные).
+	Source string `json:"source"`
+	Note   string `json:"note"`
+	List   string `json:"list,omitempty"`
+	Link   string `json:"link,omitempty"`
+}
+
+// CommerceList — список за плиткой (до 50 строк, Total — всего).
+type CommerceList struct {
+	Key   string            `json:"key"`
+	Label string            `json:"label"`
+	Total int               `json:"total"`
+	Items []CommerceListRow `json:"items"`
+}
+
+// CommerceListRow — строка списка.
+type CommerceListRow struct {
+	ID     string `json:"id"`
+	Title  string `json:"title"`
+	Detail string `json:"detail"`
+	Query  string `json:"query,omitempty"`
 }

@@ -29,6 +29,9 @@ type commerceCfg struct {
 	features Features
 	base     string // для прогона с одним изменением — от какой конфигурации
 	changed  string // какой компонент изменён (+ включён / − выключен)
+	// agent — C4: принятые правки SearchOps Commerce (действующая версия связей и веса маржи по категориям).
+	// Остальные конфигурации — связи каталога (импорт) и только общий вес маржи.
+	agent bool
 }
 
 var commerceLadder = []commerceCfg{
@@ -36,6 +39,7 @@ var commerceLadder = []commerceCfg{
 	{name: "C1", features: Features{Hardware: true}},
 	{name: "C2", features: Features{Hardware: true, Companions: true}},
 	{name: "C3", features: Features{Hardware: true, Companions: true, MarginPolicy: true}},
+	{name: "C4", features: Features{Hardware: true, Companions: true, MarginPolicy: true}, agent: true},
 }
 
 var commerceSingles = []commerceCfg{
@@ -99,10 +103,14 @@ func (s *Services) RunCommerceEvaluation(ctx context.Context, persist bool) (*ou
 		Pairs: len(pairs), Commit: buildCommit(), StartedAt: started.UTC(), Synthetic: s.marginSynthetic(),
 		Ladder: []out.CommerceConfig{}, SingleChanges: []out.CommerceConfig{}, Notes: []string{}}
 	marginW, marginOK := 0.0, false
+	var marginCats map[string]float64
 	if pol, err := s.activeMarginPolicy(ctx); err == nil {
-		marginW, marginOK = pol.Weight, true
+		marginW, marginOK, marginCats = pol.Weight, true, pol.Categories
 	}
 	res.MarginWeight = marginW
+	// C4 = C3 + принятые правки агента: C0–C3 идут на связях каталога (песочница справочников),
+	// C4 — на действующей версии связей; веса маржи по категориям (MARGIN_OPPORTUNITY) — только в C4.
+	baseRel, relBase, relActive := s.commerceBaseline(ctx, &res.Notes)
 	pct := map[string]float64{}
 	if cs := s.catalog.Load(); cs != nil && cs.lex != nil {
 		pct = marginPercentiles(cs.lex) // та же нормировка, что у политики маржи (margin.go)
@@ -117,8 +125,19 @@ func (s *Services) RunCommerceEvaluation(ctx context.Context, persist bool) (*ou
 		if c.features.MarginPolicy {
 			opts = MarginC3(opts, marginW)
 		}
+		relVersion := relActive
+		if c.agent {
+			if c.features.MarginPolicy && len(marginCats) > 0 {
+				opts.Margin.Categories = marginCats
+			}
+		} else if baseRel != nil {
+			cctx, relVersion = withCommerceOverride(cctx, baseRel), relBase
+		}
 		cc := &out.CommerceConfig{Config: c.name, Base: c.base, Changed: c.changed,
-			Features: out.Features(s.featuresFor(cctx)), Regressions: []out.EvalChange{}}
+			Features: out.Features(s.featuresFor(cctx)), Regressions: []out.EvalChange{}, RelationsVersion: relVersion}
+		if c.agent && opts.Margin != nil {
+			cc.MarginCategories = opts.Margin.Categories
+		}
 		per := make([]out.EvalQueryResult, 0, len(queries))
 		var unitsOK, unitsN, mpnOK, mpnN, exOK, exN int
 		var mIdx, mDen float64
@@ -238,6 +257,9 @@ func (s *Services) RunCommerceEvaluation(ctx context.Context, persist bool) (*ou
 		res.Notes = append(res.Notes, "политика маржи: не готово — флаг выключен или политика не прочитана")
 	} else if sameWeight(marginW, marginBaseWeight) {
 		res.Notes = append(res.Notes, fmt.Sprintf("политика маржи: действующий вес %.2f равен весу контура поиска — C3 совпадает с C2 по построению", marginW))
+	}
+	if baseRel == nil && len(marginCats) == 0 {
+		res.Notes = append(res.Notes, "C4: принятых правок SearchOps Commerce нет (связи — как в каталоге, весов маржи по категориям нет) — C4 совпадает с C3 по построению")
 	}
 	res.Notes = append(res.Notes, "точность блока по LLM-судье: не готово (судья другого семейства на парах блока не прогонялся)")
 	if res.Synthetic {
@@ -391,4 +413,30 @@ func FormatCommerceTable(r *out.CommerceEval) string {
 	}
 	b.WriteString("\n\n" + r.Repro + "\n")
 	return b.String()
+}
+
+// commerceBaseline — справочники контура коммерции со связями каталога (для C0–C3), если действующая версия связей
+// отличается от каталога (принятые relation_patch); nil — отличий нет или цепочка не прочитана (пометка в notes).
+// Ограничение (как у песочницы агента): словарь поиска (аналоги, «С этим покупают») не подменяется — правка
+// substitute влияет на основную выдачу всех ступеней одинаково.
+func (s *Services) commerceBaseline(ctx context.Context, notes *[]string) (*commerceCatalog, int, int) {
+	cs := s.catalog.Load()
+	if cs == nil || cs.commerce == nil || s.relStore() == nil {
+		return nil, 0, 0
+	}
+	ch, err := s.relationChain(ctx)
+	if err != nil {
+		*notes = append(*notes, "C4: цепочка версий связей не прочитана — все ступени на действующих связях")
+		return nil, 0, 0
+	}
+	if !ch.Materialized || relationsFingerprint(ch.Active) == relationsFingerprint(ch.Base) {
+		return nil, ch.Version, ch.Version
+	}
+	base := 0
+	if n := len(ch.Versions); n > 0 {
+		base = ch.Versions[n-1].Version
+	}
+	*notes = append(*notes, fmt.Sprintf("C0–C3 — связи каталога (v%d), C4 — действующая версия связей v%d; словарь поиска "+
+		"(аналоги) в песочнице не подменяется", base, ch.Version))
+	return cs.commerce.withRelations(relationsOfDocs(ch.Base)), base, ch.Version
 }

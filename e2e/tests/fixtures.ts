@@ -98,7 +98,14 @@ export interface SearchBody {
   query: string
   config: string
   total: number
-  items: { product_id: string; title: string; group: string; purchased_before?: boolean }[]
+  items: {
+    product_id: string
+    title: string
+    group: string
+    purchased_before?: boolean
+    category?: string
+    vendor?: string
+  }[]
   chips: { field: string; value: string; label: string; strict: boolean }[]
   correction?: { from: string; to: string; applied: boolean }
   empty?: { message: string; show_manager: boolean }

@@ -33,13 +33,17 @@ type CommerceReady struct {
 type CommerceConfig struct {
 	Config string `json:"config"` // C0 | C1 | C2 | C3 | C0+companions | C3-hardware …
 	// Base и Changed — у прогона с одним изменением: от какой конфигурации и что изменено (+companions, -hardware).
-	Base           string          `json:"base,omitempty"`
-	Changed        string          `json:"changed,omitempty"`
-	Against        string          `json:"against,omitempty"`
-	Features       Features        `json:"features"`
-	RulesVersion   int             `json:"rules_version"`
-	CatalogVersion string          `json:"catalog_version"`
-	Metrics        CommerceMetrics `json:"metrics"`
+	Base           string   `json:"base,omitempty"`
+	Changed        string   `json:"changed,omitempty"`
+	Against        string   `json:"against,omitempty"`
+	Features       Features `json:"features"`
+	RulesVersion   int      `json:"rules_version"`
+	CatalogVersion string   `json:"catalog_version"`
+	// RelationsVersion — версия справочника связей прогона (C0–C3 — связи каталога, C4 — действующая);
+	// MarginCategories — веса маржи по категориям (только C4).
+	RelationsVersion int                `json:"relations_version"`
+	MarginCategories map[string]float64 `json:"margin_categories,omitempty"`
+	Metrics          CommerceMetrics    `json:"metrics"`
 	// Block — метрики блока на companion_pairs.json целиком (нарушения — список пар); nil — блок выключен.
 	Block any `json:"block"`
 	// Regressions — запросы, где основная выдача хуже предыдущей ступени лестницы (до 10).

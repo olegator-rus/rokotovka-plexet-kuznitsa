@@ -13,23 +13,30 @@ type MarginGuards struct {
 
 // MarginVersion — версия политики маржи (config_versions kind=margin); версия 0 — исходная, вес контура поиска.
 type MarginVersion struct {
-	Version   int        `json:"version"`
-	Weight    float64    `json:"weight"`
-	Source    string     `json:"source"` // default | human | rollback | agent
-	Author    string     `json:"author"`
-	Comment   string     `json:"comment"`
-	CreatedAt *time.Time `json:"created_at"`
+	Version int     `json:"version"`
+	Weight  float64 `json:"weight"`
+	// Categories — веса по категориям этой версии; нет — не пишется.
+	Categories map[string]float64 `json:"categories,omitempty"`
+	ProposalID *string            `json:"proposal_id,omitempty"`
+	Source     string             `json:"source"` // default | human | rollback | agent
+	Author     string             `json:"author"`
+	Comment    string             `json:"comment"`
+	CreatedAt  *time.Time         `json:"created_at"`
 }
 
 // MarginPolicy — GET /api/margin/policy.
 type MarginPolicy struct {
-	Version    int          `json:"version"`
-	Weight     float64      `json:"weight"`
-	BaseWeight float64      `json:"base_weight"`
-	Positions  []float64    `json:"positions"`
-	Guards     MarginGuards `json:"guards"`
-	Epsilon    float64      `json:"epsilon"`
-	MaxShift   int          `json:"max_shift"`
+	Version int     `json:"version"`
+	Weight  float64 `json:"weight"`
+	// Categories — действующие веса по категориям поверх Weight, {} — нет.
+	Categories map[string]float64 `json:"categories"`
+	// CategoryNames — названия категорий из Categories.
+	CategoryNames map[string]string `json:"category_names"`
+	BaseWeight    float64           `json:"base_weight"`
+	Positions     []float64         `json:"positions"`
+	Guards        MarginGuards      `json:"guards"`
+	Epsilon       float64           `json:"epsilon"`
+	MaxShift      int               `json:"max_shift"`
 	// StopWeight — упор рычага по последней симуляции на tune этого каталога; nil — симуляции ещё не было.
 	StopWeight *float64 `json:"stop_weight"`
 	Synthetic  bool     `json:"synthetic"`
@@ -45,6 +52,11 @@ type MarginApplied struct {
 	VersionBefore int     `json:"version_before"`
 	WeightBefore  float64 `json:"weight_before"`
 	RolledBackTo  *int    `json:"rolled_back_to,omitempty"`
+	// Categories, CategoriesBefore — веса по категориям после и до.
+	Categories       map[string]float64 `json:"categories"`
+	CategoriesBefore map[string]float64 `json:"categories_before"`
+	// ProposalID — принятое этим применением предложение агента.
+	ProposalID *string `json:"proposal_id,omitempty"`
 }
 
 // MarginItemRef — позиция выдачи в «было / стало».
@@ -119,10 +131,26 @@ type MarginSimulation struct {
 	MinWeight      float64 `json:"min_weight"`
 	CatalogVersion string  `json:"catalog_version"`
 	RulesVersion   int     `json:"rules_version"`
-	Synthetic      bool    `json:"synthetic"`
-	Cached         bool    `json:"cached"`
-	DurationMs     int64   `json:"duration_ms"`
-	Note           string  `json:"note"`
+	// Scope — симуляция по одной категории (запрос с category); nil — общий вес.
+	Scope      *MarginScope `json:"scope"`
+	Synthetic  bool         `json:"synthetic"`
+	Cached     bool         `json:"cached"`
+	DurationMs int64        `json:"duration_ms"`
+	Note       string       `json:"note"`
+}
+
+// MarginScope — положения рычага только для позиций одной категории; остальные позиции — по действующей
+// политике (версия PolicyVersion).
+type MarginScope struct {
+	CategoryID string `json:"category_id"`
+	Category   string `json:"category"`
+	// QueriesInScope — запросов набора, в выдаче которых есть позиции категории; JudgedInScope — из них размеченных.
+	QueriesInScope int `json:"queries_in_scope"`
+	JudgedInScope  int `json:"judged_in_scope"`
+	// CurrentWeight — действующий вес этой категории (её свой или общий).
+	CurrentWeight float64 `json:"current_weight"`
+	// Others — как взяты остальные позиции.
+	Others string `json:"others"`
 }
 
 // MarginSimStatus — GET /api/margin/simulate/status: прогон базовой выдачи идёт (прогресс).

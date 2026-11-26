@@ -4,12 +4,21 @@ package in
 type MarginSimulateRequest struct {
 	Set       string    `json:"set"`
 	Positions []float64 `json:"positions"`
+	// Category — положения рычага только для позиций этой категории, остальные — по действующей политике
+	// (так воспроизводится предложение MARGIN_OPPORTUNITY); пусто — общий вес.
+	Category string `json:"category"`
 }
 
 // MarginPolicyRequest — POST /api/margin/policy: применить положение рычага новой версией.
 type MarginPolicyRequest struct {
-	Weight  *float64 `json:"weight"`
-	Comment string   `json:"comment"`
+	// Weight — общий вес; nil — прежний (тогда нужен Categories).
+	Weight *float64 `json:"weight"`
+	// Categories — веса по категориям; nil — прежние, {} — снять все.
+	Categories map[string]float64 `json:"categories"`
+	Comment    string             `json:"comment"`
+	// ProposalID — применяется предложение агента MARGIN_OPPORTUNITY (открыто в песочнице из очереди): после
+	// записи версии оно становится принятым.
+	ProposalID string `json:"proposal_id"`
 }
 
 // MarginRollbackRequest — POST /api/margin/policy/rollback: новая версия = копия выбранной (0 — исходная 0.05).

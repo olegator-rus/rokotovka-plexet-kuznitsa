@@ -58,9 +58,37 @@ func validMarginWeight(w float64) bool {
 	return false
 }
 
-// MarginOverride — политика маржи поверх действующей: конфигурация C3 оценки, симуляция. Weight — вес рычага.
+// MarginOverride — политика маржи поверх действующей: конфигурация C3 оценки, симуляция. Weight — вес рычага;
+// Categories — вес по категории позиции поверх Weight (MARGIN_OPPORTUNITY), nil — только Weight.
 type MarginOverride struct {
-	Weight float64
+	Weight     float64
+	Categories map[string]float64
+}
+
+// marginWeights — вес рычага для позиции: по её категории, если он задан, иначе общий.
+type marginWeights struct {
+	global float64
+	cats   map[string]float64
+}
+
+func (mw marginWeights) of(c marginCand) float64 {
+	if w, ok := mw.cats[c.cat]; ok {
+		return w
+	}
+	return mw.global
+}
+
+// isBase — все веса равны весу контура поиска: политика ничего не переставляет.
+func (mw marginWeights) isBase() bool {
+	if math.Abs(mw.global-marginBaseWeight) >= 1e-9 {
+		return false
+	}
+	for _, w := range mw.cats {
+		if math.Abs(w-marginBaseWeight) >= 1e-9 {
+			return false
+		}
+	}
+	return true
 }
 
 // MarginC3 — опции поиска конфигурации C3 (C2 + политика маржи) для оценки: та же база opts, вес weight.
@@ -74,6 +102,7 @@ func MarginC3(opts SearchOptions, weight float64) SearchOptions {
 type marginCand struct {
 	familyID  string
 	productID string
+	cat       string // категория головы: вес по категории (marginWeights)
 	// key — группа релевантности: переставлять можно только внутри подряд идущих семейств с одинаковым key.
 	key   string
 	final float64
@@ -137,12 +166,18 @@ func marginSegments(in marginInput) [][2]int {
 // встаёт лучшая по скору позиция, поднимающаяся не больше чем на maxShift; позиция, которая иначе опустится
 // больше чем на maxShift, ставится принудительно. Равные скоры — в прежнем порядке.
 func marginReorder(in marginInput, w float64, maxShift int) marginResult {
+	return marginReorderW(in, marginWeights{global: w}, maxShift)
+}
+
+// marginReorderW — то же с весом по категории позиции.
+func marginReorderW(in marginInput, mw marginWeights, maxShift int) marginResult {
 	n := len(in.cands)
 	res := marginResult{order: identityOrder(n), guards: []string{}}
-	if n == 0 || math.Abs(w-marginBaseWeight) < 1e-9 {
+	if n == 0 || mw.isBase() {
 		return res
 	}
-	free := marginFreeOrder(in, w)
+	adj := func(i int) float64 { return in.cands[i].adjusted(mw.of(in.cands[i])) }
+	free := marginFreeOrder(in, mw)
 	changedFree := !sameIntOrder(free, res.order)
 	if in.exactQuery {
 		if changedFree {
@@ -175,7 +210,7 @@ func marginReorder(in marginInput, w float64, maxShift int) marginResult {
 		for k := range inner {
 			inner[k] += s[0]
 		}
-		sort.SliceStable(inner, func(a, b int) bool { return in.cands[inner[a]].adjusted(w) > in.cands[inner[b]].adjusted(w) })
+		sort.SliceStable(inner, func(a, b int) bool { return adj(inner[a]) > adj(inner[b]) })
 		for k, idx := range inner {
 			if abs(idx-(s[0]+k)) > maxShift {
 				capped = true
@@ -194,7 +229,7 @@ func marginReorder(in marginInput, w float64, maxShift int) marginResult {
 					if idx > p+maxShift {
 						break
 					}
-					if pick < 0 || in.cands[idx].adjusted(w) > in.cands[remaining[pick]].adjusted(w) {
+					if pick < 0 || adj(idx) > adj(remaining[pick]) {
 						pick = k
 					}
 				}
@@ -211,9 +246,10 @@ func marginReorder(in marginInput, w float64, maxShift int) marginResult {
 }
 
 // marginFreeOrder — порядок по скору при весе w без ограничений (чтобы считать, какие защиты сработали).
-func marginFreeOrder(in marginInput, w float64) []int {
+func marginFreeOrder(in marginInput, mw marginWeights) []int {
 	o := identityOrder(len(in.cands))
-	sort.SliceStable(o, func(a, b int) bool { return in.cands[o[a]].adjusted(w) > in.cands[o[b]].adjusted(w) })
+	adj := func(i int) float64 { return in.cands[i].adjusted(mw.of(in.cands[i])) }
+	sort.SliceStable(o, func(a, b int) bool { return adj(o[a]) > adj(o[b]) })
 	return o
 }
 
@@ -332,7 +368,8 @@ func marginInputOf(rc rankCtx, route string, fams []*familyHit) marginInput {
 	pct := marginPercentiles(rc.lx)
 	in := marginInput{cands: make([]marginCand, len(fams)), exactQuery: route == domain.RouteExact}
 	for i, fh := range fams {
-		c := marginCand{familyID: fh.id, productID: fh.head.ProductID, key: marginKey(fh), final: fh.final, raw: fh.head.Margin}
+		c := marginCand{familyID: fh.id, productID: fh.head.ProductID, cat: fh.head.CategoryID, key: marginKey(fh),
+			final: fh.final, raw: fh.head.Margin}
 		switch p, ok := pct[fh.head.ProductID]; {
 		case ok:
 			c.pct, c.known = p, true
@@ -403,15 +440,15 @@ func (s *Services) marginStage(ctx context.Context, cfg string, rc rankCtx, rout
 	step := &domain.MarginStep{StepBase: domain.StepBase{Name: domain.StepMargin}, BaseWeight: marginBaseWeight,
 		Shifts: []domain.MarginShift{}, Guards: []string{}}
 	if opts.Margin != nil {
-		step.Weight = opts.Margin.Weight
+		step.Weight, step.CategoryWeights = opts.Margin.Weight, opts.Margin.Categories
 	} else {
 		pol, err := s.activeMarginPolicy(ctx)
-		step.PolicyVersion, step.Weight = pol.Version, pol.Weight
+		step.PolicyVersion, step.Weight, step.CategoryWeights = pol.Version, pol.Weight, pol.Categories
 		if err != nil {
 			step.Error = "политика маржи не прочитана — вес контура поиска"
 		}
 	}
-	res := marginReorder(in, step.Weight, marginMaxShift)
+	res := marginReorderW(in, marginWeights{global: step.Weight, cats: step.CategoryWeights}, marginMaxShift)
 	step.Shifts = marginShifts(in, res.order)
 	step.Guards = append(res.guards, marginNotes(in)...)
 	if len(step.Shifts) > 0 {

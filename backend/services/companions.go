@@ -121,7 +121,8 @@ func anchorOf(c *commerceCatalog, lx *searchLexicon, tokens []string, fams []*fa
 	case clarify:
 		return nil, -1, "запрос неоднозначный — нужно уточнение"
 	}
-	if fams[0].group != domain.GroupExact {
+	// Точный парт-номер (маршрут A) — товар назван номером, даже если группа не exact.
+	if fams[0].group != domain.GroupExact && !(route == domain.RouteExact && namesMPN(fams[0].head.MPNRaw, tokens)) {
 		return nil, -1, "категорийный запрос — товар не назван"
 	}
 	scan := fams
@@ -695,4 +696,10 @@ func (lx *searchLexicon) keyWordPos(fid string, tokens []string) int {
 		}
 	}
 	return pos
+}
+
+// namesMPN — запрос целиком (без пробелов и разделителей) содержит парт-номер позиции: «p20249 b21» → P20249-B21.
+func namesMPN(mpn string, tokens []string) bool {
+	m := normalizeMPN(mpn)
+	return len(m) >= 4 && strings.Contains(normalizeMPN(strings.Join(tokens, "")), m)
 }

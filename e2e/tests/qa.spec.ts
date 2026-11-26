@@ -11,12 +11,20 @@ test.describe('QA: поиск', () => {
       rules_version: number
     }
     expect(meta.default_config).toBe('live')
+    // Правка «зуп» — из действующей цепочки правил текущего каталога: после переимпорта каталога прежние версии
+    // архивируются, и алиаса может не быть — тогда проверяется только, что витрина на действующей версии.
+    const configs = (await (await page.request.get('/api/configs')).json()) as {
+      items: { archived?: boolean; diff?: { add?: { kind?: string; alias?: string }[] } }[]
+    }
+    const zupAccepted = configs.items.some(
+      (v) => !v.archived && (v.diff?.add ?? []).some((a) => a.kind === 'alias' && a.alias === 'зуп'),
+    )
     await openSearch(page)
     const body = await search(page, 'зуп')
     expect(body.config).toBe('live')
     expect(body.trace.rules_version).toBe(meta.rules_version)
-    // Принятая правка «зуп» (версия ≥ 2) работает на витрине без переключения конфигурации.
-    if (meta.rules_version >= 2) {
+    // Принятая правка «зуп» работает на витрине без переключения конфигурации.
+    if (zupAccepted) {
       expect(body.total).toBeGreaterThan(0)
       await expect(resultCards(page).first()).toContainText('Зарплата и управление персоналом')
     }
@@ -60,7 +68,13 @@ test.describe('QA: поиск', () => {
     await openSearch(page)
     const win = await search(page, 'винда 11 про')
     expect(win.items.some((i) => /Acrobat|Zoom/.test(i.title))).toBe(false)
-    expect(win.trace.rejected?.some((r) => r.reason === 'tail_low_relevance')).toBe(true)
+    // Хвост чужих категорий и вендоров в выдаче не остаётся: всё показанное — категория первой позиции или её
+    // вендор; отсечённое — в трассе с причиной (какой шаг отсёк, зависит от каталога: порог, векторы или хвост).
+    const top = win.items[0]
+    expect(top?.title).toMatch(/Windows 11/)
+    expect(win.items.every((i) => i.category === top.category || i.vendor === top.vendor)).toBe(true)
+    expect((win.trace.rejected ?? []).length).toBeGreaterThan(0)
+    expect(win.trace.rejected?.every((r) => r.reason.length > 0)).toBe(true)
 
     const noise = await search(page, '<script>alert(1)</script>')
     expect(noise.total).toBe(0)
