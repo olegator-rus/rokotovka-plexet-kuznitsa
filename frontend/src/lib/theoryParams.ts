@@ -140,6 +140,7 @@ export const THEORY_PARAMS = {
   rulesTtlSec: 10,
 
   // Оценка (eval_metrics.go, evalsets_split.go)
+  evalTopK: 10, // NDCG@10 и MRR@10 — по первым десяти позициям
   relevantGrade: 2,
   shareTune: 0.4,
   shareTest: 0.4,

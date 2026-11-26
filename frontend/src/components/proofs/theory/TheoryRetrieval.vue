@@ -4,28 +4,10 @@
 // (search_rerank.go). Числа примера RRF считаются здесь же по формуле — это арифметика, а не выдача поиска.
 import { RouterLink } from 'vue-router'
 import { THEORY_PARAMS as P, ru } from '@/lib/theoryParams'
-import TheoryFlow, { type FlowStep } from './TheoryFlow.vue'
-import TheoryLanes, { type Lane } from './TheoryLanes.vue'
+import DiagramFunnel from './diagrams/DiagramFunnel.vue'
+import DiagramRetrieval from './diagrams/DiagramRetrieval.vue'
+import TheoryFormula from './TheoryFormula.vue'
 import TheorySection from './TheorySection.vue'
-
-const LANES: Lane[] = [
-  {
-    title: 'Текстовый поиск BM25',
-    items: [
-      'Ищет слова запроса в полях карточки: название, семейство, алиасы, вендор, артикул, описание',
-      'Точно различает названия, версии и артикулы',
-      'Пропускает запрос-описание, если его слов нет в карточке',
-    ],
-  },
-  {
-    title: 'Векторный поиск (модель BGE-M3)',
-    items: [
-      'Сравнивает запрос и карточку как точки в пространстве смыслов',
-      'Находит товар по описанию задачи без единого слова из названия',
-      'Путает близкие версии и всегда находит «что-то похожее», даже если товара нет',
-    ],
-  },
-]
 
 const fmt = (n: number, d = 3) => n.toFixed(d).replace('.', ',')
 
@@ -63,34 +45,6 @@ const RRF_NOTE = (() => {
 
 /** Насколько первое место весомее десятого при k для B3 и для B2. */
 const ratio = (k: number) => ru(Number(((k + 10) / (k + 1)).toFixed(2)))
-
-const FUNNEL: FlowStep[] = [
-  {
-    title: 'Кандидаты после слияния',
-    text: 'Отдельные позиции: конкретные лицензии конкретных продуктов.',
-  },
-  {
-    title: 'Проверка «нашлось только по смыслу»',
-    text: 'Найденное одними векторами остаётся только при высокой близости.',
-  },
-  {
-    title: 'Семейства и порог',
-    text: 'Позиции собираются в карточки продуктов, слабые уходят в отказы.',
-  },
-  {
-    title: 'Обязательные условия по вариантам',
-    text: 'Происхождение, вендор, продление, метрика, характеристики техники.',
-  },
-  {
-    title: 'Добор названного',
-    text: 'Названная категория или вендор, которых поиск не принёс, добираются из каталога.',
-    tone: 'muted',
-  },
-  {
-    title: 'Чужие категории и неподходящее количество',
-    text: 'Отсекаются, если есть что показать по названной категории и количеству.',
-  },
-]
 </script>
 
 <template>
@@ -104,12 +58,7 @@ const FUNNEL: FlowStep[] = [
       близкие по смыслу тексты оказываются рядом. Поэтому на каждом запросе работают оба,
       параллельно, и каждый приносит до {{ ru(P.candidatesTop) }} кандидатов.
     </p>
-    <TheoryLanes
-      :lanes="LANES"
-      top="Запрос после нормализации + обязательные условия фильтрами"
-      :merge="{ title: 'Слияние RRF', text: 'Два списка становятся одним — следующий раздел.' }"
-      label="Два источника кандидатов работают параллельно и сходятся в слиянии RRF"
-    />
+    <DiagramRetrieval />
     <h4>Как устроен текстовый поиск</h4>
     <ul>
       <li>
@@ -181,10 +130,80 @@ const FUNNEL: FlowStep[] = [
       говорят друг о друге. Поэтому слияние смотрит не на оценки, а на <strong>места</strong> в
       списках. Это Reciprocal Rank Fusion (RRF):
     </p>
-    <p class="theory-formula">
-      <span class="badge theory-formula__kind">настройка</span>
-      <code>оценка(товар) = Σ по спискам 1 / (k + место в списке), k = {{ ru(P.rrfK) }}</code>
-    </p>
+    <TheoryFormula
+      kind="настройка"
+      :label="`RRF товара d — сумма по спискам BM25 и векторов дробей: единица, делённая на k плюс место d в списке; k = ${ru(P.rrfK)}. Релевантность R от d — RRF от d, делённая на лучшую RRF в выдаче.`"
+    >
+      <math displaystyle="true">
+        <mi>RRF</mi><mo stretchy="false">(</mo><mi>d</mi><mo stretchy="false">)</mo><mo>=</mo>
+        <munder>
+          <mo>∑</mo>
+          <mrow>
+            <mi>i</mi><mo>∈</mo><mo stretchy="false">{</mo><mtext>BM25</mtext><mo>,</mo
+            ><mtext>векторы</mtext><mo stretchy="false">}</mo>
+          </mrow>
+        </munder>
+        <mfrac>
+          <mn>1</mn>
+          <mrow>
+            <mi>k</mi><mo>+</mo><msub><mi>rank</mi><mi>i</mi></msub
+            ><mo stretchy="false">(</mo><mi>d</mi><mo stretchy="false">)</mo>
+          </mrow>
+        </mfrac>
+        <mo>,</mo>
+      </math>
+      <math displaystyle="true">
+        <mi>k</mi><mo>=</mo><mn>{{ ru(P.rrfK) }}</mn>
+      </math>
+      <span class="tf__br" aria-hidden="true" />
+      <math displaystyle="true">
+        <mi>R</mi><mo stretchy="false">(</mo><mi>d</mi><mo stretchy="false">)</mo><mo>=</mo>
+        <mfrac>
+          <mrow><mi>RRF</mi><mo stretchy="false">(</mo><mi>d</mi><mo stretchy="false">)</mo></mrow>
+          <mrow>
+            <msub
+              ><mi>max</mi><mrow><mi>d</mi><mo lspace="0" rspace="0">′</mo></mrow></msub
+            ><mspace width="0.17em" /><mi>RRF</mi><mo stretchy="false">(</mo
+            ><mrow><mi>d</mi><mo lspace="0" rspace="0">′</mo></mrow
+            ><mo stretchy="false">)</mo>
+          </mrow>
+        </mfrac>
+      </math>
+      <template #where>
+        <div>
+          <dt>
+            <math><mi>d</mi></math>
+          </dt>
+          <dd>— товар-кандидат;</dd>
+        </div>
+        <div>
+          <dt>
+            <math
+              ><msub><mi>rank</mi><mi>i</mi></msub
+              ><mo stretchy="false">(</mo><mi>d</mi><mo stretchy="false">)</mo></math
+            >
+          </dt>
+          <dd>
+            — место <math><mi>d</mi></math> в списке <math><mi>i</mi></math
+            >, считая с 1; если <math><mi>d</mi></math> в списке нет, слагаемого нет;
+          </dd>
+        </div>
+        <div>
+          <dt>
+            <math><mi>k</mi></math>
+          </dt>
+          <dd>
+            — константа сглаживания: {{ ru(P.rrfK) }} в полном пути, {{ ru(P.rrfKB2) }} в версии B2;
+          </dd>
+        </div>
+        <div>
+          <dt>
+            <math><mi>R</mi><mo stretchy="false">(</mo><mi>d</mi><mo stretchy="false">)</mo></math>
+          </dt>
+          <dd>— релевантность от 0 до 1: доля от лучшей суммы в выдаче.</dd>
+        </div>
+      </template>
+    </TheoryFormula>
     <p>
       Чем меньше k, тем сильнее верх списка отрывается от хвоста. С k = {{ ru(P.rrfK) }} первое
       место весомее десятого в {{ ratio(P.rrfK) }} раза, со стандартным k = {{ ru(P.rrfKB2) }} —
@@ -255,7 +274,7 @@ const FUNNEL: FlowStep[] = [
       всего подходит под условия запроса, остальные раскрываются в ней же. Ссылка «На сайте» ведёт
       на страницу этого варианта на store.softline.ru.
     </p>
-    <TheoryFlow :steps="FUNNEL" label="Отбор после слияния: от позиций к семействам" />
+    <DiagramFunnel />
     <ul>
       <li>
         <strong>Порог.</strong> Релевантность семейства — лучшая из его позиций. Всё, что ниже
@@ -307,13 +326,57 @@ const FUNNEL: FlowStep[] = [
       часто расходятся: на запросах-описаниях («резервное копирование») и запросах с незнакомыми
       словами.
     </p>
-    <p class="theory-formula">
-      <span class="badge theory-formula__kind">настройка</span>
-      <code
-        >релевантность = {{ ru(1 - P.rerankWeight) }} · релевантность слияния +
-        {{ ru(P.rerankWeight) }} · оценка реранкера / лучшая оценка</code
-      >
-    </p>
+    <TheoryFormula
+      kind="настройка"
+      :label="`Новая релевантность R штрих от d равна ${ru(1 - P.rerankWeight)} умножить на R от d плюс ${ru(P.rerankWeight)} умножить на оценку реранкера r от d, делённую на лучшую оценку реранкера в выдаче.`"
+    >
+      <math displaystyle="true">
+        <mi>R</mi><mo lspace="0" rspace="0">′</mo><mo stretchy="false">(</mo><mi>d</mi
+        ><mo stretchy="false">)</mo><mo>=</mo><mn>{{ ru(1 - P.rerankWeight) }}</mn
+        ><mo>⋅</mo><mi>R</mi><mo stretchy="false">(</mo><mi>d</mi><mo stretchy="false">)</mo>
+      </math>
+      <math displaystyle="true">
+        <mo form="infix" lspace="0">+</mo><mn>{{ ru(P.rerankWeight) }}</mn
+        ><mo>⋅</mo>
+        <mfrac>
+          <mrow><mi>r</mi><mo stretchy="false">(</mo><mi>d</mi><mo stretchy="false">)</mo></mrow>
+          <mrow>
+            <msub
+              ><mi>max</mi><mrow><mi>d</mi><mo lspace="0" rspace="0">′</mo></mrow></msub
+            ><mspace width="0.17em" /><mi>r</mi><mo stretchy="false">(</mo
+            ><mrow><mi>d</mi><mo lspace="0" rspace="0">′</mo></mrow
+            ><mo stretchy="false">)</mo>
+          </mrow>
+        </mfrac>
+      </math>
+      <template #where>
+        <div>
+          <dt>
+            <math><mi>R</mi><mo stretchy="false">(</mo><mi>d</mi><mo stretchy="false">)</mo></math>
+          </dt>
+          <dd>
+            — релевантность семейства <math><mi>d</mi></math> после слияния;
+          </dd>
+        </div>
+        <div>
+          <dt>
+            <math><mi>r</mi><mo stretchy="false">(</mo><mi>d</mi><mo stretchy="false">)</mo></math>
+          </dt>
+          <dd>
+            — оценка реранкера; у семейств ниже {{ ru(P.rerankTop) }}-го места её нет, и это
+            слагаемое для них 0;
+          </dd>
+        </div>
+        <div>
+          <dt>
+            <math
+              ><mn>{{ ru(P.rerankWeight) }}</mn></math
+            >
+          </dt>
+          <dd>— вес реранкера, подобран на настроечном наборе.</dd>
+        </div>
+      </template>
+    </TheoryFormula>
     <ul>
       <li>
         <strong>Только маршруты C и D</strong> и только если семейств хотя бы два. На точных

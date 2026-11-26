@@ -3,6 +3,7 @@
 // tests/procurement.test.ts.
 import type { Purchase, Reestr, SearchItemBase, SearchResponse } from '@/api/types'
 import { formatPrice, isPositivePrice, plural } from './format.ts'
+import { kindFromLine, LICENSE_KIND_LABELS } from './license.ts'
 
 /** Параметры закупки строки спецификации — уходят в заявку КП вместе с исходным запросом. */
 export interface SpecPurchase {
@@ -94,7 +95,10 @@ export function selectedOffer(
   if (!hasPurchaseTerms(purchase) || !item.matches_query) return null
   if (item.price_on_request || !isPositivePrice(item.price_rub)) return null
   const a = item.attrs
-  const kind = a?.license_type === 'renewal' ? 'Продление' : purchase.deal_label || 'Новая лицензия'
+  const kind =
+    LICENSE_KIND_LABELS[item.license_kind ?? ''] ||
+    kindFromLine(item.license_line) ||
+    (a?.license_type === 'renewal' ? 'Продление' : purchase.deal_label || 'Новая лицензия')
   const parts = [kind, durationText(a?.duration_months ?? null), a?.edition ?? ''].filter(Boolean)
   const quantity = purchaseQuantity(item, purchase.quantity, purchase.metric)
   const total = item.price_rub * quantity

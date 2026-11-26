@@ -4,25 +4,10 @@
 // results.go) и трасса (search_b3.go, traces.go). Пример скора считается здесь по формуле из rank.go.
 import { RouterLink } from 'vue-router'
 import { THEORY_PARAMS as P, pct, ru } from '@/lib/theoryParams'
-import TheoryFlow, { type FlowStep } from './TheoryFlow.vue'
+import DiagramEmpty from './diagrams/DiagramEmpty.vue'
+import DiagramSortKeys from './diagrams/DiagramSortKeys.vue'
+import TheoryFormula from './TheoryFormula.vue'
 import TheorySection from './TheorySection.vue'
-
-const SORT_KEYS: FlowStep[] = [
-  {
-    title: 'Группа',
-    text: 'Точное → подходящее → аналог. Итоговый скор (ключ 5) между группами не переставляет.',
-  },
-  {
-    title: 'Ступень',
-    text: 'Названное целиком — выше названного частично; при «продлить» — путь продления.',
-  },
-  {
-    title: 'Масштаб',
-    text: 'В бизнес-запросе домашние линейки ниже; названная подкатегория выше.',
-  },
-  { title: 'Ровно N', text: 'Лицензия ровно на запрошенное количество — выше поштучной.' },
-  { title: 'Итоговый скор', text: 'Формула ниже.' },
-]
 
 const fmt = (n: number) => n.toFixed(3).replace('.', ',')
 
@@ -35,33 +20,6 @@ const SCORE = [
   const rest = P.wPopularity * r.pop + P.wMargin * r.margin + P.wContext * r.ctx
   return { ...r, relPart, rest, final: relPart + rest }
 })
-
-const EMPTY: FlowStep[] = [
-  {
-    title: 'Все слова → любое слово',
-    text: 'Текстовый поиск не нашёл ничего со всеми словами — повтор с «хотя бы одним».',
-  },
-  {
-    title: 'Продления нет',
-    text: 'Отдельной позиции продления нет — показывается та же лицензия: новый срок оформляется ею.',
-  },
-  {
-    title: 'Метрика не та',
-    text: 'Названный продукт продаётся с другой метрикой — он в выдаче с пояснением.',
-  },
-  {
-    title: 'Пусто, а продукт назван',
-    text: 'Аналоги из справочника связей, отдельной группой «аналог». На фиде справочник пуст.',
-  },
-  {
-    title: 'Товара нет, но понятно, на что он похож',
-    text: 'Замены продуктов того же вендора и категории; порядок — по реранкеру.',
-  },
-  {
-    title: '«Товара нет в каталоге»',
-    text: 'Что при этом видит покупатель — в списке ниже.',
-  },
-]
 
 const HW = [
   { q: 'ksm32rd4 32hdr', what: 'парт-номер из двух соседних слов → точное поле, маршрут A' },
@@ -81,12 +39,7 @@ const HW = [
       товары равны. Поэтому популярный товар не обгонит точное совпадение, а неподходящий —
       подходящий.
     </p>
-    <TheoryFlow
-      :steps="SORT_KEYS"
-      row
-      numbered
-      label="Ключи сортировки выдачи по порядку важности"
-    />
+    <DiagramSortKeys />
     <ul>
       <li>
         <strong>Группы.</strong> «Точное» — семейство или вендор названы в запросе, и лицензия
@@ -107,14 +60,61 @@ const HW = [
       </li>
     </ul>
     <p>Внутри равных ключей решает итоговый скор:</p>
-    <p class="theory-formula">
-      <span class="badge theory-formula__kind">настройка</span>
-      <code
-        >итог = {{ ru(P.wRelevance) }} · релевантность · ({{ ru(1 - P.licenseFitWeight) }} +
-        {{ ru(P.licenseFitWeight) }} · соответствие лицензии) + {{ ru(P.wPopularity) }} ·
-        популярность + {{ ru(P.wMargin) }} · маржа + {{ ru(P.wContext) }} · контекст клиента</code
-      >
-    </p>
+    <TheoryFormula
+      kind="настройка"
+      :label="`Итоговый скор S от d равен ${ru(P.wRelevance)} умножить на релевантность R от d и на скобку ${ru(1 - P.licenseFitWeight)} плюс ${ru(P.licenseFitWeight)} умножить на соответствие лицензии F от d, плюс ${ru(P.wPopularity)} умножить на популярность P от d, плюс ${ru(P.wMargin)} умножить на маржу M от d, плюс ${ru(P.wContext)} умножить на контекст клиента C от d.`"
+    >
+      <math displaystyle="true">
+        <mi>S</mi><mo stretchy="false">(</mo><mi>d</mi><mo stretchy="false">)</mo><mo>=</mo
+        ><mn>{{ ru(P.wRelevance) }}</mn
+        ><mo>⋅</mo><mi>R</mi><mo stretchy="false">(</mo><mi>d</mi><mo stretchy="false">)</mo
+        ><mo>⋅</mo><mo stretchy="false">(</mo><mn>{{ ru(1 - P.licenseFitWeight) }}</mn
+        ><mo>+</mo><mn>{{ ru(P.licenseFitWeight) }}</mn
+        ><mo>⋅</mo><mi>F</mi><mo stretchy="false">(</mo><mi>d</mi><mo stretchy="false">)</mo
+        ><mo stretchy="false">)</mo>
+      </math>
+      <math displaystyle="true">
+        <mo form="infix" lspace="0">+</mo><mn>{{ ru(P.wPopularity) }}</mn
+        ><mo>⋅</mo><mi>P</mi><mo stretchy="false">(</mo><mi>d</mi><mo stretchy="false">)</mo>
+      </math>
+      <math displaystyle="true">
+        <mo form="infix" lspace="0">+</mo><mn>{{ ru(P.wMargin) }}</mn
+        ><mo>⋅</mo><mi>M</mi><mo stretchy="false">(</mo><mi>d</mi><mo stretchy="false">)</mo>
+      </math>
+      <math displaystyle="true">
+        <mo form="infix" lspace="0">+</mo><mn>{{ ru(P.wContext) }}</mn
+        ><mo>⋅</mo><mi>C</mi><mo stretchy="false">(</mo><mi>d</mi><mo stretchy="false">)</mo>
+      </math>
+      <template #where>
+        <div>
+          <dt>
+            <math><mi>R</mi><mo stretchy="false">(</mo><mi>d</mi><mo stretchy="false">)</mo></math>
+          </dt>
+          <dd>— релевантность после слияния и реранкера, если он работал;</dd>
+        </div>
+        <div>
+          <dt>
+            <math><mi>F</mi><mo stretchy="false">(</mo><mi>d</mi><mo stretchy="false">)</mo></math>
+          </dt>
+          <dd>— соответствие лицензии условиям запроса, от 0 до 1;</dd>
+        </div>
+        <div>
+          <dt>
+            <math
+              ><mi>P</mi><mo stretchy="false">(</mo><mi>d</mi><mo stretchy="false">)</mo><mo>,</mo
+              ><mi>M</mi><mo stretchy="false">(</mo><mi>d</mi><mo stretchy="false">)</mo></math
+            >
+          </dt>
+          <dd>— популярность и маржа из карточки, от 0 до 1;</dd>
+        </div>
+        <div>
+          <dt>
+            <math><mi>C</mi><mo stretchy="false">(</mo><mi>d</mi><mo stretchy="false">)</mo></math>
+          </dt>
+          <dd>— контекст клиента: покупал ли он это семейство или этого вендора.</dd>
+        </div>
+      </template>
+    </TheoryFormula>
     <ul>
       <li>
         <strong>Соответствие лицензии</strong>: ровно запрошенное количество — 1, поштучно или
@@ -195,7 +195,7 @@ const HW = [
       >.
     </p>
     <p>До пустого ответа код пробует запасные ходы, по порядку:</p>
-    <TheoryFlow :steps="EMPTY" numbered label="Что делает поиск, когда найти нечего" />
+    <DiagramEmpty />
     <h4>Что видит покупатель</h4>
     <ul>
       <li>

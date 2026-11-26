@@ -139,6 +139,7 @@ test('targetView: семейство, вендор, вендор + катего�
       label: 'Astra Linux Special Edition',
       url: 'https://store.softline.ru/astra/astra-linux-special-edition/',
       reason: 'одно явное базовое семейство',
+      action: 'link',
     },
   )
   assert.equal(
@@ -169,6 +170,7 @@ test('targetView: без цели, без ссылки, не http(s) — цел�
   assert.equal(targetView(null), null)
   assert.equal(targetView(undefined), null)
   assert.equal(targetView({ type: 'family', url: '', title: 'X' }), null)
+  assert.equal(targetView({ type: 'vendor', url: '', title: 'X' }), null)
   assert.equal(targetView({ type: 'family', url: 'javascript:alert(1)', title: 'X' }), null)
   assert.equal(targetView({ type: 'family', url: 'https://store.softline.ru/', title: ' ' }), null)
   assert.equal(
@@ -176,6 +178,27 @@ test('targetView: без цели, без ссылки, не http(s) — цел�
       ?.kind,
     'Раздел магазина',
   )
+})
+
+test('targetView: категория и сервис без ссылки — цель без перехода на сайт (живой ответ «сервер», «доставка»)', () => {
+  const cat = targetView({
+    type: 'category',
+    url: '',
+    title: 'Rack-серверы',
+    reason: 'общее слово совпадает с категорией',
+  })
+  assert.equal(cat?.action, 'none')
+  assert.equal(cat?.kind, 'Категория')
+  assert.equal(cat?.label, 'Rack-серверы')
+  const svc = targetView({
+    type: 'service',
+    url: '',
+    title: 'Помощь менеджера',
+    reason: 'запрос не о товаре',
+  })
+  assert.equal(svc?.action, 'manager')
+  assert.equal(svc?.kind, 'Раздел магазина')
+  assert.equal(targetView({ type: 'category', url: '', title: ' ' }), null)
 })
 
 test('safeExternalUrl и storeLink: страница семейства выше оффера', () => {

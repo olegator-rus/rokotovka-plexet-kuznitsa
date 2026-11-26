@@ -40,8 +40,9 @@ export function isPositivePrice(rub: number | null | undefined): rub is number {
  */
 export function formatPrice(rub: number | null | undefined): string {
   if (!isPositivePrice(rub)) return ''
-  const whole = Number.isInteger(rub)
-  return `${whole ? formatInt(rub) : formatDecimal(rub, 2)}${NBSP}₽`
+  // До копеек: 2 280,93 × 100 = 228 092,99999… — это 228 093 ₽, а не «228 093,00 ₽».
+  const kop = Math.round(rub * 100) / 100
+  return `${Number.isInteger(kop) ? formatInt(kop) : formatDecimal(kop, 2)}${NBSP}₽`
 }
 
 /** Время ответа: меньше миллисекунды — «<1 мс», до секунды — «41 мс», дальше — «1,2 с». */

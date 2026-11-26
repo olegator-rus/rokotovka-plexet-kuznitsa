@@ -4,7 +4,7 @@ import type { Chip, SearchItemBase, SearchResponse } from '@/api/types'
 import type { Facet, SearchFilter } from '@/api/typesP2'
 import type { ItemAttrs, Refinement, ResultsSort } from '@/api/typesResults'
 import { formatInt, formatPrice, isPositivePrice, plural } from './format.ts'
-import { isPurchasable } from './license.ts'
+import { isPurchasable, LICENSE_TYPE_LABELS } from './license.ts'
 
 export const SORT_LABELS: Record<ResultsSort, string> = {
   recommended: 'Рекомендуемые',
@@ -108,15 +108,6 @@ export interface AttrCell {
   highlight: boolean
 }
 
-const TYPE_LABELS: Record<string, string> = {
-  subscription: 'Новая · подписка',
-  perpetual: 'Новая · бессрочная',
-  renewal: 'Продление',
-  upgrade: 'Обновление',
-  oem: 'OEM',
-  cloud: 'Облачная',
-}
-
 const METRIC_FORMS: Record<string, [string, string, string]> = {
   device: ['устройство', 'устройства', 'устройств'],
   user: ['пользователь', 'пользователя', 'пользователей'],
@@ -188,7 +179,12 @@ export function durationLabel(months: number | null): string {
  * Строка атрибутов карточки ПО: редакция, тип (новая / продление), метрика и количество, срок, поставка,
  * реестр. Набор одинаков у всех карточек — отсутствующее значение прочерком, а не пропуском.
  */
-export function attrCells(attrs: ItemAttrs, named: NamedAttrs | ReadonlySet<string>): AttrCell[] {
+export function attrCells(
+  attrs: ItemAttrs,
+  named: NamedAttrs | ReadonlySet<string>,
+  /** Подпись вида лицензии (licenseKindLabel): по `license_kind`, а не по типу атрибутов. */
+  kindLabel?: string,
+): AttrCell[] {
   const dash = '—'
   let quantity = dash
   if (attrs.license_metric === 'org') quantity = 'На организацию'
@@ -200,7 +196,7 @@ export function attrCells(attrs: ItemAttrs, named: NamedAttrs | ReadonlySet<stri
     {
       key: 'type',
       label: 'Лицензия',
-      value: TYPE_LABELS[attrs.license_type] ?? (attrs.license_type || dash),
+      value: kindLabel || LICENSE_TYPE_LABELS[attrs.license_type] || attrs.license_type || dash,
       highlight: false,
     },
     { key: 'quantity', label: 'Количество', value: quantity, highlight: false },

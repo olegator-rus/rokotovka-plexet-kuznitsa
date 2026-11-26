@@ -12,16 +12,17 @@ import {
   resultCards,
   search,
   searchBox,
+  searchResponse,
   test,
-  tracePanel,
 } from "./fixtures";
 
-/** Артикул варианта Kaspersky Endpoint Security (Стандартный, 10 узлов, 1 год) из демо-каталога. */
-const KES_SKU = "KL7076RGUVS";
+/**
+ * Артикул из фида store.softline.ru (data/softline/feed/products.jsonl, поле sku): KES Стандартный, продление на 2 года,
+ * ступень 100–149 узлов, 3 070,80 ₽ за узел — пример точного артикула из.
+ */
+const KES_SKU = "KL4863RARDR";
 const KES_TITLE =
-  "Kaspersky Endpoint Security для бизнеса Стандартный, 10 узлов, 1 год";
-/** Парт-номер сервера Dell R740: к нему есть проверенные связи (память, диски, сервис). */
-const SERVER_MPN = "PER740-2S4210R-64G";
+  "Kaspersky Endpoint Security для бизнеса Стандартный продление лицензии на 2 года. Количество узлов";
 
 async function noOverflow(page: Page, what: string) {
   const overflow = await page.evaluate(
@@ -32,42 +33,80 @@ async function noOverflow(page: Page, what: string) {
   expect(overflow, `${what}: горизонтальная прокрутка`).toBeLessThanOrEqual(0);
 }
 
-test.describe("S1. Точный артикул", () => {
-  test("артикул KES → нужный вариант первым, в трассе «точный запрос: сдвиг отключён»", async ({
+test.describe("S1. Точный артикул и «сервер»", () => {
+  test("артикул KES из фида → цель «Товар» с этим артикулом первой, позиция первой, ниже варианты того же семейства", async ({
     page,
   }) => {
     await openSearch(page);
-    const body = await search(page, KES_SKU);
+    const body = (await search(page, KES_SKU)) as unknown as {
+      trace: { route: string };
+      total: number;
+      target?: { type: string; url: string } | null;
+      items: { match_type?: string; title: string }[];
+    };
     expect(body.trace.route).toBe("A");
     expect(body.total).toBe(1);
     expect(body.items[0]?.title).toBe(KES_TITLE);
-    await expect(resultCards(page).first()).toContainText(KES_TITLE);
+    expect(body.items[0]?.match_type).toBe("exact");
+    expect(body.target?.type).toBe("sku");
 
-    await page.getByRole("switch", { name: "Трасса" }).click();
-    const panel = tracePanel(page);
-    await expect(panel).toBeVisible();
-    const margin = panel.getByRole("button", {
-      name: /^Маржа без сдвигов · 1 защита/,
-    });
-    await expect(margin).toBeVisible();
-    await margin.click();
-    await expect(panel).toContainText("точный запрос: сдвиг отключён");
+    // Цель — первый кликабельный элемент выдачи, ссылка на страницу позиции на сайте.
+    const target = page.getByTestId("target-link");
+    await expect(target).toContainText("Товар");
+    await expect(target).toHaveAttribute("href", /kl4863rardr/i);
+    await expect(
+      page.locator('[data-match-group="exact"]').getByRole("article").first(),
+    ).toContainText(KES_TITLE);
+    await expect(
+      page.getByRole("heading", { name: "Другие варианты лицензии" }),
+    ).toBeVisible();
+    await expect(
+      page.locator('[data-match-group="variant"]').getByRole("article").first(),
+    ).toContainText("Kaspersky Endpoint Security для бизнеса Стандартный");
   });
 
-  test("парт-номер сервера → одна модель, блок «Дополните решение» с подписями основания", async ({
+  test("«сервер» (S1) → цель-категория «Rack-серверы» с чипами производителей, ≥4 сервера с ценой; «почтовый сервер» → ПО", async ({
     page,
   }) => {
     await openSearch(page);
-    const body = await search(page, SERVER_MPN);
-    expect(body.trace.route).toBe("A");
-    await expect(resultCards(page).first()).toContainText(
-      "Dell PowerEdge R740",
-    );
-    const block = page.locator('section[aria-labelledby="cmp-title"]');
+    const body = (await search(page, "сервер")) as unknown as {
+      target?: { type: string; title: string } | null;
+      clarifications?: { label: string; query: string }[];
+      items: { title: string; category?: string; price_state?: string }[];
+    };
+    expect(body.target?.type).toBe("category");
+    expect(body.items.length).toBeGreaterThanOrEqual(4);
+    for (const it of body.items.slice(0, 4)) {
+      expect(it.price_state, it.title).toBe("priced");
+      expect(it.category, it.title).toMatch(/сервер/i);
+    }
+    // Рабочие станции DEPO Race в серверы не попадают («проверить до записи»).
+    expect(body.items.some((i) => /DEPO Race/i.test(i.title))).toBe(false);
+
+    const target = page.getByTestId("search-target");
+    await expect(target).toContainText("Категория");
+    await expect(target).toContainText(body.target?.title ?? "");
+    const chip = body.clarifications?.[0];
+    expect(chip, "чипы производителей у цели-категории").toBeTruthy();
     await expect(
-      block.getByRole("heading", { name: /^Дополните решение к / }),
-    ).toBeVisible();
-    await expect(block).toContainText("Совместимо с Dell PowerEdge R740");
+      target.getByTestId("target-chips").getByRole("button").first(),
+    ).toContainText(chip?.label ?? "");
+    await expect(page.locator("main")).not.toContainText(/(^|[^\d,\s\u00a0])\s*0\s₽/);
+
+    // Нажатие на чип производителя перезапускает поиск с его запросом.
+    const byVendor = await searchResponse(page, () =>
+      target.getByTestId("target-chips").getByRole("button").first().click(),
+    );
+    expect(byVendor.query).toBe(chip?.query);
+    await expect(page).toHaveURL(/q=/);
+
+    const mail = (await search(page, "почтовый сервер")) as unknown as {
+      items: { kind?: string }[];
+    };
+    expect(mail.items.length).toBeGreaterThanOrEqual(4);
+    expect(mail.items.slice(0, 4).every((i) => i.kind === "software")).toBe(
+      true,
+    );
   });
 });
 

@@ -87,6 +87,12 @@ export interface TargetView {
   label: string
   url: string
   reason: string
+  /**
+   * link — ссылка на store.softline.ru; manager — сервисная цель без страницы («Помощь менеджера»): кнопка открывает
+   * менеджера; none — категория без страницы на сайте (сервер присылает url пустым): заголовок и чипы производителей
+   * под ним (`clarifications`) — они и есть кликабельная часть цели.
+   */
+  action: 'link' | 'manager' | 'none'
 }
 
 /** Только http(s): ссылка уходит в новую вкладку, `javascript:` и прочие схемы не пропускаются. */
@@ -102,13 +108,21 @@ export function safeExternalUrl(url: string | null | undefined): string {
 
 /**
  * Подпись цели: семейство — его название; вендор — «Все продукты МТС Линк»; вендор + категория — как прислал
- * сервер («Киберпротект — резервное копирование»). Нет ссылки или названия — цели нет (null).
+ * сервер («Киберпротект — резервное копирование»). Без названия — цели нет (null). Без ссылки цель остаётся только у
+ * категории (§16.6: url пусто, чипы вендоров) и сервисного запроса (справки нет — менеджер); у товара, семейства и
+ * вендора сервер ссылку присылает всегда, без неё цель не выводится.
  */
 export function targetView(t: SearchTarget | null | undefined): TargetView | null {
   if (!t) return null
   const url = safeExternalUrl(t.url)
   const title = (t.title ?? '').trim()
-  if (!url || !title) return null
+  if (!title) return null
+  let action: TargetView['action'] = 'link'
+  if (!url) {
+    if (t.type === 'category') action = 'none'
+    else if (t.type === 'service') action = 'manager'
+    else return null
+  }
   const label =
     t.type === 'vendor' && !/^все\s+продукты/i.test(title) ? `Все продукты ${title}` : title
   return {
@@ -116,6 +130,7 @@ export function targetView(t: SearchTarget | null | undefined): TargetView | nul
     label,
     url,
     reason: (t.reason ?? '').trim(),
+    action,
   }
 }
 

@@ -2,7 +2,8 @@
 // «Доказательства» → «Теоретические основы» (tab=theory): разбор одного запроса, как устроено решение и на
 // каких методах держится поиск — от нормализации до выдачи, агент SearchOps, как меряется качество и стоимость.
 // Текст статичный, в API не ходит. Параметры алгоритмов — из lib/theoryParams.ts (тест сверяет их с Go-кодом);
-// наблюдения на стенде и разбор агента подписаны датой и каталогом. Схемы — блоки на токенах (theory/Theory*.vue).
+// наблюдения на стенде и разбор агента подписаны датой и каталогом. Схемы — SVG на токенах (theory/diagrams/,
+// общие узлы и стрелки — theory/diagram/), формулы — нативный MathML (theory/TheoryFormula.vue).
 // Содержание прокручивает к разделу, адрес не меняет: вкладка остаётся на tab=theory. Якорь #theory-<id> в
 // адресе при открытии прокручивает к разделу (ссылка на раздел снаружи).
 import { nextTick, onMounted, useTemplateRef } from 'vue'
@@ -178,7 +179,7 @@ onMounted(async () => {
 </style>
 
 <style>
-/* Общий текст разделов «Теоретических основ»: абзацы, списки, формулы, таблицы и пример расчёта. */
+/* Общий текст разделов «Теоретических основ»: абзацы, списки, таблицы и пример расчёта. */
 .theory p,
 .theory ul {
   margin: 0;
@@ -204,22 +205,6 @@ onMounted(async () => {
   font-family: var(--font-mono);
   font-size: 0.92em;
   overflow-wrap: anywhere;
-}
-.theory-formula {
-  max-width: none;
-  padding: var(--space-3) var(--space-4);
-  border-left: 3px solid var(--accent);
-  border-radius: var(--radius-control);
-  background: var(--surface-2);
-}
-.theory-formula__kind {
-  display: table;
-  margin-bottom: var(--space-1);
-}
-.theory-formula code {
-  white-space: pre-wrap;
-  font-size: var(--fs-sm);
-  line-height: var(--lh-body);
 }
 .theory-example {
   display: flex;

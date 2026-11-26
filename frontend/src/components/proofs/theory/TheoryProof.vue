@@ -5,19 +5,9 @@
 // здесь нет — только ссылки на вкладки, где они посчитаны.
 import { RouterLink } from 'vue-router'
 import { THEORY_PARAMS as P, pct, ru } from '@/lib/theoryParams'
-import TheoryFlow, { type FlowStep } from './TheoryFlow.vue'
+import DiagramLadder from './diagrams/DiagramLadder.vue'
+import TheoryFormula from './TheoryFormula.vue'
 import TheorySection from './TheorySection.vue'
-
-const LADDER: FlowStep[] = [
-  {
-    title: 'B0',
-    text: 'Только точное совпадение подстроки в названии — реконструкция исходной проблемы.',
-  },
-  { title: 'B1', text: '+ BM25 по полям, нормализация и словари.' },
-  { title: 'B2', text: '+ векторы BGE-M3 и слияние RRF.' },
-  { title: 'B3', text: '+ условия, разбор намерения, порог, бизнес-слой, реранкер.' },
-  { title: 'B4', text: '+ принятые правки агента.' },
-]
 
 const OFFLINE = [
   [
@@ -131,11 +121,114 @@ const GLOSSARY = [
         не зная версии поиска и места товара. Её согласие с разметкой публикуется рядом с метриками.
       </li>
     </ul>
+    <TheoryFormula
+      kind="настройка"
+      :label="`NDCG@${P.evalTopK} равно DCG@${P.evalTopK}, делённому на IDCG@${P.evalTopK}. DCG@${P.evalTopK} — сумма по местам i от 1 до ${P.evalTopK} дробей: два в степени оценки g i минус один, делённое на двоичный логарифм от i плюс один.`"
+    >
+      <math displaystyle="true">
+        <mtext>NDCG@{{ P.evalTopK }}</mtext
+        ><mo>=</mo>
+        <mfrac>
+          <mtext>DCG@{{ P.evalTopK }}</mtext>
+          <mtext>IDCG@{{ P.evalTopK }}</mtext>
+        </mfrac>
+        <mo>,</mo>
+      </math>
+      <math displaystyle="true">
+        <mtext>DCG@{{ P.evalTopK }}</mtext
+        ><mo>=</mo>
+        <munderover>
+          <mo>∑</mo>
+          <mrow><mi>i</mi><mo>=</mo><mn>1</mn></mrow>
+          <mn>{{ P.evalTopK }}</mn>
+        </munderover>
+        <mfrac>
+          <mrow
+            ><msup
+              ><mn>2</mn><msub><mi>g</mi><mi>i</mi></msub></msup
+            ><mo>−</mo><mn>1</mn></mrow
+          >
+          <mrow>
+            <msub><mi>log</mi><mn>2</mn></msub
+            ><mo stretchy="false">(</mo><mi>i</mi><mo>+</mo><mn>1</mn><mo stretchy="false">)</mo>
+          </mrow>
+        </mfrac>
+      </math>
+      <template #where>
+        <div>
+          <dt>
+            <math><mi>i</mi></math>
+          </dt>
+          <dd>— место в выдаче, считая с 1;</dd>
+        </div>
+        <div>
+          <dt>
+            <math
+              ><msub><mi>g</mi><mi>i</mi></msub></math
+            >
+          </dt>
+          <dd>
+            — оценка разметки для товара на месте <math><mi>i</mi></math
+            >, от 0 до 3;
+          </dd>
+        </div>
+        <div>
+          <dt>
+            <math
+              ><mtext>IDCG@{{ P.evalTopK }}</mtext></math
+            >
+          </dt>
+          <dd>
+            — DCG идеального порядка: лучшая оценка каждого размеченного семейства, по убыванию.
+          </dd>
+        </div>
+      </template>
+    </TheoryFormula>
+    <TheoryFormula
+      kind="настройка"
+      :label="`MRR@${P.evalTopK} равно среднему по запросам Q величины один, делённое на место первой подходящей позиции rank q.`"
+    >
+      <math displaystyle="true">
+        <mtext>MRR@{{ P.evalTopK }}</mtext
+        ><mo>=</mo>
+        <mfrac>
+          <mn>1</mn>
+          <mrow><mo>|</mo><mi>Q</mi><mo>|</mo></mrow>
+        </mfrac>
+        <munder>
+          <mo>∑</mo>
+          <mrow><mi>q</mi><mo>∈</mo><mi>Q</mi></mrow>
+        </munder>
+        <mfrac>
+          <mn>1</mn>
+          <msub><mi>rank</mi><mi>q</mi></msub>
+        </mfrac>
+      </math>
+      <template #where>
+        <div>
+          <dt>
+            <math><mi>Q</mi></math>
+          </dt>
+          <dd>— запросы, у которых в разметке есть подходящий товар;</dd>
+        </div>
+        <div>
+          <dt>
+            <math
+              ><msub><mi>rank</mi><mi>q</mi></msub></math
+            >
+          </dt>
+          <dd>
+            — место первой позиции с оценкой от {{ ru(P.relevantGrade) }} среди первых
+            {{ ru(P.evalTopK) }}; если такой нет, слагаемое равно 0.
+          </dd>
+        </div>
+      </template>
+    </TheoryFormula>
     <p>
       Лестница версий поиска B0–B4: B0 — исходный поиск магазина по подстроке, каждая следующая
       версия добавляет к предыдущей один слой. На витрине работает B4 — так написано в трассе.
     </p>
-    <TheoryFlow :steps="LADDER" row label="Лестница версий поиска B0–B4" />
+    <DiagramLadder />
     <p>
       «Вклад компонентов» идёт с другой стороны: из полного пути выключается по одному компоненту —
       векторы, LLM, все модели сразу — и видно, что каждый даёт и чего стоит по времени.
@@ -149,12 +242,70 @@ const GLOSSARY = [
       не запроса. Каждый вызов модели записывается: токены, задержка, версия прайса, стоимость по
       прайсу.
     </p>
-    <p class="theory-formula">
-      <code
-        >месяц = сервер + запросы × доля маршрута D × (1 − доля попаданий в кэш) × стоимость разбора
-        + запуски агента × стоимость запуска</code
-      >
-    </p>
+    <TheoryFormula
+      label="Расход за месяц равен стоимости сервера плюс число запросов, умноженное на долю маршрута D, на единицу минус доля попаданий в кэш и на стоимость разбора, плюс число запусков агента, умноженное на стоимость запуска."
+    >
+      <math displaystyle="true">
+        <msub><mi>C</mi><mtext>мес</mtext></msub
+        ><mo>=</mo><msub><mi>C</mi><mtext>сервер</mtext></msub>
+      </math>
+      <math displaystyle="true">
+        <mo form="infix" lspace="0">+</mo><mi>N</mi><mo>⋅</mo><msub><mi>p</mi><mi>D</mi></msub
+        ><mo>⋅</mo><mo stretchy="false">(</mo><mn>1</mn><mo>−</mo><mi>h</mi
+        ><mo stretchy="false">)</mo><mo>⋅</mo><msub><mi>c</mi><mtext>разбор</mtext></msub>
+      </math>
+      <math displaystyle="true">
+        <mo form="infix" lspace="0">+</mo><msub><mi>N</mi><mtext>агент</mtext></msub
+        ><mo>⋅</mo><msub><mi>c</mi><mtext>запуск</mtext></msub>
+      </math>
+      <template #where>
+        <div>
+          <dt>
+            <math
+              ><msub><mi>C</mi><mtext>сервер</mtext></msub></math
+            >
+          </dt>
+          <dd>— сервер, вместе с эмбеддером и реранкером;</dd>
+        </div>
+        <div>
+          <dt>
+            <math><mi>N</mi></math>
+          </dt>
+          <dd>— запросов за месяц;</dd>
+        </div>
+        <div>
+          <dt>
+            <math
+              ><msub><mi>p</mi><mi>D</mi></msub></math
+            >
+          </dt>
+          <dd>— доля запросов на маршруте D;</dd>
+        </div>
+        <div>
+          <dt>
+            <math><mi>h</mi></math>
+          </dt>
+          <dd>— доля попаданий в кэш разборов;</dd>
+        </div>
+        <div>
+          <dt>
+            <math
+              ><msub><mi>c</mi><mtext>разбор</mtext></msub></math
+            >
+          </dt>
+          <dd>— стоимость одного разбора моделью;</dd>
+        </div>
+        <div>
+          <dt>
+            <math
+              ><msub><mi>N</mi><mtext>агент</mtext></msub
+              ><mo>,</mo><msub><mi>c</mi><mtext>запуск</mtext></msub></math
+            >
+          </dt>
+          <dd>— запусков агента за месяц и стоимость одного запуска.</dd>
+        </div>
+      </template>
+    </TheoryFormula>
     <p>
       Доля маршрута D, доля кэша и стоимость разбора — замеры из журналов, сервер и число запусков
       агента — допущения. Все величины с источником каждой — на вкладке

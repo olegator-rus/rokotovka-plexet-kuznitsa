@@ -1,12 +1,16 @@
 <script setup lang="ts">
 // Часть 1 «Общая картина»: из чего собрано решение, каталог на фиде заказчика (data/softline/FEED_STATS.md) и путь
 // запроса целиком (search_b3.go, ARCHITECTURE §1–2).
-import { ArrowDown } from 'lucide-vue-next'
 import { THEORY_PARAMS as P, ru } from '@/lib/theoryParams'
-import TheoryFlow, { type FlowStep } from './TheoryFlow.vue'
+import DiagramComponents from './diagrams/DiagramComponents.vue'
+import DiagramPipeline from './diagrams/DiagramPipeline.vue'
 import TheorySection from './TheorySection.vue'
 
 const PARTS = [
+  {
+    name: 'Go API',
+    text: 'Один процесс: поиск, подсказки, события, оценка, агент, учёт стоимости. Всё считает сервер — фронт только показывает.',
+  },
   {
     name: 'OpenSearch',
     text: 'Индекс каталога: текстовый поиск BM25 и векторы. Каталог — фид магазина store.softline.ru. Новый импорт строит следующий индекс и переключает на него алиас одним действием — поиск во время импорта идёт по старому.',
@@ -22,7 +26,6 @@ const PARTS = [
   {
     name: 'Yandex AI Studio',
     text: 'Внешняя LLM (Alice AI LLM Flash). Её зовут только две вещи: разбор трудного запроса, если его нет в кэше, и агент.',
-    external: true,
   },
 ]
 
@@ -53,52 +56,6 @@ const ROUTE_KINDS = [
     examples: ['счёт', 'продлить касперский на 100 пк на 2 года'],
   },
 ]
-
-const STEPS: FlowStep[] = [
-  { title: 'Нормализация', text: 'Регистр, раскладка, опечатки, сленг — к словам каталога.' },
-  {
-    title: 'Условия и названия',
-    text: 'Количество, метрика, срок, продление; вендор, продукт, категория; исключения.',
-  },
-  {
-    title: 'Маршрут',
-    text: 'Насколько сложный запрос: названо точно (A), поиск исправил слово или нашёл условия (B), описана задача (C) или трудный вопрос для LLM (D).',
-  },
-  {
-    title: 'Разбор намерения LLM',
-    text: 'Только для трудных запросов (D): сначала кэш готовых разборов, если там нет — модель.',
-    tone: 'd',
-    tag: 'только D',
-  },
-  {
-    title: 'BM25 и векторы параллельно',
-    text: `Поиск по словам (BM25) и по смыслу (векторы): два независимых списка, по ${P.candidatesTop} кандидатов в каждом.`,
-  },
-  {
-    title: 'Слияние RRF',
-    text: 'Из двух списков — один: товар выше, если он высоко в обоих (Reciprocal Rank Fusion — слияние по местам).',
-  },
-  {
-    title: 'Семейства, порог, условия',
-    text: 'Позиции собираются в продукты; слабое и неподходящее отсекается с причиной.',
-  },
-  {
-    title: 'Реранкер',
-    text: `Модель читает запрос и карточку вместе и заново оценивает первые ${P.rerankTop} семейств.`,
-    tone: 'muted',
-    tag: 'C и D',
-  },
-  {
-    title: 'Группы и бизнес-слой',
-    text: 'Точное — подходящее — аналог; внутри группы — итоговый скор: релевантность плюс популярность, маржа и контекст клиента.',
-  },
-  {
-    title: 'Если пусто',
-    text: 'Плашка «Товара нет в каталоге», подписанные аналоги, кнопка «Запросить поставку».',
-    tone: 'muted',
-  },
-  { title: 'Ответ', text: 'Выдача, чипы «как мы поняли», дополнения, трасса.' },
-]
 </script>
 
 <template>
@@ -111,31 +68,13 @@ const STEPS: FlowStep[] = [
       появляется, только когда сотрудник нажмёт «Утвердить» в бэк-офисе: она меняет выдачу всем
       покупателям сразу.
     </p>
-    <figure class="ov">
-      <figcaption class="sr-only">
-        Из чего собрано решение: Go API в центре, к нему OpenSearch, сервис моделей, PostgreSQL и
-        внешняя LLM
-      </figcaption>
-      <div class="ov__top">
-        <strong>Покупатель или сайт магазина</strong>
+    <DiagramComponents />
+    <dl class="ov-parts">
+      <div v-for="p in PARTS" :key="p.name" class="ov-parts__row">
+        <dt>{{ p.name }}</dt>
+        <dd>{{ p.text }}</dd>
       </div>
-      <span class="ov__arrow" aria-hidden="true"><ArrowDown :size="16" /></span>
-      <div class="ov__hub">
-        <strong>Go API</strong>
-        <span class="t-sm t-muted">
-          Один процесс: поиск, подсказки, события, оценка, агент, учёт стоимости. Всё считает сервер
-          — фронт только показывает.
-        </span>
-      </div>
-      <span class="ov__arrow" aria-hidden="true"><ArrowDown :size="16" /></span>
-      <ul class="ov__grid" role="list">
-        <li v-for="p in PARTS" :key="p.name" :class="['ov__part', { 'ov__part--ext': p.external }]">
-          <strong>{{ p.name }}</strong>
-          <span v-if="p.external" class="badge">внешняя</span>
-          <p class="t-sm t-muted">{{ p.text }}</p>
-        </li>
-      </ul>
-    </figure>
+    </dl>
     <h4>Каталог</h4>
     <p>
       Поиск работает на фиде заказчика — выгрузке каталога store.softline.ru. В ней 136&nbsp;040
@@ -162,11 +101,7 @@ const STEPS: FlowStep[] = [
       Шаги идут в том порядке, в каком их выполняет код. Каждый из них записывается в трассу
       запроса.
     </p>
-    <TheoryFlow
-      :steps="STEPS"
-      numbered
-      label="Путь запроса: одиннадцать шагов от нормализации до ответа"
-    />
+    <DiagramPipeline />
     <h4>Четыре маршрута</h4>
     <p>
       На третьем шаге правила решают, насколько запрос сложный. От этого зависит, какие модели
@@ -216,67 +151,29 @@ const STEPS: FlowStep[] = [
   display: block;
   white-space: normal;
 }
-.ov {
-  display: flex;
-  flex-direction: column;
-  margin: 0;
-}
-.ov__top,
-.ov__hub {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-1);
-  padding: var(--space-2) var(--space-3);
-  border: var(--border-w) solid var(--border);
-  border-radius: var(--radius-control);
-  background: var(--surface-2);
-  text-align: center;
-}
-.ov__hub {
-  border-color: var(--accent);
-  background: var(--accent-soft);
-}
-.ov__arrow {
-  display: flex;
-  justify-content: center;
-  padding: 2px 0;
-  color: var(--text-3);
-}
-.ov__grid {
+.ov-parts {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
-  gap: var(--space-2);
+  gap: var(--space-2) var(--space-6);
   margin: 0;
-  padding: 0;
-  list-style: none;
 }
-.ov__part {
+.ov-parts__row {
   display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--space-1) var(--space-2);
-  padding: var(--space-2) var(--space-3);
-  border: var(--border-w) solid var(--border);
-  border-radius: var(--radius-control);
-  background: var(--surface);
+  flex-direction: column;
+  gap: 2px;
 }
-.ov__part p {
-  flex-basis: 100%;
+.ov-parts dt {
+  font-weight: var(--fw-semibold);
+}
+.ov-parts dd {
   margin: 0;
+  color: var(--text-2);
+  font-size: var(--fs-sm);
+  line-height: var(--lh-body);
 }
-.ov__part--ext {
-  border-style: dashed;
-  border-color: var(--border-control);
-}
-
 @media (min-width: 768px) {
-  .ov__grid {
+  .ov-parts {
     grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-}
-@media (min-width: 1280px) {
-  .ov__grid {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
   }
 }
 </style>

@@ -89,7 +89,9 @@ export function rangeStep(facet: Facet): number {
 }
 
 export function formatFacetNumber(v: number, unit = ''): string {
-  const s = Number.isInteger(v) ? String(v) : formatDecimal(v, 1)
+  // Шум float (228 092,99999…) — целое, а не «228 093,0».
+  const r = Math.round(v * 10) / 10
+  const s = Number.isInteger(r) ? String(r) : formatDecimal(r, 1)
   return unit ? `${s} ${unit}` : s
 }
 

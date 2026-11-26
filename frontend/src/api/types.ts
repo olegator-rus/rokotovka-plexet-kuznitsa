@@ -276,6 +276,8 @@ export interface SearchResponse {
   /** Контур фида: цель, пояснение над «Популярное в наличии». */
   target?: SearchTarget | null
   fallback_note?: string | null
+  /** §16.6: чипы производителей при цели-категории и равенстве вендоров (формат Refinement, field vendor). */
+  clarifications?: Refinement[] | null
   trace: Trace
 }
 

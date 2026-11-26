@@ -445,19 +445,67 @@ const conditionalNote = computed(
 )
 // ── Контур фида: цель и группы по ступени лестницы. Без match_type — раскладка контура выдачи. ──
 const target = computed(() => targetView(response.value?.target))
+/** Чипы производителей (§16.6): под целью; без цели — отдельной строкой. Нажатие — новый поиск по `query` чипа. */
+const clarifications = computed(() => response.value?.clarifications ?? [])
+/**
+ * Цель-категория без страницы на сайте: если в фасете «Категория» есть она же (по названию), цель — кнопка
+ * «только эта категория» (фильтр выдачи). Нет фасета — кликабельны только чипы производителей.
+ */
+const targetCategory = computed(() => {
+  if (target.value?.action !== 'none' || filters.value.some((f) => f.key === 'category'))
+    return null
+  const facet = resultFacets.value.find((f) => f.key === 'category')
+  const title = target.value.label.trim().toLowerCase()
+  return facet?.values?.find((v) => (v.label ?? '').trim().toLowerCase() === title) ?? null
+})
+function onTargetCategory() {
+  const v = targetCategory.value
+  if (v) onResultFacet('category', { key: 'category', op: 'eq', value: v.value })
+}
+function onClarification(r: Refinement) {
+  trackQuiet('refinement_apply', {
+    payload: {
+      field: r.field,
+      value: r.value,
+      label: r.label,
+      hits: r.hits,
+      place: 'clarification',
+    },
+  })
+  submit(r.query)
+}
 const matchMode = computed(() => hasMatchTypes(shownResponse.value?.items))
 const matchGroups = computed(() =>
   matchMode.value ? groupByMatchType([...blocks.value.main, ...blocks.value.analogs]) : [],
 )
-const fallbackText = computed(() => fallbackLead(response.value))
-/** Заголовок: только «Популярное в наличии» — по запросу ничего не нашлось, число популярного не выдаётся за найденное. */
+/** В ответе только «Популярное в наличии»: по запросу ничего не нашлось. */
+const onlyFallback = computed(
+  () =>
+    matchMode.value &&
+    matchGroups.value.length > 0 &&
+    matchGroups.value.every((g) => g.type === 'fallback'),
+)
+/** Пояснение над «Популярное в наличии»; когда текст пустого результата уже в заголовке — только своё у сервера. */
+const fallbackText = computed(() =>
+  onlyFallback.value ? (response.value?.fallback_note ?? '').trim() : fallbackLead(response.value),
+)
+/**
+ * Заголовок: только «Популярное в наличии» — текст пустого результата сервера («По запросу … товаров нет — назовите
+ * программу или задачу»), число популярного не выдаётся за найденное.
+ */
 const headingText = computed(() => {
   const r = response.value
   if (!r) return ''
-  if (matchMode.value && matchGroups.value.every((g) => g.type === 'fallback'))
-    return r.target?.type === 'service' && target.value
-      ? `По запросу «${r.query}» — раздел магазина`
-      : `По запросу «${r.query}» ничего не нашлось`
+  // Все карточки дописаны фильтром (filter_fill): поиск внутри фильтра ничего не нашёл, ниже — «Ещё в категории».
+  if (matchMode.value && !matchGroups.value.length && blocks.value.fill.length)
+    return `По запросу «${r.query}» с выбранными фильтрами ничего не нашлось`
+  if (onlyFallback.value)
+    return (
+      r.empty?.message?.trim() ||
+      (r.target?.type === 'service' && target.value
+        ? `По запросу «${r.query}» товаров нет`
+        : `По запросу «${r.query}» ничего не нашлось`)
+    )
   return resultsHeading(r, flatVisible.value)
 })
 /** Пустой результат контура фида: в ответе есть «Популярное в наличии» — пояснение стоит над ним, без панели «нет». */
@@ -788,17 +836,69 @@ async function onSupply() {
           <h2 v-if="helpShown" class="sr-only" role="status">
             Ответ справки по запросу «{{ response.query }}»
           </h2>
-          <h2 v-else-if="resultsOn" class="search-page__heading" role="status">
-            {{ headingText }}
-            <span v-if="response.trace?.total_ms != null" class="t-sm t-muted">
-              · {{ formatMs(response.trace.total_ms) }}
-            </span>
-          </h2>
+          <!-- Заголовок — настоящий heading (навигация по заголовкам), объявляется через обёртку role="status". -->
+          <div v-else-if="resultsOn" role="status">
+            <h2 class="search-page__heading">
+              {{ headingText }}
+              <span v-if="response.trace?.total_ms != null" class="t-sm t-muted">
+                · {{ formatMs(response.trace.total_ms) }}
+              </span>
+            </h2>
+          </div>
           <p v-else class="search-page__found t-sm t-muted t-num" role="status">
             {{ formatFound(response.total, response.trace?.total_ms) }} · {{ response.config }}
           </p>
 
-          <TargetCard v-if="target && !helpShown" :target="target" />
+          <TargetCard
+            v-if="target && !helpShown"
+            :target="target"
+            :chips="clarifications"
+            :filterable="Boolean(targetCategory)"
+            @manager="managerOpen = true"
+            @filter="onTargetCategory"
+            @chip="onClarification"
+          />
+          <RefinementChips
+            v-else-if="clarifications.length && !helpShown"
+            title="Производитель:"
+            :items="clarifications"
+            @apply="onClarification"
+          />
+
+          <!-- Только «Популярное в наличии»: панели «нет» нет, действия пустого результата — под заголовком. -->
+          <div
+            v-if="onlyFallback && (supply || (showManager && target?.action !== 'manager'))"
+            class="search-page__absent-actions search-page__fallback-actions"
+          >
+            <template v-if="supply">
+              <span
+                v-if="supplySent === response.request_id"
+                class="t-sm t-muted"
+                role="status"
+                data-testid="supply-sent"
+              >
+                Запрос поставки отправлен
+              </span>
+              <button
+                v-else
+                type="button"
+                class="btn btn--primary btn--sm"
+                data-testid="supply-request"
+                @click="onSupply"
+              >
+                Запросить поставку
+              </button>
+            </template>
+            <button
+              v-if="showManager && target?.action !== 'manager'"
+              type="button"
+              class="btn btn--secondary btn--sm"
+              @click="managerOpen = true"
+            >
+              <Headset :size="16" aria-hidden="true" />
+              Спросить менеджера
+            </button>
+          </div>
 
           <UnderstandingBar
             :response="response"
@@ -970,7 +1070,11 @@ async function onSupply() {
                     <p v-if="g.type === 'fallback'" class="mgroup__note t-sm t-muted">
                       {{ FALLBACK_NOTE }}
                     </p>
-                    <ol class="search-page__list" :start="g.items[0]?.position">
+                    <ol
+                      class="search-page__list"
+                      :start="g.items[0]?.position"
+                      :aria-label="g.type === 'fallback' ? g.title : `Результаты — ${g.title}`"
+                    >
                       <li v-for="p in g.items" :key="p.item.product_id">
                         <FamilyCard
                           v-if="resultsOn"
@@ -1430,6 +1534,9 @@ async function onSupply() {
   display: flex;
   flex-wrap: wrap;
   gap: var(--space-2);
+}
+.search-page__fallback-actions {
+  margin: 0 0 var(--space-3);
 }
 .search-page__list {
   display: flex;

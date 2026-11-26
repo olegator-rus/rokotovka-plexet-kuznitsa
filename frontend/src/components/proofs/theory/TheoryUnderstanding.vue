@@ -4,8 +4,9 @@
 // hardware_search.go), маршрут D и кэш разборов (intent.go, intent_validate.go, llmguard.go).
 import { RouterLink } from 'vue-router'
 import { THEORY_PARAMS as P, ru } from '@/lib/theoryParams'
-import TheoryFlow, { type FlowStep } from './TheoryFlow.vue'
-import TheoryFork, { type ForkRow } from './TheoryFork.vue'
+import DiagramIntent from './diagrams/DiagramIntent.vue'
+import DiagramPlates from './diagrams/DiagramPlates.vue'
+import DiagramRoutes from './diagrams/DiagramRoutes.vue'
 import TheorySection from './TheorySection.vue'
 
 const NORMALIZE = [
@@ -69,54 +70,6 @@ const NORMALIZE = [
     to: 'fqc-10572',
     why: 'Код без дефиса восстанавливается по каталогу, если совпадает ровно с одним артикулом.',
   },
-]
-
-const ROUTES: ForkRow[] = [
-  {
-    ask: 'Запрос — шум: разметка, SQL, меньше двух букв без единого слова каталога',
-    route: 'B',
-    note: 'без модели; ответ — «товаров нет»',
-  },
-  {
-    ask: 'Есть признак трудного запроса: незнакомые слова; «аналог», «замена», «вместо»; больше 5 слов вместе со словами условий; вопрос не о товаре; «продление» вместе с «бессрочно»',
-    route: 'D',
-    note: 'разбор намерения: кэш, затем LLM',
-  },
-  {
-    ask: 'Нормализация что-то исправила (раскладка, опечатка, алиас, транслит, достройка) или распознаны условия — в том числе названный вендор',
-    route: 'B',
-  },
-  { ask: 'Есть код, похожий на артикул, или названо семейство продукта', route: 'A' },
-]
-
-const INTENT: FlowStep[] = [
-  {
-    title: 'Маска персональных данных',
-    text: 'Телефоны, e-mail, ИНН, СНИЛС, паспорт, номера карт → метки, ещё до ключа кэша.',
-  },
-  {
-    title: 'Ключ кэша',
-    text: 'Отпечаток (хэш sha256) запроса, сегмента клиента, догадки правил и версий каталога, правил, промпта и модели.',
-  },
-  { title: 'Есть в кэше?', text: 'Да — разбор за 0 ₽ и десятки миллисекунд, модель не зовётся.' },
-  {
-    title: 'Вызов модели',
-    text: 'Запрос — данными в JSON-строке, температура 0, ответ — JSON-объект.',
-    tone: 'd',
-  },
-  {
-    title: 'Проверка схемы',
-    text: 'Ответ не по JSON-схеме — один повтор; сбой вызова — резервная модель, если она задана; иначе правила.',
-  },
-  {
-    title: 'Сверка со справочниками',
-    text: 'Каждое значение ищется в каталоге; несуществующее отбрасывается с причиной.',
-  },
-  {
-    title: 'Слияние с правилами',
-    text: 'Явно найденное правилами остаётся; модель заполняет пустое.',
-  },
-  { title: 'В кэш', text: 'Удачный разбор сохраняется; повтор того же запроса стоит 0 ₽.' },
 ]
 </script>
 
@@ -197,21 +150,7 @@ const INTENT: FlowStep[] = [
       Дальше правила ищут в запросе две вещи: <strong>условия покупки</strong> и
       <strong>названия</strong>. Модель на этом шаге не участвует.
     </p>
-    <figure class="plates">
-      <figcaption class="t-sm t-muted">Как правила размечают слова запроса</figcaption>
-      <div class="plates__row" aria-label="касперский — вендор; на 10 пк — количество и метрика">
-        <span class="plate plate--name"><b>касперский</b><small>вендор Kaspersky</small></span>
-        <span class="plate plate--cond"><b>на 10 пк</b><small>10 устройств</small></span>
-      </div>
-      <div class="plates__row" aria-label="kaspersky — вендор; на 3 года — срок 36 месяцев">
-        <span class="plate plate--name"><b>kaspersky</b><small>вендор</small></span>
-        <span class="plate plate--cond"><b>на 3 года</b><small>срок 36 месяцев</small></span>
-      </div>
-      <div class="plates__row" aria-label="антивирус — категория; кроме dr.web — исключение">
-        <span class="plate plate--name"><b>антивирус</b><small>категория</small></span>
-        <span class="plate plate--not"><b>кроме dr.web</b><small>исключение</small></span>
-      </div>
-    </figure>
+    <DiagramPlates />
     <h4>Условия</h4>
     <ul>
       <li>
@@ -324,11 +263,7 @@ const INTENT: FlowStep[] = [
       порядку». Здесь — как правила выбирают маршрут по тому, что нашли предыдущие шаги. Вопросы
       проверяются по порядку, и первый ответ «да» решает.
     </p>
-    <TheoryFork
-      :rows="ROUTES"
-      :otherwise="{ route: 'C', note: 'названий из каталога нет: запрос описывает задачу' }"
-      label="Как выбирается маршрут: четыре вопроса по порядку"
-    />
+    <DiagramRoutes />
     <p>
       По ссылкам ниже — маршруты B, C и D: «винда 11 про» исправлена словарём, в «резервное
       копирование» нет названий из каталога, «счёт» — вопрос не о товаре.
@@ -355,11 +290,7 @@ const INTENT: FlowStep[] = [
         код.</strong
       >
     </p>
-    <TheoryFlow
-      :steps="INTENT"
-      numbered
-      label="Разбор намерения на маршруте D: от маски данных до кэша"
-    />
+    <DiagramIntent />
     <h4>Что именно возвращает модель</h4>
     <p>
       Тип намерения (найти товар, найти замену, продлить, вопрос не о товаре), продукт-образец,
@@ -407,49 +338,3 @@ const INTENT: FlowStep[] = [
     </ul>
   </TheorySection>
 </template>
-
-<style scoped>
-.plates {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-2);
-  margin: 0;
-  padding: var(--space-3);
-  border: var(--border-w) solid var(--border);
-  border-radius: var(--radius-card);
-  background: var(--surface-2);
-}
-.plates figcaption {
-  margin: 0;
-}
-.plates__row {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-2);
-}
-.plate {
-  display: inline-flex;
-  flex-direction: column;
-  padding: var(--space-1) var(--space-3);
-  border: var(--border-w) solid var(--border);
-  border-left-width: 3px;
-  border-radius: var(--radius-control);
-  background: var(--surface);
-}
-.plate b {
-  font-weight: var(--fw-semibold);
-}
-.plate small {
-  color: var(--text-2);
-  font-size: var(--fs-xs);
-}
-.plate--name {
-  border-left-color: var(--route-b);
-}
-.plate--cond {
-  border-left-color: var(--route-a);
-}
-.plate--not {
-  border-left-color: var(--route-d);
-}
-</style>

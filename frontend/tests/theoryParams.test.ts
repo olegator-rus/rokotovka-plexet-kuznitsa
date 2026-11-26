@@ -115,6 +115,7 @@ const SOURCES: Record<string, [string, RegExp]> = {
   spikeReformShare: ['config/agent.go', /ReformShare: ([\d.]+)/],
   spikeQueryFreq: ['config/agent.go', /QueryFreq: (\d+)/],
   rulesTtlSec: ['services/search_core.go', /const rulesTTL = (\d+) \* time\.Second/],
+  evalTopK: ['services/eval_metrics.go', /evalTopK\s+= (\d+)/],
   relevantGrade: ['services/eval_metrics.go', /relevantGrade\s+= (\d+)/],
   shareTune: ['services/evalsets_split.go', /\{domain\.EvalSetTune, ([\d.]+)\}/],
   shareTest: ['services/evalsets_split.go', /\{domain\.EvalSetTest, ([\d.]+)\}/],

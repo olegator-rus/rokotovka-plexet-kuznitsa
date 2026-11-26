@@ -5,6 +5,8 @@ import type { SearchItem, SearchItemBase } from '../src/api/types.ts'
 import {
   isPurchasable,
   joinLicenseParts,
+  kindFromLine,
+  licenseKindLabel,
   otherVariants,
   priceLabel,
   sortVariants,
@@ -74,4 +76,36 @@ test('otherVariants: без дубля основной позиции и без
   )
   const bare = { ...base('solo') } as SearchItem
   assert.deepEqual(otherVariants(bare), [])
+})
+
+test('licenseKindLabel: вид из license_kind, а не из типа атрибутов (Cross-grade — не «Новая»)', () => {
+  const attrs = (license_type: string) => ({ license_type })
+  assert.equal(
+    licenseKindLabel({ license_kind: 'migration', attrs: attrs('upgrade') }),
+    'Переход с другого продукта',
+  )
+  assert.equal(licenseKindLabel({ license_kind: 'upgrade', attrs: attrs('upgrade') }), 'Обновление')
+  assert.equal(
+    licenseKindLabel({ license_kind: 'support', attrs: attrs('perpetual') }),
+    'Техподдержка',
+  )
+  assert.equal(licenseKindLabel({ license_kind: 'renewal', attrs: attrs('renewal') }), 'Продление')
+  assert.equal(licenseKindLabel({ license_kind: 'module', attrs: attrs('subscription') }), 'Модуль')
+  assert.equal(licenseKindLabel({ license_kind: 'course', attrs: attrs('perpetual') }), 'Курс')
+  assert.equal(
+    licenseKindLabel({ license_kind: 'base', attrs: attrs('subscription') }),
+    'Новая · подписка',
+  )
+  // Без вида (mock, страница товара) — по началу license_line, затем по типу.
+  assert.equal(
+    licenseKindLabel({ license_line: 'Техподдержка · 1 год', attrs: attrs('subscription') }),
+    'Техподдержка',
+  )
+  assert.equal(
+    licenseKindLabel({ license_line: 'Бессрочная', attrs: attrs('perpetual') }),
+    'Новая · бессрочная',
+  )
+  assert.equal(licenseKindLabel({}), '')
+  assert.equal(kindFromLine('Переход с другого продукта · 2 года'), 'Переход с другого продукта')
+  assert.equal(kindFromLine('Подписка · 1 год'), '')
 })

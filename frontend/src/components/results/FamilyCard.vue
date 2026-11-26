@@ -13,7 +13,7 @@ import CompatBadge from '@/components/search/CompatBadge.vue'
 import { formatScore } from '@/lib/format'
 import { reestrTone, selectedOffer } from '@/lib/procurement'
 import { productHref } from '@/lib/product'
-import { isPurchasable, otherVariants, priceLabel } from '@/lib/license'
+import { isPurchasable, licenseKindLabel, otherVariants, priceLabel } from '@/lib/license'
 import { ALTERNATIVE_NOTE, cardPrice, storeLink } from '@/lib/matchGroups'
 import { SHOWCASE } from '@/lib/showcase'
 import {
@@ -63,7 +63,7 @@ const isSoftware = computed(
 // Контур доводки: статус реестра — бейджем в трёх состояниях (item.reestr), прежняя ячейка из in_reestr не дублирует его.
 const cells = computed<AttrCell[]>(() =>
   props.item.attrs
-    ? attrCells(props.item.attrs, props.named).filter(
+    ? attrCells(props.item.attrs, props.named, licenseKindLabel(props.item)).filter(
         (c) => !(props.item.reestr && c.key === 'reestr'),
       )
     : [],
@@ -325,13 +325,7 @@ function rowQuantity(v: SearchItemBase): string {
           <tr v-for="v in rows" :key="v.product_id" :class="{ vtable__hit: v.matches_query }">
             <td data-label="Редакция">{{ v.attrs?.edition || '—' }}</td>
             <td data-label="Лицензия">
-              {{
-                v.attrs?.license_type === 'renewal'
-                  ? 'Продление'
-                  : v.attrs?.license_type
-                    ? 'Новая'
-                    : '—'
-              }}
+              {{ licenseKindLabel(v) || '—' }}
             </td>
             <td data-label="Срок">
               {{ v.attrs?.license_type ? durationLabel(v.attrs.duration_months) : '—' }}

@@ -34,9 +34,10 @@ test.describe('Поиск', () => {
       expect(await options.count()).toBeLessThanOrEqual(8)
     }
 
-    const body = await searchResponse(page, () =>
-      list.getByRole('option', { name: 'windows 11 pro', exact: true }).click(),
-    )
+    // Фид store.softline.ru: товар из панели «Товары» — поиск по его названию, он же первым.
+    const product = list.getByRole('option', { name: /Windows 11 Pro/ }).first()
+    await expect(product).toBeVisible()
+    const body = await searchResponse(page, () => product.click())
     expect(body.total).toBeGreaterThan(0)
     // Контур коммерции — «Найдено N», страница результатов контура выдачи — «По запросу … — N продуктов · M вариантов».
     await expect(
@@ -45,7 +46,15 @@ test.describe('Поиск', () => {
         .filter({ hasText: /Найдено|\d+ продукт/ })
         .first(),
     ).toBeVisible()
-    await expect(resultCards(page).first()).toContainText('Windows 11 Pro')
+    // Цель — первый кликабельный элемент: страница выбранной позиции на сайте; сама позиция — среди точных.
+    await expect(page.getByTestId('target-link')).toContainText('Windows 11 Pro')
+    await expect(
+      page
+        .locator('[data-match-group="exact"]')
+        .getByRole('article')
+        .filter({ hasText: 'Windows 11 Pro' })
+        .first(),
+    ).toBeVisible()
   })
 
   test('F2: опечатка исправляется с плашкой, «Искать как введено» ищет исходный текст', async ({
@@ -83,7 +92,7 @@ test.describe('Поиск', () => {
     await expect(resultCards(page).first()).toContainText('Windows 11 Pro')
   })
 
-  test('F3: «аналог фотошопа на 20 пользователей» → чипы, аналог, снятие и возврат чипа', async ({
+  test('F3: «аналог фотошопа на 20 пользователей» → чипы, снятие и возврат чипа; на фиде аналогов нет — «Популярное в наличии»', async ({
     page,
   }) => {
     await openSearch(page)
@@ -92,12 +101,16 @@ test.describe('Поиск', () => {
 
     const bar = understanding(page)
     await expect(bar).toContainText('Мы поняли запрос так')
-    await expect(bar.getByText('Аналог Adobe Photoshop')).toBeVisible()
-    await expect(bar.getByText('20 пользователей')).toBeVisible()
+    await expect(
+      bar.getByRole('button', { name: 'Снять условие «Аналог Adobe Photoshop»' }),
+    ).toBeVisible()
+    await expect(bar.getByRole('button', { name: 'Снять условие «20 пользователей»' })).toBeVisible()
 
-    const first = resultCards(page).first()
-    await expect(first).toContainText('CorelDRAW')
-    await expect(first.getByText('Аналог', { exact: true })).toBeVisible()
+    // Связей аналогов на фиде нет: найденного нет, популярное подписано и отделено.
+    await expect(
+      page.locator('[data-match-group="fallback"]').getByRole('heading', { name: 'Популярное в наличии' }),
+    ).toBeVisible()
+    await expect(page.getByText('Аналог', { exact: true })).toHaveCount(0)
 
     await searchResponse(page, () =>
       bar.getByRole('button', { name: 'Снять условие «20 пользователей»' }).click(),
@@ -108,7 +121,7 @@ test.describe('Поиск', () => {
 
     await searchResponse(page, () => bar.getByRole('button', { name: 'вернуть' }).click())
     await expect(bar).not.toContainText('Снято условий')
-    await expect(bar.getByText('20 пользователей')).toBeVisible()
+    await expect(bar.getByRole('button', { name: 'Снять условие «20 пользователей»' })).toBeVisible()
   })
 
   // Маршрут D: снятые чипы применяются к итогу разбора LLM, в ключ кэша не входят — пересчёт из кэша за 0 ₽.
@@ -126,15 +139,16 @@ test.describe('Поиск', () => {
     )
   })
 
-  test('F4: «notion» → честное «нет в каталоге» и «Спросить менеджера»', async ({ page }) => {
+  // «notion» на фиде находит посторонние позиции по словам описания — берём товар, которого в фиде нет.
+  test('F4: «1password» → честное «нет в каталоге» и «Спросить менеджера»', async ({ page }) => {
     await openSearch(page)
-    const body = await search(page, 'notion')
+    const body = await search(page, '1password')
     expect(body.total).toBe(0)
 
     await expect(
-      page.getByRole('heading', { name: 'Товара «notion» нет в каталоге' }),
+      page.getByRole('heading', { name: 'Товара «1password» нет в каталоге' }),
     ).toBeVisible()
-    await page.getByRole('button', { name: 'Спросить менеджера' }).click()
+    await page.getByRole('button', { name: 'Спросить менеджера' }).first().click()
     const dialog = page.getByRole('dialog', { name: 'Спросить менеджера' })
     await expect(dialog).toContainText('Запрос передан')
     await dialog.getByRole('button', { name: 'Понятно' }).click()

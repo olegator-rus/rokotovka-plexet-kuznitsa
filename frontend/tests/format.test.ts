@@ -47,6 +47,8 @@ test('formatDecimal: запятая и точность', () => {
 test('formatPrice: рубли, null — пусто', () => {
   assert.equal(formatPrice(12990), `12${NBSP}990${NBSP}₽`)
   assert.equal(formatPrice(99.5), `99,50${NBSP}₽`)
+  // Шум float при умножении цены на количество — целые рубли без «,00».
+  assert.equal(formatPrice(2280.93 * 100), `228${NBSP}093${NBSP}₽`)
   assert.equal(formatPrice(null), '')
 })
 

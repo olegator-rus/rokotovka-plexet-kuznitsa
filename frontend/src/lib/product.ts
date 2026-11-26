@@ -1,6 +1,7 @@
 // Страница товара: ссылка из выдачи, разбор rid/pos из адреса, выбор «назад». Без DOM и роутера —
 // tests/product.test.ts.
 import { plural } from './format.ts'
+import { kindFromLine } from './license.ts'
 
 /** Номер поиска в адресе: буквы, цифры, «-» и «_», до 64 знаков (ULID сервера и подобные). */
 const RID_RE = /^[A-Za-z0-9_-]{1,64}$/
@@ -92,9 +93,15 @@ export interface LicenseTerms {
   edition: string
 }
 
-export function licenseRows(l: LicenseTerms): { label: string; value: string }[] {
+/** line — `license_line` позиции: вид из её начала («Переход с другого продукта») главнее типа атрибутов. */
+export function licenseRows(
+  l: LicenseTerms,
+  line?: string | null,
+): { label: string; value: string }[] {
   const rows: { label: string; value: string }[] = []
-  if (l.type) rows.push({ label: 'Тип', value: LICENSE_TYPES[l.type] ?? l.type })
+  const kind = kindFromLine(line)
+  if (kind) rows.push({ label: 'Тип', value: kind })
+  else if (l.type) rows.push({ label: 'Тип', value: LICENSE_TYPES[l.type] ?? l.type })
   const forms = l.metric ? METRIC_FORMS[l.metric] : undefined
   if (l.metric === 'org') rows.push({ label: 'Метрика', value: METRIC_ONE.org })
   else if (forms && l.quantity !== null && l.quantity > 0)

@@ -45,7 +45,9 @@ const notFound = computed(
   () => product.status.value === 'error' && product.error.value?.status === 404,
 )
 const isSoftware = computed(() => p.value !== null && p.value.kind !== 'hardware')
-const license = computed(() => (p.value && isSoftware.value ? licenseRows(p.value.license) : []))
+const license = computed(() =>
+  p.value && isSoftware.value ? licenseRows(p.value.license, p.value.license_line) : [],
+)
 const companions = computed(() =>
   p.value ? [...p.value.companions.required, ...p.value.companions.items] : [],
 )

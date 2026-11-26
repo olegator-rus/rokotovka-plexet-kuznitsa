@@ -6,13 +6,13 @@ import { Plus } from 'lucide-vue-next'
 import type { Refinement } from '@/api/typesResults'
 import { formatInt, plural } from '@/lib/format'
 
-defineProps<{ items: Refinement[] }>()
+withDefaults(defineProps<{ items: Refinement[]; title?: string }>(), { title: 'Уточнить:' })
 const emit = defineEmits<{ apply: [item: Refinement] }>()
 </script>
 
 <template>
   <section v-if="items.length" class="refine" aria-label="Уточнить выдачу">
-    <span class="t-sm t-muted refine__title">Уточнить:</span>
+    <span class="t-sm t-muted refine__title">{{ title }}</span>
     <ul class="refine__list">
       <li
         v-for="(r, i) in items"
