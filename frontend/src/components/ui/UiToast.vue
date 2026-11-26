@@ -86,6 +86,20 @@ function onOpen(id: number, open: boolean) {
     transform: none;
   }
 }
+/* Открыта спецификация — уведомление не должно закрывать итог и «Запросить КП»: на широком экране слева, на
+   затемнении, на узком — сверху, под шапкой панели. */
+body:has(.spec-sheet) .ui-toast-viewport {
+  top: calc(var(--header-h) + var(--space-2));
+  bottom: auto;
+}
+@media (min-width: 1024px) {
+  body:has(.spec-sheet) .ui-toast-viewport {
+    top: auto;
+    right: auto;
+    bottom: var(--space-6);
+    left: var(--space-6);
+  }
+}
 .ui-toast {
   display: flex;
   align-items: flex-start;

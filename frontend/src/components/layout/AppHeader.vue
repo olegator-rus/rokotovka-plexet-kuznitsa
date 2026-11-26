@@ -2,7 +2,7 @@
 // Красная шапка: логотип и разделы (на узком экране — кнопка меню и логотип); справа — плашка режима LLM (сотруднику), «Глазами клиента» (только сотруднику на
 // витрине: роль приходит из входа) и вход: гость — «Войти», вошедший — меню аккаунта. На узком экране
 // инструменты уходят второй строкой.
-import { computed } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { RouterLink, useRoute } from 'vue-router'
 import { Menu } from 'lucide-vue-next'
 import AccountMenu from './AccountMenu.vue'
@@ -23,10 +23,24 @@ const auth = useAuthStore()
 const backoffice = computed(() => route.meta.backoffice === true)
 // Контур коммерции: «Спецификация» — в шапке раздела «Поиск».
 const storefront = computed(() => route.path === '/search')
+
+// Настоящая высота шапки: на узком экране и у сотрудника она в два ряда. По ней прилипают строка
+// сортировки, фильтры и трасса.
+const header = ref<HTMLElement | null>(null)
+let observer: ResizeObserver | null = null
+onMounted(() => {
+  const el = header.value
+  if (!el) return
+  observer = new ResizeObserver(() =>
+    document.documentElement.style.setProperty('--header-actual', `${el.offsetHeight}px`),
+  )
+  observer.observe(el)
+})
+onBeforeUnmount(() => observer?.disconnect())
 </script>
 
 <template>
-  <header class="app-header on-hero">
+  <header ref="header" class="app-header on-hero">
     <div class="app-header__lead">
       <button
         type="button"

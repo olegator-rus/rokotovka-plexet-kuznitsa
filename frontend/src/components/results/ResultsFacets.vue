@@ -6,7 +6,7 @@
 // фасета — с 15 значений.
 import { computed, reactive, ref, watch } from 'vue'
 import { SliderRange, SliderRoot, SliderThumb, SliderTrack } from 'reka-ui'
-import { ChevronDown, Search, SlidersHorizontal, X } from 'lucide-vue-next'
+import { Check, ChevronDown, Search, SlidersHorizontal, X } from 'lucide-vue-next'
 import type { Facet, SearchFilter } from '@/api/typesP2'
 import { facetValueLabel, formatFacetNumber, rangeFilter, rangeOf, rangeStep } from '@/lib/facets'
 import { formatInt } from '@/lib/format'
@@ -113,16 +113,25 @@ const priceCount = (mode: string) =>
 const label = (f: Facet) => (f.unit && f.type === 'number' ? `${f.label}, ${f.unit}` : f.label)
 const valueText = (f: Facet, v: { value: string | number | boolean; label?: string }) =>
   v.label || `${facetValueLabel(v.value)}${f.unit ? ` ${f.unit}` : ''}`
+/** Короткие числовые значения (количество, срок, объём) — плитками в строку, а не длинным столбцом. */
+const compact = (f: Facet) =>
+  (f.values ?? []).length >= 2 &&
+  (f.values ?? []).every((v) => /^\d/.test(valueText(f, v)) && valueText(f, v).length <= 8)
+/** Граница диапазона: целые — с разрядами («117 000 ₽»). */
+const rangeText = (v: number, unit = '') =>
+  Number.isInteger(v) && (unit === '₽' || v >= 10000)
+    ? [formatInt(v), unit].filter(Boolean).join('\u00a0')
+    : formatFacetNumber(v, unit)
 </script>
 
 <template>
   <section v-if="ordered.length || filters.length" class="rfacets" aria-label="Фильтры">
     <header class="rfacets__head">
-      <h2 class="rfacets__title t-sm">
-        <SlidersHorizontal :size="14" aria-hidden="true" />
+      <h2 class="rfacets__title">
+        <SlidersHorizontal :size="16" aria-hidden="true" />
         Фильтры
       </h2>
-      <button v-if="filters.length" type="button" class="link t-xs" @click="emit('reset')">
+      <button v-if="filters.length" type="button" class="rfacets__reset" @click="emit('reset')">
         Сбросить ({{ filters.length }})
       </button>
     </header>
@@ -146,9 +155,15 @@ const valueText = (f: Facet, v: { value: string | number | boolean; label?: stri
 
       <div v-if="isOpen(f, i)" :id="`facet-${f.key}`" class="rfacet__body">
         <template v-if="f.type === 'number' && draft[f.key]">
-          <p class="rfacet__range t-xs t-num">
-            {{ formatFacetNumber(draft[f.key]![0]!, f.unit) }} —
-            {{ formatFacetNumber(draft[f.key]![1]!, f.unit) }}
+          <div class="rfacet__range">
+            <p class="rfacet__bound">
+              <span class="t-xs">от</span>
+              <span class="t-num">{{ rangeText(draft[f.key]![0]!, f.unit) }}</span>
+            </p>
+            <p class="rfacet__bound">
+              <span class="t-xs">до</span>
+              <span class="t-num">{{ rangeText(draft[f.key]![1]!, f.unit) }}</span>
+            </p>
             <button
               v-if="filterOf(f.key)"
               type="button"
@@ -156,9 +171,9 @@ const valueText = (f: Facet, v: { value: string | number | boolean; label?: stri
               :aria-label="`Снять фильтр «${f.label}»`"
               @click="emit('apply', f.key, null)"
             >
-              <X :size="12" aria-hidden="true" />
+              <X :size="14" aria-hidden="true" />
             </button>
-          </p>
+          </div>
           <SliderRoot
             v-model="draft[f.key]"
             class="rslider"
@@ -212,7 +227,7 @@ const valueText = (f: Facet, v: { value: string | number | boolean; label?: stri
               :aria-label="`Поиск в фильтре «${f.label}»`"
             />
           </label>
-          <ul class="rfacet__values">
+          <ul :class="['rfacet__values', { 'rfacet__values--compact': compact(f) }]">
             <li v-for="v in values(f)" :key="String(v.value)">
               <button
                 type="button"
@@ -220,8 +235,11 @@ const valueText = (f: Facet, v: { value: string | number | boolean; label?: stri
                 :aria-pressed="isPicked(f, v.value)"
                 @click="pick(f, v.value)"
               >
-                <span>{{ valueText(f, v) }}</span>
-                <span class="t-num t-muted">{{ formatInt(v.count) }}</span>
+                <span v-if="!compact(f)" class="rfacet__mark" aria-hidden="true">
+                  <Check v-if="isPicked(f, v.value)" :size="12" :stroke-width="3" />
+                </span>
+                <span class="rfacet__text">{{ valueText(f, v) }}</span>
+                <span class="rfacet__count t-num">{{ formatInt(v.count) }}</span>
               </button>
             </li>
             <li v-if="!values(f).length" class="t-xs t-muted rfacet__none">Ничего не найдено</li>
@@ -236,41 +254,71 @@ const valueText = (f: Facet, v: { value: string | number | boolean; label?: stri
 .rfacets {
   display: flex;
   flex-direction: column;
-  gap: var(--space-2);
-  padding: var(--space-3);
   border: var(--border-w) solid var(--border);
   border-radius: var(--radius-card);
   background: var(--surface);
 }
 .rfacets__head {
+  position: sticky;
+  top: 0;
+  z-index: 1;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: var(--space-2);
+  min-height: var(--touch-min);
+  padding: var(--space-1) var(--space-4);
+  border-bottom: var(--border-w) solid var(--border);
+  border-radius: var(--radius-card) var(--radius-card) 0 0;
+  background: var(--surface);
 }
 .rfacets__title {
   display: inline-flex;
   align-items: center;
-  gap: var(--space-1);
+  gap: var(--space-2);
   margin: 0;
+  font-size: var(--fs-h2);
+  line-height: var(--lh-h2);
+  font-weight: var(--fw-bold);
+}
+.rfacets__title svg {
+  color: var(--accent);
+}
+.rfacets__reset {
+  min-height: var(--control-h-sm);
+  padding: 0 var(--space-3);
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: var(--accent-soft);
+  color: var(--accent);
+  font: inherit;
+  font-size: var(--fs-xs);
   font-weight: var(--fw-semibold);
+  cursor: pointer;
+}
+.rfacets__reset:hover {
+  background: var(--accent);
+  color: var(--on-accent);
+}
+.rfacet {
+  padding: 0 var(--space-3);
 }
 .rfacet + .rfacet {
   border-top: var(--border-w) solid var(--border);
-  padding-top: var(--space-1);
 }
 .rfacet__toggle {
   display: flex;
   align-items: center;
   gap: var(--space-2);
   width: 100%;
-  min-height: var(--control-h-sm);
-  padding: 0;
+  min-height: var(--touch-min);
+  padding: 0 var(--space-1);
   border: 0;
   background: none;
   color: var(--text);
   font: inherit;
-  font-weight: var(--fw-medium);
+  font-size: var(--fs-body);
+  font-weight: var(--fw-bold);
   text-align: left;
   cursor: pointer;
 }
@@ -284,8 +332,8 @@ const valueText = (f: Facet, v: { value: string | number | boolean; label?: stri
   background: var(--accent);
 }
 .rfacet__chev {
-  color: var(--text-2);
-  transition: transform var(--dur-fast, 120ms);
+  color: var(--text-3);
+  transition: transform var(--dur-fast) var(--ease-standard);
 }
 .rfacet__chev--open {
   transform: rotate(180deg);
@@ -294,18 +342,142 @@ const valueText = (f: Facet, v: { value: string | number | boolean; label?: stri
   display: flex;
   flex-direction: column;
   gap: var(--space-2);
-  padding-bottom: var(--space-2);
+  padding-bottom: var(--space-3);
 }
+
+/* Список значений: отметка, название, счётчик в одной колонке */
+.rfacet__values {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.rfacet__value {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  box-sizing: border-box;
+  width: 100%;
+  min-height: var(--control-h);
+  padding: var(--space-1) var(--space-1);
+  border: var(--border-w) solid transparent;
+  border-radius: var(--radius-control);
+  background: none;
+  color: var(--text);
+  font: inherit;
+  font-size: var(--fs-sm);
+  line-height: var(--lh-sm);
+  text-align: left;
+  cursor: pointer;
+  transition:
+    background-color var(--dur-fast) var(--ease-standard),
+    border-color var(--dur-fast) var(--ease-standard);
+}
+.rfacet__value:hover {
+  background: var(--surface-2);
+}
+.rfacet__mark {
+  display: grid;
+  flex: none;
+  place-items: center;
+  box-sizing: border-box;
+  width: 1.125rem;
+  height: 1.125rem;
+  border: var(--border-w) solid var(--border-control);
+  /* Круглая: в фасете выбирается одно значение, повторное нажатие снимает. */
+  border-radius: var(--radius-pill);
+  background: var(--surface);
+}
+.rfacet__value:hover .rfacet__mark {
+  border-color: var(--accent);
+}
+.rfacet__text {
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.rfacet__count {
+  flex: none;
+  color: var(--text-3);
+  font-size: var(--fs-xs);
+}
+/* Выбранное: подложка и заполненная отметка с галочкой — не только цвет */
+.rfacet__value[aria-pressed='true'] {
+  background: var(--accent-soft);
+  font-weight: var(--fw-semibold);
+}
+.rfacet__value[aria-pressed='true'] .rfacet__mark {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: var(--on-accent);
+}
+
+/* Плитки для коротких чисел */
+.rfacet__values--compact {
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  padding: 0 var(--space-1);
+}
+.rfacet__values--compact .rfacet__value {
+  justify-content: center;
+  gap: var(--space-1);
+  width: auto;
+  min-width: 3.25rem;
+  min-height: var(--control-h);
+  padding: 0 var(--space-3);
+  border-color: var(--border);
+}
+.rfacet__values--compact .rfacet__text {
+  flex: none;
+  font-weight: var(--fw-semibold);
+}
+.rfacet__values--compact .rfacet__value:hover {
+  border-color: var(--accent);
+}
+.rfacet__values--compact .rfacet__value[aria-pressed='true'] {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: var(--on-accent);
+}
+.rfacet__values--compact .rfacet__value[aria-pressed='true'] .rfacet__count {
+  color: var(--on-accent);
+}
+
+/* Диапазон */
 .rfacet__range {
   display: flex;
   align-items: center;
+  gap: var(--space-2);
+  padding: 0 var(--space-1);
+}
+.rfacet__bound {
+  display: flex;
+  flex: 1;
+  align-items: baseline;
   gap: var(--space-1);
+  min-width: 0;
+  min-height: var(--control-h);
   margin: 0;
-  color: var(--text-2);
+  padding: var(--space-2) var(--space-2);
+  box-sizing: border-box;
+  border: var(--border-w) solid var(--border);
+  border-radius: var(--radius-control);
+  font-size: var(--fs-sm);
+  line-height: var(--lh-sm);
+  font-weight: var(--fw-semibold);
+  white-space: nowrap;
+}
+.rfacet__bound span:first-child {
+  color: var(--text-3);
+  font-weight: var(--fw-regular);
 }
 .rfacet__clear {
   display: inline-flex;
-  padding: 2px;
+  flex: none;
+  padding: var(--space-1);
   border: 0;
   border-radius: var(--radius-sm);
   background: none;
@@ -336,11 +508,13 @@ const valueText = (f: Facet, v: { value: string | number | boolean; label?: stri
 }
 .rslider__thumb {
   display: block;
-  width: 1rem;
-  height: 1rem;
-  border: var(--border-w) solid var(--border-control);
+  box-sizing: border-box;
+  width: 1.25rem;
+  height: 1.25rem;
+  border: var(--focus-w) solid var(--accent);
   border-radius: var(--radius-pill);
-  background: var(--accent);
+  background: var(--surface);
+  box-shadow: 0 1px 4px var(--scrim);
   cursor: grab;
 }
 .rslider__thumb:focus-visible {
@@ -349,78 +523,55 @@ const valueText = (f: Facet, v: { value: string | number | boolean; label?: stri
 }
 .rfacet__price-mode {
   display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-1);
+  gap: 2px;
+  padding: 3px;
+  border-radius: var(--radius-pill);
+  background: var(--surface-2);
 }
 .rfacet__mode {
   display: inline-flex;
+  flex: 1 1 auto;
   align-items: center;
+  justify-content: center;
   gap: var(--space-1);
   min-height: var(--control-h-sm);
-  padding: 0 var(--space-2);
-  border: var(--border-w) solid var(--border);
+  padding: 0 var(--space-1);
+  border: 0;
   border-radius: var(--radius-pill);
   background: none;
   color: var(--text-2);
   font: inherit;
   font-size: var(--fs-xs);
+  white-space: nowrap;
   cursor: pointer;
 }
 .rfacet__mode[aria-checked='true'] {
-  border-color: var(--border-control);
-  background: var(--surface-3);
+  background: var(--surface);
+  box-shadow: 0 1px 3px var(--scrim);
   color: var(--text);
+  font-weight: var(--fw-semibold);
 }
 .rfacet__search {
   display: flex;
   align-items: center;
-  gap: var(--space-1);
-  padding: 0 var(--space-2);
+  gap: var(--space-2);
+  padding: 0 var(--space-3);
   border: var(--border-w) solid var(--border);
-  border-radius: var(--radius-control);
+  border-radius: var(--radius-pill);
   color: var(--text-2);
+}
+.rfacet__search:focus-within {
+  border-color: var(--focus-ring);
 }
 .rfacet__input {
   flex: 1;
   min-width: 0;
-  min-height: var(--control-h-sm);
+  min-height: var(--control-h);
   border: 0;
   background: none;
   color: var(--text);
   font: inherit;
   outline: none;
-}
-.rfacet__values {
-  display: flex;
-  flex-direction: column;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-.rfacet__value {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-2);
-  width: 100%;
-  min-height: var(--control-h-sm);
-  padding: 0 var(--space-2);
-  border: var(--border-w) solid transparent;
-  border-radius: var(--radius-control);
-  background: none;
-  color: var(--text);
-  font: inherit;
-  font-size: var(--fs-sm);
-  text-align: left;
-  cursor: pointer;
-}
-.rfacet__value:hover {
-  background: var(--surface-2);
-}
-.rfacet__value[aria-pressed='true'] {
-  border-color: var(--border-control);
-  background: var(--surface-3);
-  font-weight: var(--fw-medium);
 }
 .rfacet__none {
   padding: var(--space-1) var(--space-2);

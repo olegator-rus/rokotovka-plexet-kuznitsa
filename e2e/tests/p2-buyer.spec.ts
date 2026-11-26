@@ -103,7 +103,8 @@ test.describe('Витрина контура коммерции', () => {
     await expect(b.getByText('Продление и поддержка').first()).toBeVisible()
     await expect(b.getByText('В спецификации')).toHaveCount(0)
     await expect(page.getByText('Старый блок С этим покупают')).toHaveCount(0)
-    await expect(page.getByText(/Рекомендуем/)).toHaveCount(0)
+    // Блок выделен одной карточкой с пометкой (решение владельца).
+    await expect(b.getByText('Рекомендуем', { exact: true })).toBeVisible()
     // «Часто берут вместе» на придуманных заказах — с плашкой.
     await expect(b.getByText('Часто берут вместе')).toBeVisible()
     await expect(b.getByText('Синтетические данные')).toBeVisible()

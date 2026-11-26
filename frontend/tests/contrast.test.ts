@@ -64,6 +64,12 @@ test('красная полоса: белый и приглушённый тек
   assert.ok(ratio('on-hero-button', 'hero-button-hover') >= 4.5)
 })
 
+test('выбранный фильтр и «Сбросить» на мягкой красной подложке ≥ 4,5:1', () => {
+  assert.ok(ratio('text', 'accent-soft') >= 4.5)
+  assert.ok(ratio('accent', 'accent-soft') >= 4.5)
+  assert.ok(ratio('text-3', 'accent-soft') >= 4.5)
+})
+
 test('контур контролов и фокус ≥ 3:1 к фону и панели', () => {
   for (const bg of ['bg', 'surface', 'surface-2']) {
     assert.ok(ratio('border-control', bg) >= 3, `--border-control на --${bg}`)

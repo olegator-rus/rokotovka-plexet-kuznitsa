@@ -1,8 +1,10 @@
 <script setup lang="ts">
-// «Дополните решение к …» («Правила блока допродажи»): под топом выдачи, не над
-// ней и не баннером; карточки как в выдаче, без выделения; у каждой — подпись класса, строка «почему» и
-// иконка основания; ничего не выбрано заранее. Пусто — компонент не рисуется вовсе (решает страница).
-import { Check, ShieldQuestion } from 'lucide-vue-next'
+// «Дополните решение к …»: под топом выдачи, не над ней. По решению владельца
+// Блок выделен как одна карточка «Рекомендуем» (прежнее правило «без выделения» отменено); позиции
+// внутри равны между собой: у каждой подпись класса, строка «почему» и иконка основания; ничего не выбрано
+// заранее. Пусто — компонент не рисуется вовсе (решает страница).
+import { Check, Plus, ShieldQuestion, Sparkles } from 'lucide-vue-next'
+import VendorLogo from '@/components/common/VendorLogo.vue'
 import type { Companion } from '@/api/typesP2'
 import CompanionSource from '@/components/search/CompanionSource.vue'
 import { classLabel } from '@/lib/companions'
@@ -21,10 +23,14 @@ const spec = useSpecStore()
 
 <template>
   <section class="cmp" aria-labelledby="cmp-title">
-    <h2 id="cmp-title" class="t-h2">Дополните решение к {{ anchor }}</h2>
+    <header class="cmp__head">
+      <p class="cmp__ribbon t-xs"><Sparkles :size="14" aria-hidden="true" /> Рекомендуем</p>
+      <h2 id="cmp-title" class="t-h2">Дополните решение к {{ anchor }}</h2>
+    </header>
     <ul class="cmp__list">
       <li v-for="(c, i) in items" :key="c.product_id">
         <div class="cmp-card" role="group" :aria-label="c.title">
+          <VendorLogo :vendor="c.vendor" class="cmp-card__logo" />
           <div class="cmp-card__main">
             <p class="cmp-card__class t-xs">
               <span class="badge">{{ classLabel(c) }}</span>
@@ -63,10 +69,11 @@ const spec = useSpecStore()
             <button
               v-else
               type="button"
-              class="btn btn--secondary btn--sm"
+              class="btn btn--primary btn--sm"
               :aria-label="`В спецификацию: ${c.title}`"
               @click="emit('add', c, i)"
             >
+              <Plus :size="14" aria-hidden="true" />
               В спецификацию
             </button>
           </div>
@@ -77,33 +84,60 @@ const spec = useSpecStore()
 </template>
 
 <style scoped>
+/* Одна выделенная карточка: красная рамка и подложка шапки, позиции — строки внутри на белом. */
 .cmp {
+  overflow: hidden;
+  margin: var(--space-2) 0;
+  border: var(--focus-w) solid var(--accent);
+  border-radius: var(--radius-card);
+  background: var(--surface);
+}
+.cmp__head {
   display: flex;
   flex-direction: column;
+  align-items: flex-start;
   gap: var(--space-2);
-  margin: var(--space-3) 0;
+  padding: var(--space-3) var(--space-4);
+  background: var(--accent-soft);
+}
+.cmp__ribbon {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  margin: 0;
+  padding: var(--space-1) var(--space-3);
+  border-radius: var(--radius-pill);
+  background: var(--accent);
+  color: var(--on-accent);
+  font-weight: var(--fw-bold);
+}
+.cmp__head h2 {
+  margin: 0;
+  overflow-wrap: anywhere;
 }
 .cmp__list {
   display: flex;
   flex-direction: column;
-  gap: var(--space-2);
   margin: 0;
   padding: 0;
   list-style: none;
 }
+.cmp__list li + li {
+  border-top: var(--border-w) solid var(--border);
+}
 .cmp-card {
-  container-type: inline-size;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-columns: auto minmax(0, 1fr) auto;
   grid-template-areas:
-    'main main'
-    'price actions';
+    'logo main main'
+    'logo price actions';
   align-items: center;
   gap: var(--space-2) var(--space-3);
-  padding: var(--space-3);
-  border: var(--border-w) solid var(--border);
-  border-radius: var(--radius-card);
-  background: var(--surface);
+  padding: var(--space-3) var(--space-4);
+}
+.cmp-card__logo {
+  grid-area: logo;
+  align-self: start;
 }
 .cmp-card__main {
   grid-area: main;
@@ -157,7 +191,9 @@ const spec = useSpecStore()
 }
 .cmp-card__price {
   grid-area: price;
-  font-weight: var(--fw-semibold);
+  font-size: var(--fs-h2);
+  line-height: var(--lh-h2);
+  font-weight: var(--fw-bold);
 }
 .cmp-card__actions {
   grid-area: actions;
@@ -165,9 +201,8 @@ const spec = useSpecStore()
 }
 @media (min-width: 640px) {
   .cmp-card {
-    grid-template-columns: minmax(0, 1fr) 8.5rem auto;
-    grid-template-areas: 'main price actions';
-    padding: var(--space-2) var(--space-3);
+    grid-template-columns: auto minmax(0, 1fr) 8.5rem auto;
+    grid-template-areas: 'logo main price actions';
   }
   .cmp-card__price {
     text-align: right;

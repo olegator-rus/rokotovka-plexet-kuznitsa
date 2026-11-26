@@ -36,6 +36,7 @@ import SolutionCard from '@/components/search/SolutionCard.vue'
 import UpgradeCard from '@/components/search/UpgradeCard.vue'
 import AppliedFilters from '@/components/results/AppliedFilters.vue'
 import FamilyCard from '@/components/results/FamilyCard.vue'
+import NotFoundBlock from '@/components/results/NotFoundBlock.vue'
 import AnalogOriginal from '@/components/results/AnalogOriginal.vue'
 import HelpAnswer from '@/components/results/HelpAnswer.vue'
 import RefinementChips from '@/components/results/RefinementChips.vue'
@@ -800,21 +801,6 @@ async function onSupply() {
 
           <template v-if="resultsOn">
             <RefinementChips :items="refinements" @apply="onRefinement" />
-            <ResultsToolbar
-              v-if="response.items.length || filters.length"
-              :response="response"
-              :sort="sortValue"
-              :group="groupValue"
-              :forced-flat="forcedFlat"
-              @sort="onSort"
-              @group="onGroup"
-            />
-            <AppliedFilters
-              :filters="filters"
-              :facets="resultFacets"
-              @remove="onFilterRemove"
-              @reset="onFiltersReset"
-            />
           </template>
 
           <div
@@ -841,6 +827,28 @@ async function onSupply() {
               @reset="onFacetsReset"
             />
             <div class="search-page__results">
+              <!-- Первая строка колонки товаров: прилипает под шапкой, шириной ровно со списком. -->
+              <div
+                v-if="resultsOn && (response.items.length || filters.length)"
+                class="search-page__toolbar"
+              >
+                <ResultsToolbar
+                  :response="response"
+                  :sort="sortValue"
+                  :group="groupValue"
+                  :forced-flat="forcedFlat"
+                  @sort="onSort"
+                  @group="onGroup"
+                />
+              </div>
+              <template v-if="resultsOn">
+                <AppliedFilters
+                  :filters="filters"
+                  :facets="resultFacets"
+                  @remove="onFilterRemove"
+                  @reset="onFiltersReset"
+                />
+              </template>
               <ol v-if="mainTop.length" class="search-page__list" aria-label="Результаты">
                 <li v-for="p in mainTop" :key="p.item.product_id">
                   <FamilyCard
@@ -1078,23 +1086,15 @@ async function onSupply() {
                 :anchor="complementAnchor"
                 @action="onComplement"
               />
+              <NotFoundBlock
+                v-if="!helpShown"
+                :related="related"
+                :offer-help="!blocks.absent && !blocks.nothing"
+                @search="submit"
+                @manager="managerOpen = true"
+              />
             </div>
           </div>
-
-          <section
-            v-if="related.length"
-            class="search-page__related"
-            aria-labelledby="related-title"
-          >
-            <h2 id="related-title" class="t-sm t-muted">Похожие запросы</h2>
-            <ul class="search-page__chips">
-              <li v-for="q in related" :key="q">
-                <button type="button" class="btn btn--secondary btn--sm" @click="submit(q)">
-                  {{ q }}
-                </button>
-              </li>
-            </ul>
-          </section>
         </template>
 
         <section v-else class="search-page__idle" aria-labelledby="idle-title">
@@ -1274,6 +1274,23 @@ async function onSupply() {
   gap: var(--space-3);
   min-width: 0;
 }
+.search-page__toolbar {
+  position: sticky;
+  top: var(--header-actual, var(--header-h));
+  z-index: 10;
+  /* На телефоне строка стоит первой — выше фильтров. */
+  order: -1;
+  padding-block: var(--space-2);
+  border-bottom: var(--border-w) solid var(--border);
+  background: var(--bg);
+}
+/* Узкая раскладка — одна колонка: обёртка результатов растворяется, чтобы строка сортировки встала над
+   фильтрами и прилипала на всём протяжении выдачи. */
+@container (max-width: 51.999rem) {
+  .search-page__body > .search-page__results {
+    display: contents;
+  }
+}
 .search-page__results {
   display: flex;
   flex-direction: column;
@@ -1283,21 +1300,21 @@ async function onSupply() {
 @container (min-width: 52rem) {
   .search-page__body--facets {
     display: grid;
-    grid-template-columns: 14rem minmax(0, 1fr);
+    grid-template-columns: 16rem minmax(0, 1fr);
     align-items: start;
   }
   .search-page__facets {
     position: sticky;
-    top: calc(var(--header-h) + var(--space-3));
+    /* Верх панели фильтров — на одной линии с кнопками сортировки. */
+    margin-top: var(--space-2);
+    top: calc(var(--header-actual, var(--header-h)) + var(--space-2));
+    /* Длинная панель прокручивается сама: до нижних фильтров не нужно листать всю выдачу. */
+    max-height: calc(100dvh - var(--header-actual, var(--header-h)) - 2 * var(--space-2));
+    overflow-y: auto;
+    overscroll-behavior: contain;
   }
 }
 .search-page__section {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-2);
-  margin-top: var(--space-3);
-}
-.search-page__related {
   display: flex;
   flex-direction: column;
   gap: var(--space-2);
@@ -1323,12 +1340,12 @@ async function onSupply() {
 }
 .search-page__trace {
   position: sticky;
-  top: var(--header-h);
+  top: var(--header-actual, var(--header-h));
   flex: none;
   box-sizing: border-box;
   width: var(--trace-w);
   min-width: var(--trace-min-w);
-  height: calc(100dvh - var(--header-h));
+  height: calc(100dvh - var(--header-actual, var(--header-h)));
   overflow-y: auto;
   padding: var(--space-4);
   border-left: var(--border-w) solid var(--border);

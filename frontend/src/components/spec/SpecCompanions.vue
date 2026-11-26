@@ -13,7 +13,7 @@ import { Plus } from 'lucide-vue-next'
 import { getProductCompanions } from '@/api/companions'
 import type { Companion } from '@/api/typesP2'
 import { classLabel } from '@/lib/companions'
-import { lineFromCompanion } from '@/lib/spec'
+import { lineFromCompanion, priceModeLabel } from '@/lib/spec'
 import { useSpecStore } from '@/stores/spec'
 
 const props = defineProps<{ productId: string; title: string }>()
@@ -49,8 +49,8 @@ function add(c: Companion, index: number) {
 </script>
 
 <template>
-  <div v-if="shown.length" class="spec-cmp t-xs">
-    <span class="t-muted">К этой позиции:</span>
+  <div v-if="shown.length" class="spec-cmp">
+    <p class="spec-cmp__label t-xs">К этой позиции</p>
     <button
       v-for="(c, i) in shown"
       :key="c.product_id"
@@ -60,9 +60,16 @@ function add(c: Companion, index: number) {
       :aria-label="`В спецификацию: ${c.title} (${classLabel(c)})`"
       @click="add(c, i)"
     >
-      <Plus :size="12" aria-hidden="true" />
-      <span>{{ c.title }}</span>
-      <span class="t-muted">· {{ classLabel(c).toLowerCase() }}</span>
+      <span class="spec-cmp__text">
+        <span class="t-sm spec-cmp__title">{{ c.title }}</span>
+        <span class="t-xs t-muted">
+          <strong v-if="c.price_rub != null" class="spec-cmp__price t-num">
+            {{ priceModeLabel({ price_rub: c.price_rub, price_mode: c.price_mode || 'fixed' }) }}
+          </strong>
+          {{ classLabel(c).toLowerCase() }}
+        </span>
+      </span>
+      <span class="spec-cmp__plus" aria-hidden="true"><Plus :size="16" /></span>
     </button>
   </div>
 </template>
@@ -70,27 +77,61 @@ function add(c: Companion, index: number) {
 <style scoped>
 .spec-cmp {
   display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--space-1) var(--space-2);
-  margin-top: var(--space-1);
+  flex-direction: column;
+  gap: var(--space-1);
+  padding-top: var(--space-3);
+  border-top: var(--border-w) dashed var(--border);
+}
+.spec-cmp__label {
+  margin: 0;
+  color: var(--text-3);
+  font-weight: var(--fw-semibold);
 }
 .spec-cmp__add {
-  display: inline-flex;
+  display: flex;
   align-items: center;
-  gap: var(--space-1);
-  max-width: 100%;
-  padding: 2px var(--space-2);
-  border: var(--border-w) solid var(--border);
-  border-radius: var(--radius-card);
-  background: none;
+  gap: var(--space-3);
+  width: 100%;
+  padding: var(--space-2) var(--space-2) var(--space-2) var(--space-3);
+  border: var(--border-w) solid transparent;
+  border-radius: var(--radius-control);
+  background: var(--surface-2);
   color: var(--text);
   font: inherit;
   text-align: left;
   cursor: pointer;
-  overflow-wrap: anywhere;
 }
 .spec-cmp__add:hover {
-  border-color: var(--text-3);
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+.spec-cmp__text {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.spec-cmp__title {
+  overflow-wrap: anywhere;
+}
+.spec-cmp__price {
+  margin-right: var(--space-2);
+  color: var(--text);
+  font-weight: var(--fw-bold);
+}
+.spec-cmp__plus {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: var(--control-h-sm);
+  height: var(--control-h-sm);
+  border-radius: var(--radius-pill);
+  background: var(--surface);
+  color: var(--accent);
+}
+.spec-cmp__add:hover .spec-cmp__plus {
+  background: var(--accent);
+  color: var(--on-accent);
 }
 </style>
