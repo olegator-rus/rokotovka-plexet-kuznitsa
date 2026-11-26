@@ -1,0 +1,395 @@
+{
+  "generated": "2026-05-27T01:12:30.183134Z",
+  "min_freq": 2,
+  "min_support": 1,
+  "click_grade": 2,
+  "days": 0,
+  "log_searches": 2976,
+  "log_actions": 2129,
+  "log_texts": 377,
+  "log_from": "2026-04-27T05:10:50Z",
+  "log_to": "2026-05-26T16:41:14Z",
+  "unattributed_actions": 0,
+  "below_min_freq": 5,
+  "holdout_from": "2026-05-19T21:00:00Z",
+  "holdout_to": "2026-05-26T21:00:00Z",
+  "unknown_products": 0,
+  "low_support": 0,
+  "queries": 372,
+  "clusters": 183,
+  "freq": 2971,
+  "by_set": {
+    "regression": 67,
+    "test": 147,
+    "tune": 158
+  },
+  "clusters_by_set": {
+    "regression": 42,
+    "test": 68,
+    "tune": 73
+  },
+  "by_type": {
+    "alias_gap": {
+      "regression": 6,
+      "test": 16,
+      "tune": 18
+    },
+    "analog": {
+      "regression": 2,
+      "test": 10,
+      "tune": 8
+    },
+    "exact": {
+      "regression": 24,
+      "test": 34,
+      "tune": 35
+    },
+    "layout": {
+      "test": 5,
+      "tune": 6
+    },
+    "license": {
+      "regression": 9,
+      "test": 23,
+      "tune": 25
+    },
+    "noise": {
+      "regression": 2,
+      "test": 4,
+      "tune": 6
+    },
+    "non_product": {
+      "regression": 2,
+      "test": 4,
+      "tune": 4
+    },
+    "purpose": {
+      "regression": 5,
+      "test": 12,
+      "tune": 16
+    },
+    "renewal": {
+      "regression": 2,
+      "test": 7,
+      "tune": 9
+    },
+    "sku": {
+      "regression": 3,
+      "test": 5,
+      "tune": 2
+    },
+    "slang": {
+      "regression": 7,
+      "test": 16,
+      "tune": 13
+    },
+    "typo": {
+      "regression": 5,
+      "test": 11,
+      "tune": 16
+    }
+  },
+  "freq_by_type": {
+    "alias_gap": 256,
+    "analog": 125,
+    "exact": 1286,
+    "layout": 31,
+    "license": 269,
+    "noise": 36,
+    "non_product": 44,
+    "purpose": 175,
+    "renewal": 94,
+    "sku": 27,
+    "slang": 475,
+    "typo": 153
+  },
+  "labels": {
+    "implicit": 488,
+    "judge": 247
+  },
+  "grades": {
+    "implicit": [
+      0,
+      0,
+      302,
+      186
+    ],
+    "judge": [
+      83,
+      66,
+      19,
+      162
+    ]
+  },
+  "problems": {
+    "empty": 154,
+    "no_click": 18
+  },
+  "unlabeled_queries": 51,
+  "holdout_only_queries": 1,
+  "classify": {
+    "Rules": 271,
+    "LLM": 0,
+    "Cache": 101,
+    "Default": 0,
+    "Calls": 0,
+    "CostRub": 0,
+    "Model": "aliceai-llm-flash",
+    "PromptVersion": "evalsets-classify-v1+80df5606"
+  },
+  "judge": {
+    "model": "qwen3.6-35b-a3b",
+    "prompt_version": "judge-v1+71b514a1",
+    "pool_run_id": "7b28bc",
+    "pool_pairs": 5099,
+    "pool_implicit": 259,
+    "judged": 430,
+    "filled": 330,
+    "filled_zero": 83,
+    "cached": 320,
+    "calls": 11,
+    "cost_rub": 4.6632,
+    "budget_rub": 5,
+    "stopped": "лимит 5 ₽: в очереди 4940 пар, дальше не оценивались",
+    "vs_implicit": {
+      "run_id": "",
+      "set": "",
+      "set_hash": "",
+      "model": "",
+      "prompt_version": "",
+      "configs": null,
+      "created_at": "0001-01-01T00:00:00Z",
+      "pairs": 0,
+      "judged": 100,
+      "depth": 0,
+      "exact": 0.57,
+      "within1": 0.96,
+      "kappa": 0.0193,
+      "confusion": [
+        [
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          3,
+          0,
+          36
+        ],
+        [
+          0,
+          4,
+          0,
+          57
+        ]
+      ],
+      "by_config": null,
+      "same_order": false,
+      "calls": 0,
+      "cost_rub": 0,
+      "duration_ms": 0
+    }
+  },
+  "reference": {
+    "matched": 372,
+    "ref_queries": 377,
+    "ref_covered": 372,
+    "type_correct": 298,
+    "type_confusion": {
+      "absent → alias_gap": 18,
+      "absent → analog": 1,
+      "absent → exact": 1,
+      "absent → license": 5,
+      "alias_gap → license": 3,
+      "alias_gap → renewal": 3,
+      "alias_gap → typo": 8,
+      "analog → license": 4,
+      "exact → alias_gap": 1,
+      "exact → license": 1,
+      "exact → purpose": 1,
+      "exact → slang": 5,
+      "license → exact": 4,
+      "license → typo": 1,
+      "purpose → alias_gap": 1,
+      "purpose → license": 1,
+      "purpose → typo": 2,
+      "sku → noise": 3,
+      "slang → alias_gap": 7,
+      "slang → exact": 1,
+      "slang → typo": 3
+    },
+    "implicit_vs_ref": {
+      "run_id": "",
+      "set": "",
+      "set_hash": "",
+      "model": "",
+      "prompt_version": "",
+      "configs": null,
+      "created_at": "0001-01-01T00:00:00Z",
+      "pairs": 0,
+      "judged": 488,
+      "depth": 0,
+      "exact": 0.4057,
+      "within1": 1,
+      "kappa": 0.0037,
+      "confusion": [
+        [
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          29,
+          17
+        ],
+        [
+          0,
+          0,
+          273,
+          169
+        ]
+      ],
+      "by_config": null,
+      "same_order": false,
+      "calls": 0,
+      "cost_rub": 0,
+      "duration_ms": 0
+    },
+    "judge_vs_ref": {
+      "run_id": "",
+      "set": "",
+      "set_hash": "",
+      "model": "",
+      "prompt_version": "",
+      "configs": null,
+      "created_at": "0001-01-01T00:00:00Z",
+      "pairs": 0,
+      "judged": 430,
+      "depth": 0,
+      "exact": 0.7442,
+      "within1": 0.9116,
+      "kappa": 0.7755,
+      "confusion": [
+        [
+          66,
+          27,
+          4,
+          9
+        ],
+        [
+          6,
+          24,
+          2,
+          4
+        ],
+        [
+          3,
+          12,
+          2,
+          14
+        ],
+        [
+          8,
+          10,
+          11,
+          228
+        ]
+      ],
+      "by_config": null,
+      "same_order": false,
+      "calls": 0,
+      "cost_rub": 0,
+      "duration_ms": 0
+    },
+    "final_vs_ref": {
+      "run_id": "",
+      "set": "",
+      "set_hash": "",
+      "model": "",
+      "prompt_version": "",
+      "configs": null,
+      "created_at": "0001-01-01T00:00:00Z",
+      "pairs": 0,
+      "judged": 589,
+      "depth": 0,
+      "exact": 0.5891,
+      "within1": 0.9389,
+      "kappa": 0.7141,
+      "confusion": [
+        [
+          66,
+          27,
+          4,
+          9
+        ],
+        [
+          6,
+          24,
+          2,
+          4
+        ],
+        [
+          3,
+          7,
+          9,
+          17
+        ],
+        [
+          8,
+          8,
+          147,
+          248
+        ]
+      ],
+      "by_config": null,
+      "same_order": false,
+      "calls": 0,
+      "cost_rub": 0,
+      "duration_ms": 0
+    },
+    "clusters_multi": 108,
+    "clusters_whole": 68,
+    "ladder": [
+      {
+        "config": "B0",
+        "ndcg_labels": 0.2278,
+        "ndcg_judge": 0.2063
+      },
+      {
+        "config": "B1",
+        "ndcg_labels": 0.7906,
+        "ndcg_judge": 0.7892
+      },
+      {
+        "config": "B2",
+        "ndcg_labels": 0.8659,
+        "ndcg_judge": 0.8131
+      },
+      {
+        "config": "B3",
+        "ndcg_labels": 0.9602,
+        "ndcg_judge": 0.8942
+      }
+    ],
+    "ladder_queries": 124,
+    "same_order": true
+  },
+  "duration_ms": 33906
+}

@@ -18,7 +18,6 @@ import (
 	"time"
 
 	"kuznica/api/config"
-	"kuznica/api/externalApi/catalogsource"
 	"kuznica/api/externalApi/llm"
 	"kuznica/api/externalApi/opensearch"
 	"kuznica/api/externalApi/tei"
@@ -58,12 +57,14 @@ func main() {
 		log.Fatal("миграция", zap.Error(err))
 	}
 
+	src := dataSource(log, cfg)
 	svc := services.NewServices(repos, services.Options{
 		Search:       opensearch.New(cfg.OpenSearchURL, searchTimeout),
 		Embedder:     tei.New(cfg.EmbedderURL, modelsTimeout),
 		Reranker:     tei.New(cfg.RerankerURL, modelsTimeout),
 		RerankWeight: cfg.RerankWeight,
-		Source:       catalogsource.MockJSON{Dir: cfg.DataDir},
+		Source:       src,
+		IndexAlias:   cfg.IndexAlias,
 		LLMMode:      cfg.LLM.Mode,
 
 		IntentModel:    intentModel(cfg.LLM, cfg.LLM.IntentModel),
@@ -96,6 +97,14 @@ func main() {
 	}
 	if len(os.Args) > 1 && os.Args[1] == "judge" {
 		runJudge(ctx, log, svc, os.Args[2:])
+		return
+	}
+	if len(os.Args) > 1 && os.Args[1] == "buildsets" {
+		runBuildSets(ctx, log, svc, setsDir(cfg, src), intentModel(cfg.LLM, cfg.LLM.IntentModel), os.Args[2:])
+		return
+	}
+	if len(os.Args) > 1 && os.Args[1] == "audit" {
+		runAudit(ctx, log, svc, os.Args[2:])
 		return
 	}
 	if len(os.Args) > 1 && os.Args[1] == "proposals" {

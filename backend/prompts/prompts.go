@@ -50,3 +50,10 @@ var agentText string
 
 // Agent — системный промпт агента SearchOps (services/agent_loop.go).
 func Agent() Prompt { return parse(agentText) }
+
+//go:embed evalsets_classify.md
+var evalSetsClassifyText string
+
+// EvalSetsClassify — промпт классификации типов запросов журнала при сборке наборов оценки
+// (services/evalsets_classify.go): только запросы, где правила не уверены.
+func EvalSetsClassify() Prompt { return parse(evalSetsClassifyText) }

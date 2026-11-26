@@ -43,6 +43,9 @@ type EvalRequest struct {
 	Persist bool
 	// Progress — вызывается после каждого запроса: сделано и всего (запросы × конфигурации); nil — не нужно.
 	Progress func(done, total int)
+	// Queries — готовый набор вместо queries.json (сборка наборов из журнала, evalsets.go); Set тогда — только
+	// подпись прогона. В evaluations такой прогон не пишется.
+	Queries []domain.EvalQuery
 }
 
 // EvalResult — результат прогона.
@@ -84,11 +87,7 @@ type queryLoader interface {
 // помечается и в метрики не входит (число ошибок — в метриках).
 func (s *Services) RunEvaluation(ctx context.Context, req EvalRequest) (*EvalResult, error) {
 	started := time.Now()
-	set, configs, err := validateEval(req)
-	if err != nil {
-		return nil, err
-	}
-	queries, err := s.evalQueries(ctx, set, req.QueryIDs)
+	set, configs, queries, err := s.evalInput(ctx, req)
 	if err != nil {
 		return nil, err
 	}
@@ -130,12 +129,40 @@ func (s *Services) RunEvaluation(ctx context.Context, req EvalRequest) (*EvalRes
 	run.Repro = reproLine(run.Set, run.SetHash, run.Queries, run.Configs, run.Commit)
 	zap.L().Info("оценка: прогон завершён", zap.String("run_id", run.RunID), zap.String("set", set),
 		zap.Strings("configs", configs), zap.Int("queries", len(queries)), zap.Int64("ms", run.DurationMs))
-	if req.Persist && s.repos.Enabled() {
+	if req.Persist && req.Queries == nil && s.repos.Enabled() {
 		if err := s.repos.SaveEvaluations(ctx, evaluationRows(run)); err != nil {
 			return run, fmt.Errorf("оценка: результат не записан: %w", err)
 		}
 	}
 	return run, nil
+}
+
+// evalInput — набор, конфигурации и запросы прогона: из queries.json или готовые (req.Queries).
+func (s *Services) evalInput(ctx context.Context, req EvalRequest) (string, []string, []domain.EvalQuery, error) {
+	if req.Queries == nil {
+		set, configs, err := validateEval(req)
+		if err != nil {
+			return "", nil, nil, err
+		}
+		queries, err := s.evalQueries(ctx, set, req.QueryIDs)
+		return set, configs, queries, err
+	}
+	r := req
+	r.Set = domain.EvalSetTest
+	_, configs, err := validateEval(r)
+	if err != nil {
+		return "", nil, nil, err
+	}
+	if len(req.Queries) == 0 {
+		return "", nil, nil, errs.NewValidationError(MsgEvalEmptySet)
+	}
+	queries := slices.Clone(req.Queries)
+	sort.Slice(queries, func(i, j int) bool { return queries[i].ID < queries[j].ID })
+	set := strings.TrimSpace(req.Set)
+	if set == "" {
+		set = "custom"
+	}
+	return set, configs, queries, nil
 }
 
 // validateEval — набор и конфигурации со значениями по умолчанию.

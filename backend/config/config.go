@@ -52,6 +52,13 @@ type Config struct {
 	RerankWeight float64
 	// DataDir — DATA_DIR: каталог mock-данных для импорта; по умолчанию ../data/mock (запуск из backend/).
 	DataDir string
+	// DataSource — DATA_SOURCE: mock (по умолчанию, JSON из DATA_DIR) | generic (любые таблицы по DATA_MAPPING).
+	DataSource string
+	// DataMapping — DATA_MAPPING: путь к mapping.yaml для generic (пример — data/mapping.example.yaml).
+	DataMapping string
+	// IndexAlias — INDEX_ALIAS: алиас индекса каталога в OpenSearch; пусто — products. Свой алиас — чтобы
+	// проверить чужие данные, не трогая индекс разработки.
+	IndexAlias string
 	// LLM — модель для разбора сложных запросов (LLM_PROVIDER, LLM_BASE_URL, LLM_MODEL, LLM_FOLDER_ID,
 	// LLM_API_KEY, LLM_MODE). Пока только читается и проверяется.
 	LLM LLMConfig
@@ -71,6 +78,9 @@ func Load() (Config, error) {
 		DatabaseURL:    env("DATABASE_URL", ""),
 		TrustedProxies: list(os.Getenv("TRUSTED_PROXIES")),
 		DataDir:        env("DATA_DIR", defaultDataDir),
+		DataSource:     strings.ToLower(env("DATA_SOURCE", DataSourceMock)),
+		DataMapping:    env("DATA_MAPPING", ""),
+		IndexAlias:     env("INDEX_ALIAS", ""),
 	}
 	var problems []string
 	dev := c.AppEnv == EnvDevelopment
@@ -88,6 +98,18 @@ func Load() (Config, error) {
 		problems = append(problems, err.Error())
 	} else {
 		c.RerankWeight = w
+	}
+	switch c.DataSource {
+	case DataSourceMock:
+	case DataSourceGeneric:
+		if c.DataMapping == "" {
+			problems = append(problems, "DATA_SOURCE=generic: задайте DATA_MAPPING (путь к mapping.yaml)")
+		}
+	default:
+		problems = append(problems, fmt.Sprintf("DATA_SOURCE=%q: ожидается mock или generic", c.DataSource))
+	}
+	if c.IndexAlias != "" && !validAlias(c.IndexAlias) {
+		problems = append(problems, fmt.Sprintf("INDEX_ALIAS=%q: строчные латинские буквы, цифры, _ и -", c.IndexAlias))
 	}
 	llm, err := LoadLLM()
 	if err != nil {
@@ -144,11 +166,38 @@ func (c Config) Summary() []string {
 		fmt.Sprintf("доверенные прокси (X-Real-IP): %s", proxies(c.TrustedProxies)),
 		fmt.Sprintf("OpenSearch: %s", orOff(c.OpenSearchURL)),
 		fmt.Sprintf("эмбеддер: %s, реранкер: %s (вес на C/D %.2f)", orOff(c.EmbedderURL), orOff(c.RerankerURL), c.RerankWeight),
-		fmt.Sprintf("данные для импорта: %s", c.DataDir),
+		c.dataSummary(),
 		c.LLM.summary(),
 		c.Agent.summary(c.LLM),
 		c.Ops.summary(),
 	}
+}
+
+// Источники данных (DATA_SOURCE).
+const (
+	DataSourceMock    = "mock"
+	DataSourceGeneric = "generic"
+)
+
+func (c Config) dataSummary() string {
+	alias := c.IndexAlias
+	if alias == "" {
+		alias = "products"
+	}
+	if c.DataSource == DataSourceGeneric {
+		return fmt.Sprintf("данные для импорта: generic по %s, индекс %s", c.DataMapping, alias)
+	}
+	return fmt.Sprintf("данные для импорта: %s, индекс %s", c.DataDir, alias)
+}
+
+// validAlias — имя алиаса OpenSearch без сюрпризов.
+func validAlias(a string) bool {
+	for _, r := range a {
+		if !(r >= 'a' && r <= 'z' || r >= '0' && r <= '9' || r == '_' || r == '-') {
+			return false
+		}
+	}
+	return a[0] != '_' && a[0] != '-'
 }
 
 // Адреса по умолчанию для development: OpenSearch из deploy/docker-compose.dev.yml и нативный сервис

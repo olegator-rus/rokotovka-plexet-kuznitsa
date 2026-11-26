@@ -1,0 +1,484 @@
+{
+  "generated_at": "2026-05-27T01:19:14.628904Z",
+  "source": "mock-json:../data/mock",
+  "catalog_version": "mock-1",
+  "files": [],
+  "warnings": [],
+  "volumes": {
+    "products": 228,
+    "families": 67,
+    "vendors": 34,
+    "categories": 30,
+    "relations": {
+      "compatibility": 8,
+      "complement": 15,
+      "renewal": 3,
+      "substitute": 37
+    },
+    "aliases": 63,
+    "clients": 7,
+    "clients_with_purchases": 5,
+    "purchases": 16,
+    "events": {
+      "add_to_cart": 472,
+      "click": 1377,
+      "manager_request": 16,
+      "order": 245,
+      "price_request": 35,
+      "search": 2976
+    },
+    "events_from": "2026-04-27T05:10:50Z",
+    "events_to": "2026-05-26T16:41:14Z",
+    "sessions": 2748,
+    "query_log_rows": 0,
+    "distinct_queries": 377,
+    "query_volume": 2976,
+    "eval_queries": 381
+  },
+  "fields": [
+    {
+      "field": "sku",
+      "label": "Артикул",
+      "filled": 209,
+      "coverage": 0.917,
+      "from_source": 209,
+      "restored": 0,
+      "status": "partial"
+    },
+    {
+      "field": "description",
+      "label": "Описание",
+      "filled": 228,
+      "coverage": 1,
+      "from_source": 228,
+      "restored": 0,
+      "status": "source"
+    },
+    {
+      "field": "vendor",
+      "label": "Вендор",
+      "filled": 228,
+      "coverage": 1,
+      "from_source": 228,
+      "restored": 0,
+      "status": "source"
+    },
+    {
+      "field": "category",
+      "label": "Категория",
+      "filled": 228,
+      "coverage": 1,
+      "from_source": 228,
+      "restored": 0,
+      "status": "source"
+    },
+    {
+      "field": "family",
+      "label": "Семейство",
+      "filled": 228,
+      "coverage": 1,
+      "from_source": 228,
+      "restored": 0,
+      "status": "source"
+    },
+    {
+      "field": "price",
+      "label": "Цена",
+      "filled": 205,
+      "coverage": 0.899,
+      "from_source": 205,
+      "restored": 0,
+      "status": "partial"
+    },
+    {
+      "field": "license_type",
+      "label": "Тип лицензии",
+      "filled": 228,
+      "coverage": 1,
+      "from_source": 228,
+      "restored": 0,
+      "status": "source"
+    },
+    {
+      "field": "license_metric",
+      "label": "Метрика лицензии",
+      "filled": 228,
+      "coverage": 1,
+      "from_source": 228,
+      "restored": 0,
+      "status": "source"
+    },
+    {
+      "field": "license_quantity",
+      "label": "Количество",
+      "filled": 226,
+      "coverage": 0.991,
+      "from_source": 226,
+      "restored": 0,
+      "status": "partial"
+    },
+    {
+      "field": "license_duration",
+      "label": "Срок",
+      "filled": 224,
+      "coverage": 0.982,
+      "from_source": 224,
+      "restored": 0,
+      "status": "partial"
+    },
+    {
+      "field": "license_edition",
+      "label": "Редакция",
+      "filled": 173,
+      "coverage": 0.759,
+      "from_source": 173,
+      "restored": 0,
+      "status": "partial"
+    },
+    {
+      "field": "attributes",
+      "label": "Атрибуты (характеристики)",
+      "filled": 221,
+      "coverage": 0.969,
+      "from_source": 221,
+      "restored": 0,
+      "status": "partial"
+    },
+    {
+      "field": "origin",
+      "label": "Происхождение ru/foreign",
+      "filled": 228,
+      "coverage": 1,
+      "from_source": 228,
+      "restored": 0,
+      "status": "source"
+    },
+    {
+      "field": "in_reestr",
+      "label": "В реестре ПО",
+      "filled": 136,
+      "coverage": 0.596,
+      "from_source": 136,
+      "restored": 0,
+      "status": "partial"
+    },
+    {
+      "field": "popularity",
+      "label": "Популярность",
+      "filled": 228,
+      "coverage": 1,
+      "from_source": 228,
+      "restored": 0,
+      "status": "source"
+    },
+    {
+      "field": "margin",
+      "label": "Маржа",
+      "filled": 228,
+      "coverage": 1,
+      "from_source": 228,
+      "restored": 0,
+      "status": "source"
+    }
+  ],
+  "structure": {
+    "flat": false,
+    "avg_variants": 3.4,
+    "single_variant_families": 0,
+    "margin": "source",
+    "price_share": 0.899,
+    "on_request_share": 0.101,
+    "sessions_real": true,
+    "synthetic_session_share": 0,
+    "click_position_share": 1,
+    "has_time": true,
+    "event_client_share": 0.279,
+    "search_results_known": 1,
+    "license": {
+      "license_duration": "partial",
+      "license_edition": "partial",
+      "license_metric": "source",
+      "license_quantity": "partial",
+      "license_type": "source"
+    }
+  },
+  "search": {
+    "queries": 300,
+    "volume_share": 0.934,
+    "log_zero_share": 0.259,
+    "configs": [
+      {
+        "config": "B0",
+        "zero": 235,
+        "zero_share": 0.783,
+        "zero_weighted": 0.621,
+        "no_exact": 235,
+        "no_exact_share": 0.783,
+        "errors": 0,
+        "avg_ms": 1.5
+      },
+      {
+        "config": "B3",
+        "zero": 32,
+        "zero_share": 0.107,
+        "zero_weighted": 0.075,
+        "no_exact": 44,
+        "no_exact_share": 0.147,
+        "errors": 0,
+        "avg_ms": 40.6
+      }
+    ],
+    "routes": {
+      "A": 45,
+      "B": 137,
+      "C": 17,
+      "D": 101
+    },
+    "failed": [
+      {
+        "text": "продлить антивирус",
+        "freq": 24,
+        "b0": 0,
+        "b3": 21,
+        "no_exact": false,
+        "log_zero": true
+      },
+      {
+        "text": "касперский плюс",
+        "freq": 18,
+        "b0": 0,
+        "b3": 6,
+        "no_exact": false,
+        "log_zero": true
+      },
+      {
+        "text": "chatgpt plus",
+        "freq": 14,
+        "b0": 0,
+        "b3": 0,
+        "no_exact": true,
+        "log_zero": true
+      },
+      {
+        "text": "figma",
+        "freq": 12,
+        "b0": 0,
+        "b3": 0,
+        "no_exact": true,
+        "log_zero": true
+      },
+      {
+        "text": "касперский премиум",
+        "freq": 12,
+        "b0": 0,
+        "b3": 6,
+        "no_exact": false,
+        "log_zero": true
+      },
+      {
+        "text": "подписка chatgpt",
+        "freq": 12,
+        "b0": 0,
+        "b3": 0,
+        "no_exact": true,
+        "log_zero": true
+      },
+      {
+        "text": "программа для чертежей",
+        "freq": 12,
+        "b0": 0,
+        "b3": 11,
+        "no_exact": false,
+        "log_zero": true
+      },
+      {
+        "text": "winrar",
+        "freq": 11,
+        "b0": 0,
+        "b3": 0,
+        "no_exact": true,
+        "log_zero": true
+      },
+      {
+        "text": "удаленный доступ к компьютеру",
+        "freq": 11,
+        "b0": 0,
+        "b3": 7,
+        "no_exact": false,
+        "log_zero": true
+      },
+      {
+        "text": "антивирус для офиса",
+        "freq": 10,
+        "b0": 0,
+        "b3": 9,
+        "no_exact": false,
+        "log_zero": true
+      },
+      {
+        "text": "зуп",
+        "freq": 10,
+        "b0": 0,
+        "b3": 0,
+        "no_exact": true,
+        "log_zero": true
+      },
+      {
+        "text": "кис",
+        "freq": 10,
+        "b0": 0,
+        "b3": 7,
+        "no_exact": false,
+        "log_zero": true
+      },
+      {
+        "text": "отечественная операционная система",
+        "freq": 10,
+        "b0": 0,
+        "b3": 4,
+        "no_exact": false,
+        "log_zero": true
+      },
+      {
+        "text": "фигма",
+        "freq": 10,
+        "b0": 0,
+        "b3": 0,
+        "no_exact": true,
+        "log_zero": true
+      },
+      {
+        "text": "notion",
+        "freq": 9,
+        "b0": 0,
+        "b3": 0,
+        "no_exact": true,
+        "log_zero": true
+      },
+      {
+        "text": "windows 11 домашняя",
+        "freq": 9,
+        "b0": 0,
+        "b3": 2,
+        "no_exact": false,
+        "log_zero": true
+      },
+      {
+        "text": "акад",
+        "freq": 9,
+        "b0": 0,
+        "b3": 4,
+        "no_exact": false,
+        "log_zero": true
+      },
+      {
+        "text": "касперкий",
+        "freq": 9,
+        "b0": 0,
+        "b3": 6,
+        "no_exact": false,
+        "log_zero": true
+      },
+      {
+        "text": "программа для бухгалтерии",
+        "freq": 9,
+        "b0": 0,
+        "b3": 8,
+        "no_exact": false,
+        "log_zero": true
+      },
+      {
+        "text": "российский офис",
+        "freq": 9,
+        "b0": 0,
+        "b3": 3,
+        "no_exact": false,
+        "log_zero": true
+      },
+      {
+        "text": "счет на оплату",
+        "freq": 9,
+        "b0": 0,
+        "b3": 0,
+        "no_exact": true,
+        "log_zero": true
+      },
+      {
+        "text": "1с зуп проф",
+        "freq": 8,
+        "b0": 0,
+        "b3": 8,
+        "no_exact": false,
+        "log_zero": true
+      },
+      {
+        "text": "acronis",
+        "freq": 8,
+        "b0": 0,
+        "b3": 0,
+        "no_exact": true,
+        "log_zero": true
+      },
+      {
+        "text": "visio",
+        "freq": 8,
+        "b0": 0,
+        "b3": 0,
+        "no_exact": true,
+        "log_zero": true
+      },
+      {
+        "text": "акад лицензия на год",
+        "freq": 8,
+        "b0": 0,
+        "b3": 4,
+        "no_exact": false,
+        "log_zero": true
+      }
+    ],
+    "duration_ms": 12612
+  },
+  "plan": [
+    {
+      "item": "Плоский каталог или семейства",
+      "finding": "семейства есть в данных: 67 семейств, в среднем 3.4 позиций",
+      "change": "индекс по позициям с группировкой по семействам — без изменений"
+    },
+    {
+      "item": "Маржа",
+      "finding": "маржа есть у всех позиций",
+      "change": "вес маржи в бизнес-слое работает как задумано"
+    },
+    {
+      "item": "Сессии и время",
+      "finding": "сессии в данных, период 27.04.2026 — 26.05.2026",
+      "change": "атрибуция действий к поиску, переформулировки за 60 с и holdout-неделя агента — без изменений"
+    },
+    {
+      "item": "Позиции показов",
+      "finding": "позиция есть у 100% кликов",
+      "change": "поправка на позицию в неявной разметке включается"
+    },
+    {
+      "item": "Атрибуты лицензий",
+      "finding": "Тип лицензии 100% (из данных 228, правилами 0); Метрика лицензии 100% (из данных 228, правилами 0); Количество 99% (из данных 226, правилами 0); Срок 98% (из данных 224, правилами 0)",
+      "change": "фильтры количества, метрики и срока работают на данных"
+    },
+    {
+      "item": "Цены и клиенты",
+      "finding": "цена у 90% позиций, «по запросу» у 10%; клиентов 7, с покупками 5; клиент в событиях у 28%",
+      "change": "персонализация по истории покупок работает только для клиентов с покупками; гость — без контекста"
+    },
+    {
+      "item": "Доля запросов без результата",
+      "finding": "без результата: B0 78% (по частоте 62%), B3 11% (по частоте 8%) на 300 частых запросах (93% объёма); по журналу магазина — 26%",
+      "change": "это базовая точка «до/после» для питча; неудачные запросы B3 — первые кандидаты агенту"
+    },
+    {
+      "item": "Доля запросов, которым нужна LLM",
+      "finding": "маршрут D у 101 из 300 запросов B3 (34%)",
+      "change": "пересчитать стоимость запроса в «Экономике» с этой долей"
+    }
+  ],
+  "duration_ms": 12624
+}

@@ -98,6 +98,27 @@ make eval      # лестница B0–B3 на test-наборе
 | `make check` | lint + test + сборка фронта + поиск секретов — перед коммитом |
 | `make e2e` | сквозные тесты Playwright (не меняют данные демо) |
 
+## Свои данные
+
+Каталог, справочники и журналы можно загрузить в любом табличном виде без правок кода: нужен только файл
+сопоставления. Пример с комментариями — `data/mapping.example.yaml`.
+
+```
+cp data/mapping.example.yaml data/org/mapping.yaml   # вписать имена файлов и колонок
+export DATA_SOURCE=generic DATA_MAPPING=../data/org/mapping.yaml
+make import                                          # каталог → OpenSearch и PostgreSQL, журнал событий
+make audit                                           # data/AUDIT.md: что есть, что восстановлено, что меняется
+cd backend && go run . buildsets --from-logs         # наборы оценки из журнала → data/org/queries.json
+make eval
+```
+
+Понимаются CSV (UTF-8 или cp1251, разделитель угадывается), JSON, JSONL, XLSX, цены «12 990,00 ₽»,
+«по запросу», «да/нет», даты в разных форматах, путь категорий «ПО > Антивирусы». Чего нет в данных,
+восстанавливается правилами: условия лицензии из названия, семейства из названий в плоском каталоге,
+вендор по справочнику, популярность из кликов и заказов. Маржи нет — ставится 0, аудит это показывает.
+Проверить на чужом наборе можно так: `python3 scripts/data/make_foreign.py` собирает его из mock
+(XLSX + CSV cp1251), затем импорт с `DATA_MAPPING=../data/foreign/mapping.yaml` и `INDEX_ALIAS=foreign_products`.
+
 ## API
 `GET /api/meta`, `POST /api/search`, `GET /api/suggest`, `POST /api/events`, `POST /api/catalog/import`,
 `GET /api/analytics`, `GET /api/evaluations`, `POST /api/evaluations/run`, `GET /api/costs`,

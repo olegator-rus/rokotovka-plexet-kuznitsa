@@ -26,8 +26,13 @@ const maxLogLine = 64 << 10
 // LoadQueries — все запросы queries.json. Пустой id, текст или неизвестный набор — ошибка: оценка на
 // битой разметке хуже, чем её отсутствие.
 func (m MockJSON) LoadQueries(_ context.Context) ([]domain.EvalQuery, error) {
+	return loadQueriesFile(filepath.Join(m.Dir, "queries.json"))
+}
+
+// loadQueriesFile — queries.json формата контракта по пути (mock и GenericSource.eval_queries).
+func loadQueriesFile(path string) ([]domain.EvalQuery, error) {
 	var qs []domain.EvalQuery
-	if err := readJSON(filepath.Join(m.Dir, "queries.json"), &qs); err != nil {
+	if err := readJSON(path, &qs); err != nil {
 		if errors.Is(err, fs.ErrNotExist) {
 			return nil, ErrNoFile
 		}

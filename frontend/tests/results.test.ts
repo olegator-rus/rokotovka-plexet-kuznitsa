@@ -43,7 +43,7 @@ test('splitResults: основная выдача и аналоги, позиц�
   assert.equal(r.nothing, false)
 })
 
-test('splitResults: товара нет (F4) и пустой ответ', () => {
+test('splitResults: товара нет и пустой ответ', () => {
   const absent = {
     query: 'adobe photoshop',
     items: [item('x', 'analog')],

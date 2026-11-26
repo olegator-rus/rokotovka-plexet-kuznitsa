@@ -8,7 +8,7 @@ COMPOSE := docker compose -f deploy/docker-compose.yml --env-file .env
 DEV_COMPOSE := docker compose -f deploy/docker-compose.dev.yml --env-file deploy/.env.dev
 
 .DEFAULT_GOAL := help
-.PHONY: help env db db-down ml import eval install dev run web test test-live e2e e2e-video lint check check-secrets build deploy
+.PHONY: help env db db-down ml import audit eval sets install dev run web test test-live e2e e2e-video lint check check-secrets build deploy
 
 help: ## показать список целей
 	@grep -hE '^[a-zA-Z0-9_-]+:.*?## ' $(MAKEFILE_LIST) \
@@ -39,8 +39,17 @@ import: db ## импорт data/mock в Postgres и индекс OpenSearch (в�
 SET ?= test
 CONFIGS ?= B0,B1,B2,B3
 
+audit: db ## аудит данных источника (DATA_SOURCE/DATA_MAPPING): data/AUDIT.md и AUDIT.json, B0/B3 на частых запросах без LLM
+	cd backend && go run . audit
+
 eval: db ## оценка качества: прогон набора SET (test) по CONFIGS (B0–B3) — таблица, evaluations, data/eval/*.json
 	cd backend && go run . eval --set $(SET) --configs $(CONFIGS)
+
+# Наборы из журнала в базе: make sets [SETS_ARGS="--days 30 --judge-rub 50 --out ../data/org --force"]
+SETS_ARGS ?=
+
+sets: db ## наборы оценки и разметка из журнала (неявная + судья) → DATA_DIR/queries.json и SETS.md
+	cd backend && go run . buildsets --from-logs $(SETS_ARGS)
 
 install: ## зависимости фронта (pnpm)
 	cd frontend && pnpm install

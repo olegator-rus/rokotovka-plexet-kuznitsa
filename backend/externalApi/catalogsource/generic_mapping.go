@@ -1,0 +1,206 @@
+package catalogsource
+
+import (
+	"errors"
+	"fmt"
+	"os"
+	"path/filepath"
+	"slices"
+	"strings"
+
+	"gopkg.in/yaml.v3"
+)
+
+// Файл сопоставления (mapping.yaml) для GenericSource: какие файлы — каталог, справочники и журналы,
+// какие колонки — поля формата данных, словари значений. Пример с комментариями — data/mapping.example.yaml.
+
+// Mapping — файл сопоставления целиком.
+type Mapping struct {
+	// Version — catalog_version снимка; пусто — "generic-<имя файла каталога>".
+	Version string `yaml:"version"`
+	// BaseDir — откуда считать пути файлов; пусто — каталог mapping.yaml, относительный — от него же.
+	BaseDir string `yaml:"base_dir"`
+	// CategorySeparator — разделитель пути категорий «ПО > Антивирусы»; пусто — авто (" > ", " / ", "/", "|", "\").
+	CategorySeparator string `yaml:"category_separator"`
+	// DateFormats — дополнительные форматы дат (Go layout) сверх встроенных.
+	DateFormats []string `yaml:"date_formats"`
+	// Timezone — пояс дат без смещения (IANA); пусто — Europe/Moscow.
+	Timezone string `yaml:"timezone"`
+
+	Catalog    *Table `yaml:"catalog"`
+	Vendors    *Table `yaml:"vendors"`
+	Categories *Table `yaml:"categories"`
+	Relations  *Table `yaml:"relations"`
+	Aliases    *Table `yaml:"aliases"`
+	Clients    *Table `yaml:"clients"`
+	Purchases  *Table `yaml:"purchases"`
+	QueryLog   *Table `yaml:"query_log"`
+	Events     *Table `yaml:"events"`
+	// EvalQueries — готовый queries.json в формате контракта (разметка, наборы); пусто — оценки нет.
+	EvalQueries string `yaml:"eval_queries"`
+
+	dir string // каталог файлов данных (BaseDir, приведённый к абсолютному)
+}
+
+// Table — один файл данных.
+type Table struct {
+	// File — путь к файлу (.csv, .tsv, .txt, .json, .jsonl, .ndjson, .xlsx); формат — по расширению или Format.
+	File   string `yaml:"file"`
+	Format string `yaml:"format"` // csv | json | jsonl | xlsx; пусто — по расширению
+	// Sheet — лист XLSX; пусто — первый.
+	Sheet string `yaml:"sheet"`
+	// JSONPath — где в JSON лежит массив строк: "products" или "data.items"; пусто — корень.
+	JSONPath string `yaml:"json_path"`
+	// Delimiter — разделитель CSV; пусто или auto — по первой строке. "\t" — табуляция.
+	Delimiter string `yaml:"delimiter"`
+	// Encoding — кодировка CSV: utf-8 | cp1251 | auto (пусто — auto: не UTF-8 — значит cp1251).
+	Encoding string `yaml:"encoding"`
+	// HeaderRow — номер строки заголовка (с 1) для CSV/XLSX; 0 — первая непустая.
+	HeaderRow int `yaml:"header_row"`
+	// Columns — поле контракта → колонка источника (строка или список кандидатов: берётся первый непустой).
+	// Вложенные поля JSON — через точку: "price.value".
+	Columns map[string]Column `yaml:"columns"`
+	// Values — словари значений: поле → {"как в источнике": "как в контракте"}; ключи сравниваются без
+	// регистра и лишних пробелов.
+	Values map[string]map[string]string `yaml:"values"`
+	// Defaults — значение поля, если колонки нет или ячейка пуста.
+	Defaults map[string]string `yaml:"defaults"`
+	// Attributes — (только catalog) колонки в свободные атрибуты позиции: "Платформа" или "Платформа: platform".
+	Attributes []string `yaml:"attributes"`
+}
+
+// Column — одна колонка или список кандидатов.
+type Column []string
+
+// UnmarshalYAML — строка или список строк.
+func (c *Column) UnmarshalYAML(n *yaml.Node) error {
+	switch n.Kind {
+	case yaml.ScalarNode:
+		*c = Column{n.Value}
+		return nil
+	case yaml.SequenceNode:
+		var list []string
+		if err := n.Decode(&list); err != nil {
+			return err
+		}
+		*c = list
+		return nil
+	}
+	return fmt.Errorf("строка %d: колонка — строка или список строк", n.Line)
+}
+
+// tableFields — поля, которые понимает каждая таблица (опечатка в имени поля — ошибка при загрузке).
+var tableFields = map[string][]string{
+	"catalog": {"id", "sku", "title", "description", "family_id", "family_name", "vendor", "category",
+		"price_rub", "price_on_request", "license_type", "license_metric", "license_quantity",
+		"license_duration_months", "license_duration", "license_edition", "origin", "in_reestr", "popularity", "margin"},
+	"vendors":    {"id", "name", "origin"},
+	"categories": {"id", "name", "parent_id", "parent", "path"},
+	"relations":  {"from", "to", "type", "note"},
+	"aliases":    {"alias", "canonical", "kind", "target", "target_id"},
+	"clients":    {"id", "name", "segment"},
+	"purchases":  {"client_id", "product", "date"},
+	"query_log":  {"text", "freq", "ts", "session_id", "client_id", "results_count"},
+	"events":     {"ts", "session_id", "client_id", "type", "query", "product", "position", "results_count"},
+}
+
+// requiredFields — без этих полей таблица бессмысленна.
+var requiredFields = map[string][]string{
+	"catalog":    {"title"},
+	"vendors":    {"name"},
+	"categories": {"name"},
+	"relations":  {"from", "to"},
+	"aliases":    {"alias", "canonical"},
+	"clients":    {"id"},
+	"purchases":  {"client_id", "product"},
+	"query_log":  {"text"},
+	"events":     {"ts", "type"},
+}
+
+// LoadMapping — разобрать и проверить mapping.yaml.
+func LoadMapping(path string) (*Mapping, error) {
+	raw, err := os.ReadFile(path)
+	if err != nil {
+		return nil, fmt.Errorf("файл сопоставления: %w", err)
+	}
+	var m Mapping
+	dec := yaml.NewDecoder(strings.NewReader(string(raw)))
+	dec.KnownFields(true)
+	if err := dec.Decode(&m); err != nil {
+		return nil, fmt.Errorf("%s: %w", filepath.Base(path), err)
+	}
+	abs, err := filepath.Abs(path)
+	if err != nil {
+		return nil, err
+	}
+	m.dir = filepath.Dir(abs)
+	if m.BaseDir != "" {
+		if filepath.IsAbs(m.BaseDir) {
+			m.dir = m.BaseDir
+		} else {
+			m.dir = filepath.Join(m.dir, m.BaseDir)
+		}
+	}
+	if err := m.validate(); err != nil {
+		return nil, fmt.Errorf("%s: %w", filepath.Base(path), err)
+	}
+	return &m, nil
+}
+
+func (m *Mapping) tables() map[string]*Table {
+	return map[string]*Table{"catalog": m.Catalog, "vendors": m.Vendors, "categories": m.Categories,
+		"relations": m.Relations, "aliases": m.Aliases, "clients": m.Clients, "purchases": m.Purchases,
+		"query_log": m.QueryLog, "events": m.Events}
+}
+
+func (m *Mapping) validate() error {
+	if m.Catalog == nil {
+		return errors.New("нет раздела catalog")
+	}
+	var problems []string
+	for name, t := range m.tables() {
+		if t == nil {
+			continue
+		}
+		if strings.TrimSpace(t.File) == "" {
+			problems = append(problems, name+": не указан file")
+		}
+		switch strings.ToLower(t.Format) {
+		case "", "csv", "json", "jsonl", "xlsx":
+		default:
+			problems = append(problems, fmt.Sprintf("%s: неизвестный format %q", name, t.Format))
+		}
+		known := tableFields[name]
+		for f := range t.Columns {
+			if !slices.Contains(known, f) {
+				problems = append(problems, fmt.Sprintf("%s.columns: неизвестное поле %q (есть: %s)", name, f, strings.Join(known, ", ")))
+			}
+		}
+		for f := range t.Defaults {
+			if !slices.Contains(known, f) {
+				problems = append(problems, fmt.Sprintf("%s.defaults: неизвестное поле %q", name, f))
+			}
+		}
+		for _, f := range requiredFields[name] {
+			if len(t.Columns[f]) == 0 && t.Defaults[f] == "" {
+				problems = append(problems, fmt.Sprintf("%s: нужна колонка %q", name, f))
+			}
+		}
+		if len(t.Attributes) > 0 && name != "catalog" {
+			problems = append(problems, name+": attributes бывают только у catalog")
+		}
+	}
+	if len(problems) > 0 {
+		slices.Sort(problems)
+		return errors.New(strings.Join(problems, "; "))
+	}
+	return nil
+}
+
+// path — абсолютный путь файла данных.
+func (m *Mapping) path(file string) string {
+	if filepath.IsAbs(file) {
+		return file
+	}
+	return filepath.Join(m.dir, file)
+}

@@ -6,7 +6,7 @@ import (
 	"strings"
 )
 
-// OpsConfig — защита публичного стенда (ARCHITECTURE §8): администрирование, лимит частоты, дневной бюджет LLM.
+// OpsConfig — защита публичного стенда (docs/ARCHITECTURE.md, «Модель угроз»): администрирование, лимит частоты, дневной бюджет LLM.
 type OpsConfig struct {
 	// AdminEnabled — ADMIN_ENABLED: служебные методы /api/admin/* (переключение LLM_MODE без перезапуска).
 	// По умолчанию включено в development и выключено в production.

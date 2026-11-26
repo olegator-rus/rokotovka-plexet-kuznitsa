@@ -1,0 +1,100 @@
+# Файл сопоставления для DATA_SOURCE=generic: чужие данные → формат mock-данных.
+#
+#   DATA_SOURCE=generic DATA_MAPPING=../data/org/mapping.yaml go run . import   # каталог, индекс, журнал
+#   DATA_SOURCE=generic DATA_MAPPING=../data/org/mapping.yaml go run . audit    # data/AUDIT.md и AUDIT.json
+#
+# Пишется только этот файл: форматы (CSV в UTF-8 или cp1251 с любым разделителем, JSON, JSONL, XLSX),
+# цены «12 990,00 ₽», даты, «да/нет», пути категорий разбираются сами. Обязателен только раздел catalog
+# с колонкой title — остальное по мере наличия. Опечатка в имени поля — ошибка при старте со списком полей.
+# Чего нет в данных, восстанавливается правилами (условия лицензии из названия, семейства плоского каталога,
+# вендор по справочнику, популярность из событий) — что именно, покажет `go run . audit`.
+# Рабочий пример на «чужом» наборе из mock — scripts/data/make_foreign.py → data/foreign/mapping.yaml.
+
+version: org-2026-11            # catalog_version; новая версия начинает цепочку правил агента заново
+base_dir: org                   # где лежат файлы (относительно этого mapping.yaml); пусто — рядом с ним
+category_separator: " > "       # путь категорий в одной ячейке; пусто — угадать (" > ", "/", "|", "\", "→")
+timezone: Europe/Moscow         # пояс дат без смещения; unix-время и ISO со смещением понимаются всегда
+date_formats: ["02.01.2006 15:04"]  # свои форматы (Go layout) — в дополнение к встроенным
+
+# Каждая таблица: file (+ format, если расширение не говорит), для XLSX — sheet, для JSON — json_path
+# (где массив строк: "data.items"), для CSV — delimiter/encoding (по умолчанию auto), header_row — номер
+# строки заголовка, если над таблицей шапка. columns: поле контракта → имя колонки или список кандидатов
+# (берётся первая непустая); вложенный JSON — через точку. values: словари значений «как у них → как у нас».
+# defaults: значение, если колонки нет или ячейка пуста.
+
+catalog:                        # обязателен
+  file: Каталог.xlsx
+  sheet: Номенклатура
+  header_row: 1
+  columns:
+    id: Код                     # нет — берётся sku, затем название + номер строки
+    sku: Артикул
+    title: Наименование         # обязателен
+    description: [Описание, Краткое описание]
+    vendor: Производитель       # id или название; находится по справочнику vendors, иначе создаётся
+    category: Категория         # id, название или путь «ПО > Антивирусы» (уровни создаются)
+    family_id: Группа           # нет колонки — семейства собираются по названию без лицензионной части
+    family_name: Название группы
+    price_rub: Цена             # «12 990,00 ₽», «по запросу», пусто — цена по запросу
+    price_on_request: Цена по запросу
+    license_type: Тип лицензии  # подписка | бессрочная | продление | обновление | OEM | облако
+    license_metric: Единица     # устройство/ПК | пользователь | сервер | ядро | организация
+    license_quantity: Количество  # «10 ПК» тоже понимается: число и метрика
+    license_duration_months: Срок, мес
+    license_duration: Срок      # «1 год», «6 мес», «бессрочно»
+    license_edition: Редакция
+    origin: Страна              # Россия/РФ → ru, иначе foreign (или через values)
+    in_reestr: Реестр ПО        # да/нет, true/false, 1/0
+    popularity: Продажи за год  # в штуках — приводится к 0..1 от максимума
+    margin: Маржа, %            # 18 или 0,18; нет — суррогат 0, аудит это пометит
+  attributes: ["Платформа: platform", "Язык: language", "Способ поставки: delivery"]
+  values:
+    license_type: {Годовая: subscription, Вечная: perpetual}
+
+vendors:
+  file: vendors.csv
+  columns: {id: Код, name: Название, origin: Страна}
+  values:
+    origin: {Россия: ru, США: foreign, Германия: foreign}
+
+categories:                     # или path: «Родитель > Ребёнок» в одной колонке
+  file: categories.csv
+  columns: {id: Код, name: Название, parent_id: Родитель}
+
+relations:                      # аналоги и сопутствующие: концы — id семейства, код или артикул позиции, название
+  file: links.csv
+  columns: {from: Товар, to: Связанный товар, type: Тип связи, note: Комментарий}
+  values:
+    type: {Замена: substitute, "Покупают вместе": complement}
+
+aliases:                        # словарь синонимов магазина, если дадут
+  file: synonyms.csv
+  columns: {alias: Как пишут, canonical: Как в каталоге, kind: Вид, target: Цель, target_id: Код цели}
+
+clients:
+  file: clients.csv
+  columns: {id: Код клиента, name: Наименование, segment: Сегмент}  # малый/крупный/гос/физлицо понимаются
+
+purchases:                      # история покупок клиента → контекст выдачи
+  file: orders.csv
+  columns: {client_id: Клиент, product: Артикул, date: Дата}
+
+query_log:                      # запросы с частотой; с датами — пойдут в журнал как поиски, если в events их нет
+  file: search_queries.csv
+  columns: {text: Запрос, freq: Частота, ts: Дата, client_id: Клиент, results_count: Найдено}
+
+events:                         # клики, корзины, заказы после поиска
+  file: events.jsonl
+  columns:
+    ts: timestamp
+    session_id: session         # нет — сессия синтезируется (клиент + час), аудит это пометит
+    client_id: user_id
+    type: event                 # поиск/клик/корзина/заказ/запрос цены/менеджер — понимаются по-русски и по-английски
+    query: search_text
+    results_count: hits
+    product: sku                # id или артикул позиции
+    position: rank
+  values:
+    type: {view_item: click, purchase: order}
+
+eval_queries: queries.json      # наборы оценки в формате контракта (их собирает `go run . buildsets`)
