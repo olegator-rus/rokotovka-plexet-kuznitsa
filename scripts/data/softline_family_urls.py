@@ -315,8 +315,12 @@ def parse_feed(path: Path) -> tuple[dict[str, str], dict[str, dict]]:
             except ValueError:
                 price = 0.0
             g = groups.setdefault(gid, {"n": 0, "avail": 0, "min_avail_price": None,
-                                        "min_avail_price_offer": None, "cands": []})
+                                        "min_avail_price_offer": None, "cands": [],
+                                        "vslugs": set()})
             g["n"] += 1
+            vurl = (el.findtext("vendorUrl") or "").strip()
+            if vurl:
+                g["vslugs"].add(norm_path(vurl).strip("/").split("/")[0])
             if avail:
                 g["avail"] += 1
                 if price > 0 and (g["min_avail_price"] is None or price < g["min_avail_price"]):
@@ -489,7 +493,17 @@ def cmd_collect(args) -> int:
     done = {r["group_id"] for r in read_jsonl(out_path) if r.get("family_url")}
     failed_before = {r["group_id"] for r in read_jsonl(failed_path)}
     cats, groups = parse_feed(Path(args.feed))
-    targets = sorted((g for g, v in groups.items() if v["avail"] > 0), key=lambda x: int(x))
+    def in_scope(v: dict) -> bool:
+        if args.scope == "available":
+            return v["avail"] > 0
+        if args.scope == "unavailable":
+            return v["avail"] == 0
+        return True
+
+    targets = sorted((g for g, v in groups.items() if in_scope(v)), key=lambda x: int(x))
+    if args.vendors:
+        vs = {x.strip() for x in args.vendors.split(",") if x.strip()}
+        targets = [g for g in targets if groups[g]["vslugs"] & vs]
     if args.groups:
         wanted = [g.strip() for g in args.groups.split(",") if g.strip()]
         missing = [g for g in wanted if g not in groups]
@@ -643,6 +657,7 @@ def cmd_stats(args) -> int:
     failed = read_jsonl(Path(args.failed))
     cats, groups = parse_feed(Path(args.feed))
     targets = {g for g, v in groups.items() if v["avail"] > 0}
+    unavail = {g for g, v in groups.items() if v["avail"] == 0}
     got = set(res) & targets
     last_fail: dict[str, dict] = {}
     for r in failed:
@@ -654,6 +669,9 @@ def cmd_stats(args) -> int:
         "targets": len(targets),
         "collected": len(got),
         "collected_outside_targets": len(set(res) - targets),
+        "groups_without_available": len(unavail),
+        "collected_without_available": len(set(res) & unavail),
+        "failed_without_available": len(set(still) & unavail),
         "failed": len(still),
         "failed_reasons": Counter(r["reason"] for r in still.values()),
         "not_attempted": len(targets - got - set(still)),
@@ -813,6 +831,9 @@ def main() -> int:
     c = sub.add_parser("collect")
     c.add_argument("--groups", help="только эти group_id через запятую")
     c.add_argument("--limit", type=int, default=0)
+    c.add_argument("--scope", choices=["available", "unavailable", "all"], default="available",
+                   help="какие группы брать: с доступным оффером, без него или все")
+    c.add_argument("--vendors", help="только группы этих слагов vendorUrl через запятую")
     c.add_argument("--retry-failed", action="store_true",
                    help="повторить группы из файла неудач")
 

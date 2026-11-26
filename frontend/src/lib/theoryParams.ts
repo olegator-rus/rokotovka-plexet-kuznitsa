@@ -101,6 +101,13 @@ export const THEORY_PARAMS = {
   marginMaxShift: 2,
   maxComplements: 3,
 
+  // Цель ответа и лестница «минимум 4 товара» (search_target.go, search_ladder.go, search_family_pool.go)
+  lineMin: 3, // столько равных семейств одного вендора — линейка: цель — вендор или вендор + категория
+  ladderMin: 4, // столько разных семейств лестница добирает, если они есть
+  maxAlternatives: 3, // карточек «Можно купить сейчас» под продуктом только по запросу
+  skuVariantsMax: 3, // других вариантов того же семейства под точным артикулом
+  familyPoolMinShare: 0.5, // разных семейств меньше этой доли мест BM25 — текстовый список по семействам
+
   // Техника (hardware.go, hardware_search.go)
   mpnMinLen: 4,
   mpnPrefixMin: 5,

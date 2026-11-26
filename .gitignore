@@ -14,6 +14,8 @@ __pycache__/
 
 # Фид заказчика (Mindbox YML, 290 МБ) и производные большие файлы — не в git
 data/softline/feed/
+
+# Результаты прогонов оценки (data/eval/<набор>-<время>-<id>.json) — локальные, не в git
+data/eval/*-*T*-*.json
 agency/
 artifacts/
-data/eval/*-*T*-*.json

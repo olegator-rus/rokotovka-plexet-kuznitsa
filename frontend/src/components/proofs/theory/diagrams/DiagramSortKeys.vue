@@ -1,5 +1,5 @@
 <script setup lang="ts">
-// Порядок выдачи (rank.go): пять ключей сравниваются по очереди. Следующий ключ решает, только если по
+// Порядок выдачи (rank.go sortFamilies): шесть ключей сравниваются по очереди. Следующий ключ решает, только если по
 // предыдущим два товара равны; первый различающийся ключ решает порядок.
 import DgArrow from '../diagram/DgArrow.vue'
 import DgLabel from '../diagram/DgLabel.vue'
@@ -15,7 +15,7 @@ const KEYS = [
   },
   {
     title: '2 · Ступень',
-    wide: ['названо целиком', 'выше частичного'],
+    wide: ['названо', 'целиком — выше'],
     narrow: 'названо целиком — выше',
   },
   {
@@ -24,26 +24,32 @@ const KEYS = [
     narrow: 'бизнес-запрос: домашние ниже',
   },
   {
-    title: '4 · Ровно N',
-    wide: ['ровно на N —', 'выше поштучной'],
+    title: '4 · Линейка',
+    wide: ['основная', 'у вендора выше'],
+    narrow: 'основная линейка вендора выше',
+  },
+  {
+    title: '5 · Ровно N',
+    wide: ['ровно N выше', 'поштучной'],
     narrow: 'ровно на N — выше поштучной',
   },
-  { title: '5 · Скор', wide: ['итоговый,', 'формула ниже'], narrow: 'итоговый, формула ниже' },
+  { title: '6 · Скор', wide: ['итоговый,', 'формула ниже'], narrow: 'итоговый, формула ниже' },
 ] as const
 
-const WX = (i: number) => i * 150
-const NY = (i: number) => i * 76
+const W = 108
+const WX = (i: number) => i * 122.4
+const NY = (i: number) => i * 70
 
 /** Широкая: дуга «равны» к следующему ключу и стрелка «разные» вниз. Узкая: «равны» вниз, «разные» вправо. */
 const wideEq = (i: number): Pt[] => [
-  [WX(i) + 90, 36],
-  [WX(i) + 90, 18],
-  [WX(i + 1) + 30, 18],
-  [WX(i + 1) + 30, 36],
+  [WX(i) + 80, 36],
+  [WX(i) + 80, 18],
+  [WX(i + 1) + 28, 18],
+  [WX(i + 1) + 28, 36],
 ]
 const wideDiff = (i: number): Pt[] => [
-  [WX(i) + 60, 120],
-  [WX(i) + 60, 150],
+  [WX(i) + W / 2, 120],
+  [WX(i) + W / 2, 150],
 ]
 const narrowEq = (i: number): Pt[] => [
   [100, NY(i) + 46],
@@ -58,21 +64,21 @@ const narrowDiff = (i: number): Pt[] => [
 <template>
   <TheoryDiagram
     title="Ключи сортировки выдачи по порядку важности"
-    desc="Два товара сравниваются по ключам по очереди: группа, ступень, масштаб, ровно запрошенное количество, итоговый скор. Если по ключу они различаются, порядок решён. Если равны — решает следующий ключ. Поэтому популярный товар не обгонит точное совпадение."
+    desc="Два товара сравниваются по ключам по очереди: группа, ступень, масштаб, основная линейка вендора, ровно запрошенное количество, итоговый скор. Если по ключу они различаются, порядок решён. Если равны — решает следующий ключ. Поэтому популярный товар не обгонит точное совпадение."
     :wide="[720, 188]"
-    :narrow="[328, 352]"
+    :narrow="[328, 396]"
   >
     <template #wide>
       <template v-for="(k, i) in KEYS" :key="k.title">
-        <DgNode :x="WX(i)" :y="36" :w="120" :h="84" :title="k.title" :sub="[...k.wide]" />
+        <DgNode :x="WX(i)" :y="36" :w="W" :h="84" :title="k.title" :sub="[...k.wide]" />
         <DgArrow v-if="i < KEYS.length - 1" :pts="wideEq(i)" />
-        <DgLabel v-if="i < KEYS.length - 1" :x="WX(i) + 135" :y="9" text="равны" />
+        <DgLabel v-if="i < KEYS.length - 1" :x="WX(i) + 115" :y="9" text="равны" />
         <DgArrow
           :pts="wideDiff(i)"
           :label="i < KEYS.length - 1 ? 'разные' : 'решает'"
-          :lx="WX(i) + 68"
+          :lx="i < KEYS.length - 1 ? WX(i) + W / 2 + 8 : WX(i) + W / 2 - 8"
           :ly="135"
-          anchor="start"
+          :anchor="i < KEYS.length - 1 ? 'start' : 'end'"
         />
       </template>
       <DgNode :x="0" :y="150" :w="720" :h="36" kind="term" title="Порядок двух товаров решён" />
@@ -86,7 +92,7 @@ const narrowDiff = (i: number): Pt[] => [
           :pts="narrowEq(i)"
           label="равны"
           :lx="108"
-          :ly="NY(i) + 61"
+          :ly="NY(i) + 58"
           anchor="start"
         />
         <DgArrow
@@ -96,7 +102,7 @@ const narrowDiff = (i: number): Pt[] => [
           :ly="NY(i) + 13"
         />
       </template>
-      <DgNode :x="252" :y="0" :w="76" :h="350" kind="sink" :title="['Порядок', 'решён']" />
+      <DgNode :x="252" :y="0" :w="76" :h="396" kind="sink" :title="['Порядок', 'решён']" />
     </template>
 
     <template #caption>
