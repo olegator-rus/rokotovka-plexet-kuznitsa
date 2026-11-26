@@ -1,0 +1,172 @@
+[
+  {
+    "id": "microsoft",
+    "name": "Microsoft",
+    "origin": "foreign"
+  },
+  {
+    "id": "astra",
+    "name": "Группа Астра",
+    "origin": "ru"
+  },
+  {
+    "id": "redsoft",
+    "name": "РЕД СОФТ",
+    "origin": "ru"
+  },
+  {
+    "id": "basealt",
+    "name": "Базальт СПО",
+    "origin": "ru"
+  },
+  {
+    "id": "myoffice",
+    "name": "МойОфис",
+    "origin": "ru"
+  },
+  {
+    "id": "r7",
+    "name": "Р7",
+    "origin": "ru"
+  },
+  {
+    "id": "adobe",
+    "name": "Adobe",
+    "origin": "foreign"
+  },
+  {
+    "id": "abbyy",
+    "name": "ABBYY",
+    "origin": "foreign"
+  },
+  {
+    "id": "content-ai",
+    "name": "Content AI",
+    "origin": "ru"
+  },
+  {
+    "id": "kaspersky",
+    "name": "Kaspersky",
+    "origin": "ru"
+  },
+  {
+    "id": "drweb",
+    "name": "Доктор Веб",
+    "origin": "ru"
+  },
+  {
+    "id": "eset",
+    "name": "ESET",
+    "origin": "foreign"
+  },
+  {
+    "id": "ptsecurity",
+    "name": "Positive Technologies",
+    "origin": "ru"
+  },
+  {
+    "id": "infowatch",
+    "name": "InfoWatch",
+    "origin": "ru"
+  },
+  {
+    "id": "securitycode",
+    "name": "Код Безопасности",
+    "origin": "ru"
+  },
+  {
+    "id": "1c",
+    "name": "1С",
+    "origin": "ru"
+  },
+  {
+    "id": "corel",
+    "name": "Corel",
+    "origin": "foreign"
+  },
+  {
+    "id": "serif",
+    "name": "Serif",
+    "origin": "foreign"
+  },
+  {
+    "id": "ams-software",
+    "name": "AMS Software",
+    "origin": "ru"
+  },
+  {
+    "id": "autodesk",
+    "name": "Autodesk",
+    "origin": "foreign"
+  },
+  {
+    "id": "ascon",
+    "name": "АСКОН",
+    "origin": "ru"
+  },
+  {
+    "id": "nanosoft",
+    "name": "Нанософт",
+    "origin": "ru"
+  },
+  {
+    "id": "renga-software",
+    "name": "Renga Software",
+    "origin": "ru"
+  },
+  {
+    "id": "vmware",
+    "name": "VMware",
+    "origin": "foreign"
+  },
+  {
+    "id": "veeam",
+    "name": "Veeam",
+    "origin": "foreign"
+  },
+  {
+    "id": "cyberprotect",
+    "name": "Киберпротект",
+    "origin": "ru"
+  },
+  {
+    "id": "postgrespro",
+    "name": "Postgres Professional",
+    "origin": "ru"
+  },
+  {
+    "id": "zoom",
+    "name": "Zoom",
+    "origin": "foreign"
+  },
+  {
+    "id": "trueconf",
+    "name": "TrueConf",
+    "origin": "ru"
+  },
+  {
+    "id": "yandex",
+    "name": "Яндекс",
+    "origin": "ru"
+  },
+  {
+    "id": "jetbrains",
+    "name": "JetBrains",
+    "origin": "foreign"
+  },
+  {
+    "id": "teamviewer",
+    "name": "TeamViewer",
+    "origin": "foreign"
+  },
+  {
+    "id": "anydesk",
+    "name": "AnyDesk",
+    "origin": "foreign"
+  },
+  {
+    "id": "safib",
+    "name": "САФИБ",
+    "origin": "ru"
+  }
+]

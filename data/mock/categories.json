@@ -1,0 +1,152 @@
+[
+  {
+    "id": "os",
+    "name": "Операционные системы",
+    "parent_id": null
+  },
+  {
+    "id": "os-desktop",
+    "name": "ОС для рабочих станций",
+    "parent_id": "os"
+  },
+  {
+    "id": "os-server",
+    "name": "Серверные ОС и лицензии доступа",
+    "parent_id": "os"
+  },
+  {
+    "id": "office",
+    "name": "Офисное ПО",
+    "parent_id": null
+  },
+  {
+    "id": "office-suite",
+    "name": "Офисные пакеты",
+    "parent_id": "office"
+  },
+  {
+    "id": "office-pdf",
+    "name": "PDF и распознавание текста",
+    "parent_id": "office"
+  },
+  {
+    "id": "security",
+    "name": "Антивирусы и информационная безопасность",
+    "parent_id": null
+  },
+  {
+    "id": "antivirus-home",
+    "name": "Антивирусы для дома",
+    "parent_id": "security"
+  },
+  {
+    "id": "antivirus-business",
+    "name": "Антивирусная защита для бизнеса",
+    "parent_id": "security"
+  },
+  {
+    "id": "infosec",
+    "name": "Средства защиты информации",
+    "parent_id": "security"
+  },
+  {
+    "id": "business-apps",
+    "name": "1С и учётные системы",
+    "parent_id": null
+  },
+  {
+    "id": "1c-configs",
+    "name": "Конфигурации 1С",
+    "parent_id": "business-apps"
+  },
+  {
+    "id": "1c-licenses",
+    "name": "Платформа, лицензии и сопровождение 1С",
+    "parent_id": "business-apps"
+  },
+  {
+    "id": "graphics",
+    "name": "Графика и дизайн",
+    "parent_id": null
+  },
+  {
+    "id": "graphics-photo",
+    "name": "Фото и растровая графика",
+    "parent_id": "graphics"
+  },
+  {
+    "id": "graphics-vector",
+    "name": "Векторная графика",
+    "parent_id": "graphics"
+  },
+  {
+    "id": "cad",
+    "name": "САПР и проектирование",
+    "parent_id": null
+  },
+  {
+    "id": "cad-design",
+    "name": "САПР 2D/3D",
+    "parent_id": "cad"
+  },
+  {
+    "id": "cad-bim",
+    "name": "BIM-проектирование",
+    "parent_id": "cad"
+  },
+  {
+    "id": "infra",
+    "name": "Инфраструктура",
+    "parent_id": null
+  },
+  {
+    "id": "virtualization",
+    "name": "Виртуализация",
+    "parent_id": "infra"
+  },
+  {
+    "id": "backup",
+    "name": "Резервное копирование",
+    "parent_id": "infra"
+  },
+  {
+    "id": "dbms",
+    "name": "Системы управления базами данных",
+    "parent_id": "infra"
+  },
+  {
+    "id": "communication",
+    "name": "Коммуникации",
+    "parent_id": null
+  },
+  {
+    "id": "videoconf",
+    "name": "Видеоконференции",
+    "parent_id": "communication"
+  },
+  {
+    "id": "collaboration",
+    "name": "Почта и совместная работа",
+    "parent_id": "communication"
+  },
+  {
+    "id": "dev",
+    "name": "Разработка",
+    "parent_id": null
+  },
+  {
+    "id": "ide",
+    "name": "Среды разработки",
+    "parent_id": "dev"
+  },
+  {
+    "id": "remote",
+    "name": "Удалённый доступ",
+    "parent_id": null
+  },
+  {
+    "id": "remote-access",
+    "name": "Удалённое администрирование",
+    "parent_id": "remote"
+  }
+]

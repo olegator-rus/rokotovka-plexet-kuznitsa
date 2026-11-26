@@ -1,0 +1,380 @@
+[
+  {
+    "from_family": "adobe-photoshop",
+    "to_family": "fotomaster",
+    "type": "substitute",
+    "note": "Отечественный фоторедактор для ретуши и обработки"
+  },
+  {
+    "from_family": "adobe-photoshop",
+    "to_family": "affinity-photo",
+    "type": "substitute",
+    "note": "Растровый редактор с поддержкой PSD, бессрочная лицензия"
+  },
+  {
+    "from_family": "adobe-photoshop",
+    "to_family": "coreldraw-graphics-suite",
+    "type": "substitute",
+    "note": "Corel PHOTO-PAINT в составе пакета"
+  },
+  {
+    "from_family": "adobe-illustrator",
+    "to_family": "coreldraw-graphics-suite",
+    "type": "substitute",
+    "note": "Векторный редактор"
+  },
+  {
+    "from_family": "office-2021",
+    "to_family": "myoffice-standard",
+    "type": "substitute",
+    "note": "Отечественный офисный пакет"
+  },
+  {
+    "from_family": "office-2021",
+    "to_family": "r7-office-professional",
+    "type": "substitute",
+    "note": "Отечественный офисный пакет"
+  },
+  {
+    "from_family": "office-2024",
+    "to_family": "myoffice-standard",
+    "type": "substitute",
+    "note": "Отечественный офисный пакет"
+  },
+  {
+    "from_family": "office-2024",
+    "to_family": "r7-office-professional",
+    "type": "substitute",
+    "note": "Отечественный офисный пакет"
+  },
+  {
+    "from_family": "microsoft-365-business",
+    "to_family": "myoffice-standard",
+    "type": "substitute",
+    "note": "Отечественный офисный пакет"
+  },
+  {
+    "from_family": "microsoft-365-business",
+    "to_family": "r7-office-professional",
+    "type": "substitute",
+    "note": "Отечественный офисный пакет"
+  },
+  {
+    "from_family": "microsoft-365-business",
+    "to_family": "yandex-360",
+    "type": "substitute",
+    "note": "Почта, диск и видеовстречи для компании"
+  },
+  {
+    "from_family": "windows-11-pro",
+    "to_family": "astra-linux-se",
+    "type": "substitute",
+    "note": "Отечественная ОС для рабочих мест"
+  },
+  {
+    "from_family": "windows-11-pro",
+    "to_family": "red-os",
+    "type": "substitute",
+    "note": "Отечественная ОС для рабочих мест"
+  },
+  {
+    "from_family": "windows-11-pro",
+    "to_family": "alt-os",
+    "type": "substitute",
+    "note": "Отечественная ОС для рабочих мест"
+  },
+  {
+    "from_family": "windows-10-pro",
+    "to_family": "astra-linux-se",
+    "type": "substitute",
+    "note": "Отечественная ОС для рабочих мест"
+  },
+  {
+    "from_family": "windows-10-pro",
+    "to_family": "red-os",
+    "type": "substitute",
+    "note": "Отечественная ОС для рабочих мест"
+  },
+  {
+    "from_family": "windows-server-2022",
+    "to_family": "astra-linux-se",
+    "type": "substitute",
+    "note": "Серверная редакция «Воронеж»"
+  },
+  {
+    "from_family": "windows-server-2022",
+    "to_family": "red-os",
+    "type": "substitute",
+    "note": "Серверная редакция РЕД ОС"
+  },
+  {
+    "from_family": "autodesk-autocad",
+    "to_family": "nanocad",
+    "type": "substitute",
+    "note": "Работа с DWG, похожий интерфейс"
+  },
+  {
+    "from_family": "autodesk-autocad",
+    "to_family": "kompas-3d",
+    "type": "substitute",
+    "note": "Отечественная САПР, ЕСКД"
+  },
+  {
+    "from_family": "autodesk-autocad-lt",
+    "to_family": "nanocad",
+    "type": "substitute",
+    "note": "2D-черчение в DWG"
+  },
+  {
+    "from_family": "teamviewer",
+    "to_family": "assistant",
+    "type": "substitute",
+    "note": "Отечественный удалённый доступ"
+  },
+  {
+    "from_family": "teamviewer",
+    "to_family": "anydesk",
+    "type": "substitute",
+    "note": "Удалённый доступ"
+  },
+  {
+    "from_family": "anydesk",
+    "to_family": "assistant",
+    "type": "substitute",
+    "note": "Отечественный удалённый доступ"
+  },
+  {
+    "from_family": "zoom-workplace",
+    "to_family": "trueconf-server",
+    "type": "substitute",
+    "note": "Видеоконференции в своей инфраструктуре"
+  },
+  {
+    "from_family": "zoom-workplace",
+    "to_family": "yandex-360",
+    "type": "substitute",
+    "note": "Телемост в составе Яндекс 360"
+  },
+  {
+    "from_family": "sql-server-2022",
+    "to_family": "postgres-pro",
+    "type": "substitute",
+    "note": "Отечественная СУБД, поддерживается 1С"
+  },
+  {
+    "from_family": "adobe-acrobat",
+    "to_family": "abbyy-finereader-pdf",
+    "type": "substitute",
+    "note": "Редактирование PDF и OCR"
+  },
+  {
+    "from_family": "adobe-acrobat",
+    "to_family": "contentreader-pdf",
+    "type": "substitute",
+    "note": "Отечественный редактор PDF и OCR"
+  },
+  {
+    "from_family": "abbyy-finereader-pdf",
+    "to_family": "contentreader-pdf",
+    "type": "substitute",
+    "note": "Отечественная программа OCR"
+  },
+  {
+    "from_family": "veeam-backup",
+    "to_family": "cyber-backup",
+    "type": "substitute",
+    "note": "Отечественное резервное копирование"
+  },
+  {
+    "from_family": "vmware-vsphere",
+    "to_family": "alt-os",
+    "type": "substitute",
+    "note": "Альт Виртуализация"
+  },
+  {
+    "from_family": "kaspersky-plus",
+    "to_family": "drweb-security-space",
+    "type": "substitute",
+    "note": "Домашний антивирус"
+  },
+  {
+    "from_family": "eset-nod32-antivirus",
+    "to_family": "drweb-security-space",
+    "type": "substitute",
+    "note": "Домашний антивирус"
+  },
+  {
+    "from_family": "eset-nod32-antivirus",
+    "to_family": "kaspersky-standard",
+    "type": "substitute",
+    "note": "Домашний антивирус"
+  },
+  {
+    "from_family": "eset-protect",
+    "to_family": "kaspersky-endpoint-security",
+    "type": "substitute",
+    "note": "Защита рабочих станций компании"
+  },
+  {
+    "from_family": "eset-protect",
+    "to_family": "drweb-enterprise-security-suite",
+    "type": "substitute",
+    "note": "Защита рабочих станций компании"
+  },
+  {
+    "from_family": "windows-server-2022",
+    "to_family": "windows-server-cal",
+    "type": "complement",
+    "note": "Для подключения пользователей нужны CAL"
+  },
+  {
+    "from_family": "sql-server-2022",
+    "to_family": "windows-server-2022",
+    "type": "complement",
+    "note": "Серверная ОС под СУБД"
+  },
+  {
+    "from_family": "1c-accounting",
+    "to_family": "1c-client-license",
+    "type": "complement",
+    "note": "Дополнительные рабочие места"
+  },
+  {
+    "from_family": "1c-accounting",
+    "to_family": "1c-its",
+    "type": "complement",
+    "note": "Обновления и сопровождение"
+  },
+  {
+    "from_family": "1c-trade-management",
+    "to_family": "1c-client-license",
+    "type": "complement",
+    "note": "Дополнительные рабочие места"
+  },
+  {
+    "from_family": "1c-zup",
+    "to_family": "1c-client-license",
+    "type": "complement",
+    "note": "Дополнительные рабочие места"
+  },
+  {
+    "from_family": "1c-complex-automation",
+    "to_family": "1c-server",
+    "type": "complement",
+    "note": "Клиент-серверный режим"
+  },
+  {
+    "from_family": "1c-client-license",
+    "to_family": "1c-server",
+    "type": "complement",
+    "note": "Клиент-серверный режим"
+  },
+  {
+    "from_family": "1c-server",
+    "to_family": "postgres-pro",
+    "type": "complement",
+    "note": "СУБД для сервера 1С"
+  },
+  {
+    "from_family": "office-2024",
+    "to_family": "windows-11-pro",
+    "type": "complement",
+    "note": "ОС для рабочего места"
+  },
+  {
+    "from_family": "astra-linux-se",
+    "to_family": "myoffice-standard",
+    "type": "complement",
+    "note": "Офис для отечественного рабочего места"
+  },
+  {
+    "from_family": "astra-linux-se",
+    "to_family": "r7-office-professional",
+    "type": "complement",
+    "note": "Офис для отечественного рабочего места"
+  },
+  {
+    "from_family": "red-os",
+    "to_family": "r7-office-professional",
+    "type": "complement",
+    "note": "Офис для отечественного рабочего места"
+  },
+  {
+    "from_family": "vmware-vsphere",
+    "to_family": "veeam-backup",
+    "type": "complement",
+    "note": "Резервное копирование виртуальных машин"
+  },
+  {
+    "from_family": "adobe-photoshop",
+    "to_family": "adobe-illustrator",
+    "type": "complement",
+    "note": "Часто покупают вместе"
+  },
+  {
+    "from_family": "kaspersky-internet-security",
+    "to_family": "kaspersky-plus",
+    "type": "renewal",
+    "note": "KIS снят с производства, продление — переходом на Plus"
+  },
+  {
+    "from_family": "kaspersky-small-office-security",
+    "to_family": "kaspersky-endpoint-security",
+    "type": "renewal",
+    "note": "При росте больше 25 ПК — переход на KES"
+  },
+  {
+    "from_family": "abbyy-finereader-pdf",
+    "to_family": "contentreader-pdf",
+    "type": "renewal",
+    "note": "Миграция при продлении"
+  },
+  {
+    "from_family": "veeam-backup",
+    "to_family": "vmware-vsphere",
+    "type": "compatibility",
+    "note": "Поддерживает vSphere"
+  },
+  {
+    "from_family": "cyber-backup",
+    "to_family": "astra-linux-se",
+    "type": "compatibility",
+    "note": "Агент для Astra Linux"
+  },
+  {
+    "from_family": "kaspersky-endpoint-security",
+    "to_family": "astra-linux-se",
+    "type": "compatibility",
+    "note": "KES для Linux"
+  },
+  {
+    "from_family": "kaspersky-endpoint-security",
+    "to_family": "red-os",
+    "type": "compatibility",
+    "note": "KES для Linux"
+  },
+  {
+    "from_family": "secret-net-studio",
+    "to_family": "windows-11-pro",
+    "type": "compatibility",
+    "note": "Поддерживаемая ОС"
+  },
+  {
+    "from_family": "myoffice-standard",
+    "to_family": "astra-linux-se",
+    "type": "compatibility",
+    "note": "Поддерживаемая ОС"
+  },
+  {
+    "from_family": "r7-office-professional",
+    "to_family": "alt-os",
+    "type": "compatibility",
+    "note": "Поддерживаемая ОС"
+  },
+  {
+    "from_family": "windows-server-cal",
+    "to_family": "windows-server-2022",
+    "type": "compatibility",
+    "note": "CAL 2022 подходят для Windows Server 2022"
+  }
+]

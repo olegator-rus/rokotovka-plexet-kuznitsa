@@ -1,0 +1,443 @@
+[
+  {
+    "alias": "винда",
+    "canonical": "windows",
+    "kind": "slang",
+    "target": "term",
+    "target_id": null
+  },
+  {
+    "alias": "винду",
+    "canonical": "windows",
+    "kind": "slang",
+    "target": "term",
+    "target_id": null
+  },
+  {
+    "alias": "виндовс",
+    "canonical": "windows",
+    "kind": "transliteration",
+    "target": "term",
+    "target_id": null
+  },
+  {
+    "alias": "вин сервер",
+    "canonical": "windows server",
+    "kind": "slang",
+    "target": "term",
+    "target_id": null
+  },
+  {
+    "alias": "про",
+    "canonical": "pro",
+    "kind": "transliteration",
+    "target": "term",
+    "target_id": null
+  },
+  {
+    "alias": "хоум",
+    "canonical": "home",
+    "kind": "transliteration",
+    "target": "term",
+    "target_id": null
+  },
+  {
+    "alias": "майкрософт",
+    "canonical": "microsoft",
+    "kind": "transliteration",
+    "target": "vendor",
+    "target_id": "microsoft"
+  },
+  {
+    "alias": "офис",
+    "canonical": "office",
+    "kind": "transliteration",
+    "target": "term",
+    "target_id": null
+  },
+  {
+    "alias": "ворд",
+    "canonical": "word",
+    "kind": "slang",
+    "target": "term",
+    "target_id": null
+  },
+  {
+    "alias": "эксель",
+    "canonical": "excel",
+    "kind": "slang",
+    "target": "term",
+    "target_id": null
+  },
+  {
+    "alias": "поверпоинт",
+    "canonical": "powerpoint",
+    "kind": "transliteration",
+    "target": "term",
+    "target_id": null
+  },
+  {
+    "alias": "аутлук",
+    "canonical": "outlook",
+    "kind": "transliteration",
+    "target": "term",
+    "target_id": null
+  },
+  {
+    "alias": "мой офис",
+    "canonical": "МойОфис",
+    "kind": "alias",
+    "target": "family",
+    "target_id": "myoffice-standard"
+  },
+  {
+    "alias": "р7офис",
+    "canonical": "Р7-Офис",
+    "kind": "alias",
+    "target": "family",
+    "target_id": "r7-office-professional"
+  },
+  {
+    "alias": "каспер",
+    "canonical": "kaspersky",
+    "kind": "slang",
+    "target": "vendor",
+    "target_id": "kaspersky"
+  },
+  {
+    "alias": "касперский",
+    "canonical": "kaspersky",
+    "kind": "transliteration",
+    "target": "vendor",
+    "target_id": "kaspersky"
+  },
+  {
+    "alias": "касперского",
+    "canonical": "kaspersky",
+    "kind": "transliteration",
+    "target": "vendor",
+    "target_id": "kaspersky"
+  },
+  {
+    "alias": "доктор веб",
+    "canonical": "dr.web",
+    "kind": "transliteration",
+    "target": "vendor",
+    "target_id": "drweb"
+  },
+  {
+    "alias": "др веб",
+    "canonical": "dr.web",
+    "kind": "abbreviation",
+    "target": "vendor",
+    "target_id": "drweb"
+  },
+  {
+    "alias": "drweb",
+    "canonical": "dr.web",
+    "kind": "alias",
+    "target": "vendor",
+    "target_id": "drweb"
+  },
+  {
+    "alias": "есет",
+    "canonical": "eset",
+    "kind": "transliteration",
+    "target": "vendor",
+    "target_id": "eset"
+  },
+  {
+    "alias": "антивирь",
+    "canonical": "антивирус",
+    "kind": "slang",
+    "target": "category",
+    "target_id": "security"
+  },
+  {
+    "alias": "фотошоп",
+    "canonical": "photoshop",
+    "kind": "transliteration",
+    "target": "family",
+    "target_id": "adobe-photoshop"
+  },
+  {
+    "alias": "фотошопа",
+    "canonical": "photoshop",
+    "kind": "transliteration",
+    "target": "family",
+    "target_id": "adobe-photoshop"
+  },
+  {
+    "alias": "иллюстратор",
+    "canonical": "illustrator",
+    "kind": "transliteration",
+    "target": "family",
+    "target_id": "adobe-illustrator"
+  },
+  {
+    "alias": "акробат",
+    "canonical": "acrobat",
+    "kind": "transliteration",
+    "target": "family",
+    "target_id": "adobe-acrobat"
+  },
+  {
+    "alias": "адоб",
+    "canonical": "adobe",
+    "kind": "transliteration",
+    "target": "vendor",
+    "target_id": "adobe"
+  },
+  {
+    "alias": "креатив клауд",
+    "canonical": "creative cloud",
+    "kind": "transliteration",
+    "target": "family",
+    "target_id": "adobe-creative-cloud"
+  },
+  {
+    "alias": "корел",
+    "canonical": "corel",
+    "kind": "transliteration",
+    "target": "vendor",
+    "target_id": "corel"
+  },
+  {
+    "alias": "корел дро",
+    "canonical": "coreldraw",
+    "kind": "transliteration",
+    "target": "family",
+    "target_id": "coreldraw-graphics-suite"
+  },
+  {
+    "alias": "аффинити",
+    "canonical": "affinity",
+    "kind": "transliteration",
+    "target": "family",
+    "target_id": "affinity-photo"
+  },
+  {
+    "alias": "автокад",
+    "canonical": "autocad",
+    "kind": "transliteration",
+    "target": "family",
+    "target_id": "autodesk-autocad"
+  },
+  {
+    "alias": "автокада",
+    "canonical": "autocad",
+    "kind": "transliteration",
+    "target": "family",
+    "target_id": "autodesk-autocad"
+  },
+  {
+    "alias": "компас",
+    "canonical": "компас-3d",
+    "kind": "alias",
+    "target": "family",
+    "target_id": "kompas-3d"
+  },
+  {
+    "alias": "нанокад",
+    "canonical": "nanocad",
+    "kind": "transliteration",
+    "target": "family",
+    "target_id": "nanocad"
+  },
+  {
+    "alias": "1c",
+    "canonical": "1с",
+    "kind": "transliteration",
+    "target": "vendor",
+    "target_id": "1c"
+  },
+  {
+    "alias": "одинэс",
+    "canonical": "1с",
+    "kind": "slang",
+    "target": "vendor",
+    "target_id": "1c"
+  },
+  {
+    "alias": "ут",
+    "canonical": "управление торговлей",
+    "kind": "abbreviation",
+    "target": "family",
+    "target_id": "1c-trade-management"
+  },
+  {
+    "alias": "тимвьювер",
+    "canonical": "teamviewer",
+    "kind": "transliteration",
+    "target": "family",
+    "target_id": "teamviewer"
+  },
+  {
+    "alias": "энидеск",
+    "canonical": "anydesk",
+    "kind": "transliteration",
+    "target": "family",
+    "target_id": "anydesk"
+  },
+  {
+    "alias": "зум",
+    "canonical": "zoom",
+    "kind": "transliteration",
+    "target": "family",
+    "target_id": "zoom-workplace"
+  },
+  {
+    "alias": "труконф",
+    "canonical": "trueconf",
+    "kind": "transliteration",
+    "target": "family",
+    "target_id": "trueconf-server"
+  },
+  {
+    "alias": "астра",
+    "canonical": "astra linux",
+    "kind": "alias",
+    "target": "family",
+    "target_id": "astra-linux-se"
+  },
+  {
+    "alias": "линукс",
+    "canonical": "linux",
+    "kind": "transliteration",
+    "target": "term",
+    "target_id": null
+  },
+  {
+    "alias": "редос",
+    "canonical": "РЕД ОС",
+    "kind": "alias",
+    "target": "family",
+    "target_id": "red-os"
+  },
+  {
+    "alias": "альт линукс",
+    "canonical": "альт",
+    "kind": "alias",
+    "target": "family",
+    "target_id": "alt-os"
+  },
+  {
+    "alias": "интелиджей",
+    "canonical": "intellij idea",
+    "kind": "transliteration",
+    "target": "family",
+    "target_id": "intellij-idea"
+  },
+  {
+    "alias": "пайчарм",
+    "canonical": "pycharm",
+    "kind": "transliteration",
+    "target": "family",
+    "target_id": "pycharm"
+  },
+  {
+    "alias": "вижуал студио",
+    "canonical": "visual studio",
+    "kind": "transliteration",
+    "target": "family",
+    "target_id": "visual-studio"
+  },
+  {
+    "alias": "файнридер",
+    "canonical": "finereader",
+    "kind": "transliteration",
+    "target": "family",
+    "target_id": "abbyy-finereader-pdf"
+  },
+  {
+    "alias": "финридер",
+    "canonical": "finereader",
+    "kind": "transliteration",
+    "target": "family",
+    "target_id": "abbyy-finereader-pdf"
+  },
+  {
+    "alias": "пдф",
+    "canonical": "pdf",
+    "kind": "transliteration",
+    "target": "term",
+    "target_id": null
+  },
+  {
+    "alias": "виам",
+    "canonical": "veeam",
+    "kind": "transliteration",
+    "target": "family",
+    "target_id": "veeam-backup"
+  },
+  {
+    "alias": "кибербэкап",
+    "canonical": "Кибер Бэкап",
+    "kind": "alias",
+    "target": "family",
+    "target_id": "cyber-backup"
+  },
+  {
+    "alias": "постгрес",
+    "canonical": "postgres",
+    "kind": "transliteration",
+    "target": "family",
+    "target_id": "postgres-pro"
+  },
+  {
+    "alias": "секрет нет",
+    "canonical": "secret net",
+    "kind": "transliteration",
+    "target": "family",
+    "target_id": "secret-net-studio"
+  },
+  {
+    "alias": "инфовотч",
+    "canonical": "infowatch",
+    "kind": "transliteration",
+    "target": "vendor",
+    "target_id": "infowatch"
+  },
+  {
+    "alias": "субд",
+    "canonical": "системы управления базами данных",
+    "kind": "abbreviation",
+    "target": "category",
+    "target_id": "dbms"
+  },
+  {
+    "alias": "сзи",
+    "canonical": "средства защиты информации",
+    "kind": "abbreviation",
+    "target": "category",
+    "target_id": "infosec"
+  },
+  {
+    "alias": "вкс",
+    "canonical": "видеоконференции",
+    "kind": "abbreviation",
+    "target": "category",
+    "target_id": "videoconf"
+  },
+  {
+    "alias": "ос",
+    "canonical": "операционная система",
+    "kind": "abbreviation",
+    "target": "category",
+    "target_id": "os"
+  },
+  {
+    "alias": "лицуха",
+    "canonical": "лицензия",
+    "kind": "slang",
+    "target": "term",
+    "target_id": null
+  },
+  {
+    "alias": "бессрочка",
+    "canonical": "бессрочная",
+    "kind": "slang",
+    "target": "term",
+    "target_id": null
+  }
+]

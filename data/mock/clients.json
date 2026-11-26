@@ -1,0 +1,113 @@
+[
+  {
+    "id": "guest",
+    "name": "Гость",
+    "segment": "individual",
+    "purchases": []
+  },
+  {
+    "id": "client-a",
+    "name": "Клиент А",
+    "segment": "smb",
+    "purchases": [
+      {
+        "product_id": "ksos-10pc-1y",
+        "date": "2025-05-30"
+      },
+      {
+        "product_id": "off21-hb",
+        "date": "2024-09-13"
+      },
+      {
+        "product_id": "w11p-esd",
+        "date": "2024-09-13"
+      }
+    ]
+  },
+  {
+    "id": "client-b",
+    "name": "Клиент Б",
+    "segment": "smb",
+    "purchases": []
+  },
+  {
+    "id": "client-c",
+    "name": "Клиент В",
+    "segment": "enterprise",
+    "purchases": [
+      {
+        "product_id": "ws22-std16",
+        "date": "2025-03-04"
+      },
+      {
+        "product_id": "wscal-u5",
+        "date": "2025-03-04"
+      },
+      {
+        "product_id": "veeam-vul10-1y",
+        "date": "2025-06-11"
+      },
+      {
+        "product_id": "kes-std50",
+        "date": "2025-06-16"
+      }
+    ]
+  },
+  {
+    "id": "client-d",
+    "name": "Клиент Г",
+    "segment": "gov",
+    "purchases": [
+      {
+        "product_id": "astra-vrn",
+        "date": "2025-02-18"
+      },
+      {
+        "product_id": "myo-p50",
+        "date": "2025-02-18"
+      },
+      {
+        "product_id": "sns-ws",
+        "date": "2025-02-18"
+      },
+      {
+        "product_id": "dress-cx50",
+        "date": "2025-06-02"
+      }
+    ]
+  },
+  {
+    "id": "client-e",
+    "name": "Клиент Д",
+    "segment": "individual",
+    "purchases": [
+      {
+        "product_id": "kplus-3dev-1y",
+        "date": "2025-05-22"
+      }
+    ]
+  },
+  {
+    "id": "client-f",
+    "name": "Клиент Е",
+    "segment": "smb",
+    "purchases": [
+      {
+        "product_id": "1cbuh-prof",
+        "date": "2025-08-03"
+      },
+      {
+        "product_id": "1ccl-5",
+        "date": "2025-08-03"
+      },
+      {
+        "product_id": "1cits-prof12",
+        "date": "2025-08-03"
+      },
+      {
+        "product_id": "drss-1pc-1y",
+        "date": "2025-06-06"
+      }
+    ]
+  }
+]
