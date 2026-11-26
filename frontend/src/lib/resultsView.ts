@@ -28,6 +28,7 @@ export function resultsHeading(resp: Pick<SearchResponse, 'query' | 'counts'>): 
 
 /** Подписи ключей фильтров выдачи (как у фасетов сервера). */
 const FILTER_KEY_LABELS: Record<string, string> = {
+  category: 'Категория',
   vendor: 'Вендор',
   license_type: 'Тип',
   license_metric: 'Метрика',

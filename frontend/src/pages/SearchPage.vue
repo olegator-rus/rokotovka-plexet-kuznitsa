@@ -48,7 +48,7 @@ import { DESKTOP_QUERY, useMediaQuery } from '@/composables/useMediaQuery'
 import { type ApiError, isApiError, MSG_UNKNOWN } from '@/lib/apiError'
 import { buildEvent, type EventFields } from '@/lib/events'
 import { formatFound, formatMs } from '@/lib/format'
-import { emptyTitle, splitResults } from '@/lib/results'
+import { emptyTitle, fillTitle, splitResults } from '@/lib/results'
 import {
   GUEST_CLIENT_ID,
   buildSearchRequest,
@@ -221,6 +221,13 @@ const features = computed(() => app.meta?.features)
 const companionsOn = computed(() => featureOn(features.value, 'companions'))
 const hardwareOn = computed(() => featureOn(features.value, 'hardware'))
 const filters = computed<SearchFilter[]>(() => state.value.filters ?? [])
+const fillHeading = computed(() =>
+  fillTitle(
+    blocks.value.fill,
+    filters.value.some((f) => f.key === 'vendor' && f.op === 'eq') &&
+      !filters.value.some((f) => f.key === 'category' && f.op === 'eq'),
+  ),
+)
 const facets = computed(() =>
   hardwareOn.value ? (response.value?.facets ?? []).filter(usableFacet) : [],
 )
@@ -841,6 +848,47 @@ function sendManagerRequest() {
               @open="onUpgradeOpen"
               @add="onUpgradeAdd"
             />
+
+            <section
+              v-if="blocks.fill.length"
+              class="search-page__section"
+              aria-labelledby="fill-title"
+            >
+              <h2 id="fill-title" class="t-h2">{{ fillHeading }}</h2>
+              <p class="t-sm t-muted">
+                Поиск по запросу их не нашёл — популярное по выбранному фильтру, не по соответствию
+                запросу.
+              </p>
+              <ol class="search-page__list">
+                <li v-for="p in blocks.fill" :key="p.item.product_id">
+                  <FamilyCard
+                    v-if="resultsOn"
+                    :item="p.item"
+                    :position="p.position"
+                    :named="named"
+                    :selected="state.trace && selected === p.item.product_id"
+                    :in-spec="inSpec"
+                    :show-compat="hardwareOn"
+                    @expand="onVariantExpand"
+                    @spec="onSpecTarget"
+                    @price-request="(t, pos) => onAction('price_request', t, pos)"
+                    @why="onWhy"
+                  />
+                  <ResultCard
+                    v-else
+                    :item="p.item"
+                    :position="p.position"
+                    :selected="state.trace && selected === p.item.product_id"
+                    :in-spec="spec.has(p.item.product_id)"
+                    :show-compat="hardwareOn"
+                    @open="onOpen"
+                    @action="onAction"
+                    @why="onWhy"
+                    @spec="onSpec"
+                  />
+                </li>
+              </ol>
+            </section>
 
             <section
               v-if="blocks.analogs.length"

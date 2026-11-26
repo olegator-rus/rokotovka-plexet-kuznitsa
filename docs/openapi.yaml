@@ -14,11 +14,15 @@ info:
       `traceId` совпадает с заголовком `X-Request-Id` и строкой журнала сервера.
     - Изменяющие запросы (POST) принимаются только с заголовком `Origin`, равным `PUBLIC_ORIGIN` магазина
       (защита от CSRF); иначе 403.
-    - Вход в бэк-офис: при заданном `BACKOFFICE_TOKEN` всё, кроме витрины покупателя, требует
-      `Authorization: Bearer <токен>` (скрипты) или `Basic` с паролем = токен (браузер после basic_auth Caddy);
-      без входа — 401 с `WWW-Authenticate: Basic`. Без входа открыты только GET `/api/health`, `/api/meta`,
-      `/api/suggest`, `/api/evaluations`, `/api/evaluations/commerce` и POST `/api/search`, `/api/events` (`security: []` у операции).
-      В development токен пуст — вход выключен.
+    - Вход по ролям: гость, покупатель (`buyer`) и сотрудники `ecom|product|content|head`. Сессия —
+      подписанная HttpOnly-cookie `plexet_auth` (Path=/api, SameSite=Lax), её выдают `/api/auth/login|demo-login|demo-switch`.
+      Всё, кроме витрины и входа, — только сотруднику: гость — 401 `UNAUTHENTICATED` с
+      `WWW-Authenticate: Bearer realm="PLEXeT SearchOps"`, покупатель — 403. Скрипты и CLI — `Authorization: Bearer
+      <BACKOFFICE_TOKEN>` (роль `system`); Basic с паролем = токен принимается по-прежнему. Решение чужой зоны — 403
+      `PERMISSION_DENIED` «Это решение принимает <роль>». Открыты без входа (`security: []` у операции): GET
+      `/api/health`, `/api/meta`, `/api/suggest`, `/api/suggest/recommendations`, `/api/evaluations`,
+      `/api/evaluations/commerce`, `/api/companions`, `/api/auth/*`, `/api/quotes/mine` (проверяет обработчик) и POST
+      `/api/search`, `/api/events`, `/api/quotes`. При `AUTH_REQUIRED=off` (только development) без токена — `system`.
     - Квота модели на адрес: разбор запроса моделью (маршрут D) не дороже `LLM_PER_IP_DAILY_RUB` ₽ в сутки с
       одного адреса; сверх неё и сверх дневного бюджета разбор идёт по правилам (`fallback_reason` в трассе:
       `ip_quota`, `budget_exceeded`), поиск не падает.
@@ -32,6 +36,7 @@ servers:
   - url: http://127.0.0.1:8088
     description: локальная разработка (make dev)
 security:
+  - authCookie: []
   - backofficeBearer: []
   - backofficeBasic: []
 tags:
@@ -42,6 +47,7 @@ tags:
   - name: Агент
   - name: Предложения и правила
   - name: Служебное
+  - name: Вход
 paths:
   /health:
     get:
@@ -64,7 +70,9 @@ paths:
     get:
       tags: [Служебное]
       summary: Справочная информация для витрины
-      description: Режим LLM и плашка режима, версия каталога и правил, конфигурации поиска, покупатели для переключателя.
+      description: |
+        Режим LLM и плашка режима, версия каталога и правил, конфигурации поиска, покупатели для переключателя,
+        флаги контуров коммерции–3 (`features`) и кто смотрит сайт (`viewer`).
       operationId: meta
       security: []
       responses:
@@ -73,6 +81,133 @@ paths:
           content:
             application/json:
               schema: { $ref: "#/components/schemas/Meta" }
+  /api/auth/config:
+    get:
+      tags: [Вход]
+      summary: Способы входа и демо-аккаунты
+      operationId: authConfig
+      security: []
+      responses:
+        "200":
+          description: Настройки входа; personas пуст, если DEMO_LOGIN_BUTTONS выключен
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AuthConfig" }
+  /api/auth/me:
+    get:
+      tags: [Вход]
+      summary: Кто смотрит сайт
+      description: "Гость — 200 с `role: guest`."
+      operationId: authMe
+      security: []
+      responses:
+        "200":
+          description: "{viewer}"
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AuthMe" }
+  /api/auth/login:
+    post:
+      tags: [Вход]
+      summary: Вход по логину и паролю (AUTH_ACCOUNTS)
+      description: |
+        Ставит cookie `plexet_auth`. bcrypt считается и для несуществующего логина. Лимит попыток — `AUTH_LOGIN_PER_MIN`
+        (10) в минуту с адреса, общий для login, demo-login и demo-switch; сверх — 429 с `Retry-After`.
+      operationId: authLogin
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [login, password]
+              properties:
+                login: { type: string }
+                password: { type: string }
+      responses:
+        "200":
+          description: "{viewer} + Set-Cookie"
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AuthMe" }
+        "401": { $ref: "#/components/responses/Error" }
+        "429": { $ref: "#/components/responses/Error" }
+  /api/auth/demo-login:
+    post:
+      tags: [Вход]
+      summary: Вход демо-аккаунтом (DEMO_LOGIN_BUTTONS)
+      operationId: authDemoLogin
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [persona]
+              properties:
+                persona: { type: string, examples: [buyer-smb, buyer-enterprise, buyer-gov, staff-ecom, staff-product, staff-content, staff-head] }
+      responses:
+        "200":
+          description: "{viewer} + Set-Cookie"
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AuthMe" }
+        "404": { description: Демо-аккаунты выключены }
+        "422": { $ref: "#/components/responses/Error" }
+        "429": { $ref: "#/components/responses/Error" }
+  /api/auth/demo-switch:
+    post:
+      tags: [Вход]
+      summary: Сменить демо-аккаунт без выхода
+      operationId: authDemoSwitch
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [persona]
+              properties:
+                persona: { type: string }
+      responses:
+        "200":
+          description: "{viewer} + Set-Cookie"
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AuthMe" }
+        "401": { $ref: "#/components/responses/Error" }
+        "404": { description: Демо-аккаунты выключены }
+        "422": { $ref: "#/components/responses/Error" }
+        "429": { $ref: "#/components/responses/Error" }
+  /api/auth/logout:
+    post:
+      tags: [Вход]
+      summary: Выход
+      operationId: authLogout
+      security: []
+      responses:
+        "204": { description: Cookie стёрта }
+  /api/quotes/mine:
+    get:
+      tags: [Вход]
+      summary: Свои запросы КП вошедшего покупателя
+      description: Клиент — из сессии. Гость — 401, сотрудник — 403.
+      operationId: quotesMine
+      security: []
+      responses:
+        "200":
+          description: "{items: [Quote]} — как GET /api/quotes"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items: { type: array, items: { type: object, additionalProperties: true } }
+        "401": { $ref: "#/components/responses/Error" }
+        "403": { $ref: "#/components/responses/Error" }
   /api/admin/llm-mode:
     post:
       tags: [Служебное]
@@ -150,6 +285,100 @@ paths:
                 type: object
                 required: [groups]
                 properties:
+                  q: { type: string }
+                  normalized: { type: string }
+                  mode: { type: string, enum: [prefix, empty, short, too_long, off] }
+                  corrected:
+                    type: [object, "null"]
+                    description: Секции подобраны по раскладке или опечатке; строку ввода не переписываем
+                    properties:
+                      from: { type: string }
+                      to: { type: string }
+                      kind: { type: string, enum: [layout, typo] }
+                  refinements:
+                    type: array
+                    maxItems: 6
+                    description: |
+                      Бейджи-уточнения: сначала структурированные условия из значений фасетов кандидатов —
+                      тип продукта по категории («для дома»/«для бизнеса»), тип лицензии, число мест с метрикой, срок,
+                      метрика, «отечественное» (в реестре), характеристики оборудования; каждое сужает выдачу и
+                      проверено числом семейств (`hits`). Затем продолжения верхней подсказки (`field: null`, дописывают
+                      текст) — только не дублирующие показанные подсказки и товары. Названное в запросе не предлагается.
+                    items: { $ref: "#/components/schemas/Refinement" }
+                  suggestions:
+                    type: array
+                    maxItems: 5
+                    items:
+                      type: object
+                      properties:
+                        text: { type: string }
+                        highlight: { type: array, items: { type: array, items: { type: integer }, minItems: 2, maxItems: 2 } }
+                        kind: { type: string, enum: [query, category] }
+                        source: { type: string, enum: [successful_query, catalog_template, popular] }
+                        hits: { type: integer }
+                        category_id: { type: string, description: "у kind=category" }
+                        category_name: { type: string }
+                  categories:
+                    type: array
+                    maxItems: 2
+                    items:
+                      type: object
+                      properties:
+                        id: { type: string }
+                        name: { type: string }
+                        share: { type: number }
+                  vendors:
+                    type: array
+                    maxItems: 2
+                    items:
+                      type: object
+                      properties:
+                        id: { type: string }
+                        name: { type: string }
+                  products:
+                    type: array
+                    maxItems: 6
+                    description: Семейства без дублей; точный артикул — один товар первым, маржа его не сдвигает
+                    items:
+                      type: object
+                      properties:
+                        family_id: { type: string }
+                        family_name: { type: string }
+                        product_id: { type: string }
+                        title: { type: string }
+                        kind: { type: string, enum: [software, hardware] }
+                        vendor: { type: string }
+                        category: { type: string }
+                        mpn: { type: string }
+                        license_line: { type: string }
+                        specs_line: { type: string }
+                        price_from_rub: { type: [number, "null"] }
+                        price_mode: { type: string }
+                        variants_count: { type: integer }
+                        exact: { type: boolean }
+                        sku_exact: { type: boolean }
+                        delivery_line: { type: [string, "null"] }
+                        image_url: { type: [string, "null"] }
+                  total_hint: { type: integer, description: "семейств для «Все результаты»" }
+                  meta:
+                    type: object
+                    properties:
+                      ms:
+                        type: object
+                        properties:
+                          total: { type: number }
+                          suggestions: { type: number }
+                          products: { type: number }
+                          refinements: { type: number }
+                      partial: { type: boolean, description: "товары не успели за 150 мс — секция пуста, кэш дописывается в фоне" }
+                      products_cached: { type: boolean }
+                      llm_calls: { type: integer, const: 0 }
+                      embed_calls: { type: integer, const: 0 }
+                      rerank_calls: { type: integer, const: 0 }
+                      index_version: { type: integer }
+                      catalog_version: { type: string }
+                      suggestions_version: { type: integer }
+                      request_id: { type: string }
                   groups:
                     type: array
                     items:
@@ -1123,7 +1352,12 @@ components:
     backofficeBasic:
       type: http
       scheme: basic
-      description: "Basic: пользователь любой, пароль — токен бэк-офиса; браузер шлёт после входа на basic_auth Caddy"
+      description: "Basic: пользователь любой, пароль — токен бэк-офиса (второй замок Caddy, по умолчанию выключен)"
+    authCookie:
+      type: apiKey
+      in: cookie
+      name: plexet_auth
+      description: "Сессия входа по ролям: подписанная HttpOnly-cookie от /api/auth/login|demo-login"
   parameters:
     ID: { name: id, in: path, required: true, schema: { type: string, format: uuid } }
     ServerRub20k: { name: server_rub_20k, in: query, description: "Допущение: сервер при 20 тыс. запросов, ₽/мес (7500)", schema: { type: number, minimum: 0 } }
@@ -1189,6 +1423,54 @@ components:
                   field: { type: string }
                   code: { type: string }
                   message: { type: string }
+    Refinement:
+      type: object
+      description: Бейдж-уточнение. С field — структурированное условие (фильтр выдачи, строку не меняет); без field — дописывает текст query
+      required: [label, query, field, value, op, hits]
+      properties:
+        label: { type: string, examples: ["для бизнеса", "продление", "5 устройств", "память 16 ГБ"] }
+        query: { type: string }
+        field: { type: [string, "null"], description: "ключ фильтра: category, license_type, license_quantity, duration_months, license_metric, in_reestr, delivery или характеристика оборудования (ram_gb …)" }
+        value: { type: [string, "null"] }
+        op: { type: [string, "null"], enum: [eq, null] }
+        hits: { type: integer, description: "семейств с этим значением" }
+    Viewer:
+      type: object
+      description: Кто смотрит сайт
+      properties:
+        role: { type: string, enum: [guest, buyer, ecom, product, content, head, system] }
+        role_label: { type: string }
+        name: { type: string }
+        client_id: { type: [string, "null"] }
+        client_name: { type: [string, "null"] }
+        persona: { type: [string, "null"] }
+        expires_at: { type: [string, "null"], format: date-time }
+    AuthMe:
+      type: object
+      properties:
+        viewer: { $ref: "#/components/schemas/Viewer" }
+    AuthConfig:
+      type: object
+      properties:
+        demo_login: { type: boolean }
+        auth_required: { type: boolean }
+        password_login: { type: boolean }
+        personas:
+          type: array
+          items:
+            type: object
+            properties:
+              id: { type: string }
+              name: { type: string }
+              initials: { type: string }
+              role: { type: string }
+              role_label: { type: string }
+              title: { type: string }
+              note: { type: string }
+              client_id: { type: [string, "null"] }
+              client_name: { type: [string, "null"] }
+              client_hint: { type: [string, "null"] }
+              pending: { type: [integer, "null"], description: "ждущие решения предложения роли; null — нет очереди" }
     Diagnosis:
       type: string
       enum: [ALIAS_GAP, TYPO, ASSORTMENT_GAP, SUBSTITUTE_AVAILABLE, CONTENT_GAP, RANKING_FAILURE, CONSTRAINT_CONFLICT, NON_PRODUCT, NOISE, UNKNOWN, BROKEN_RELATION, MISSING_REQUIRED, MISSING_RELATION, BUNDLE_OPPORTUNITY, MARGIN_OPPORTUNITY]
@@ -1241,6 +1523,13 @@ components:
             companions: { type: boolean }
             margin_policy: { type: boolean }
             solutions: { type: boolean }
+            results_v3: { type: boolean, description: "страница результатов контура выдачи (FEATURE_RESULTS_V3)" }
+            panel: { type: boolean, description: "панель поиска контура выдачи (FEATURE_PANEL)" }
+            panel_products: { type: boolean }
+            panel_margin: { type: boolean }
+            panel_recs: { type: boolean }
+            panel_viewed: { type: boolean, description: "основание «недавно просмотренное» (по умолчанию выкл.)" }
+        viewer: { $ref: "#/components/schemas/Viewer" }
         synthetic:
           type: array
           items: { type: string }
@@ -1264,10 +1553,21 @@ components:
         clarify: { type: object, additionalProperties: { type: string } }
         limit: { type: integer, minimum: 1, maximum: 50, default: 20 }
         source: { type: string, enum: [live, compare], description: "compare — в журнал, но не в аналитику и стоимость" }
+        sort:
+          type: string
+          enum: [recommended, relevance, price_asc, price_desc, delivery]
+          description: "Контур выдачи (§11.5). Пусто — recommended; relevance — без маржи и бизнес-слоя; «по запросу» при сортировке по цене — в конце"
+        group: { type: string, enum: [family, none], description: "Свёртка по семействам; на точном артикуле выключена" }
+        intent_id: { type: string, maxLength: 64, description: "Поисковое намерение (§11.1), только в журнал" }
         filters:
           type: array
           maxItems: 20
-          description: Фасеты контура коммерции
+          description: |
+            Фасеты контура коммерции (характеристики оборудования) и ключи страницы результатов контура выдачи (§11.5):
+            `category`, `vendor`, `license_type`, `license_metric`, `license_quantity`, `duration_months`, `in_reestr`,
+            `price_rub`, `has_price` (with_price|on_request), `delivery` (electronic|oem|physical). `category`/`vendor`
+            с op eq (переход из панели) дописывают после найденного семейства категории по популярности
+            (`trace.items[].signals: ["filter_fill"]`).
           items:
             type: object
             required: [key, op, value]
@@ -1302,6 +1602,18 @@ components:
             condition: { type: string }
         required: { type: array, items: { $ref: "#/components/schemas/Companion" }, description: Условно обязательное к позиции }
         variants: { type: array, items: { $ref: "#/components/schemas/SearchItem" } }
+        price_from_rub: { type: [number, "null"], description: "Контур выдачи: минимум по вариантам с ценой" }
+        attrs:
+          type: object
+          description: Контур выдачи, строка атрибутов карточки-семейства
+          properties:
+            edition: { type: string }
+            license_type: { type: string }
+            license_metric: { type: string }
+            license_quantity: { type: [integer, "null"] }
+            duration_months: { type: [integer, "null"] }
+            delivery: { type: string, enum: [electronic, oem, physical, ""] }
+            in_reestr: { type: boolean }
     Upgrade:
       description: «Старшая редакция» (связь upgrade, 1–2 строки upgrade_adds) — Companion с классом upgrade
       allOf:
@@ -1437,9 +1749,28 @@ components:
         upgrade:
           oneOf: [{ $ref: "#/components/schemas/Upgrade" }, { type: "null" }]
           description: «Старшая редакция» к первой позиции; null — связи upgrade нет
+        counts:
+          type: object
+          description: "Контур выдачи (FEATURE_RESULTS_V3): «N продуктов · M вариантов» после фильтров, до limit"
+          properties:
+            families: { type: integer }
+            variants: { type: integer }
+        refinements:
+          type: array
+          description: Контур выдачи, чипы-уточнения «+» над выдачей — тот же источник, что бейджи панели (без продолжений подсказок)
+          items: { $ref: "#/components/schemas/Refinement" }
+        sort:
+          type: object
+          description: Контур выдачи, применённая сортировка
+          properties:
+            value: { type: string }
+            note: { type: string, examples: ["Рекомендуемые: по соответствию, затем популярность и выгода"] }
+        group: { type: string, enum: [family, none] }
         facets:
           type: array
-          description: Фасеты характеристик выдачи (контур коммерции); [] — нет
+          description: |
+            Фасеты характеристик выдачи (контур коммерции) и, при FEATURE_RESULTS_V3, лицензионные фасеты со счётчиками
+            семейств (§11.5): только присутствующие в результатах, названные в запросе — наверх; [] — нет
           items:
             type: object
             properties:
@@ -1456,6 +1787,7 @@ components:
                   properties:
                     value: {}
                     count: { type: integer }
+                    label: { type: string, description: "подпись значения (лицензионные фасеты)" }
         trace: { $ref: "#/components/schemas/Trace" }
     Trace:
       type: object

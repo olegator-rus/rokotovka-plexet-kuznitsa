@@ -24,13 +24,27 @@ test.describe('Поиск', () => {
     await expect(list.getByText(/^(Запросы|Подсказки)$/).first()).toBeVisible()
     const options = list.getByRole('option')
     await expect(options.first()).toBeVisible()
-    expect(await options.count()).toBeLessThanOrEqual(8)
+    // Панель контура выдачи (§11.2): ≤5 подсказок, ≤2 категории, ≤2 производителя, ≤6 семейств товаров;
+    // сервер контура коммерции — не больше 8 строк в группах.
+    const sugg = list.getByRole('group', { name: 'Подсказки' }).getByRole('option')
+    if (await sugg.count()) {
+      expect(await sugg.count()).toBeLessThanOrEqual(5)
+      expect(await options.count()).toBeLessThanOrEqual(5 + 2 + 2 + 6)
+    } else {
+      expect(await options.count()).toBeLessThanOrEqual(8)
+    }
 
     const body = await searchResponse(page, () =>
       list.getByRole('option', { name: 'windows 11 pro', exact: true }).click(),
     )
     expect(body.total).toBeGreaterThan(0)
-    await expect(page.getByRole('status').filter({ hasText: 'Найдено' })).toBeVisible()
+    // Контур коммерции — «Найдено N», страница результатов контура выдачи — «По запросу … — N продуктов · M вариантов».
+    await expect(
+      page
+        .getByRole('status')
+        .filter({ hasText: /Найдено|\d+ продукт/ })
+        .first(),
+    ).toBeVisible()
     await expect(resultCards(page).first()).toContainText('Windows 11 Pro')
   })
 
@@ -107,7 +121,9 @@ test.describe('Поиск', () => {
     )
     expect(after.chips.some((c) => c.field === 'license_quantity')).toBe(false)
     expect(after.trace.parse_source, 'снятие чипа не вызывает LLM').not.toBe('llm')
-    await expect(bar.getByRole('button', { name: 'Снять условие «20 пользователей»' })).toHaveCount(0)
+    await expect(bar.getByRole('button', { name: 'Снять условие «20 пользователей»' })).toHaveCount(
+      0,
+    )
   })
 
   test('F4: «notion» → честное «нет в каталоге» и «Спросить менеджера»', async ({ page }) => {
@@ -115,7 +131,9 @@ test.describe('Поиск', () => {
     const body = await search(page, 'notion')
     expect(body.total).toBe(0)
 
-    await expect(page.getByRole('heading', { name: 'Товара «notion» нет в каталоге' })).toBeVisible()
+    await expect(
+      page.getByRole('heading', { name: 'Товара «notion» нет в каталоге' }),
+    ).toBeVisible()
     await page.getByRole('button', { name: 'Спросить менеджера' }).click()
     const dialog = page.getByRole('dialog', { name: 'Спросить менеджера' })
     await expect(dialog).toContainText('Запрос передан')

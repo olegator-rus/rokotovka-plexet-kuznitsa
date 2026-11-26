@@ -17,6 +17,7 @@ import {
   termRows,
   termText,
   tileValue,
+  dedupeParen,
 } from '../src/lib/killer.ts'
 
 const NB = ' '
@@ -283,4 +284,14 @@ test('tileValue: доля, рубли, число; нет значения — n
   assert.equal(tileValue({ value: 1950.98, unit: 'rub' }), `1${NB}951${NB}₽`)
   assert.equal(tileValue({ value: 12, unit: 'count' }), '12')
   assert.equal(tileValue({ value: null, unit: 'share' }), null)
+})
+
+test('dedupeParen: дубль в скобках у ступени «Судья» убирается, пояснение остаётся', () => {
+  assert.equal(dedupeParen('возражений нет (возражений нет)'), 'возражений нет')
+  assert.equal(dedupeParen('возражений нет (возражений нет.)'), 'возражений нет')
+  assert.equal(
+    dedupeParen('возражений нет (память и диски — стандартные дополнения)'),
+    'возражений нет (память и диски — стандартные дополнения)',
+  )
+  assert.equal(dedupeParen('5 из 6'), '5 из 6')
 })

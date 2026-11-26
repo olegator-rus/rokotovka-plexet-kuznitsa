@@ -36,7 +36,9 @@ test.use({ allowDestructive: LIVE })
 /** Подмена принятия «акад»: approve → 200, дальше очередь, мета и поиск видят новую версию правил. */
 async function mockAccept(page: Page) {
   let accepted: { id: string; version: number; at: string } | null = null
-  const meta = (await (await page.request.get('/api/meta', { headers: ORIGIN })).json()) as { rules_version: number }
+  const meta = (await (await page.request.get('/api/meta', { headers: ORIGIN })).json()) as {
+    rules_version: number
+  }
   const nextVersion = meta.rules_version + 1
 
   const patchProposal = (p: Record<string, unknown>) =>
@@ -100,6 +102,19 @@ test('Видео: поиск задачей → трасса → агент → 
     type: 'mode',
     description: LIVE ? 'живое принятие' : ACCEPT ? 'принятие на подменах' : 'без принятия',
   })
+  // Очередь F10 не привязана к конкретному предложению контура поиска: «акад», если он ещё ждёт, иначе любое ждущее
+  // rules_patch. Нет ни одного — шаг очереди пропускается с пометкой (демо-состояние базы не меняем).
+  const target = await pendingRulesPatch(page)
+  test.skip(
+    ACCEPT && !target?.akad,
+    'Принятие в сценарии видео рассчитано на ждущее «акад»; его в очереди нет — сценарий видео надо обновить под контуры коммерции–3',
+  )
+  if (!target) {
+    testInfo.annotations.push({
+      type: 'skip-step',
+      description: 'F10: в очереди нет ждущих rules_patch — шаг очереди пропущен',
+    })
+  }
   if (ACCEPT && !LIVE) await mockAccept(page)
   const started = Date.now()
 
@@ -120,17 +135,26 @@ test('Видео: поиск задачей → трасса → агент → 
   const panel = tracePanel(page)
   await expect(panel.getByRole('heading', { name: 'Шаги' })).toBeVisible()
   await read(page, 7000)
-  await resultCards(page).first().getByRole('button', { name: /^Почему здесь/ }).click()
+  await resultCards(page)
+    .first()
+    .getByRole('button', { name: /^Почему здесь/ })
+    .click()
   const breakdown = panel.getByRole('heading', { name: 'Разложение скора' })
   await breakdown.scrollIntoViewIfNeeded()
   await expect(panel.getByRole('img', { name: /Релевантность/ })).toBeVisible()
   await read(page, 7000)
 
   // ── F9: главный запуск агента из истории ──
-  await page.getByRole('navigation', { name: 'Разделы' }).getByRole('link', { name: /^SearchOps/ }).click()
+  await page
+    .getByRole('navigation', { name: 'Разделы' })
+    .getByRole('link', { name: /^SearchOps/ })
+    .click()
   await expect(page.getByRole('heading', { level: 1, name: 'SearchOps' })).toBeVisible()
   await read(page, 3000)
-  await page.getByRole('region', { name: 'Запуски агента' }).locator(`a[href*="${MAIN_RUN_ID}"]`).click()
+  await page
+    .getByRole('region', { name: 'Запуски агента' })
+    .locator(`a[href*="${MAIN_RUN_ID}"]`)
+    .click()
   const feed = page.getByRole('list', { name: 'Шаги агента' })
   await expect(feed).toBeVisible()
   await read(page, 5000)
@@ -149,9 +173,56 @@ test('Видео: поиск задачей → трасса → агент → 
   await expect(outcome).toBeVisible()
   await read(page, 6000)
 
-  // ── F10: очередь, карточка «акад», решение человека ──
-  await page.getByRole('link', { name: 'Открыть очередь' }).click()
-  const card = page.getByRole('article', { name: 'Кластер «акад»' }).first()
+  // ── F10: очередь, карточка «акад» (или другая ждущая правка правил), решение человека ──
+  if (target) await queueStep(page, target.id, target.akad)
+
+  // ── F7: «До / После» ──
+  await page
+    .getByRole('navigation', { name: 'Разделы' })
+    .getByRole('link', { name: 'До / После' })
+    .click()
+  const table = page.getByRole('region', { name: 'Таблица метрик' })
+  await expect(table.getByRole('columnheader', { name: /^B4/ })).toBeVisible()
+  await read(page, 9000)
+  await table
+    .getByRole('button', { name: /NDCG.*B4.*Как посчитано/ })
+    .first()
+    .click()
+  await expect(page.getByRole('dialog')).toBeVisible()
+  await read(page, 7000)
+  await page.keyboard.press('Escape')
+  await read(page, 3000)
+
+  const seconds = Math.round((Date.now() - started) / 1000)
+  testInfo.annotations.push({ type: 'duration', description: `${seconds} с` })
+  console.log(
+    `[video] сценарий: ${seconds} с (${LIVE ? 'живой' : ACCEPT ? 'подмены' : 'без принятия'})`,
+  )
+  if (PACE >= 1) expect(seconds, 'видео — до 3 минут').toBeLessThan(180)
+})
+
+/** Ждущее предложение rules_patch: «акад» контура поиска, если ещё ждёт, иначе первое ждущее; нет — null. */
+async function pendingRulesPatch(page: Page): Promise<{ id: string; akad: boolean } | null> {
+  const res = await page.request.get('/api/proposals?status=pending', { headers: ORIGIN })
+  if (!res.ok()) return null
+  const { items } = (await res.json()) as {
+    items: { id: string; action: string; cluster?: { label?: string } }[]
+  }
+  const rules = items.filter((p) => p.action === 'rules_patch')
+  const akad = rules.find((p) => p.cluster?.label === 'акад')
+  if (akad) return { id: akad.id, akad: true }
+  return rules[0] ? { id: rules[0].id, akad: false } : null
+}
+
+async function queueStep(page: Page, id: string, akad: boolean) {
+  if (akad) {
+    await page.getByRole('link', { name: 'Открыть очередь' }).click()
+  } else {
+    await page.goto(`/searchops?tab=queue&status=pending&p=${id}`)
+  }
+  const card = akad
+    ? page.getByRole('article', { name: 'Кластер «акад»' }).first()
+    : page.locator(`#proposal-${id}`)
   await expect(card).toBeVisible()
   await card.scrollIntoViewIfNeeded()
   await read(page, 4000)
@@ -183,20 +254,4 @@ test('Видео: поиск задачей → трасса → агент → 
     await expect(dialog).toBeHidden()
     await read(page, 1500)
   }
-
-  // ── F7: «До / После» ──
-  await page.getByRole('navigation', { name: 'Разделы' }).getByRole('link', { name: 'До / После' }).click()
-  const table = page.getByRole('region', { name: 'Таблица метрик' })
-  await expect(table.getByRole('columnheader', { name: /^B4/ })).toBeVisible()
-  await read(page, 9000)
-  await table.getByRole('button', { name: /NDCG.*B4.*Как посчитано/ }).first().click()
-  await expect(page.getByRole('dialog')).toBeVisible()
-  await read(page, 7000)
-  await page.keyboard.press('Escape')
-  await read(page, 3000)
-
-  const seconds = Math.round((Date.now() - started) / 1000)
-  testInfo.annotations.push({ type: 'duration', description: `${seconds} с` })
-  console.log(`[video] сценарий: ${seconds} с (${LIVE ? 'живой' : ACCEPT ? 'подмены' : 'без принятия'})`)
-  if (PACE >= 1) expect(seconds, 'видео — до 3 минут').toBeLessThan(180)
-})
+}

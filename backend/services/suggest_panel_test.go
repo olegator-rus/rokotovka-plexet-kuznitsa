@@ -138,38 +138,56 @@ func TestPanelCategoriesShares(t *testing.T) {
 
 func TestRefinementsFor(t *testing.T) {
 	m12, m24 := 12, 24
+	q3, q5 := 3, 5
 	dev := domain.MetricDevice
+	lx := &searchLexicon{categoryName: map[string]string{"home": "Антивирусы для дома", "biz": "Антивирусная защита для бизнеса"}}
 	docs := []indexDoc{
-		{FamilyID: "a", LicenseType: domain.LicenseSubscription, LicenseDuration: &m12, LicenseMetric: &dev},
-		{FamilyID: "a", LicenseType: domain.LicenseRenewal, LicenseDuration: &m24, LicenseMetric: &dev},
-		{FamilyID: "b", LicenseType: domain.LicenseSubscription, LicenseDuration: &m12, LicenseMetric: &dev},
+		{FamilyID: "a", CategoryID: "home", LicenseType: domain.LicenseSubscription, LicenseDuration: &m12, LicenseMetric: &dev, LicenseQuantity: &q3},
+		{FamilyID: "a", CategoryID: "home", LicenseType: domain.LicenseRenewal, LicenseDuration: &m24, LicenseMetric: &dev, LicenseQuantity: &q5},
+		{FamilyID: "b", CategoryID: "home", LicenseType: domain.LicenseSubscription, LicenseDuration: &m12, LicenseMetric: &dev, LicenseQuantity: &q5},
+		{FamilyID: "c", CategoryID: "biz", LicenseType: domain.LicenseSubscription, LicenseDuration: &m12, LicenseMetric: &dev, LicenseQuantity: &q5, InReestr: true},
 	}
-	top := &dictEntry{text: "kaspersky", norm: "kaspersky", next: []nextToken{{Token: "для бизнеса", Hits: 3}, {Token: "пусто", Hits: 0}}}
-	res := refinementsFor("kasp", top, docs)
+	top := &dictEntry{text: "kaspersky", norm: "kaspersky", next: []nextToken{
+		{Token: "premium", Hits: 1}, {Token: "на 5 пк", Hits: 3}, {Token: "пусто", Hits: 0}}}
+	res := refinementsFor(refineCtx{lx: lx, query: "kasp"}, top, docs, []string{"kaspersky premium"})
 	labels := map[string]out.Refinement{}
-	for _, r := range res {
+	for i, r := range res {
 		labels[r.Label] = r
+		if r.Field == nil && i < len(res)-1 && res[i+1].Field != nil {
+			t.Fatalf("продолжения подсказки — после структурированных: %+v", res)
+		}
 	}
-	if r, ok := labels["для бизнеса"]; !ok || r.Field != nil || r.Query != "kaspersky для бизнеса" {
-		t.Fatalf("продолжение подсказки: %+v", res)
-	}
-	if _, ok := labels["пусто"]; ok {
-		t.Fatal("бейдж без результатов показан")
+	if r, ok := labels["для бизнеса"]; !ok || *r.Field != facetCategory || *r.Value != "biz" || r.Hits != 1 {
+		t.Fatalf("категория — «для бизнеса»: %+v", res)
 	}
 	if r, ok := labels["продление"]; !ok || *r.Field != refFieldType || *r.Value != domain.LicenseRenewal || r.Hits != 1 {
 		t.Fatalf("структурированный бейдж: %+v", res)
 	}
-	// Метрика и подписка есть у всех семейств — ничего не уточняют.
-	if _, ok := labels["на устройство"]; ok {
-		t.Fatal("значение у всех семейств — не бейдж")
+	if r, ok := labels["3 устройства"]; !ok || *r.Field != facetQuantity || *r.Value != "3" {
+		t.Fatalf("число мест с метрикой: %+v", res)
+	}
+	if r, ok := labels["отечественное"]; !ok || *r.Field != facetReestr || *r.Value != "true" {
+		t.Fatalf("реестр: %+v", res)
+	}
+	if _, ok := labels["premium"]; ok {
+		t.Fatal("продолжение, которое уже есть в подсказках, показано")
+	}
+	if _, ok := labels["пусто"]; ok {
+		t.Fatal("бейдж без результатов показан")
+	}
+	// Метрика, подписка, 5 устройств и 1 год есть у всех семейств — ничего не уточняют.
+	for _, l := range []string{"на устройство", "подписка", "5 устройств", "1 год"} {
+		if _, ok := labels[l]; ok {
+			t.Fatalf("значение у всех семейств — не бейдж: %s", l)
+		}
 	}
 	if len(res) > panelRefinements {
 		t.Fatalf("больше шести: %d", len(res))
 	}
-	// Уже названное в запросе не предлагается.
-	for _, r := range refinementsFor("kaspersky продление", nil, docs) {
-		if r.Label == "продление" {
-			t.Fatal("названное в запросе предложено")
+	// Названное в запросе (и противоречащее ему) не предлагается.
+	for _, r := range refinementsFor(refineCtx{lx: lx, query: "kaspersky продление на 3 устройства"}, nil, docs, nil) {
+		if *r.Field == refFieldType || *r.Field == facetQuantity || *r.Field == facetMetric {
+			t.Fatalf("названное в запросе предложено: %+v", r)
 		}
 	}
 }

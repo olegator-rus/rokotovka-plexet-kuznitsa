@@ -112,6 +112,9 @@ type SearchItem struct {
 	// Контур выдачи (§11.5): цена «от» по семейству (минимум по допустимым вариантам с ценой) и атрибуты карточки.
 	PriceFromRub *float64   `json:"price_from_rub,omitempty"`
 	Attrs        *ItemAttrs `json:"attrs,omitempty"`
+	// FilterFill — семейство не найдено поиском, а дописано фильтром категории/производителя из панели (§11.8,
+	// signals filter_fill): фронт показывает его отдельно — «Ещё в категории …».
+	FilterFill bool `json:"filter_fill,omitempty"`
 }
 
 // ItemCompatibility — совместимость позиции с моделью из запроса.

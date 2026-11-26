@@ -99,7 +99,9 @@ function rowQuantity(v: SearchItemBase): string {
         <p class="fcard__badges">
           <span v-if="item.matches_query && named.size" class="badge">Подходит под запрос</span>
           <span v-if="item.group === 'analog'" class="badge badge--strong">Аналог</span>
-          <span v-if="item.purchased_before" class="badge badge--strong">Вы покупали</span>
+          <span v-if="item.purchased_before" class="badge badge--strong">
+            Вы покупали этот продукт
+          </span>
         </p>
       </div>
 

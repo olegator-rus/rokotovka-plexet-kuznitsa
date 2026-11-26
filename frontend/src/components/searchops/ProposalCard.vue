@@ -330,6 +330,7 @@ const runLink = computed(() =>
           :aria-describedby="deny ? denyId : undefined"
           @click="$emit('reject')"
         >
+          <Lock v-if="deny" :size="14" aria-hidden="true" />
           Отклонить
         </button>
         <RouterLink :to="marginLink" class="btn btn--primary">Открыть в песочнице</RouterLink>
@@ -347,6 +348,7 @@ const runLink = computed(() =>
           :aria-describedby="deny ? denyId : undefined"
           @click="$emit('reject')"
         >
+          <Lock v-if="deny" :size="14" aria-hidden="true" />
           Отклонить
         </button>
         <button
@@ -357,6 +359,7 @@ const runLink = computed(() =>
           :aria-describedby="deny ? denyId : undefined"
           @click="$emit('accept')"
         >
+          <Lock v-if="deny" :size="14" aria-hidden="true" />
           {{ workItem ? 'Взять в работу' : 'Принять' }}
         </button>
         <p v-if="deny" :id="denyId" class="pcard__deny t-xs">

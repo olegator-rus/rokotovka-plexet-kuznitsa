@@ -2,7 +2,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import type { SearchItem, SearchResponse } from '../src/api/types.ts'
-import { emptyTitle, splitResults } from '../src/lib/results.ts'
+import { emptyTitle, fillTitle, splitResults } from '../src/lib/results.ts'
 import { buildEvent, isSessionToken } from '../src/lib/events.ts'
 
 const item = (id: string, group: SearchItem['group']): SearchItem => ({
@@ -88,4 +88,25 @@ test('isSessionToken: только токен сервера s-<16 hex>.<32 hex>
   assert.equal(isSessionToken(`s-0123456789abcdef.${'a'.repeat(32)}`), true)
   for (const bad of ['s-0123456789abcdef', 's-1', '', null, `s-0123456789abcdeg.${'a'.repeat(32)}`])
     assert.equal(isSessionToken(bad), false)
+})
+
+test('splitResults: дописанные фильтром — отдельным блоком, позиции сохранены', () => {
+  const fill = { ...item('f', 'match'), filter_fill: true, category: 'Антивирусы для бизнеса' }
+  const resp = {
+    query: 'антивирус',
+    items: [item('a', 'exact'), fill, item('b', 'analog')],
+    empty: null,
+  } as unknown as SearchResponse
+  const r = splitResults(resp)
+  assert.deepEqual(
+    r.main.map((p) => p.item.product_id),
+    ['a'],
+  )
+  assert.deepEqual(
+    r.fill.map((p) => [p.item.product_id, p.position]),
+    [['f', 2]],
+  )
+  assert.equal(fillTitle(r.fill, false), 'Ещё в категории «Антивирусы для бизнеса»')
+  assert.equal(fillTitle(r.fill, true), 'Ещё у производителя «v»')
+  assert.equal(fillTitle([], false), 'Ещё в выбранной категории')
 })

@@ -52,6 +52,9 @@ type resultsPlan struct {
 	all         []*familyHit
 	// filteredOut — фильтры сняли всё, хотя без них выдача была.
 	filteredOut bool
+	// hx — характеристики оборудования (уточнения), hwKeys — ключи фильтров-характеристик запроса.
+	hx     *hardwareLexicon
+	hwKeys []string
 }
 
 // newResultsPlan — план страницы результатов; nil — флаг выключен или это вложенный поиск.
@@ -60,6 +63,14 @@ func (s *Services) newResultsPlan(ctx context.Context, req in.SearchRequest) *re
 		return nil
 	}
 	p := &resultsPlan{sort: SortRecommended, group: GroupFamily, filters: parseLicFilters(req.Filters)}
+	if st := s.catalog.Load(); st != nil {
+		p.hx = st.hw
+	}
+	for _, f := range req.Filters {
+		if !licenseFacetKeys[f.Key] {
+			p.hwKeys = append(p.hwKeys, f.Key)
+		}
+	}
 	if _, ok := sortNotes[req.Sort]; ok {
 		p.sort = req.Sort
 	}
@@ -153,8 +164,14 @@ func (p *resultsPlan) apply(rc rankCtx, fams []*familyHit, chips []out.Chip, que
 	for _, f := range p.filters {
 		taken[f.key] = true
 	}
+	for _, k := range p.hwKeys {
+		taken[k] = true
+	}
+	for _, c := range chips {
+		taken[c.Field] = true
+	}
 	if !p.exact {
-		p.refinements = refinementsFromFamilies(rc.lx, query, res, taken, maxRefinements)
+		p.refinements = refinementsFromFamilies(rc.lx, p.hx, query, res, taken, maxRefinements)
 	}
 	p.counts = out.ResultCounts{Families: len(res)}
 	for _, fh := range res {
@@ -375,8 +392,15 @@ func (p *resultsPlan) decorate(rc rankCtx, resp *out.SearchResponse, limit int, 
 	if p.group == GroupNone {
 		resp.Items = p.flatten(rc, limit, exactDoc)
 	}
+	fill := map[string]bool{}
+	for _, fh := range p.all {
+		if isFill(fh) {
+			fill[fh.head.FamilyID] = true
+		}
+	}
 	for i := range resp.Items {
 		it := &resp.Items[i]
+		it.FilterFill = fill[it.FamilyID]
 		p.attrs(rc.lx, it)
 		if len(it.Variants) > 0 {
 			best := it.PriceRub

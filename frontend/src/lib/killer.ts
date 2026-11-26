@@ -70,7 +70,15 @@ export function rungView(r: LadderRung): RungView {
   const state: RungState = r.skipped ? 'skipped' : r.ok ? 'ok' : 'failed'
   const stateLabel =
     state === 'ok' ? 'пройдена' : state === 'skipped' ? 'не применялась' : 'не пройдена'
-  return { no: r.no, name: r.name, state, stateLabel, text: r.text }
+  return { no: r.no, name: r.name, state, stateLabel, text: dedupeParen(r.text) }
+}
+
+/** «возражений нет (возражений нет)» → «возражений нет»: предложения, сохранённые до правки сервера, несут дубль. */
+export function dedupeParen(text: string): string {
+  const m = /^(.+?)\s*\((.+)\)$/.exec(text ?? '')
+  if (!m) return text
+  const norm = (x: string) => x.trim().replace(/\.+$/, '').toLowerCase()
+  return norm(m[1]) === norm(m[2]) ? m[1].trim() : text
 }
 
 export interface EvidenceView {

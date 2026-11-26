@@ -135,6 +135,8 @@ export interface SearchItemBase {
   /** Контур выдачи (§11.5): цена «от» по семейству и атрибуты карточки. */
   price_from_rub?: number | null
   attrs?: ItemAttrs | null
+  /** Контур выдачи (§11.8): дописано фильтром категории/производителя, поиском не найдено. */
+  filter_fill?: boolean
 }
 
 export interface SearchItem extends SearchItemBase {

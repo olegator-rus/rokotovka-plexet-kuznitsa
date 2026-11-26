@@ -305,9 +305,21 @@ func (s *Services) SuggestPanel(ctx context.Context, requestID string, req Sugge
 		}
 		var docs []indexDoc
 		if r != nil {
-			docs = r.docs
+			// Только семейства выше порога панели: хвост кандидатов BM25 (мониторы на «ноутбук») бейджей не даёт.
+			keep := map[string]bool{}
+			for _, f := range r.families {
+				keep[f.id] = true
+			}
+			docs = panelRefineDocs(r.docs, keep)
 		}
-		resp.Refinements = refinementsFor(chosen.text, top, docs)
+		var shown []string
+		for _, sg := range resp.Suggestions {
+			shown = append(shown, sg.Text)
+		}
+		for _, p := range resp.Products {
+			shown = append(shown, p.FamilyName)
+		}
+		resp.Refinements = refinementsFor(refineCtx{lx: lx, hx: st.hw, query: chosen.text}, top, docs, shown)
 	}
 	resp.Meta.Ms.Refinements = msSince(tf)
 	return resp, nil
@@ -404,105 +416,105 @@ func panelCategories(lx *searchLexicon, r *instantResult) []out.PanelCategory {
 
 // Поля структурированных уточнений (ключи фильтров страницы результатов, §11.5).
 const (
-	refFieldType     = "license_type"
-	refFieldDuration = "duration_months"
-	refFieldMetric   = "license_metric"
+	refFieldType     = facetLicType
+	refFieldDuration = facetDuration
+	refFieldMetric   = facetMetric
 	refOpEq          = "eq"
 )
 
-// metricRefLabels — подпись бейджа метрики.
-var metricRefLabels = map[string]string{
-	domain.MetricDevice: "на устройство", domain.MetricUser: "на пользователя", domain.MetricServer: "на сервер",
-	domain.MetricCore: "на ядро",
-}
-
-// typeRefLabels — подпись бейджа типа лицензии.
-var typeRefLabels = map[string]string{
-	domain.LicenseRenewal: "продление", domain.LicensePerpetual: "бессрочная", domain.LicenseSubscription: "подписка",
-}
-
 var refNumRe = regexp.MustCompile(`\d`)
 
-// refinementsFor — бейджи-уточнения (refinements, §11.5 — тот же источник над выдачей): продолжения
-// верхней подсказки (next_tokens, проверены числом результатов при сборке) и значения лицензионных фасетов
-// кандидатов (семейств со значением больше нуля и меньше всех — иначе бейдж ничего не уточняет). Уже названное в
-// запросе не предлагается. Не больше шести.
-func refinementsFor(query string, top *dictEntry, docs []indexDoc) []out.Refinement {
-	res := []out.Refinement{}
-	query = strings.TrimSpace(query)
-	have := map[string]bool{}
-	for _, w := range strings.Fields(query) {
-		have[w] = true
-	}
-	seen := map[string]bool{}
-	add := func(r out.Refinement) {
-		key := foldText(r.Label)
-		if len(res) == panelRefinements || seen[key] || r.Hits <= 0 {
-			return
-		}
-		for _, w := range strings.Fields(key) {
-			if have[w] && !lexStopWords[w] {
-				return
-			}
-		}
-		seen[key] = true
-		res = append(res, r)
-	}
-	if top != nil && strings.HasPrefix(top.norm, query) {
-		for _, n := range top.next {
-			add(out.Refinement{Label: n.Token, Query: top.text + " " + n.Token, Hits: n.Hits})
-		}
-	}
-	if len(docs) == 0 {
-		return res
-	}
-	fams := map[string]bool{}
-	byVal := map[string]map[string]bool{} // field|value → семейства
-	for _, d := range docs {
-		fams[d.FamilyID] = true
-		mark := func(field, value string) {
-			k := field + "|" + value
-			if byVal[k] == nil {
-				byVal[k] = map[string]bool{}
-			}
-			byVal[k][d.FamilyID] = true
-		}
-		if typeRefLabels[d.LicenseType] != "" {
-			mark(refFieldType, d.LicenseType)
-		}
-		if d.LicenseDuration != nil && *d.LicenseDuration > 0 {
-			mark(refFieldDuration, strconv.Itoa(*d.LicenseDuration))
-		}
-		if d.LicenseMetric != nil && metricRefLabels[*d.LicenseMetric] != "" {
-			mark(refFieldMetric, *d.LicenseMetric)
-		}
-	}
-	keys := sortedKeys(byVal)
-	sort.SliceStable(keys, func(i, j int) bool { return len(byVal[keys[i]]) > len(byVal[keys[j]]) })
+// refinementsFor — бейджи-уточнения панели: сначала структурированные условия из
+// значений фасетов кандидатов (structuredRefinements — тот же источник, что чипы над выдачей), затем продолжения
+// верхней подсказки (next_tokens, проверены числом результатов при сборке) — только те, что не дублируют
+// показанные подсказки и названия семейств в товарах (shown).
+func refinementsFor(rc refineCtx, top *dictEntry, docs []indexDoc, shown []string) []out.Refinement {
+	query := strings.TrimSpace(rc.query)
+	rc.query = query
 	base := query
 	if top != nil && strings.HasPrefix(top.norm, query) && !refNumRe.MatchString(query) {
 		base = top.text
 	}
-	for _, k := range keys {
-		n := len(byVal[k])
-		if n == 0 || n >= len(fams) && len(fams) > 1 {
+	res := structuredRefinements(rc, docs, panelRefinements) // названное — по набранному, не по верхней подсказке
+	for i := range res {
+		res[i].Query = joinQuery(base, res[i].Label)
+	}
+	if top == nil || !strings.HasPrefix(top.norm, query) || len(res) >= panelRefinements {
+		return res
+	}
+	have := map[string]bool{}
+	for _, w := range strings.Fields(foldText(query)) {
+		have[w] = true
+	}
+	shownWords := map[string]bool{}
+	for _, t := range shown {
+		for _, w := range strings.Fields(foldText(t)) {
+			shownWords[w] = true
+		}
+	}
+	seen := map[string]bool{}
+	for _, r := range res {
+		seen[foldText(r.Label)] = true
+	}
+	for _, n := range top.next {
+		key := foldText(n.Token)
+		if len(res) == panelRefinements || n.Hits <= 0 || seen[key] {
 			continue
 		}
-		field, value, _ := strings.Cut(k, "|")
-		label := ""
-		switch field {
-		case refFieldType:
-			label = typeRefLabels[value]
-		case refFieldDuration:
-			m, _ := strconv.Atoi(value)
-			label = duration(m)
-		case refFieldMetric:
-			label = metricRefLabels[value]
+		dup := true // все значимые слова продолжения уже видны в подсказках или товарах — дубль
+		for _, w := range strings.Fields(key) {
+			if have[w] && !lexStopWords[w] {
+				dup = true
+				break
+			}
+			if !lexStopWords[w] && !shownWords[w] {
+				dup = false
+			}
 		}
-		fld, val, op := field, value, refOpEq
-		add(out.Refinement{Label: label, Query: base + " " + label, Field: &fld, Value: &val, Op: &op, Hits: n})
+		if dup {
+			continue
+		}
+		seen[key] = true
+		res = append(res, out.Refinement{Label: n.Token, Query: top.text + " " + n.Token, Hits: n.Hits})
 	}
 	return res
+}
+
+// panelRefineDocs — кандидаты для бейджей панели: семейства выше порога. Если такое семейство одно (широкое «антивирус»
+// с одним совпадением по названию), — кандидаты того же корневого раздела каталога, чтобы бейджи уточняли тип
+// продукта, а не варианты одного семейства.
+func panelRefineDocs(all []indexDoc, keep map[string]bool) []indexDoc {
+	var docs []indexDoc
+	roots := map[string]bool{}
+	for _, d := range all {
+		if keep[d.FamilyID] {
+			docs = append(docs, d)
+			roots[docRoot(d)] = true
+		}
+	}
+	if len(keep) != 1 {
+		return docs
+	}
+	var wide []indexDoc
+	fams := map[string]bool{}
+	for _, d := range all {
+		if roots[docRoot(d)] {
+			wide = append(wide, d)
+			fams[d.FamilyID] = true
+		}
+	}
+	if len(fams) < 2 {
+		return docs
+	}
+	return wide
+}
+
+// docRoot — корневой раздел каталога позиции.
+func docRoot(d indexDoc) string {
+	if len(d.CategoryIDs) > 0 {
+		return d.CategoryIDs[0]
+	}
+	return d.CategoryID
 }
 
 // Refinements — бейджи-уточнения для страницы результатов (§11.5): тот же источник, что у панели. docs — позиции
@@ -521,7 +533,7 @@ func (s *Services) Refinements(query string, docs []indexDoc) []out.Refinement {
 			top = &d.entries[hs[0].entry]
 		}
 	}
-	return refinementsFor(q, top, docs)
+	return refinementsFor(refineCtx{lx: st.lex, hx: st.hw, query: q}, top, docs, nil)
 }
 
 // panelIndexVersion — номер физического индекса за алиасом (products_vN): ключ кэша и meta. Перечитывается, когда
