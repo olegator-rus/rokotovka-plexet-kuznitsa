@@ -262,7 +262,11 @@ func findCategoryIntent(nr normResult, ent queryEntities, lx *searchLexicon, rul
 	}
 	if rules != nil {
 		for _, a := range nr.aliasHits {
-			if ids := rules.categories[lexiconKey(a.Alias)]; len(ids) > 0 {
+			ids := rules.categories[lexiconKey(a.Alias)]
+			if len(ids) > 0 && len(ent.vendors) > 0 && !vendorsIn(lx, ent.vendors, ids) {
+				continue // «касперский … офис»: названный вендор не из этих категорий — слово значит другое
+			}
+			if len(ids) > 0 {
 				ci := &categoryIntent{cats: ids, word: nounStem(foldText(a.Canonical)), source: "lexicon"}
 				for _, id := range ids {
 					ci.textOptional = ci.textOptional || headScore(lx.categoryName[id], foldText(a.Canonical)) > 0
@@ -581,6 +585,18 @@ func (lx *searchLexicon) buildUnderstanding() {
 			lx.categoryFamilies[r]++
 		}
 	}
+	lx.knownStems = map[string]bool{}
+	for w := range lx.core {
+		if isCyrillicWord(w) && utf8.RuneCountInString(w) >= minStemRunes+1 {
+			lx.knownStems[stemWord(w)] = true
+		}
+	}
+	lx.vendorStemPhrases = map[string]string{}
+	for p, v := range lx.vendorPhrases {
+		if !lx.vendorAmbiguous[p] {
+			addStemKey(lx.vendorStemPhrases, stemPhrase(p), v, func(prev string) bool { return prev == v })
+		}
+	}
 	for p, v := range lx.vendorPhrases {
 		if strings.Contains(p, " ") {
 			continue
@@ -595,6 +611,9 @@ func (lx *searchLexicon) buildUnderstanding() {
 		}
 		if others > own {
 			lx.vendorAmbiguous[p] = true
+			if st := stemPhrase(p); lx.vendorStemPhrases[st] == v {
+				delete(lx.vendorStemPhrases, st)
+			}
 		}
 	}
 }
@@ -736,4 +755,86 @@ func typoByContext(tokens []string, i int, lx *searchLexicon, rules *searchRules
 		found = w
 	}
 	return found
+}
+
+// --- склонения ---
+
+// stemEndings — окончания, которые снимает stemWord: прилагательные и существительные, длинные первыми.
+var stemEndings = func() []string {
+	es := append(append([]string{}, adjEndings...), nounEndings...)
+	sort.SliceStable(es, func(i, j int) bool { return utf8.RuneCountInString(es[i]) > utf8.RuneCountInString(es[j]) })
+	return es
+}()
+
+// minStemRunes — основа короче не бывает: «мтс», «ос» не склоняются.
+const minStemRunes = 4
+
+// stemWord — основа кириллического слова без падежного окончания: «касперского» и «касперский» → «касперск»,
+// «сканера» → «сканер», «бэкапа» → «бэкап». Латиница, числа, артикулы и слова с цифрой — как есть.
+func stemWord(w string) string {
+	if !isCyrillicWord(w) {
+		return w
+	}
+	n := utf8.RuneCountInString(w)
+	for _, e := range stemEndings {
+		if strings.HasSuffix(w, e) && n-utf8.RuneCountInString(e) >= minStemRunes {
+			return strings.TrimSuffix(w, e)
+		}
+	}
+	return w
+}
+
+// stemPhrase — фраза по основам слов.
+func stemPhrase(p string) string {
+	ws := strings.Fields(p)
+	for i, w := range ws {
+		ws[i] = stemWord(w)
+	}
+	return strings.Join(ws, " ")
+}
+
+// addStemKey — основа → значение; другое значение с той же основой (same == false) делает основу неоднозначной.
+func addStemKey(m map[string]string, stem, val string, same func(prev string) bool) {
+	if stem == "" {
+		return
+	}
+	prev, ok := m[stem]
+	switch {
+	case !ok:
+		m[stem] = val
+	case prev != "" && prev != val && !same(prev):
+		m[stem] = ""
+	}
+}
+
+// vendorOfStem — вендор по фразе в другом падеже: основы слов совпали с фразой имени вендора или его алиаса.
+func (lx *searchLexicon) vendorOfStem(p string, rules *searchRules) string {
+	st := stemPhrase(p)
+	if st == p && !strings.ContainsFunc(p, func(r rune) bool { return unicode.Is(unicode.Cyrillic, r) }) {
+		return ""
+	}
+	if v := lx.vendorStemPhrases[st]; v != "" && lx.vendorName[v] != "" {
+		return v
+	}
+	if rules != nil {
+		if v := rules.vendorStemPhrases[st]; v != "" && lx.vendorName[v] != "" {
+			return v
+		}
+	}
+	return ""
+}
+
+// vendorsIn — у одного из вендоров есть семейство в одной из категорий (или её подкатегориях).
+func vendorsIn(lx *searchLexicon, vendors, cats []string) bool {
+	in := map[string]bool{}
+	for _, c := range cats {
+		in[c] = true
+	}
+	for _, f := range lx.familyOrder {
+		c := lx.familyCat[f]
+		if (in[c] || in[lx.categoryRoot[c]]) && contains(vendors, lx.familyVendor[f]) {
+			return true
+		}
+	}
+	return false
 }

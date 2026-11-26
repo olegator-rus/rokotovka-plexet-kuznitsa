@@ -363,7 +363,7 @@ func knownWord(t string, lx *searchLexicon, rules *searchRules) bool {
 	if len(ws) == 0 {
 		return false
 	}
-	if rules != nil && rules.aliases[t].Alias != "" {
+	if rules != nil && (rules.aliases[t].Alias != "" || rules.stemAliases[stemPhrase(t)] != "") {
 		return true
 	}
 	for _, w := range ws {
@@ -533,6 +533,14 @@ func applyAliases(tokens []string, rules *searchRules, res *normResult, lx *sear
 		for n := min(rules.maxWords, len(tokens)-i); n >= 1; n-- {
 			key := strings.Join(tokens[i:i+n], " ")
 			a, ok := rules.aliases[key]
+			if !ok {
+				// Словоформа: «астры линукс», «кибер бэкапа» — алиас по основам слов (артикулы и числа не склоняются).
+				// Одно слово после «для» — назначение или место («удалёнка для офиса»), а не название: только как набрано.
+				afterFor := i > 0 && tokens[i-1] == "для" && n == 1
+				if k := rules.stemAliases[stemPhrase(key)]; k != "" && !afterFor {
+					a, ok = rules.aliases[k]
+				}
+			}
 			if !ok {
 				continue
 			}

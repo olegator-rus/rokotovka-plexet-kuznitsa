@@ -145,6 +145,10 @@ class Converter:
     def license_kind(self, ltype, name):
         """Вид лицензии по таблице: тип из параметра, затем правила по словам названия."""
         code, lt, source = "", "", "none"
+        if not ltype and "" in self.lic_type:
+            # Пустой «Тип лицензии» — базовая (VENDORS.md: пусто → базовая; у МТС Линк тип не заполнен).
+            code, lt = self.lic_type[""]
+            source = "empty"
         if ltype:
             hit = self.lic_type.get(fold(ltype))
             if hit:

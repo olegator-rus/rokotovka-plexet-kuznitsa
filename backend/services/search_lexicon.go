@@ -71,6 +71,10 @@ type searchLexicon struct {
 	familyBigrams    map[string]bool
 	vendorAmbiguous  map[string]bool
 	categoryFamilies map[string]int
+	// vendorStemPhrases — фраза вендора по основам слов (склонения: «касперского», «эшелона»).
+	vendorStemPhrases map[string]string
+	// knownStems — основы кириллических слов названий (core): словоформа такого слова — известное слово.
+	knownStems map[string]bool
 }
 
 // familyLink — связанное семейство и пояснение связи из справочника.
@@ -278,6 +282,9 @@ func (lx *searchLexicon) isKnown(w string, rules *searchRules) bool {
 	if lx.known[w] {
 		return true
 	}
+	if st := stemWord(w); st != w && lx.knownStems[st] {
+		return true // словоформа слова названий: «линком», «антивируса», «бэкапом»
+	}
 	return rules != nil && rules.words[w]
 }
 
@@ -295,12 +302,17 @@ type searchRules struct {
 	// successors — записи «преемник» (search_understanding.go).
 	categories map[string][]string
 	successors map[string]domain.LexiconEntry
+	// stemAliases — ключ алиаса по основам слов (stemPhrase) → ключ алиаса: «астры линукс», «касперскому»,
+	// «кибер бэкапа» находят «астра линукс», «касперский», «кибер бэкап». "" — две записи с одной основой ведут
+	// в разное. vendorStemPhrases — то же для фраз вендоров.
+	stemAliases       map[string]string
+	vendorStemPhrases map[string]string
 }
 
 // newSearchRules — правила из списка алиасов.
 func newSearchRules(version int, aliases []domain.Alias) *searchRules {
 	r := &searchRules{version: version, aliases: map[string]domain.Alias{}, words: map[string]bool{},
-		vendorPhrases: map[string]string{}}
+		vendorPhrases: map[string]string{}, stemAliases: map[string]string{}, vendorStemPhrases: map[string]string{}}
 	for _, a := range aliases {
 		ws := strings.Fields(foldText(a.Alias))
 		if len(ws) == 0 || strings.TrimSpace(a.Canonical) == "" {
@@ -322,6 +334,15 @@ func newSearchRules(version int, aliases []domain.Alias) *searchRules {
 			r.vendorPhrases[strings.Join(wordsOf(a.Alias), " ")] = a.TargetID
 			r.vendorPhrases[strings.Join(wordsOf(a.Canonical), " ")] = a.TargetID
 		}
+	}
+	for key, a := range r.aliases {
+		addStemKey(r.stemAliases, stemPhrase(key), key, func(prev string) bool {
+			b := r.aliases[prev]
+			return b.Canonical == a.Canonical && b.Target == a.Target && b.TargetID == a.TargetID
+		})
+	}
+	for p, v := range r.vendorPhrases {
+		addStemKey(r.vendorStemPhrases, stemPhrase(p), v, func(prev string) bool { return prev == v })
 	}
 	return r
 }
@@ -409,6 +430,10 @@ func (lx *searchLexicon) matchVendors(tokens []string, rules *searchRules) []str
 			}
 			if !ok && rules != nil {
 				id, ok = rules.vendorPhrases[p]
+			}
+			if !ok {
+				id = lx.vendorOfStem(p, rules) // «касперскому», «эшелона»: фраза вендора в другом падеже
+				ok = id != ""
 			}
 			if ok && !found[id] && lx.vendorName[id] != "" {
 				found[id] = true

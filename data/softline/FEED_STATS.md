@@ -1,6 +1,6 @@
 # Фид заказчика: сверка и параметры
 
-Источник: `data/softline/feed/Mindbox.yml.xml`, конвертер `scripts/data/softline_feed.py`, разбор 9 с. Версия каталога при импорте — `softline-feed`.
+Источник: `data/softline/feed/Mindbox.yml.xml`, конвертер `scripts/data/softline_feed.py`, разбор 6 с. Версия каталога при импорте — `softline-feed`.
 
 ## Сверка с
 
@@ -47,9 +47,8 @@
 
 | Вид (`license.kind`) | Офферов ПО |
 |---|---:|
-| base | 59 524 |
+| base | 74 177 |
 | support | 21 291 |
-| (нет) | 14 653 |
 | upgrade | 13 536 |
 | renewal | 13 201 |
 | module | 3 117 |
@@ -57,7 +56,7 @@
 | course | 540 |
 | other | 538 |
 
-Откуда вид: param — 105 937, none — 14 653, name — 7 325 (param — «Тип лицензии», name — слово названия, none — ни того ни другого).
+Откуда вид: param — 105 937, empty — 14 653, name — 7 325 (param — «Тип лицензии», name — слово названия, none — ни того ни другого).
 
 Все значения «Тип лицензии» есть в таблице.
 

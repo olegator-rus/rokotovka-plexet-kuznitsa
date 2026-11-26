@@ -19,3 +19,5 @@ data/softline/feed/
 data/eval/*-*T*-*.json
 agency/
 artifacts/
+data/softline/eval/*.json
+data/softline/eval/report/

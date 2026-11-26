@@ -77,6 +77,9 @@ func wordMatch(w string, names []string) bool {
 		if utf8.RuneCountInString(a) >= 4 && strings.HasPrefix(b, a) && !hasDigit(a) {
 			return true
 		}
+		if sw := stemWord(w); sw != w && utf8.RuneCountInString(sw) >= minStemRunes && sw == stemWord(n) {
+			return true // «стандартного» — «стандартная», «бэкапом» — «бэкап»
+		}
 	}
 	return false
 }
@@ -94,6 +97,9 @@ func (rc rankCtx) vendorWords(fid string) []string {
 // названии, если в запросе есть и другие слова; запрос из одного имени вендора сверяется с названием буквально.
 func (rc rankCtx) covers(fid string, words []string, brandOnly bool) bool {
 	names := wordsOf(rc.lx.familyName[fid])
+	for i, n := 0, len(names); i+1 < n; i++ {
+		names = append(names, names[i]+names[i+1]) // «astralinux», «кибербэкап», «сканервс» — слитно набранное название
+	}
 	vendor := rc.vendorWords(fid)
 	for i := 0; i < len(words); i++ {
 		w := words[i]
@@ -130,13 +136,14 @@ func (rc rankCtx) brandVendor(words []string, fams []*familyHit) string {
 			return v
 		}
 	}
-	// Каждое слово запроса — слово имени вендора («мтс» — «МТС Линк (Webinar Group)»).
+	// Каждое слово запроса — слово имени или слага вендора («мтс» — «МТС Линк (Webinar Group)»; «лаборатория
+	// kaspersky» — имя «Лаборатория Касперского» и слаг kaspersky).
 	for _, fh := range fams {
 		v := rc.lx.familyVendor[fh.id]
-		names := wordsOf(rc.lx.vendorName[v])
+		names := rc.vendorWords(fh.id)
 		all := v != ""
 		for _, w := range words {
-			all = all && contains(names, w)
+			all = all && (contains(names, w) || stemWord(w) != w && wordMatch(w, names)) // «мтс линком»
 		}
 		if all {
 			return v
@@ -149,17 +156,6 @@ func (rc rankCtx) brandVendor(words []string, fams []*familyHit) string {
 func famBuyable(fh *familyHit) bool {
 	for _, d := range fh.heads {
 		if buyable(d) {
-			return true
-		}
-	}
-	return false
-}
-
-// famBase — у семейства есть допустимая базовая лицензия или вид, о котором просили (продление в «продлить …»);
-// источник без видов — шаг не различает.
-func famBase(rc rankCtx, fh *familyHit) bool {
-	for _, d := range fh.heads {
-		if k := rc.lx.kindOf(d); k == domain.LicenseKindBase || k != "" && kindRank(k, rc.wantKinds) == 0 {
 			return true
 		}
 	}
@@ -182,11 +178,15 @@ func (rc rankCtx) generalFamily(ids []string) string {
 		for _, w := range rc.vendorWords(fid) {
 			vendor[w] = true
 		}
-		m := map[string]bool{}
+		var ws []string
 		for _, w := range wordsOf(rc.lx.familyName[fid]) {
-			if !vendor[w] && !lexStopWords[w] {
-				m[w] = true
+			if !vendor[w] && !lexStopWords[w] && !hasDigit(w) {
+				ws = append(ws, w) // номер версии редакцией не делает: «КриптоПро CSP 5.0» общее для «CSP TLS»
 			}
+		}
+		m := map[string]bool{}
+		for _, w := range rc.withoutTypePrefix(fid, ws) {
+			m[w] = true // «Программа КриптоПро CSP» в «Программах для защиты информации» — это «CSP»
 		}
 		return m
 	}
@@ -221,6 +221,11 @@ func (rc rankCtx) generalFamily(ids []string) string {
 func (rc rankCtx) categoryQuery(words []string, cat string) bool {
 	if cat == "" || len(rc.ent.vendors) > 0 || len(words) == 0 {
 		return false
+	}
+	for _, w := range words {
+		if hasDigit(w) {
+			return false // «windows 11»: номер называет продукт, а не категорию
+		}
 	}
 	names := wordsOf(rc.lx.categoryName[cat])
 	if root := rc.lx.categoryRoot[cat]; root != "" && root != cat {
@@ -281,7 +286,9 @@ func selectTarget(in targetInput) targetDecision {
 	coverWith := func(words []string) []string {
 		var res []string
 		for _, fh := range in.fams {
-			if fh.group != domain.GroupAnalog && rc.covers(fh.id, words, dec.brandOnly) {
+			// Аналоги отсутствующего товара цель не задают; преемник ушедшего с рынка («акронис» → Кибер Бэкап) —
+			// задаёт: о нём и спрашивают, пояснение — в relaxed.
+			if (fh.group != domain.GroupAnalog || len(rc.ent.successors) > 0) && rc.covers(fh.id, words, dec.brandOnly) {
 				res = append(res, fh.id)
 			}
 		}
@@ -322,7 +329,9 @@ func selectTarget(in targetInput) targetDecision {
 	}
 	// 2. Есть оффер с ценой и наличием. 3. Базовая лицензия выше продлений, поддержки, модулей и курсов.
 	covering = keepIf(covering, func(f string) bool { return famBuyable(byID[f]) })
-	covering = keepIf(covering, func(f string) bool { return famBase(rc, byID[f]) })
+	// 3. Услуги, курсы и сертификаты техподдержки — ниже продуктов (если о них не просили). Продления — порядок
+	// внутри семейства (голова), а не признак семейства: семейство из одних продлений (MaxPatrol EPP) остаётся.
+	covering = keepIf(covering, func(f string) bool { return !rc.serviceFamily(f) })
 	// Название начинается со слов запроса («365» — Microsoft 365 Family, а не PowerDirector 365 или CorelDRAW
 	// «Подписка 365-Day»): запрос называет продукт, а не его признак.
 	if !dec.brandOnly {
@@ -368,11 +377,13 @@ func selectTarget(in targetInput) targetDecision {
 	lead := rc.mainOfLine(covering, byID, wantVersions)
 	if len(vendors) == 1 && len(covering) < lineMin && !dec.brandOnly {
 		// Два равных семейства — ещё не линейка: первое по релевантности, второе — сразу под ним.
-		first := covering[0]
+		first, reason := covering[0], "совпадение с названием семейства, первое по релевантности"
 		if lead != "" {
 			first = lead
+		} else if wide := rc.widestFamily(covering, byID); wide != "" {
+			first, reason = wide, "совпадение с названием семейства, лицензия на больше мест"
 		}
-		return familyTarget(rc, dec, byID[first], "совпадение с названием семейства, первое по релевантности")
+		return familyTarget(rc, dec, byID[first], reason)
 	}
 	if len(vendors) == 1 && lead != "" && !dec.brandOnly && !anyBuyable(covering, byID) {
 		// Вся линейка только по запросу («windows server»): страница вендора с категорией купить ничего не даёт —
@@ -694,4 +705,64 @@ func gibberish(e queryEntities, words []string) bool {
 		}
 	}
 	return true
+}
+
+// serviceStems — начало слова названия семейства-услуги: техподдержка, сертификат поддержки, курс, сервисы.
+var serviceStems = []string{"поддержк", "техподдерж", "курс", "обучени", "тренинг", "services", "сервис", "услуг", "support", "сопровожд"}
+
+// serviceFamily — семейство — услуга, курс или сертификат техподдержки, а не продукт: все его позиции такого вида
+// (support, course) или название — из слов услуги («Расширенная техническая поддержка», «Softline Expert Services»,
+// «Сертификаты технической поддержки»). Если о таком виде прямо просили («техподдержка астра»), — не услуга.
+func (rc rankCtx) serviceFamily(fid string) bool {
+	if rc.wantKinds[domain.LicenseKindSupport] || rc.wantKinds[domain.LicenseKindCourse] {
+		return false
+	}
+	pids := rc.lx.families[fid]
+	if len(pids) > 0 {
+		all := true
+		for _, pid := range pids {
+			k := rc.lx.kindOf(rc.lx.docs[pid])
+			all = all && (k == domain.LicenseKindSupport || k == domain.LicenseKindCourse)
+		}
+		if all {
+			return true
+		}
+	}
+	for _, w := range wordsOf(rc.lx.familyName[fid]) {
+		for _, st := range serviceStems {
+			if strings.HasPrefix(w, st) {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+// seatsOf — сколько мест закрывает базовая лицензия головы семейства: поле количества, иначе число из названия
+// позиции («подписка на 6 пользователей»). 0 — не указано.
+func seatsOf(fh *familyHit) int {
+	if q := fh.head.LicenseQuantity; q != nil && *q > 0 {
+		return *q
+	}
+	return extractAttrs(strings.Fields(foldText(fh.head.Title))).quantity
+}
+
+// widestFamily — из равных семейств одного вендора то, чья лицензия закрывает больше мест: оно общее для
+// остальных (Microsoft 365 Family на 6 пользователей шире Personal на одного). "" — места не различаются.
+// Число офферов семейства здесь не считается.
+func (rc rankCtx) widestFamily(ids []string, byID map[string]*familyHit) string {
+	best, bestN, tie := "", 0, false
+	for _, f := range ids {
+		n := seatsOf(byID[f])
+		switch {
+		case n > bestN:
+			best, bestN, tie = f, n, false
+		case n == bestN:
+			tie = true
+		}
+	}
+	if tie || bestN <= 1 {
+		return ""
+	}
+	return best
 }

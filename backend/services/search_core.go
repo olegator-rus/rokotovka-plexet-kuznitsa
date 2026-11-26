@@ -232,7 +232,7 @@ func findEntities(nr normResult, attrs queryAttrs, lx *searchLexicon, rules *sea
 	e.vendors = lx.matchVendors(entityTokens, rules)
 	e.vendorTokens = map[string]bool{}
 	for _, t := range entityTokens {
-		if p := strings.Join(wordsOf(t), " "); lx.vendorPhrases[p] != "" && !lx.vendorAmbiguous[p] || rules != nil && rules.vendorPhrases[p] != "" {
+		if p := strings.Join(wordsOf(t), " "); lx.vendorPhrases[p] != "" && !lx.vendorAmbiguous[p] || lx.vendorOfStem(p, rules) != "" || rules != nil && rules.vendorPhrases[p] != "" {
 			e.vendorTokens[t] = true
 		}
 	}

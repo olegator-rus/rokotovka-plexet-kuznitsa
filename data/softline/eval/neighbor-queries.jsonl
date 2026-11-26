@@ -1,0 +1,114 @@
+{"vendor": "astralinux", "query": "астра линукс", "target_type": "family", "kind": "транслит", "group_ids": ["121231"]}
+{"vendor": "astralinux", "query": "астры линукс", "target_type": "family", "kind": "склонение", "group_ids": ["121231"]}
+{"vendor": "astralinux", "query": "для астра линукс", "target_type": "family", "kind": "склонение", "group_ids": ["121231"]}
+{"vendor": "astralinux", "query": "astra linux special edition", "target_type": "family", "kind": "полное название", "group_ids": ["121231"]}
+{"vendor": "astralinux", "query": "astralinux", "target_type": "family", "kind": "слитно", "group_ids": ["121231"]}
+{"vendor": "astralinux", "query": "астра линукс се", "target_type": "family", "kind": "сокращение", "group_ids": ["121231"]}
+{"vendor": "astralinux", "query": "фыекф дштгч", "target_type": "family", "kind": "раскладка", "group_ids": ["121231"]}
+{"vendor": "astralinux", "query": "астра линкус", "target_type": "family", "kind": "опечатка", "group_ids": ["121231"]}
+{"vendor": "astralinux", "query": "astra linux воронеж", "target_type": "family", "kind": "редакция", "group_ids": ["121231"]}
+{"vendor": "astralinux", "query": "астра линукс смоленск", "target_type": "family", "kind": "редакция", "group_ids": ["121231"]}
+{"vendor": "astralinux", "query": "техподдержка астра линукс", "target_type": "family", "kind": "атрибут лицензии", "group_ids": ["121231"]}
+{"vendor": "astralinux", "query": "астра линукс для сервера", "target_type": "family", "kind": "атрибут", "group_ids": ["121231"]}
+{"vendor": "astralinux", "query": "астра", "target_type": "vendor", "kind": "бренд", "vendor_slug": "astralinux", "note": "гипотеза: у вендора 17 семейств"}
+{"vendor": "astralinux", "query": "алд про", "target_type": "family", "kind": "другой продукт вендора", "group_ids": ["287015"]}
+{"vendor": "astralinux", "query": "ald pro", "target_type": "family", "kind": "другой продукт вендора", "group_ids": ["287015"]}
+{"vendor": "astralinux", "query": "термидеск", "target_type": "family", "kind": "другой продукт вендора", "group_ids": ["299975"]}
+{"vendor": "astralinux", "query": "рубэкап", "target_type": "family", "kind": "другой продукт вендора", "group_ids": ["406074"]}
+{"vendor": "astralinux", "query": "тантор", "target_type": "family", "kind": "другой продукт вендора", "group_ids": ["342351"]}
+{"vendor": "microsoft", "query": "офис для дома и бизнеса", "target_type": "family", "kind": "жаргон", "group_ids": ["391338"]}
+{"vendor": "microsoft", "query": "майкрософт офис для дома и бизнеса", "target_type": "family", "kind": "транслит", "group_ids": ["391338"]}
+{"vendor": "microsoft", "query": "office home and business 2024", "target_type": "family", "kind": "английское название", "group_ids": ["391338"]}
+{"vendor": "microsoft", "query": "ms office для дома и бизнеса 2024", "target_type": "family", "kind": "сокращение", "group_ids": ["391338"]}
+{"vendor": "microsoft", "query": "офиса для дома и бизнеса", "target_type": "family", "kind": "склонение", "group_ids": ["391338"]}
+{"vendor": "microsoft", "query": "офис для дома и учебы", "target_type": "family", "kind": "соседнее семейство", "group_ids": ["391335"]}
+{"vendor": "microsoft", "query": "office home and student", "target_type": "family", "kind": "соседнее семейство", "group_ids": ["391335"]}
+{"vendor": "microsoft", "query": "microsoft 365", "target_type": "family", "kind": "полное название", "group_ids": ["165034"], "note": "по аналогии с эталоном «365»"}
+{"vendor": "microsoft", "query": "майкрософт 365", "target_type": "family", "kind": "транслит", "group_ids": ["165034"], "note": "по аналогии с эталоном «365»"}
+{"vendor": "microsoft", "query": "офис 365", "target_type": "family", "kind": "жаргон", "group_ids": ["165034"], "note": "по аналогии с эталоном «365»"}
+{"vendor": "microsoft", "query": "office 365", "target_type": "family", "kind": "прежнее название", "group_ids": ["165034"], "note": "по аналогии с эталоном «365»"}
+{"vendor": "microsoft", "query": "365 для семьи", "target_type": "family", "kind": "уточнение", "group_ids": ["165034"], "note": "по аналогии с эталоном «365»"}
+{"vendor": "microsoft", "query": "м365", "target_type": "family", "kind": "сокращение", "group_ids": ["165034"], "note": "по аналогии с эталоном «365»"}
+{"vendor": "microsoft", "query": "365 персональный", "target_type": "family", "kind": "соседнее семейство", "group_ids": ["283494"]}
+{"vendor": "microsoft", "query": "visio", "target_type": "family", "kind": "две редакции", "group_ids": ["391350", "391347"], "note": "допустима любая; лучше Standard"}
+{"vendor": "microsoft", "query": "ms project", "target_type": "family", "kind": "две редакции", "group_ids": ["391344", "391341"]}
+{"vendor": "microsoft", "query": "windows 11", "target_type": "family", "kind": "две редакции", "group_ids": ["286676", "310176"]}
+{"vendor": "microsoft", "query": "виндовс 11 про", "target_type": "family", "kind": "транслит", "group_ids": ["286676"]}
+{"vendor": "kaspersky", "query": "касперский small office security", "target_type": "family", "kind": "смешанное написание", "group_ids": ["3761"]}
+{"vendor": "kaspersky", "query": "касперского смолл офис секьюрити", "target_type": "family", "kind": "склонение + транслит", "group_ids": ["3761"]}
+{"vendor": "kaspersky", "query": "kaspersky small office", "target_type": "family", "kind": "неполное название", "group_ids": ["3761"]}
+{"vendor": "kaspersky", "query": "ksos", "target_type": "family", "kind": "сокращение", "group_ids": ["3761"]}
+{"vendor": "kaspersky", "query": "kaspersky smal ofice security", "target_type": "family", "kind": "опечатка", "group_ids": ["3761"]}
+{"vendor": "kaspersky", "query": "продление kaspersky small office security", "target_type": "family", "kind": "атрибут лицензии", "group_ids": ["3761"]}
+{"vendor": "kaspersky", "query": "касперский смол офис на 10 пк", "target_type": "family", "kind": "атрибут количества", "group_ids": ["3761"]}
+{"vendor": "kaspersky", "query": "касперский", "target_type": "vendor", "kind": "бренд", "vendor_slug": "kaspersky", "note": "гипотеза: 34 семейства, одного явного нет"}
+{"vendor": "kaspersky", "query": "kaspersky", "target_type": "vendor", "kind": "бренд", "vendor_slug": "kaspersky", "note": "гипотеза: 34 семейства, одного явного нет"}
+{"vendor": "kaspersky", "query": "касперского", "target_type": "vendor", "kind": "склонение", "vendor_slug": "kaspersky", "note": "гипотеза: 34 семейства, одного явного нет"}
+{"vendor": "kaspersky", "query": "каспер", "target_type": "vendor", "kind": "жаргон", "vendor_slug": "kaspersky", "note": "гипотеза: 34 семейства, одного явного нет"}
+{"vendor": "kaspersky", "query": "лаборатория касперского", "target_type": "vendor", "kind": "вендор", "vendor_slug": "kaspersky", "note": "гипотеза: 34 семейства, одного явного нет"}
+{"vendor": "kaspersky", "query": "kaspersky endpoint security", "target_type": "vendor_category", "kind": "линейка", "vendor_slug": "kaspersky", "category_id": "650", "note": "гипотеза: три равные редакции; допустимы и семейства 3953, 3935, 419620"}
+{"vendor": "kaspersky", "query": "касперский эндпоинт стандартный", "target_type": "family", "kind": "соседнее семейство", "group_ids": ["3953"]}
+{"vendor": "kaspersky", "query": "kes расширенный", "target_type": "family", "kind": "соседнее семейство", "group_ids": ["3935"]}
+{"vendor": "kaspersky", "query": "kaspersky total security для бизнеса", "target_type": "family", "kind": "соседнее семейство", "group_ids": ["3971"]}
+{"vendor": "kaspersky", "query": "касперский для почтовых серверов", "target_type": "family", "kind": "соседнее семейство", "group_ids": ["3707"]}
+{"vendor": "kaspersky", "query": "kaspersky endpoint security cloud", "target_type": "family", "kind": "соседнее семейство", "group_ids": ["4052"]}
+{"vendor": "kaspersky", "query": "kaspersky standard", "target_type": "family", "kind": "соседнее семейство", "group_ids": ["341252"]}
+{"vendor": "kripto-pro", "query": "криптопро csp", "target_type": "family", "kind": "слитно", "group_ids": ["22268"]}
+{"vendor": "kripto-pro", "query": "крипто про цсп", "target_type": "family", "kind": "транслит", "group_ids": ["22268"]}
+{"vendor": "kripto-pro", "query": "cryptopro csp 5.0", "target_type": "family", "kind": "английское написание", "group_ids": ["22268"]}
+{"vendor": "kripto-pro", "query": "криптопро csp 5", "target_type": "family", "kind": "версия", "group_ids": ["22268"]}
+{"vendor": "kripto-pro", "query": "крипто-про csp", "target_type": "family", "kind": "дефис", "group_ids": ["22268"]}
+{"vendor": "kripto-pro", "query": "rhbgnjghj csp", "target_type": "family", "kind": "раскладка", "group_ids": ["22268"]}
+{"vendor": "kripto-pro", "query": "лицензия криптопро csp", "target_type": "family", "kind": "атрибут", "group_ids": ["22268"]}
+{"vendor": "kripto-pro", "query": "крипто про сsp 5.0", "target_type": "family", "kind": "смешанные буквы", "group_ids": ["22268"]}
+{"vendor": "kripto-pro", "query": "криптопро", "target_type": "vendor", "kind": "бренд", "vendor_slug": "kripto-pro", "note": "гипотеза: 13 семейств"}
+{"vendor": "kripto-pro", "query": "крипто про", "target_type": "vendor", "kind": "бренд", "vendor_slug": "kripto-pro", "note": "гипотеза: 13 семейств"}
+{"vendor": "kripto-pro", "query": "cryptopro", "target_type": "vendor", "kind": "бренд", "vendor_slug": "kripto-pro", "note": "гипотеза: 13 семейств"}
+{"vendor": "kripto-pro", "query": "криптопро jcp", "target_type": "family", "kind": "соседнее семейство", "group_ids": ["22211"]}
+{"vendor": "kripto-pro", "query": "криптопро ngate", "target_type": "family", "kind": "соседнее семейство", "group_ids": ["167189"]}
+{"vendor": "kripto-pro", "query": "криптопро tsp", "target_type": "family", "kind": "соседнее семейство", "group_ids": ["22181"]}
+{"vendor": "kripto-pro", "query": "криптопро csp tls", "target_type": "family", "kind": "соседнее семейство", "group_ids": ["385280"]}
+{"vendor": "anydesk", "query": "энидеск", "target_type": "family", "kind": "транслит", "group_ids": ["306539"]}
+{"vendor": "anydesk", "query": "эни деск", "target_type": "family", "kind": "раздельно", "group_ids": ["306539"]}
+{"vendor": "anydesk", "query": "any desk", "target_type": "family", "kind": "раздельно", "group_ids": ["306539"]}
+{"vendor": "anydesk", "query": "anydesk лицензия", "target_type": "family", "kind": "атрибут", "group_ids": ["306539"]}
+{"vendor": "anydesk", "query": "энидекс", "target_type": "family", "kind": "опечатка", "group_ids": ["306539"]}
+{"vendor": "anydesk", "query": "фтнвуыл", "target_type": "family", "kind": "раскладка", "group_ids": ["306539"]}
+{"vendor": "cyberprotect", "query": "кибербэкап", "target_type": "vendor_category", "kind": "слитно", "vendor_slug": "cyberprotect", "category_id": "1033"}
+{"vendor": "cyberprotect", "query": "кибер бекап", "target_type": "vendor_category", "kind": "е вместо э", "vendor_slug": "cyberprotect", "category_id": "1033"}
+{"vendor": "cyberprotect", "query": "cyber backup", "target_type": "vendor_category", "kind": "английское написание", "vendor_slug": "cyberprotect", "category_id": "1033"}
+{"vendor": "cyberprotect", "query": "киберпротект бэкап", "target_type": "vendor_category", "kind": "вендор + продукт", "vendor_slug": "cyberprotect", "category_id": "1033"}
+{"vendor": "cyberprotect", "query": "кибер бэкапа", "target_type": "vendor_category", "kind": "склонение", "vendor_slug": "cyberprotect", "category_id": "1033"}
+{"vendor": "cyberprotect", "query": "кибер бэкап расширенная редакция", "target_type": "family", "kind": "соседнее семейство", "group_ids": ["173615"]}
+{"vendor": "cyberprotect", "query": "кибер бэкап стандартная", "target_type": "family", "kind": "соседнее семейство", "group_ids": ["173614"]}
+{"vendor": "cyberprotect", "query": "кибер бэкап старт", "target_type": "family", "kind": "соседнее семейство", "group_ids": ["444870"]}
+{"vendor": "cyberprotect", "query": "кибер бэкап облачный", "target_type": "family", "kind": "соседнее семейство", "group_ids": ["442025"]}
+{"vendor": "cyberprotect", "query": "кибер хранилище", "target_type": "family", "kind": "соседнее семейство", "group_ids": ["412674"]}
+{"vendor": "cyberprotect", "query": "кибер файлы", "target_type": "family", "kind": "соседнее семейство", "group_ids": ["394620"]}
+{"vendor": "cyberprotect", "query": "киберпротект", "target_type": "vendor", "kind": "бренд", "vendor_slug": "cyberprotect"}
+{"vendor": "cyberprotect", "query": "акронис", "target_type": "vendor_category", "kind": "преемник", "vendor_slug": "cyberprotect", "category_id": "1033", "note": "гипотеза; показывать с пояснением, не подменять молча"}
+{"vendor": "npo-echelon", "query": "сканер вс", "target_type": "family", "kind": "без дефиса", "group_ids": ["46421"]}
+{"vendor": "npo-echelon", "query": "сканервс", "target_type": "family", "kind": "слитно", "group_ids": ["46421"]}
+{"vendor": "npo-echelon", "query": "skaner vs", "target_type": "family", "kind": "транслит", "group_ids": ["46421"]}
+{"vendor": "npo-echelon", "query": "эшелон сканер-вс", "target_type": "family", "kind": "вендор + продукт", "group_ids": ["46421"]}
+{"vendor": "npo-echelon", "query": "сканера вс", "target_type": "family", "kind": "склонение", "group_ids": ["46421"]}
+{"vendor": "npo-echelon", "query": "сканер-вс 6", "target_type": "family", "kind": "версия", "group_ids": ["46421"]}
+{"vendor": "npo-echelon", "query": "эшелон", "target_type": "vendor", "kind": "бренд", "vendor_slug": "npo-echelon", "note": "гипотеза: 6 семейств"}
+{"vendor": "npo-echelon", "query": "ак-вс 3", "target_type": "family", "kind": "соседнее семейство", "group_ids": ["411254"]}
+{"vendor": "webinar", "query": "мтс линк", "target_type": "vendor", "kind": "полное название", "vendor_slug": "webinar"}
+{"vendor": "webinar", "query": "mts link", "target_type": "vendor", "kind": "транслит", "vendor_slug": "webinar"}
+{"vendor": "webinar", "query": "мтслинк", "target_type": "vendor", "kind": "слитно", "vendor_slug": "webinar"}
+{"vendor": "webinar", "query": "вебинар", "target_type": "vendor", "kind": "прежнее название", "vendor_slug": "webinar"}
+{"vendor": "webinar", "query": "webinar", "target_type": "vendor", "kind": "прежнее название", "vendor_slug": "webinar"}
+{"vendor": "webinar", "query": "мтс линка", "target_type": "vendor", "kind": "склонение", "vendor_slug": "webinar"}
+{"vendor": "webinar", "query": "мтс вебинары", "target_type": "vendor", "kind": "смешанное", "vendor_slug": "webinar"}
+{"vendor": "webinar", "query": "мтс линк про", "target_type": "family", "kind": "соседнее семейство", "group_ids": ["447243"]}
+{"vendor": "webinar", "query": "мтс линк стандарт", "target_type": "family", "kind": "соседнее семейство", "group_ids": ["447242"]}
+{"vendor": "positive-technologies", "query": "макс патрол", "target_type": "family", "kind": "транслит", "group_ids": ["437421"], "note": "в семействе только продления — правило «базовая лицензия выше» не должно его отсекать"}
+{"vendor": "positive-technologies", "query": "maxpatrol", "target_type": "family", "kind": "слитно", "group_ids": ["437421"], "note": "в семействе только продления — правило «базовая лицензия выше» не должно его отсекать"}
+{"vendor": "positive-technologies", "query": "макспатрол", "target_type": "family", "kind": "слитно + транслит", "group_ids": ["437421"], "note": "в семействе только продления — правило «базовая лицензия выше» не должно его отсекать"}
+{"vendor": "positive-technologies", "query": "max patrol epp", "target_type": "family", "kind": "сокращение", "group_ids": ["437421"], "note": "в семействе только продления — правило «базовая лицензия выше» не должно его отсекать"}
+{"vendor": "positive-technologies", "query": "maxpatrol endpoint protection", "target_type": "family", "kind": "неполное название", "group_ids": ["437421"], "note": "в семействе только продления — правило «базовая лицензия выше» не должно его отсекать"}
+{"vendor": "positive-technologies", "query": "макс патрола", "target_type": "family", "kind": "склонение", "group_ids": ["437421"], "note": "в семействе только продления — правило «базовая лицензия выше» не должно его отсекать"}
+{"vendor": "positive-technologies", "query": "xspider", "target_type": "family", "kind": "соседнее семейство", "group_ids": ["28574", "428013"]}
+{"vendor": "positive-technologies", "query": "позитив технолоджис", "target_type": "vendor", "kind": "бренд", "vendor_slug": "positive-technologies"}
