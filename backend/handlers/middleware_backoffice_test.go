@@ -54,6 +54,7 @@ func TestBackofficeTokenRequired(t *testing.T) {
 		{"GET", "/health"}, {"GET", "/api/health"}, {"GET", "/api/meta"}, {"GET", "/api/suggest?q=1c"},
 		{"GET", "/api/evaluations"}, {"POST", "/api/search"}, {"POST", "/api/events"},
 		{"GET", "/api/evaluations/commerce"}, {"GET", "/api/companions?product_id=x"},
+		{"GET", "/api/products/x"}, {"HEAD", "/api/products/x"},
 	}
 	for _, r := range public {
 		if code, body, _ := doAuth(t, app, r.method, r.path, ""); code == fiber.StatusUnauthorized {
@@ -69,6 +70,7 @@ func TestBackofficeTokenRequired(t *testing.T) {
 		{"POST", "/api/evaluations/run"}, {"POST", "/api/admin/llm-mode"},
 		{"GET", "/api/relations"}, {"GET", "/api/relations/versions"}, {"POST", "/api/relations/rollback"},
 		{"GET", "/api/no-such-route"}, {"DELETE", "/api/search"}, {"GET", "/api/analytics/"},
+		{"GET", "/api/products/x/y"}, {"POST", "/api/products/x"}, {"GET", "/api/products"},
 	}
 	for _, r := range closed {
 		code, body, challenge := doAuth(t, app, r.method, r.path, "")

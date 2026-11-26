@@ -21,8 +21,8 @@ import (
 // Покупателю бэк-офис — 403, гостю — 401 (браузер уходит на /login; окна пароля браузера нет: вызов — Bearer).
 //
 // Без входа (витрина и вход): GET /api/health, /api/meta, /api/suggest, /api/evaluations и /api/evaluations/commerce
-// (сводные метрики вкладки «До / После»), /api/companions, /api/auth/config, /api/auth/me и POST /api/search,
-// /api/events, /api/quotes, /api/auth/*. Остальное — по умолчанию закрыто: новый маршрут без записи здесь попадёт под
+// (сводные метрики вкладки «До / После»), /api/companions, /api/products/{id} (страница товара),
+// /api/auth/config, /api/auth/me и POST /api/search, /api/events, /api/quotes, /api/auth/*. Остальное — по умолчанию закрыто: новый маршрут без записи здесь попадёт под
 // вход, а не наружу. Права на решения (кто принимает какое предложение, откаты, маржа) — в обработчиках решений.
 
 // MsgBackofficeAuth — запрос в бэк-офис без входа или с неверным токеном.
@@ -69,8 +69,17 @@ func isPublic(method, path string) bool {
 	case fiber.MethodOptions:
 		return true
 	}
-	return publicRoutes[method+" "+strings.TrimRight(path, "/")]
+	path = strings.TrimRight(path, "/")
+	// Страница товара: GET /api/products/{id} — ровно один сегмент после префикса.
+	if id, ok := strings.CutPrefix(path, productsPrefix); ok && method == fiber.MethodGet && id != "" &&
+		!strings.Contains(id, "/") {
+		return true
+	}
+	return publicRoutes[method+" "+path]
 }
+
+// productsPrefix — префикс страницы товара: путь с параметром в publicRoutes не попадает.
+const productsPrefix = "/api/products/"
 
 // Backoffice — вход в бэк-офис: сотрудник, токен или открытый режим development (роль — Identify, auth.go).
 func (h *Handler) Backoffice(c *fiber.Ctx) error {

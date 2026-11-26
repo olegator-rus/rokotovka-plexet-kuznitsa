@@ -1,9 +1,32 @@
 <script setup lang="ts">
-// Шаг трассы: название, итог одной строкой, время. Пропущенный — серым с подписью «пропущен», не скрыт.
+// Шаг трассы в таймлайне: значок, название, итог одной строкой, время и его полоска. Пропущенный — серым с подписью «пропущен», не скрыт.
 // Если есть подробности — шаг раскрывается (reka Collapsible): замены, условия, кандидаты, веса.
 import { computed, ref } from 'vue'
 import { CollapsibleContent, CollapsibleRoot, CollapsibleTrigger } from 'reka-ui'
-import { ChevronDown, ChevronRight, CircleAlert } from 'lucide-vue-next'
+import {
+  ArrowUpCircle,
+  Boxes,
+  Briefcase,
+  ChevronDown,
+  ChevronUp,
+  CircleAlert,
+  Combine,
+  Cpu,
+  Dot,
+  LayoutTemplate,
+  ListFilter,
+  ListOrdered,
+  Percent,
+  PlusCircle,
+  Route,
+  Search,
+  ShoppingCart,
+  Sparkles,
+  Tags,
+  Type,
+  Unlock,
+} from 'lucide-vue-next'
+import type { Component } from 'vue'
 import type { TraceStep } from '@/api/types'
 import { formatDecimal, formatMs } from '@/lib/format'
 import {
@@ -18,7 +41,33 @@ import {
 import { marginGuardLines, marginPolicyLabel, marginShiftLines } from '@/lib/traceMargin'
 import TraceStepP2 from './TraceStepP2.vue'
 
-const props = defineProps<{ step: TraceStep; titles: Record<string, string> }>()
+const props = defineProps<{
+  step: TraceStep
+  titles: Record<string, string>
+  /** Самый долгий шаг трассы — для полоски времени. */
+  maxMs?: number
+}>()
+
+/** Значок шага по имени сервера; незнакомый шаг — точка. */
+const STEP_ICONS: Record<string, Component> = {
+  normalize: Type,
+  attributes: Tags,
+  route: Route,
+  intent: Sparkles,
+  bm25: Search,
+  dense: Boxes,
+  fusion: Combine,
+  rerank: ListOrdered,
+  business: Briefcase,
+  relaxation: Unlock,
+  filters: ListFilter,
+  margin: Percent,
+  hardware: Cpu,
+  companions: PlusCircle,
+  upgrade: ArrowUpCircle,
+  solution: LayoutTemplate,
+  procurement: ShoppingCart,
+}
 
 const TOP_LIMIT = 10
 const open = ref(false)
@@ -43,11 +92,8 @@ function show(v: unknown): string {
     :class="['step', { 'step--skipped': step.skipped, 'step--error': step.error }]"
   >
     <CollapsibleTrigger class="step__head" :as="expandable ? 'button' : 'div'">
-      <span class="step__chevron" aria-hidden="true">
-        <template v-if="expandable">
-          <ChevronDown v-if="open" :size="14" />
-          <ChevronRight v-else :size="14" />
-        </template>
+      <span class="step__dot" aria-hidden="true">
+        <component :is="STEP_ICONS[step.name] ?? Dot" :size="14" />
       </span>
       <span class="step__name">
         <CircleAlert v-if="step.error" :size="14" aria-hidden="true" class="step__error-icon" />
@@ -55,6 +101,16 @@ function show(v: unknown): string {
       </span>
       <span class="step__summary">{{ stepSummary(step) }}</span>
       <span class="step__ms t-num">{{ step.skipped ? '—' : formatMs(step.ms) }}</span>
+      <span class="step__chevron" aria-hidden="true">
+        <template v-if="expandable">
+          <ChevronUp v-if="open" :size="16" />
+          <ChevronDown v-else :size="16" />
+        </template>
+      </span>
+      <!-- Доля самого долгого шага: где ушло время, видно без чтения чисел. -->
+      <span v-if="!step.skipped && maxMs" class="step__time" aria-hidden="true">
+        <span :style="{ width: `${Math.max(2, (step.ms / maxMs) * 100)}%` }" />
+      </span>
     </CollapsibleTrigger>
 
     <CollapsibleContent class="step__body">
@@ -138,19 +194,32 @@ function show(v: unknown): string {
 
 <style scoped>
 .step {
-  border-bottom: var(--border-w) solid var(--border);
+  position: relative;
+}
+/* Линия таймлайна между значками */
+.step:not(:last-child)::before {
+  content: '';
+  position: absolute;
+  top: 2.5rem;
+  bottom: calc(-1 * var(--space-2));
+  left: calc(var(--space-3) + 0.875rem - 1px);
+  width: 2px;
+  background: var(--border);
 }
 .step__head {
   display: grid;
-  grid-template-columns: var(--icon-sm) minmax(0, 1fr) auto;
+  grid-template-columns: 1.75rem minmax(0, 1fr) auto var(--icon-sm);
   grid-template-areas:
-    'chev name ms'
-    '. summary summary';
-  align-items: baseline;
-  gap: 0 var(--space-2);
+    'dot name ms chev'
+    'dot summary summary summary'
+    'dot time time time';
+  align-items: center;
+  gap: 2px var(--space-3);
+  box-sizing: border-box;
   width: 100%;
-  padding: var(--space-2) var(--space-1);
+  padding: var(--space-2) var(--space-3);
   border: 0;
+  border-radius: var(--radius-control);
   background: none;
   color: var(--text);
   font: inherit;
@@ -162,18 +231,30 @@ button.step__head {
 button.step__head:hover {
   background: var(--surface-2);
 }
+.step__dot {
+  position: relative;
+  z-index: 1;
+  grid-area: dot;
+  display: grid;
+  align-self: start;
+  place-items: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  border-radius: var(--radius-pill);
+  background: var(--accent-soft);
+  color: var(--accent);
+}
 .step__chevron {
   grid-area: chev;
-  color: var(--text-2);
-  align-self: center;
   display: inline-flex;
+  color: var(--text-3);
 }
 .step__name {
   grid-area: name;
   display: inline-flex;
   align-items: center;
   gap: var(--space-1);
-  font-weight: var(--fw-medium);
+  font-weight: var(--fw-bold);
 }
 .step__summary {
   grid-area: summary;
@@ -184,14 +265,45 @@ button.step__head:hover {
 }
 .step__ms {
   grid-area: ms;
+  padding: 1px var(--space-2);
+  border-radius: var(--radius-pill);
+  background: var(--surface-2);
   color: var(--text-2);
-  font-size: var(--fs-sm);
+  font-size: var(--fs-xs);
+  line-height: var(--lh-xs);
+  font-weight: var(--fw-semibold);
+  white-space: nowrap;
+}
+.step__time {
+  grid-area: time;
+  display: block;
+  height: 3px;
+  margin-top: var(--space-1);
+  overflow: hidden;
+  border-radius: var(--radius-pill);
+  background: var(--surface-3);
+}
+.step__time span {
+  display: block;
+  height: 100%;
+  border-radius: var(--radius-pill);
+  background: var(--accent);
+}
+/* Пропущенный шаг виден, но не спорит с выполненными: пунктирный значок и приглушённый текст. */
+.step--skipped .step__dot {
+  border: var(--border-w) dashed var(--border-control);
+  box-sizing: border-box;
+  background: var(--surface);
+  color: var(--text-3);
 }
 .step--skipped .step__name,
 .step--skipped .step__summary,
 .step--skipped .step__ms {
   color: var(--text-3);
   font-weight: var(--fw-regular);
+}
+.step--error .step__dot {
+  background: var(--danger-bg);
 }
 .step__error-icon,
 .step__error {
@@ -201,7 +313,10 @@ button.step__head:hover {
   display: flex;
   flex-direction: column;
   gap: var(--space-2);
-  padding: 0 var(--space-1) var(--space-3) calc(var(--icon-sm) + var(--space-3));
+  margin: 0 var(--space-3) var(--space-2) calc(var(--space-3) + 1.75rem + var(--space-3));
+  padding: var(--space-3);
+  border-radius: var(--radius-control);
+  background: var(--surface-2);
   font-size: var(--fs-sm);
   line-height: var(--lh-sm);
 }

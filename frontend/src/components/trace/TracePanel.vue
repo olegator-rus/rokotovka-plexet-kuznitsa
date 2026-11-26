@@ -2,7 +2,7 @@
 // Панель трассы: сводка, шаги сверху вниз, разложение скора выбранного товара,
 // отсечённые товары с причиной, «Скопировать JSON». Без запроса — подсказка, при загрузке — скелет.
 // Сотруднику — «Разобрать»: запуск агента на этом запросе (контур автономии, S4 кадр 3) и переход в ленту.
-import { computed } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { Copy, Microscope, X } from 'lucide-vue-next'
 import type { Trace } from '@/api/types'
 import UiSelect from '@/components/ui/UiSelect.vue'
@@ -36,6 +36,20 @@ const { analyse, busy: analysing } = useAnalyseQuery()
 const canAnalyse = computed(() => auth.staff && !!props.query?.trim() && !!props.trace)
 
 const items = computed(() => props.trace?.items ?? [])
+/** Отсечённых бывают десятки: сначала несколько, весь список — по кнопке. */
+const REJECTED_SHOWN = 5
+const allRejected = ref(false)
+watch(
+  () => props.trace?.request_id,
+  () => (allRejected.value = false),
+)
+const shownRejected = computed(() => {
+  const list = props.trace?.rejected ?? []
+  return allRejected.value ? list : list.slice(0, REJECTED_SHOWN)
+})
+const maxStepMs = computed(() =>
+  Math.max(0, ...(props.trace?.steps ?? []).filter((s) => !s.skipped).map((s) => s.ms)),
+)
 const selectedItem = computed(
   () => traceItemFor(props.trace, props.selected) ?? items.value[0] ?? null,
 )
@@ -111,9 +125,17 @@ async function copyJson() {
       <TraceSummary :trace="trace" />
 
       <div class="trace__block">
-        <h3 class="trace__label">Шаги</h3>
+        <h3 class="trace__label">
+          Шаги <span class="trace__count t-num">{{ trace.steps?.length ?? 0 }}</span>
+        </h3>
         <ol class="trace__steps">
-          <TraceStepRow v-for="s in trace.steps ?? []" :key="s.name" :step="s" :titles="titles" />
+          <TraceStepRow
+            v-for="s in trace.steps ?? []"
+            :key="s.name"
+            :step="s"
+            :titles="titles"
+            :max-ms="maxStepMs"
+          />
         </ol>
       </div>
 
@@ -135,13 +157,24 @@ async function copyJson() {
       </div>
 
       <div v-if="trace.rejected?.length" class="trace__block">
-        <h3 class="trace__label">Отсечённые товары</h3>
+        <h3 class="trace__label">
+          Отсечённые товары <span class="trace__count t-num">{{ trace.rejected.length }}</span>
+        </h3>
         <ul class="trace__rejected">
-          <li v-for="r in trace.rejected" :key="r.product_id">
+          <li v-for="r in shownRejected" :key="r.product_id">
             <span class="trace__rejected-title">{{ titles[r.product_id] ?? r.product_id }}</span>
             <span class="t-muted">{{ rejectedLabel(r) }}</span>
           </li>
         </ul>
+        <button
+          v-if="trace.rejected.length > REJECTED_SHOWN"
+          type="button"
+          class="btn btn--secondary btn--sm"
+          :aria-expanded="allRejected"
+          @click="allRejected = !allRejected"
+        >
+          {{ allRejected ? 'Свернуть' : `Показать все ${trace.rejected.length}` }}
+        </button>
       </div>
 
       <div v-if="trace.llm" class="trace__block">
@@ -161,7 +194,7 @@ async function copyJson() {
 .trace {
   display: flex;
   flex-direction: column;
-  gap: var(--space-4);
+  gap: var(--space-3);
   min-width: 0;
 }
 .trace__head {
@@ -191,24 +224,44 @@ async function copyJson() {
 .trace__block {
   display: flex;
   flex-direction: column;
-  gap: var(--space-2);
+  gap: var(--space-3);
+  padding: var(--space-3);
+  border: var(--border-w) solid var(--border);
+  border-radius: var(--radius-card);
+  background: var(--surface);
 }
 .trace__label {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0 var(--space-1);
+  font-size: var(--fs-h2);
+  line-height: var(--lh-h2);
+  font-weight: var(--fw-bold);
+}
+.trace__count {
+  min-width: 1.5rem;
+  padding: 0 var(--space-1);
+  box-sizing: border-box;
+  border-radius: var(--radius-pill);
+  background: var(--surface-3);
   color: var(--text-2);
-  font-size: var(--fs-sm);
-  line-height: var(--lh-sm);
-  font-weight: var(--fw-semibold);
+  font-size: var(--fs-xs);
+  line-height: 1.5rem;
+  text-align: center;
 }
 .trace__steps {
-  margin: 0;
+  display: flex;
+  flex-direction: column;
+  margin: 0 calc(-1 * var(--space-2));
   padding: 0;
   list-style: none;
-  border-top: var(--border-w) solid var(--border);
 }
 .trace__rejected {
   display: flex;
   flex-direction: column;
-  gap: var(--space-1);
+  gap: var(--space-2);
   margin: 0;
   padding: 0;
   list-style: none;
@@ -217,12 +270,15 @@ async function copyJson() {
 }
 .trace__rejected li {
   display: flex;
-  flex-wrap: wrap;
-  justify-content: space-between;
-  gap: 0 var(--space-3);
+  flex-direction: column;
+  gap: 2px;
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-control);
+  background: var(--surface-2);
 }
 .trace__rejected-title {
   min-width: 0;
+  font-weight: var(--fw-semibold);
   overflow-wrap: anywhere;
 }
 .trace__llm {

@@ -141,26 +141,17 @@ test.describe('Поиск', () => {
     await expect(dialog).toBeHidden()
   })
 
-  test('F5: «продлить антивирус» — у клиента А его продукт первым, у клиента Б общая выдача', async ({
+  // Переключатель «Глазами клиента» убран из шапки: сотрудник смотрит витрину как гость.
+  // Своя выдача клиента осталась у покупателя — её проверяет roles.spec.ts («покупатель client-a»).
+  test('F5: у сотрудника нет выбора клиента — выдача гостевая, client в адресе не держится', async ({
     page,
   }) => {
-    await openSearch(page)
-    const pick = async (name: RegExp) => {
-      await page.getByRole('combobox', { name: 'Клиент' }).click()
-      await page.getByRole('option', { name }).click()
-    }
-
-    await pick(/^Клиент А/)
-    const a = await search(page, 'продлить антивирус')
-    expect(a.items[0]?.purchased_before).toBe(true)
-    const firstA = resultCards(page).first()
-    await expect(firstA).toContainText('Kaspersky Small Office Security')
-    await expect(firstA.getByText('Вы покупали этот продукт')).toBeVisible()
-
-    const b = await searchResponse(page, () => pick(/^Клиент Б/))
-    expect(b.items.some((i) => i.purchased_before)).toBe(false)
+    await openSearch(page, '?client=client-a')
+    await expect(page.getByRole('combobox', { name: 'Клиент' })).toHaveCount(0)
+    await expect(page).not.toHaveURL(/client=/)
+    const body = await search(page, 'продлить антивирус')
+    expect(body.items.some((i) => i.purchased_before)).toBe(false)
     await expect(page.getByText('Вы покупали этот продукт')).toHaveCount(0)
-    expect(b.items[0]?.title).not.toBe(a.items[0]?.title)
   })
 
   test('F8: повтор сложного запроса — разбор из кэша, 0 ₽', async ({ page }) => {

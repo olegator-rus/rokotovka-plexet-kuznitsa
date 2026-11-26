@@ -2,7 +2,6 @@
 // Оболочка приложения: красная шапка с логотипом и разделами (на узком экране разделы — в выезжающей
 // панели, reka Dialog) и содержимое раздела. Ссылка «К содержимому» — первый Tab на странице.
 import { ref, watch } from 'vue'
-import { storeToRefs } from 'pinia'
 import { RouterLink, useRoute } from 'vue-router'
 import {
   DialogClose,
@@ -13,13 +12,10 @@ import {
   DialogTitle,
 } from 'reka-ui'
 import { X } from 'lucide-vue-next'
-import { useAppStore } from '@/stores/app'
 import AppHeader from './AppHeader.vue'
 import AppNav from './AppNav.vue'
 import BrandMark from './BrandMark.vue'
 
-const app = useAppStore()
-const { meta } = storeToRefs(app)
 const drawer = ref(false)
 const route = useRoute()
 
@@ -47,9 +43,6 @@ watch(
       <span class="shell__footer-end">
         <!-- Инструменты страницы (на «Поиске» — переключатель «Трасса»). -->
         <span id="footer-tools" />
-        <span v-if="meta" class="t-num">
-          Каталог {{ meta.catalog_version }} · правила v{{ meta.rules_version }}
-        </span>
       </span>
     </footer>
   </div>
@@ -65,9 +58,6 @@ watch(
           </DialogClose>
         </div>
         <AppNav @navigate="drawer = false" />
-        <p v-if="meta" class="shell__versions t-xs">
-          Каталог {{ meta.catalog_version }} · правила v{{ meta.rules_version }}
-        </p>
       </DialogContent>
     </DialogPortal>
   </DialogRoot>
@@ -115,11 +105,6 @@ watch(
   gap: var(--space-2) var(--space-4);
   padding: var(--space-3) var(--gutter);
   border-top: var(--border-w) solid var(--border);
-  color: var(--text-3);
-}
-.shell__versions {
-  margin-top: auto;
-  padding: var(--space-3);
   color: var(--text-3);
 }
 </style>

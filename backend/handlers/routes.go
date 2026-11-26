@@ -77,6 +77,8 @@ func RegisterRoutes(app *fiber.App, h *Handler) {
 	api.Get("/quotes/mine", h.MyQuotes) // свои КП покупателя
 	// Компаньоны к позиции спецификации (витрина).
 	api.Get("/companions", h.ProductCompanions)
+	// Страница товара (витрина).
+	api.Get("/products/:id", h.Product)
 	api.Get("/help", h.Help) // справка магазина (контур доводки)
 
 	// Служебное: режим LLM без перезапуска (ADMIN_ENABLED).

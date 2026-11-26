@@ -1,6 +1,6 @@
 <script setup lang="ts">
-// Красная шапка: логотип и разделы (на узком экране — кнопка меню и логотип); справа — плашка режима LLM (сотруднику), «Глазами клиента» (только сотруднику на
-// витрине: роль приходит из входа) и вход: гость — «Войти», вошедший — меню аккаунта. На узком экране
+// Красная шапка: логотип и разделы (на узком экране — кнопка меню и логотип); справа — плашка режима LLM (сотруднику)
+// и вход: гость — «Войти», вошедший — меню аккаунта. Переключателя «Глазами клиента» нет (убран). На узком экране
 // инструменты уходят второй строкой.
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { RouterLink, useRoute } from 'vue-router'
@@ -8,19 +8,15 @@ import { Menu } from 'lucide-vue-next'
 import AccountMenu from './AccountMenu.vue'
 import AppNav from './AppNav.vue'
 import BrandMark from './BrandMark.vue'
-import ClientSwitch from './ClientSwitch.vue'
 import LlmModeBadge from './LlmModeBadge.vue'
 import SpecButton from '@/components/spec/SpecButton.vue'
-import { useAppStore } from '@/stores/app'
 import { useAuthStore } from '@/stores/auth'
 
 defineEmits<{ openMenu: [] }>()
 
 const route = useRoute()
-const app = useAppStore()
 // Контур доводки: плашка режима LLM — только сотруднику; гость и покупатель её не видят.
 const auth = useAuthStore()
-const backoffice = computed(() => route.meta.backoffice === true)
 // Контур коммерции: «Спецификация» — в шапке раздела «Поиск».
 const storefront = computed(() => route.path === '/search')
 
@@ -58,7 +54,6 @@ onBeforeUnmount(() => observer?.disconnect())
     <div class="app-header__tools">
       <SpecButton v-if="storefront" />
       <LlmModeBadge v-if="auth.staff" />
-      <ClientSwitch v-if="app.canPickClient && !backoffice" />
       <AccountMenu />
     </div>
   </header>

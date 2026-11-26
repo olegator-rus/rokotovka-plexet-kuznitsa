@@ -49,14 +49,15 @@ export const useAppStore = defineStore('app', () => {
   const metaError = ref<ApiError | null>(null)
   /** Клиент, выбранный сотрудником («Смотреть глазами клиента»). */
   const pickedClient = ref<string>(readStorage(CLIENT_KEY) || GUEST_CLIENT_ID)
-  /** Может ли смотрящий выбирать клиента витрины. */
-  const canPickClient = computed(() => auth.staff)
-  /** Клиент витрины: покупатель — свой из сессии, гость — «Гость», сотрудник — выбранный. */
-  const clientId = computed<string>(() => {
-    if (auth.buyer) return auth.viewer.client_id || GUEST_CLIENT_ID
-    if (!auth.staff) return GUEST_CLIENT_ID
-    return pickedClient.value
-  })
+  /**
+   * Может ли смотрящий выбирать клиента витрины. Переключатель «Смотреть глазами клиента» убран из шапки по решению
+   * владельца: клиента не выбирает никто, сотрудник смотрит витрину как гость.
+   */
+  const canPickClient = computed(() => false)
+  /** Клиент витрины: покупатель — свой из сессии, все остальные (гость и сотрудник) — «Гость». */
+  const clientId = computed<string>(() =>
+    auth.buyer ? auth.viewer.client_id || GUEST_CLIENT_ID : GUEST_CLIENT_ID,
+  )
   /** Токен сессии от сервера (GET /api/meta): до ответа meta — сохранённый или пустой. */
   const sessionId = ref<string>(initialSession())
 

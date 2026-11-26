@@ -27,6 +27,7 @@ import ManagerDialog from '@/components/search/ManagerDialog.vue'
 import ResultCard, { type ItemAction } from '@/components/search/ResultCard.vue'
 import ResultSkeleton from '@/components/search/ResultSkeleton.vue'
 import SearchPanel, { type PanelSubmit } from '@/components/panel/SearchPanel.vue'
+import LlmModeNote from '@/components/search/LlmModeNote.vue'
 import SearchError from '@/components/search/SearchError.vue'
 import SearchStart from '@/components/search/SearchStart.vue'
 import UnderstandingBar from '@/components/search/UnderstandingBar.vue'
@@ -596,6 +597,11 @@ function onOpen(item: SearchItem, position: number) {
   trackQuiet('click', { productId: item.product_id, position })
 }
 
+/** Название карточки — ссылка на страницу товара: обычный click с payload.action = product_page. */
+function onProductOpen(item: SearchItem, position: number) {
+  trackQuiet('click', { productId: item.product_id, position, payload: { action: 'product_page' } })
+}
+
 function onWhy(item: SearchItem) {
   selected.value = item.product_id
   setTrace(true)
@@ -729,6 +735,7 @@ async function onSupply() {
           :client-id="state.client ?? GUEST_CLIENT_ID"
           @submit="onPanelSubmit"
         />
+        <LlmModeNote />
       </div>
     </div>
 
@@ -915,10 +922,12 @@ async function onSupply() {
                     :in-spec="inSpec"
                     :show-compat="hardwareOn"
                     :purchase="response.purchase"
+                    :request-id="response.request_id"
                     @expand="onVariantExpand"
                     @spec="onSpecTarget"
                     @price-request="onPriceRequest"
                     @why="onWhy"
+                    @product="onProductOpen"
                   >
                     <RequiredLine
                       v-if="requiredOf(p.item).length"
@@ -935,10 +944,12 @@ async function onSupply() {
                     :selected="state.trace && selected === p.item.product_id"
                     :in-spec="spec.has(p.item.product_id)"
                     :show-compat="hardwareOn"
+                    :request-id="response.request_id"
                     @open="onOpen"
                     @action="onAction"
                     @why="onWhy"
                     @spec="onSpec"
+                    @product="onProductOpen"
                   >
                     <RequiredLine
                       v-if="requiredOf(p.item).length"
@@ -976,10 +987,12 @@ async function onSupply() {
                     :in-spec="inSpec"
                     :show-compat="hardwareOn"
                     :purchase="response.purchase"
+                    :request-id="response.request_id"
                     @expand="onVariantExpand"
                     @spec="onSpecTarget"
                     @price-request="onPriceRequest"
                     @why="onWhy"
+                    @product="onProductOpen"
                   >
                     <RequiredLine
                       v-if="requiredOf(p.item).length"
@@ -996,10 +1009,12 @@ async function onSupply() {
                     :selected="state.trace && selected === p.item.product_id"
                     :in-spec="spec.has(p.item.product_id)"
                     :show-compat="hardwareOn"
+                    :request-id="response.request_id"
                     @open="onOpen"
                     @action="onAction"
                     @why="onWhy"
                     @spec="onSpec"
+                    @product="onProductOpen"
                   >
                     <RequiredLine
                       v-if="requiredOf(p.item).length"
@@ -1040,10 +1055,12 @@ async function onSupply() {
                       :selected="state.trace && selected === p.item.product_id"
                       :in-spec="inSpec"
                       :show-compat="hardwareOn"
+                      :request-id="response.request_id"
                       @expand="onVariantExpand"
                       @spec="onSpecTarget"
                       @price-request="onPriceRequest"
                       @why="onWhy"
+                      @product="onProductOpen"
                     />
                     <ResultCard
                       v-else
@@ -1052,10 +1069,12 @@ async function onSupply() {
                       :selected="state.trace && selected === p.item.product_id"
                       :in-spec="spec.has(p.item.product_id)"
                       :show-compat="hardwareOn"
+                      :request-id="response.request_id"
                       @open="onOpen"
                       @action="onAction"
                       @why="onWhy"
                       @spec="onSpec"
+                      @product="onProductOpen"
                     />
                   </li>
                 </ol>
@@ -1087,10 +1106,12 @@ async function onSupply() {
                       :selected="state.trace && selected === p.item.product_id"
                       :in-spec="inSpec"
                       :show-compat="hardwareOn"
+                      :request-id="response.request_id"
                       @expand="onVariantExpand"
                       @spec="onSpecTarget"
                       @price-request="onPriceRequest"
                       @why="onWhy"
+                      @product="onProductOpen"
                     />
                     <ResultCard
                       v-else
@@ -1099,10 +1120,12 @@ async function onSupply() {
                       :selected="state.trace && selected === p.item.product_id"
                       :in-spec="spec.has(p.item.product_id)"
                       :show-compat="hardwareOn"
+                      :request-id="response.request_id"
                       @open="onOpen"
                       @action="onAction"
                       @why="onWhy"
                       @spec="onSpec"
+                      @product="onProductOpen"
                     />
                   </li>
                 </ol>
@@ -1132,10 +1155,12 @@ async function onSupply() {
                       :position="response.items.length + i + 1"
                       :named="named"
                       :in-spec="inSpec"
+                      :request-id="response.request_id"
                       @expand="onVariantExpand"
                       @spec="onSpecTarget"
                       @price-request="onPriceRequest"
                       @why="onWhy"
+                      @product="onProductOpen"
                     />
                   </li>
                 </ol>
@@ -1217,10 +1242,10 @@ async function onSupply() {
   width: 100%;
   max-width: var(--content-max);
   margin-inline: auto;
-  padding: var(--space-5) var(--gutter) var(--space-8);
+  padding: var(--space-5) var(--gutter) var(--space-4);
 }
 .search-hero--idle .search-hero__inner {
-  padding-block: var(--space-4) var(--space-12);
+  padding-block: var(--space-4);
 }
 .search-hero__title {
   margin: 0 0 var(--space-5);

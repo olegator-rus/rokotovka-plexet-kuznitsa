@@ -21,7 +21,7 @@ info:
       <BACKOFFICE_TOKEN>` (роль `system`); Basic с паролем = токен принимается по-прежнему. Решение чужой зоны — 403
       `PERMISSION_DENIED` «Это решение принимает <роль>». Открыты без входа (`security: []` у операции): GET
       `/api/health`, `/api/meta`, `/api/suggest`, `/api/suggest/recommendations`, `/api/evaluations`,
-      `/api/evaluations/commerce`, `/api/costs/summary`, `/api/companions`, `/api/auth/*`, `/api/quotes/mine` (проверяет обработчик) и POST
+      `/api/evaluations/commerce`, `/api/costs/summary`, `/api/companions`, `/api/products/{id}`, `/api/auth/*`, `/api/quotes/mine` (проверяет обработчик) и POST
       `/api/search`, `/api/events`, `/api/quotes`. При `AUTH_REQUIRED=off` (только development) без токена — `system`.
     - Квота модели на адрес: разбор запроса моделью (маршрут D) не дороже `LLM_PER_IP_DAILY_RUB` ₽ в сутки с
       одного адреса; сверх неё и сверх дневного бюджета разбор идёт по правилам (`fallback_reason` в трассе:
@@ -502,6 +502,28 @@ paths:
                   upgrade: { oneOf: [{ $ref: "#/components/schemas/Upgrade" }, { type: "null" }] }
         "404": { description: Позиции нет в каталоге }
         "422": { description: Нет product_id или неверное количество }
+  /api/products/{id}:
+    get:
+      tags: [Поиск]
+      summary: Страница товара
+      description: |
+        Позиция каталога для страницы `/product/:id`: условия лицензии, реестр, характеристики, другие варианты
+        семейства, совместимость, «С этим покупают» (подбор GET /api/companions без `upgrade`) и аналоги (связи
+        substitute). Витрина, без входа; ответ одинаков для всех ролей, полей маржи и популярности нет.
+        Данные — из каталога в памяти, индекс поиска не нужен.
+      operationId: product
+      security: []
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, minLength: 1, maxLength: 128 }, description: "id позиции (product_id)" }
+      responses:
+        "200":
+          description: Позиция каталога
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ProductPage" }
+        "404": { $ref: "#/components/responses/Error" }
+        "422": { $ref: "#/components/responses/Error" }
+        "503": { $ref: "#/components/responses/Error" }
   /api/events:
     post:
       tags: [Поиск]
@@ -1773,6 +1795,116 @@ components:
         suggested_quantity: { type: [integer, "null"] }
         label: { type: string }
         upgrade_adds: { type: array, items: { type: string } }
+    ProductPage:
+      type: object
+      description: "Страница товара. Массивы — всегда массивы; полей margin и popularity нет."
+      required: [catalog_version, product_id, sku, mpn, kind, family_id, family_name, title, vendor, category, description,
+        license_line, license, price_rub, price_on_request, price_mode, origin, reestr, attributes, specs, variants,
+        compatibility, companions, analogs]
+      properties:
+        catalog_version: { type: string }
+        product_id: { type: string }
+        sku: { type: string, description: "пусто — артикул не указан" }
+        mpn: { type: string, description: "парт-номер оборудования; пусто у ПО" }
+        kind: { type: string, enum: [software, hardware] }
+        family_id: { type: string }
+        family_name: { type: string }
+        title: { type: string }
+        vendor:
+          type: object
+          properties:
+            id: { type: string }
+            name: { type: string }
+            origin: { type: string, enum: [ru, foreign, ""], description: "происхождение позиции" }
+        category:
+          type: object
+          properties:
+            id: { type: string }
+            name: { type: string }
+        description: { type: string }
+        license_line: { type: string, description: "«Подписка · 2 устройства · 1 год»; пусто у оборудования" }
+        license:
+          type: object
+          properties:
+            type: { type: string }
+            metric: { type: [string, "null"] }
+            quantity: { type: [integer, "null"] }
+            duration_months: { type: [integer, "null"], description: "null — бессрочная" }
+            edition: { type: string }
+        price_rub: { type: [number, "null"] }
+        price_on_request: { type: boolean }
+        price_mode: { type: string, enum: [fixed, from, quote_required, customer_specific, unavailable] }
+        origin: { type: string, enum: [ru, foreign, ""] }
+        reestr:
+          type: [object, "null"]
+          description: "статус в реестре российского ПО (§12.6); null у оборудования"
+          properties:
+            status: { type: string, enum: [confirmed, not_matching, unknown] }
+            number: { type: string }
+            label: { type: string }
+            checked_at: { type: string }
+        attributes:
+          type: array
+          description: "атрибуты с подписью сервера; ключ без подписи не отдаётся; значение — строкой"
+          items:
+            type: object
+            properties:
+              key: { type: string }
+              label: { type: string }
+              value: { type: string }
+        specs:
+          type: array
+          description: "числовые характеристики оборудования; [] у ПО"
+          items:
+            type: object
+            properties:
+              key: { type: string }
+              label: { type: string }
+              value: { type: number }
+              unit: { type: string }
+        variants:
+          type: array
+          description: "остальные позиции семейства: по цене, без цены — в конце, затем по названию"
+          items:
+            type: object
+            properties:
+              product_id: { type: string }
+              title: { type: string }
+              license_line: { type: string }
+              price_rub: { type: [number, "null"] }
+              price_on_request: { type: boolean }
+              price_mode: { type: string }
+        compatibility:
+          type: array
+          items:
+            type: object
+            properties:
+              target_model: { type: string }
+              state: { type: string, enum: [verified, conditional, incompatible, unknown] }
+              condition: { type: string }
+              source_url: { type: string }
+        companions:
+          type: object
+          description: "подбор GET /api/companions (количество — license.quantity, иначе 1); FEATURE_COMPANIONS выключен — пустые списки"
+          properties:
+            required: { type: array, items: { $ref: "#/components/schemas/Companion" } }
+            items: { type: array, items: { $ref: "#/components/schemas/Companion" } }
+        analogs:
+          type: array
+          description: "связи substitute от семейства в действующем справочнике связей, до 5"
+          items:
+            type: object
+            properties:
+              family_id: { type: string }
+              family_name: { type: string }
+              product_id: { type: string }
+              title: { type: string }
+              vendor: { type: string }
+              license_line: { type: string }
+              price_rub: { type: [number, "null"] }
+              price_on_request: { type: boolean }
+              price_mode: { type: string }
+              note: { type: string }
     SearchResponse:
       type: object
       properties:

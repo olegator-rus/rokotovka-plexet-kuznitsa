@@ -78,7 +78,7 @@
   --danger-bg: #fbe9e5;
 
   /* Разложение скора: четыре ступени нейтральной шкалы (не цвет — подписи стоят рядом) */
-  --score-relevance: #2b313c;
+  --score-relevance: #a50f2d;
   --score-popularity: #586170;
   --score-margin: #8a94a3;
   --score-context: #c3cad4;
@@ -163,7 +163,7 @@
   --dialog-w: 28rem;
   --dialog-wide-w: 44rem;
   --popover-max-h: 22rem;
-  --score-bar-h: 0.75rem;
+  --score-bar-h: 0.875rem;
   --skeleton-line: 0.75rem;
   --border-w: 1px;
   --focus-w: 2px;

@@ -6,11 +6,13 @@
 // у каждой строки. Справа — скор, он же «почему здесь» (трасса). Рейтингов, рассрочки и избранного нет.
 import VendorLogo from '@/components/common/VendorLogo.vue'
 import { computed, nextTick, ref } from 'vue'
+import { RouterLink } from 'vue-router'
 import { Check, ChevronDown, ListPlus, Route } from 'lucide-vue-next'
 import type { Purchase, SearchItem, SearchItemBase } from '@/api/types'
 import CompatBadge from '@/components/search/CompatBadge.vue'
 import { formatScore } from '@/lib/format'
 import { reestrTone, selectedOffer } from '@/lib/procurement'
+import { productHref } from '@/lib/product'
 import { isPurchasable, otherVariants, priceLabel } from '@/lib/license'
 import {
   attrCells,
@@ -31,6 +33,8 @@ const props = defineProps<{
   showCompat?: boolean
   /** Контур доводки: параметры закупки из запроса — карточка открывается с выбранным по ним вариантом. */
   purchase?: Purchase | null
+  /** Номер поиска: уходит в ссылку на страницу товара. */
+  requestId?: string | null
 }>()
 
 const emit = defineEmits<{
@@ -38,6 +42,8 @@ const emit = defineEmits<{
   spec: [target: SearchItemBase, position: number]
   priceRequest: [target: SearchItemBase, position: number]
   why: [item: SearchItem]
+  /** Переход на страницу товара по названию. */
+  product: [item: SearchItem, position: number]
 }>()
 
 const expanded = ref(false)
@@ -103,7 +109,16 @@ function rowQuantity(v: SearchItemBase): string {
           <span v-if="item.category" aria-hidden="true"> · </span>
           <span v-if="item.category">{{ item.category }}</span>
         </p>
-        <h3 class="fcard__title">{{ item.title }}</h3>
+        <h3 class="fcard__title">
+          <RouterLink
+            :to="productHref(item.product_id, requestId, position)"
+            class="fcard__title-link"
+            data-testid="product-link"
+            @click="emit('product', item, position)"
+          >
+            {{ item.title }}
+          </RouterLink>
+        </h3>
 
         <dl v-if="isSoftware" class="fcard__attrs t-xs">
           <div
@@ -379,6 +394,17 @@ function rowQuantity(v: SearchItemBase): string {
   font-size: var(--fs-body);
   line-height: var(--lh-body);
   font-weight: var(--fw-semibold);
+}
+.fcard__title-link {
+  color: var(--text);
+  text-decoration: none;
+  border-radius: var(--radius-sm);
+  overflow-wrap: anywhere;
+}
+.fcard__title-link:hover {
+  text-decoration: underline;
+  text-decoration-color: var(--text-3);
+  text-underline-offset: 3px;
 }
 .fcard__attrs {
   display: flex;

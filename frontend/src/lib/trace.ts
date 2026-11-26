@@ -41,6 +41,7 @@ export const STEP_LABELS: Record<string, string> = {
   companions: 'Компаньоны',
   upgrade: 'Старшая редакция',
   solution: 'Решение по шаблону',
+  procurement: 'Закупка',
 }
 
 export const CHANGE_KIND_LABELS: Record<string, string> = {

@@ -23,7 +23,7 @@ const groupLabel: Record<string, string> = {
   <div class="score">
     <p class="score__head">
       <span class="score__title">{{ title }}</span>
-      <span class="t-num">итог {{ formatScore(item.final) }}</span>
+      <span class="score__final t-num">итог {{ formatScore(item.final) }}</span>
     </p>
     <p class="t-xs t-muted">
       {{ groupLabel[item.group] ?? item.group }} · сумма частей {{ formatScore(sum) }}
@@ -64,9 +64,18 @@ const groupLabel: Record<string, string> = {
 }
 .score__head {
   display: flex;
+  align-items: flex-start;
   justify-content: space-between;
   gap: var(--space-3);
-  font-weight: var(--fw-medium);
+  font-weight: var(--fw-semibold);
+}
+.score__final {
+  flex: none;
+  padding: var(--space-1) var(--space-3);
+  border-radius: var(--radius-pill);
+  background: var(--accent);
+  color: var(--on-accent);
+  font-weight: var(--fw-bold);
 }
 .score__title {
   min-width: 0;
@@ -77,7 +86,7 @@ const groupLabel: Record<string, string> = {
   gap: 2px;
   height: var(--score-bar-h);
   overflow: hidden;
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-pill);
   background: var(--surface-3);
 }
 .score__seg {
@@ -114,6 +123,9 @@ const groupLabel: Record<string, string> = {
   display: flex;
   align-items: center;
   gap: var(--space-2);
+  padding: var(--space-2);
+  border-radius: var(--radius-control);
+  background: var(--surface-2);
 }
 .score__label {
   flex: 1;

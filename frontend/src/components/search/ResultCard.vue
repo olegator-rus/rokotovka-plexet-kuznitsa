@@ -5,6 +5,7 @@
 // подходящая под запрос — первой и с пометкой.
 import VendorLogo from '@/components/common/VendorLogo.vue'
 import { computed, ref } from 'vue'
+import { RouterLink } from 'vue-router'
 import { Check, ChevronDown, ChevronRight, ListPlus, Route } from 'lucide-vue-next'
 import type { SearchItem, SearchItemBase } from '@/api/types'
 import CompatBadge from '@/components/search/CompatBadge.vue'
@@ -16,6 +17,7 @@ import {
   priceLabel,
   splitLicenseLine,
 } from '@/lib/license'
+import { productHref } from '@/lib/product'
 
 export type ItemAction = 'add_to_cart' | 'order' | 'price_request'
 
@@ -28,6 +30,8 @@ const props = defineProps<{
   inSpec?: boolean
   /** Контур коммерции: показывать значок совместимости (флаг hardware). */
   showCompat?: boolean
+  /** Номер поиска: уходит в ссылку на страницу товара. */
+  requestId?: string | null
 }>()
 
 const emit = defineEmits<{
@@ -35,6 +39,8 @@ const emit = defineEmits<{
   action: [type: ItemAction, target: SearchItemBase, position: number]
   why: [item: SearchItem]
   spec: [item: SearchItem, position: number]
+  /** Переход на страницу товара по названию. */
+  product: [item: SearchItem, position: number]
 }>()
 
 const expanded = ref(false)
@@ -62,6 +68,7 @@ function toggle() {
             class="result__toggle"
             :aria-expanded="expanded"
             :aria-controls="detailsId"
+            :aria-label="`Другие лицензии: ${item.title}`"
             @click="toggle"
           >
             <component
@@ -70,8 +77,15 @@ function toggle() {
               aria-hidden="true"
               class="result__chevron"
             />
-            <span>{{ item.title }}</span>
           </button>
+          <RouterLink
+            :to="productHref(item.product_id, requestId, position)"
+            class="result__title-link"
+            data-testid="product-link"
+            @click="emit('product', item, position)"
+          >
+            {{ item.title }}
+          </RouterLink>
         </h3>
         <p class="result__meta t-sm">
           <span>{{ item.vendor }}</span>
@@ -227,6 +241,9 @@ function toggle() {
   min-width: 0;
 }
 .result__title {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-1);
   margin: 0;
   font-size: var(--fs-body);
   line-height: var(--lh-body);
@@ -245,7 +262,13 @@ function toggle() {
   text-align: left;
   cursor: pointer;
 }
-.result__toggle:hover span {
+.result__title-link {
+  color: var(--text);
+  text-decoration: none;
+  border-radius: var(--radius-sm);
+  overflow-wrap: anywhere;
+}
+.result__title-link:hover {
   text-decoration: underline;
   text-decoration-color: var(--text-3);
   text-underline-offset: 3px;

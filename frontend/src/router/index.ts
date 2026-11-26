@@ -70,6 +70,12 @@ export const router = createRouter({
       component: () => import('@/pages/RulesPage.vue'),
       meta: { section: 'Правила рекомендаций' },
     },
+    {
+      path: '/product/:id',
+      name: 'product',
+      component: () => import('@/pages/ProductPage.vue'),
+      meta: { section: 'Товар' },
+    },
     // Старые адреса контуров поиска–3 (контур доводки: три раздела) — на новые места, без ссылок в пустоту.
     { path: '/analytics', redirect: () => ({ path: '/searchops', query: { tab: 'failed' } }) },
     {
