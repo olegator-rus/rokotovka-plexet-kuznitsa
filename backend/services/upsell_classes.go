@@ -214,7 +214,23 @@ func (r *upsellRun) classCandsUncached(from string, l domain.UpsellLink) []upsel
 			}
 			sort.Strings(vers)
 		}
-		pid := r.pickOffer([]string{fid}, true, vers...)
+		// Тот же вендор — только позиция не дороже якоря в sameVendorRatio раз (RuBackup OneClick за 761 000 ₽ к ОС за
+		// 5 100 ₽ — нет). Дешёвой позиции нет — семейство идёт по общим правилам ярусов.
+		same := r.lx.familyVendor[fid] == anchorVendor
+		pid := ""
+		if same && r.sameVendorRatio > 0 {
+			if ap := docBuyPrice(r.anchor); ap != nil {
+				r.priceCap = r.sameVendorRatio * *ap
+				pid = r.pickOffer([]string{fid}, true, vers...)
+				r.priceCap = 0
+				if pid == "" {
+					same = false
+				}
+			}
+		}
+		if pid == "" {
+			pid = r.pickOffer([]string{fid}, true, vers...)
+		}
 		if pid == "" {
 			continue
 		}
@@ -232,7 +248,7 @@ func (r *upsellRun) classCandsUncached(from string, l domain.UpsellLink) []upsel
 			docRank = -float64(hit.i) - 1
 		}
 		key := []float64{0, 0, 0, docRank, float64(len(r.ix.buyable[fid]))}
-		if r.lx.familyVendor[fid] == anchorVendor {
+		if same {
 			key[0] = 1
 		}
 		if doc || phrase != "" {
@@ -407,7 +423,8 @@ func (s *Services) suggestTogether(lx *searchLexicon, p out.PanelProduct) []out.
 		return res
 	}
 	r := &upsellRun{ix: ix, lx: lx, anchor: a, shown: map[string]bool{}, rejected: map[string]bool{}, now: s.now(),
-		step: &UpsellStep{Considered: []UpsellConsidered{}, Rejected: []domain.RejectedHit{}}}
+		sameVendorRatio: s.upsellRatio,
+		step:            &UpsellStep{Considered: []UpsellConsidered{}, Rejected: []domain.RejectedHit{}}}
 	usedVendor := map[string]bool{}
 	// Первый проход — по одной карточке на строку таблицы; если строк меньше двух — второй проход добирает из тех же
 	// строк (видеосвязь → офисный пакет, max 2).

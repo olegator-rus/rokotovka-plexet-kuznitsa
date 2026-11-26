@@ -57,6 +57,7 @@ type Services struct {
 	noFallbackBlock bool
 	// upsellTitle — заголовок блока допродажи; upsell — справочники допродажи контура фида (upsell_data.go).
 	upsellTitle string
+	upsellRatio float64
 	upsell      upsellState
 	// procurement — справка и реестр контура доводки из файлов источника (help_index.go, analogs_reestr.go).
 	procurement procurementCache
@@ -104,6 +105,8 @@ type Options struct {
 	NoFallbackBlock bool
 	// UpsellTitle — заголовок блока допродажи (UPSELL_BLOCK_TITLE); пусто — «Дополните решение».
 	UpsellTitle string
+	// UpsellRatio — UPSELL_SAME_VENDOR_MAX_RATIO: порог «тот же вендор» в блоке допродажи (0 — без порога).
+	UpsellRatio float64
 }
 
 // NewServices — граф сервисов. repos == nil — API без базы: health отдаёт db: down, поиск не пишет журнал.
@@ -131,6 +134,7 @@ func NewServices(repos *repositories.Repos, opts Options) *Services {
 		features:        opts.Features,
 		noFallbackBlock: opts.NoFallbackBlock,
 		upsellTitle:     opts.UpsellTitle,
+		upsellRatio:     opts.UpsellRatio,
 	}
 	var load func(context.Context, time.Time) (float64, error)
 	if repos.Enabled() {

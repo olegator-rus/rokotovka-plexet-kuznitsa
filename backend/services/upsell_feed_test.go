@@ -435,3 +435,32 @@ func TestUpsellClassTieBreakByDocOrder(t *testing.T) {
 		t.Fatalf("ничья по ярусу и акции — порядок документов: %+v", cs)
 	}
 }
+
+func TestUpsellSameVendorPriceRatio(t *testing.T) {
+	f, data := classFixture()
+	f.add(indexDoc{ProductID: "rb", FamilyID: "rubackup", FamilyName: "RuBackup OneClick", VendorID: "astralinux",
+		Vendor: "Группа Астра", CategoryID: "backup", Title: "RuBackup OneClick, бессрочная", LicenseKind: domain.LicenseKindBase,
+		PriceRub: ptr(761000.0)})
+	now := time.Date(2026, 5, 28, 12, 0, 0, 0, time.UTC)
+	r, _ := f.runAt("a-orel-ws", data, now)
+	r.sameVendorRatio = 20 // якорь 3 100 ₽ → потолок 62 000 ₽
+	cs := r.classCands("os", data.links[3])
+	if len(cs) == 0 || cs[0].fid == "rubackup" {
+		t.Fatalf("дороже якоря в 20 раз — не ярус «тот же вендор»: %+v", cs)
+	}
+	// Дешёвая позиция того же вендора проходит порог — остаётся первой.
+	f.add(indexDoc{ProductID: "rb-cheap", FamilyID: "rubackup", FamilyName: "RuBackup OneClick", VendorID: "astralinux",
+		Vendor: "Группа Астра", CategoryID: "backup", Title: "RuBackup OneClick, клиент", LicenseKind: domain.LicenseKindBase,
+		PriceRub: ptr(9000.0)})
+	r2, _ := f.runAt("a-orel-ws", data, now)
+	r2.sameVendorRatio = 20
+	cs = r2.classCands("os", data.links[3])
+	if len(cs) == 0 || cs[0].fid != "rubackup" || cs[0].pid != "rb-cheap" {
+		t.Fatalf("позиция в пределах порога — тот же вендор первым: %+v", cs)
+	}
+	// Без порога (0) — прежнее правило.
+	r3, _ := f.runAt("a-orel-ws", data, now)
+	if cs = r3.classCands("os", data.links[3]); cs[0].fid != "rubackup" {
+		t.Fatalf("порог 0 — тот же вендор первым: %+v", cs)
+	}
+}

@@ -79,6 +79,9 @@ type Config struct {
 	// UpsellTitle — UPSELL_BLOCK_TITLE: заголовок блока допродажи; по умолчанию «Дополните решение» («Часто покупают
 	// вместе» — только когда в данных появятся заказы).
 	UpsellTitle string
+	// UpsellSameVendorMaxRatio — UPSELL_SAME_VENDOR_MAX_RATIO: в ярусе «тот же вендор» блока допродажи — только позиции не
+	// дороже якоря в N раз (по умолчанию 20; 0 — без порога). Дороже — карточка идёт по общим правилам.
+	UpsellSameVendorMaxRatio float64
 }
 
 func (c Config) IsProduction() bool { return c.AppEnv == EnvProduction }
@@ -125,6 +128,15 @@ func Load() (Config, error) {
 		}
 	default:
 		problems = append(problems, fmt.Sprintf("DATA_SOURCE=%q: ожидается mock или generic", c.DataSource))
+	}
+	c.UpsellSameVendorMaxRatio = 20
+	if raw := strings.TrimSpace(os.Getenv("UPSELL_SAME_VENDOR_MAX_RATIO")); raw != "" {
+		r, err := strconv.ParseFloat(strings.ReplaceAll(raw, ",", "."), 64)
+		if err != nil || r < 0 {
+			problems = append(problems, fmt.Sprintf("UPSELL_SAME_VENDOR_MAX_RATIO=%q: ожидается число ≥ 0", raw))
+		} else {
+			c.UpsellSameVendorMaxRatio = r
+		}
 	}
 	if c.IndexAlias != "" && !validAlias(c.IndexAlias) {
 		problems = append(problems, fmt.Sprintf("INDEX_ALIAS=%q: строчные латинские буквы, цифры, _ и -", c.IndexAlias))

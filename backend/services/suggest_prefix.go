@@ -227,3 +227,57 @@ func (ci *codeIndex) prefix(code string, limit int) []string {
 	}
 	return res
 }
+
+// prefixCompletion — вид кандидата: набранное — начало ключа алиаса словаря.
+const prefixCompletion = "completion"
+
+// minCompletionRunes — дополнение по словарю — с третьего символа.
+const minCompletionRunes = 3
+
+// aliasCompletion — дополнение набранного по словарю алиасов (импорт + словарь понимания): ввод — начало ключа
+// («эни» → «энидеск» → anydesk, «касп» → «каспер» → kaspersky, «макс» → «макспатрол» → maxpatrol). Из нескольких
+// ключей — самый короткий, при равенстве — по алфавиту: «аст» → «астра» (вендор), а не «астра линукс се». vendor —
+// вендор цели алиаса ("" — цель не вендор). Набранное с цифрами и коды не дополняются.
+func aliasCompletion(typed string, rules *searchRules) (text, vendor string, ok bool) {
+	c, ok := aliasCompletionOf(typed, rules)
+	return c.text, c.vendor, ok
+}
+
+// completion — дополнение словаря: текст, вендор цели и категории цели (алиас с целью category: «офис» → офисные
+// пакеты).
+type completion struct {
+	text, vendor string
+	cats         []string
+}
+
+func aliasCompletionOf(typed string, rules *searchRules) (completion, bool) {
+	text, vendor, cats, ok := aliasCompletionFull(typed, rules)
+	return completion{text: text, vendor: vendor, cats: cats}, ok
+}
+
+func aliasCompletionFull(typed string, rules *searchRules) (text, vendor string, cats []string, ok bool) {
+	if rules == nil || utf8.RuneCountInString(typed) < minCompletionRunes || hasDigit(typed) {
+		return "", "", nil, false
+	}
+	best := ""
+	for key := range rules.aliases {
+		if !strings.HasPrefix(key, typed) {
+			continue
+		}
+		if best == "" || len(key) < len(best) || len(key) == len(best) && key < best {
+			best = key
+		}
+	}
+	if best == "" {
+		return "", "", nil, false
+	}
+	a := rules.aliases[best]
+	text = strings.Join(strings.Fields(foldText(a.Canonical)), " ")
+	if text == "" || text == typed {
+		return "", "", nil, false
+	}
+	if a.Target == "vendor" {
+		vendor = a.TargetID
+	}
+	return text, vendor, rules.categories[best], true
+}

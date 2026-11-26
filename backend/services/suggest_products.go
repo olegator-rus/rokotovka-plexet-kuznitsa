@@ -381,3 +381,147 @@ func rankedHit(pid string, rank int, score float64) domain.RankedHit {
 
 // codeRunes — длина ввода без пробелов (для порога маржи).
 func codeRunes(s string) int { return utf8.RuneCountInString(strings.ReplaceAll(s, " ", "")) }
+
+// mergeInstant — товарная секция по дополнению словаря (first) и по набранному (rest): сначала семейства дополнения,
+// затем остальные без повторов.
+func mergeInstant(first, rest *instantResult) *instantResult {
+	if first == nil {
+		return rest
+	}
+	if rest == nil {
+		return first
+	}
+	m := *first
+	m.families = append([]instantFamily(nil), first.families...)
+	seen := map[string]bool{}
+	for _, f := range m.families {
+		seen[f.id] = true
+	}
+	for _, f := range rest.families {
+		if !seen[f.id] {
+			seen[f.id] = true
+			m.families = append(m.families, f)
+		}
+	}
+	m.docs = append(append([]indexDoc(nil), first.docs...), rest.docs...)
+	m.before = append(append([]panelCandidate(nil), first.before...), rest.before...)
+	m.shifts = append(append([]panelShift(nil), first.shifts...), rest.shifts...)
+	m.total = len(m.families)
+	m.ms = first.ms + rest.ms
+	return &m
+}
+
+// vendorWeights — вендор → число его семейств с позициями, которые можно купить сейчас; считается один раз на снимок
+// словаря.
+var vendorWeights sync.Map // *searchLexicon → map[string]int
+
+// vendorWeight — вес вендора в панели.
+func vendorWeight(lx *searchLexicon, vendor string) int {
+	if v, ok := vendorWeights.Load(lx); ok {
+		return v.(map[string]int)[vendor]
+	}
+	w := map[string]int{}
+	for _, fid := range lx.familyOrder {
+		for _, pid := range lx.families[fid] {
+			if docBuyPrice(lx.docs[pid]) != nil {
+				w[lx.familyVendor[fid]]++
+				break
+			}
+		}
+	}
+	v, _ := vendorWeights.LoadOrStore(lx, w)
+	return v.(map[string]int)[vendor]
+}
+
+// completionFamilies — семейства цели алиаса-вендора или алиаса-категории прямо из каталога (позиции с ценой есть);
+// nil — цель алиаса термин.
+func completionFamilies(lx *searchLexicon, c completion) *instantResult {
+	if c.vendor == "" && len(c.cats) == 0 {
+		return nil
+	}
+	r := &instantResult{text: c.text}
+	for _, fid := range lx.familyOrder {
+		if c.vendor != "" && lx.familyVendor[fid] != c.vendor || c.vendor == "" && !contains(c.cats, lx.familyCat[fid]) {
+			continue
+		}
+		var head indexDoc
+		found := false
+		for _, pid := range lx.families[fid] {
+			d := lx.docs[pid]
+			if docBuyPrice(d) == nil {
+				continue
+			}
+			if !found || d.LicenseKind == domain.LicenseKindBase && head.LicenseKind != domain.LicenseKindBase {
+				head, found = d, true
+			}
+		}
+		if found {
+			r.families = append(r.families, instantFamily{id: fid, head: head, rel: 1, pop: head.Popularity, members: 1})
+			r.docs = append(r.docs, head)
+		}
+	}
+	if len(r.families) == 0 {
+		return nil
+	}
+	return orderCompletion(lx, r, c.cats, c.text)
+}
+
+// orderCompletion — семейства дополнения словаря: только категории цели алиаса (если она — категория), затем точные,
+// те, что можно купить сейчас, название содержит текст дополнения («office» → Microsoft Office, а не Workspad),
+// продукты раньше курсов и техподдержки, главная категория вендора (где больше его позиций с ценой), шире линейка (позиций
+// с ценой), релевантность. «касп» → антивирусы Kaspersky, а не курс; «аст» → Astra Linux SE, а не DCImanager.
+func orderCompletion(lx *searchLexicon, r *instantResult, cats []string, text string) *instantResult {
+	if r == nil {
+		return nil
+	}
+	m := *r
+	fs := make([]instantFamily, 0, len(r.families))
+	for _, f := range r.families {
+		if len(cats) > 0 && !contains(cats, lx.familyCat[f.id]) {
+			continue
+		}
+		fs = append(fs, f)
+	}
+	n, named, catCount := map[string]int{}, map[string]bool{}, map[string]int{}
+	words := wordsOf(text)
+	for _, f := range fs {
+		for _, pid := range lx.families[f.id] {
+			if docBuyPrice(lx.docs[pid]) != nil {
+				n[f.id]++
+			}
+		}
+		name := foldText(lx.familyName[f.id])
+		named[f.id] = len(words) > 0
+		for _, w := range words {
+			named[f.id] = named[f.id] && containsWord(name, w)
+		}
+	}
+	for _, f := range fs {
+		catCount[lx.familyCat[f.id]] += n[f.id] // вес категории — позиций с ценой у семейств вендора в ней
+	}
+	product := func(f instantFamily) bool {
+		k := f.head.LicenseKind
+		return k != domain.LicenseKindCourse && k != domain.LicenseKindSupport
+	}
+	sort.SliceStable(fs, func(i, j int) bool {
+		a, b := fs[i], fs[j]
+		switch {
+		case a.exact != b.exact:
+			return a.exact
+		case (n[a.id] > 0) != (n[b.id] > 0):
+			return n[a.id] > 0
+		case named[a.id] != named[b.id]:
+			return named[a.id]
+		case product(a) != product(b):
+			return product(a)
+		case catCount[lx.familyCat[a.id]] != catCount[lx.familyCat[b.id]]:
+			return catCount[lx.familyCat[a.id]] > catCount[lx.familyCat[b.id]]
+		case n[a.id] != n[b.id]:
+			return n[a.id] > n[b.id]
+		}
+		return a.rel > b.rel
+	})
+	m.families = fs
+	m.total = len(fs)
+	return &m
+}

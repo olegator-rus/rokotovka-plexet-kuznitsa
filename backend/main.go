@@ -100,6 +100,7 @@ func main() {
 			PanelRecs: cfg.Features.PanelRecs, PanelViewed: cfg.Features.PanelViewed},
 		NoFallbackBlock: !cfg.Features.FallbackBlock,
 		UpsellTitle:     cfg.UpsellTitle,
+		UpsellRatio:     cfg.UpsellSameVendorMaxRatio,
 	})
 
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)

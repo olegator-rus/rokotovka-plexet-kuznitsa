@@ -191,9 +191,10 @@ func (s *Services) SuggestPanel(ctx context.Context, requestID string, req Sugge
 	if len(hits) == 0 {
 		if c, ok := pq.typo(lx, rules); ok {
 			tr.Candidates = append(tr.Candidates, c.kind+":"+c.text)
-			if hits = dict.match(c.text, panelSuggestions*3); len(hits) > 0 {
-				chosen = c
-			}
+			// Опечатка исправлена — товары ищутся по исправленному, даже если в словаре подсказок совпадений нет
+			// («касперкий » → «касперский»): исправление до отправки запроса (контур эталонов).
+			hits = dict.match(c.text, panelSuggestions*3)
+			chosen = c
 		}
 		if len(hits) == 0 {
 			for _, c := range pq.cands {
@@ -208,6 +209,16 @@ func (s *Services) SuggestPanel(ctx context.Context, requestID string, req Sugge
 		resp.Corrected = &out.SuggestCorrected{From: pq.cands[0].text, To: chosen.text, Kind: chosen.kind}
 	}
 	skuExact := pq.code != "" && len(lx.codes().exact(pq.code)) > 0
+	// Дополнение по словарю (контур эталонов): «эни» → anydesk, «касп» → kaspersky — товары и вендор дополнения первыми.
+	var comp completion
+	compOK := false
+	if !skuExact {
+		comp, compOK = aliasCompletionOf(chosen.text, rules)
+	}
+	compText, compVendor := comp.text, comp.vendor
+	if compOK {
+		tr.Candidates = append(tr.Candidates, prefixCompletion+":"+compText)
+	}
 
 	// Товары — в фоне, пока считаются остальные секции.
 	type prodRes struct {
@@ -237,7 +248,7 @@ func (s *Services) SuggestPanel(ctx context.Context, requestID string, req Sugge
 			}
 		}
 		tr.MarginWeight = weight
-		key := strings.Join([]string{chosen.text, pq.code, st.version, strconv.Itoa(resp.Meta.IndexVersion), strconv.FormatFloat(weight, 'f', 4, 64)}, "|")
+		key := strings.Join([]string{chosen.text, compText, pq.code, st.version, strconv.Itoa(resp.Meta.IndexVersion), strconv.FormatFloat(weight, 'f', 4, 64)}, "|")
 		tr.ProductsText = chosen.text
 		cache := s.panel().products
 		go func() {
@@ -250,7 +261,20 @@ func (s *Services) SuggestPanel(ctx context.Context, requestID string, req Sugge
 			pctx, cancel := context.WithTimeout(ctx, productsTimeout)
 			defer cancel()
 			fn := func(c context.Context) (*instantResult, error) {
-				return s.instantProducts(c, lx, chosen.text, pq.code, pct)
+				r, err := s.instantProducts(c, lx, chosen.text, pq.code, pct)
+				if err != nil || !compOK {
+					return r, err
+				}
+				// Цель алиаса — вендор или категория: семейства берутся из каталога целиком (в первые кандидаты
+				// текстового поиска главное семейство вендора может не попасть); термин — текстовым поиском.
+				if cr := completionFamilies(lx, comp); cr != nil {
+					return mergeInstant(cr, r), nil
+				}
+				cr, cerr := s.instantProducts(c, lx, compText, "", pct)
+				if cerr != nil {
+					return r, nil // дополнение не посчиталось — секция по набранному
+				}
+				return mergeInstant(orderCompletion(lx, cr, comp.cats, ""), r), nil
 			}
 			var r *instantResult
 			var err error
@@ -267,6 +291,7 @@ func (s *Services) SuggestPanel(ctx context.Context, requestID string, req Sugge
 		resp.Suggestions = panelSuggestionsOf(dict, hits, utf8.RuneCountInString(chosen.text))
 	}
 	resp.Vendors = panelVendors(lx, rules, chosen.text, pq)
+	resp.Vendors = rankPanelVendors(lx, resp.Vendors, compVendor)
 	resp.Meta.Ms.Suggestions = msSince(t)
 
 	var r *instantResult
@@ -386,6 +411,34 @@ func panelVendors(lx *searchLexicon, rules *searchRules, text string, pq prefixQ
 	}
 	_ = pq
 	return res
+}
+
+// rankPanelVendors — вендор дополнения словаря первым, остальные — по весу (семейств, которые можно купить сейчас),
+// при равенстве — прежний порядок: «крип» → КриптоПро (13 семейств) раньше Криптокома.
+func rankPanelVendors(lx *searchLexicon, vs []out.PanelVendor, first string) []out.PanelVendor {
+	if first != "" && lx.vendorName[first] != "" {
+		found := false
+		for _, v := range vs {
+			found = found || v.ID == first
+		}
+		if !found {
+			vs = append([]out.PanelVendor{{ID: first, Name: lx.vendorName[first]}}, vs...)
+		}
+	}
+	w := map[string]int{}
+	for _, v := range vs {
+		w[v.ID] = vendorWeight(lx, v.ID)
+	}
+	sort.SliceStable(vs, func(i, j int) bool {
+		if (vs[i].ID == first) != (vs[j].ID == first) {
+			return vs[i].ID == first
+		}
+		return w[vs[i].ID] > w[vs[j].ID]
+	})
+	if len(vs) > panelVendorsMax {
+		vs = vs[:panelVendorsMax]
+	}
+	return vs
 }
 
 // panelCategories — взвешенная доля категории среди семейств-кандидатов после свёртки (семейство — голос с весом

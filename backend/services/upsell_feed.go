@@ -460,6 +460,10 @@ type upsellRun struct {
 	step     *UpsellStep
 	rejected map[string]bool
 	now      time.Time
+	// sameVendorRatio — порог яруса «тот же вендор» (цена позиции / цена якоря); 0 — без порога. priceCap — потолок
+	// цены позиции в pickOffer на время одного подбора (0 — нет).
+	sameVendorRatio float64
+	priceCap        float64
 }
 
 func (r *upsellRun) reject(pid, reason, detail string) {
@@ -671,6 +675,9 @@ func (r *upsellRun) pickOffer(fids []string, preferPlatform bool, versions ...st
 		}
 		for _, pid := range r.ix.buyable[fid] {
 			d := r.lx.docs[pid]
+			if r.priceCap > 0 && *docBuyPrice(d) > r.priceCap {
+				continue
+			}
 			low, f := r.ix.lower[pid], r.ix.feat[pid]
 			key := make([]float64, 8)
 			key[7] = -*docBuyPrice(d)
@@ -918,7 +925,7 @@ func (s *Services) feedUpsellStage(lx *searchLexicon, analog bool, resp *out.Sea
 	step.Anchor = &out.CompanionAnchor{ProductID: anchorPID, FamilyID: it.FamilyID, Confidence: conf}
 	step.AnchorOffer = a.Title
 	r := &upsellRun{ix: ix, lx: lx, anchor: a, shown: map[string]bool{}, step: step, rejected: map[string]bool{},
-		now: s.now()}
+		now: s.now(), sameVendorRatio: s.upsellRatio}
 	for _, x := range resp.Items {
 		r.shown[x.FamilyID] = true
 	}
