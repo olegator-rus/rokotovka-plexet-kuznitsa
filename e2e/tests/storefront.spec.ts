@@ -12,6 +12,7 @@ const PUBLIC = new Set([
   'GET /api/suggest/recommendations', // контур выдачи: рекомендации панели
   'GET /api/evaluations',
   'GET /api/evaluations/contribution', // контур доводки: «Доказательства» → «Вклад компонентов»
+  'GET /api/evaluations/feed', // контур эталонов: «Доказательства» → «На данных заказчика»
   'GET /api/costs/summary', // хвосты контура доводки: «Доказательства» → «Стоимость» без журнала вызовов
   'POST /api/search',
   'POST /api/events',
@@ -47,7 +48,8 @@ test.describe('гость', () => {
     await expect(page.getByText(/LLM включена|Режим без LLM/)).toHaveCount(0)
     await nav.getByRole('link', { name: 'Доказательства' }).click()
     await expect(page.getByRole('heading', { name: 'Доказательства', level: 1 })).toBeVisible()
-    await expect(page.getByRole('tab', { name: 'Метрики' })).toHaveAttribute(
+    // Контур эталонов (S6): экран по умолчанию — «На данных заказчика».
+    await expect(page.getByRole('tab', { name: 'На данных заказчика' })).toHaveAttribute(
       'data-state',
       'active',
     )
