@@ -8,6 +8,7 @@ import (
 	"io"
 	"io/fs"
 	"os"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -33,6 +34,89 @@ func (g *Generic) LoadPromos(_ context.Context) ([]domain.Promo, error) {
 		return nil, ErrNoFile
 	}
 	return ReadPromos(g.mapping.path(g.mapping.Promos))
+}
+
+// LoadUpsellClasses — классы и таблица классов допродажи (mapping.upsell_classes, mapping.upsell_links).
+func (g *Generic) LoadUpsellClasses(_ context.Context) ([]domain.UpsellClass, []domain.UpsellLink, error) {
+	if g.mapping.UpsellClasses == "" || g.mapping.UpsellLinks == "" {
+		return nil, nil, ErrNoFile
+	}
+	cls, err := ReadUpsellClasses(g.mapping.path(g.mapping.UpsellClasses))
+	if err != nil {
+		return nil, nil, err
+	}
+	links, err := ReadUpsellLinks(g.mapping.path(g.mapping.UpsellLinks), cls)
+	if err != nil {
+		return nil, nil, err
+	}
+	return cls, links, nil
+}
+
+// ReadUpsellClasses — классы продуктов: id, категории, регулярные выражения названия. Неверное выражение — ошибка.
+func ReadUpsellClasses(path string) ([]domain.UpsellClass, error) {
+	rows, err := readCSVRows(path, []string{"id", "title", "categories"})
+	if err != nil {
+		return nil, err
+	}
+	var out []domain.UpsellClass
+	seen := map[string]bool{}
+	for _, r := range rows {
+		c := domain.UpsellClass{ID: r.get("id"), Title: r.get("title"), Categories: splitPipe(r.get("categories")),
+			Include: r.get("include"), Exclude: r.get("exclude"), Source: r.get("source"), Note: r.get("note")}
+		switch {
+		case c.ID == "" || c.ID == domain.UpsellSelf || c.ID == domain.UpsellSelfVariant:
+			return nil, fmt.Errorf("%s:%d: недопустимый id класса %q", path, r.line, c.ID)
+		case seen[c.ID]:
+			return nil, fmt.Errorf("%s:%d: повтор id %q", path, r.line, c.ID)
+		case len(c.Categories) == 0 || c.Title == "":
+			return nil, fmt.Errorf("%s:%d: у класса %q нет категорий или названия", path, r.line, c.ID)
+		}
+		for _, re := range []string{c.Include, c.Exclude} {
+			if _, err := regexp.Compile(re); err != nil {
+				return nil, fmt.Errorf("%s:%d: выражение %q: %w", path, r.line, re, err)
+			}
+		}
+		seen[c.ID] = true
+		out = append(out, c)
+	}
+	return out, nil
+}
+
+// ReadUpsellLinks — таблица классов. Неизвестный класс, пустая причина или источник — ошибка.
+func ReadUpsellLinks(path string, classes []domain.UpsellClass) ([]domain.UpsellLink, error) {
+	rows, err := readCSVRows(path, []string{"from", "to", "reason", "source"})
+	if err != nil {
+		return nil, err
+	}
+	known := map[string]bool{domain.UpsellSelf: true, domain.UpsellSelfVariant: true}
+	for _, c := range classes {
+		known[c.ID] = true
+	}
+	var out []domain.UpsellLink
+	for _, r := range rows {
+		l := domain.UpsellLink{From: r.get("from"), To: r.get("to"), Kinds: splitPipe(r.get("kinds")), Max: 1,
+			RequireDoc: r.get("require_doc") == "yes", Reason: r.get("reason"), Source: r.get("source"),
+			AddedAt: r.get("added_at")}
+		if v := r.get("max"); v != "" {
+			n, err := strconv.Atoi(v)
+			if err != nil || n < 1 || n > 4 {
+				return nil, fmt.Errorf("%s:%d: max %q (1–4)", path, r.line, v)
+			}
+			l.Max = n
+		}
+		switch {
+		case !known[l.From] || l.From == domain.UpsellSelf || l.From == domain.UpsellSelfVariant:
+			return nil, fmt.Errorf("%s:%d: неизвестный класс запроса %q", path, r.line, l.From)
+		case !known[l.To]:
+			return nil, fmt.Errorf("%s:%d: неизвестный класс дополнения %q", path, r.line, l.To)
+		case l.Reason == "" || l.Source == "":
+			return nil, fmt.Errorf("%s:%d: у связи %s → %s нет причины или источника", path, r.line, l.From, l.To)
+		case l.AddedAt != "" && !isISODate(l.AddedAt):
+			return nil, fmt.Errorf("%s:%d: added_at %q (YYYY-MM-DD)", path, r.line, l.AddedAt)
+		}
+		out = append(out, l)
+	}
+	return out, nil
 }
 
 var compatLevels = map[string]bool{domain.EvidenceA: true, domain.EvidenceC: true}

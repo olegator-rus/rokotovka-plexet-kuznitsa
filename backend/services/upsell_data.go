@@ -21,8 +21,15 @@ type upsellState struct {
 }
 
 type upsellData struct {
-	compat []domain.CompatDoc
-	promos []domain.Promo
+	compat  []domain.CompatDoc
+	promos  []domain.Promo
+	classes []domain.UpsellClass
+	links   []domain.UpsellLink
+}
+
+// upsellClassLoader — источник с таблицей классов допродажи (generic: mapping.upsell_classes, upsell_links).
+type upsellClassLoader interface {
+	LoadUpsellClasses(ctx context.Context) ([]domain.UpsellClass, []domain.UpsellLink, error)
 }
 
 // upsellLoader — источник каталога со справочниками допродажи (generic: mapping.compat_docs, mapping.promos).
@@ -53,14 +60,38 @@ func (s *Services) LoadUpsellData(ctx context.Context) {
 		zap.L().Warn("акции не прочитаны — карточки без акций", zap.Error(err))
 		promos = nil
 	}
-	s.SetUpsellData(compat, promos)
-	zap.L().Info("справочники допродажи загружены", zap.Int("compat_docs", len(compat)), zap.Int("promos", len(promos)))
+	var classes []domain.UpsellClass
+	var links []domain.UpsellLink
+	if cl, ok := s.source.(upsellClassLoader); ok {
+		classes, links, err = cl.LoadUpsellClasses(ctx)
+		switch {
+		case errors.Is(err, catalogsource.ErrNoFile):
+			classes, links = nil, nil
+		case err != nil:
+			zap.L().Warn("таблица классов допродажи не прочитана — блок без логики классов", zap.Error(err))
+			classes, links = nil, nil
+		}
+	}
+	s.setUpsell(&upsellData{compat: compat, promos: promos, classes: classes, links: links})
+	zap.L().Info("справочники допродажи загружены", zap.Int("compat_docs", len(compat)), zap.Int("promos", len(promos)),
+		zap.Int("classes", len(classes)), zap.Int("class_links", len(links)))
 }
 
 // SetUpsellData — справочники допродажи (тесты и старт).
 func (s *Services) SetUpsellData(compat []domain.CompatDoc, promos []domain.Promo) {
-	s.upsell.data.Store(&upsellData{compat: append([]domain.CompatDoc(nil), compat...),
-		promos: append([]domain.Promo(nil), promos...)})
+	cur := s.upsellData()
+	s.setUpsell(&upsellData{compat: append([]domain.CompatDoc(nil), compat...),
+		promos: append([]domain.Promo(nil), promos...), classes: cur.classes, links: cur.links})
+}
+
+// SetUpsellClasses — таблица классов допродажи (тесты).
+func (s *Services) SetUpsellClasses(classes []domain.UpsellClass, links []domain.UpsellLink) {
+	cur := s.upsellData()
+	s.setUpsell(&upsellData{compat: cur.compat, promos: cur.promos, classes: classes, links: links})
+}
+
+func (s *Services) setUpsell(d *upsellData) {
+	s.upsell.data.Store(d)
 	upsellIndexes.Range(func(k, _ any) bool { upsellIndexes.Delete(k); return true })
 }
 

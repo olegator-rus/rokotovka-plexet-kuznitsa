@@ -242,11 +242,13 @@ type Companion struct {
 	OfferURL  string             `json:"offer_url,omitempty"`
 	FamilyURL string             `json:"family_url,omitempty"`
 	Promos    []ItemPromo        `json:"promos,omitempty"`
+	// Badges — «Скидка N%» по old_price позиции, «Акция» при действующей акции магазина (контур эталонов).
+	Badges []string `json:"badges,omitempty"`
 }
 
 // CompanionEvidence — основание карточки «Дополните решение»: A — документ вендора о совместимости,
 // B — каталог (тип лицензии, название SKU, экосистема вендора), C — та же задача, совместимость не подтверждена.
-// Kind: compat_document | license_kind | sku_platform | vendor_ecosystem | same_task. Дата документа не выводится.
+// Kind: compat_document | license_kind | sku_platform | class_logic (таблица классов, контур эталонов). Дата документа не выводится.
 type CompanionEvidence struct {
 	Level     string `json:"level"`
 	Kind      string `json:"kind"`

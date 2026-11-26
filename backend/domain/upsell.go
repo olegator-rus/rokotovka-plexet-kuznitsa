@@ -63,3 +63,36 @@ func (p Promo) ActiveOn(t time.Time) bool {
 	}
 	return p.ValidFrom.IsZero() || !day.Before(p.ValidFrom)
 }
+
+// UpsellClass — класс продукта для допродажи (контур эталонов, VENDORS.md): категории второго уровня фида и, при широкой
+// категории, слова в названии семейства (Include — хотя бы одно, Exclude — ни одного; регулярные выражения по
+// свёрнутому названию).
+type UpsellClass struct {
+	ID         string
+	Title      string
+	Categories []string
+	Include    string
+	Exclude    string
+	Source     string
+	Note       string
+}
+
+// UpsellLink — строка таблицы классов: класс запроса → класс дополнения с причиной на карточке. To — id класса или
+// self (тип лицензии в том же семействе, Kinds) / self_variant (позиция того же семейства под другую платформу).
+// RequireDoc — показывать только кандидатов с документом о совместимости. Дата записи хранится, не выводится.
+type UpsellLink struct {
+	From       string
+	To         string
+	Kinds      []string
+	Max        int
+	RequireDoc bool
+	Reason     string
+	Source     string
+	AddedAt    string
+}
+
+// Особые цели строки таблицы классов.
+const (
+	UpsellSelf        = "self"
+	UpsellSelfVariant = "self_variant"
+)

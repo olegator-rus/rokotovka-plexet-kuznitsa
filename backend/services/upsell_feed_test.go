@@ -92,7 +92,7 @@ func astraFixture() *fx {
 func TestUpsellLicenseKindChecksEdition(t *testing.T) {
 	f := astraFixture()
 	r, step := f.run("a-orel-ws", nil)
-	cs := r.licenseKindCands()
+	cs := r.licenseKindCands(nil, "")
 	if len(cs) != 1 || cs[0].pid != "s-orel-ws" {
 		t.Fatalf("техподдержка к «Орлу» для рабочей станции: %+v", cs)
 	}
@@ -122,7 +122,7 @@ func TestUpsellLicenseKindTitleEdition(t *testing.T) {
 	add("sup-ext", domain.LicenseKindSupport, "ЕСМ ТЕЗИС, техподдержка (расширенная Редакция), 10 подключений")
 	add("sup-std", domain.LicenseKindSupport, "ЕСМ ТЕЗИС, техподдержка, Стандартная редакция, 10 подключений")
 	r, step := f.run("base-std", nil)
-	cs := r.licenseKindCands()
+	cs := r.licenseKindCands(nil, "")
 	if len(cs) != 1 || cs[0].pid != "sup-std" {
 		t.Fatalf("к «Стандартной» — техподдержка «Стандартной», не «Расширенной»: %+v", cs)
 	}
@@ -168,66 +168,6 @@ func TestUpsellCompatDocLevels(t *testing.T) {
 	back := r2.compatCands()
 	if len(back) != 1 || back[0].fid != "astra" || !strings.HasPrefix(back[0].reason, "Платформа для КриптоПро CSP 5.0 R2 5.0.12001: Astra Linux SE 1.7") {
 		t.Fatalf("от продукта к платформе: %+v", back)
-	}
-}
-
-func TestUpsellPlatformVariants(t *testing.T) {
-	f := astraFixture()
-	r, _ := f.run("a-orel-ws", nil)
-	cs := r.platformCands()
-	got := map[string]string{}
-	var order []string
-	for _, c := range cs {
-		got[c.fid] = c.reason
-		order = append(order, c.fid)
-	}
-	if got["csp"] != "Вариант для Astra Linux SE" {
-		t.Fatalf("КриптоПро — вариант с именем платформы: %v", got)
-	}
-	if got["kb"] != "Вариант для рабочей станции Linux" {
-		t.Fatalf("Кибер Бэкап — вариант для Linux: %v", got)
-	}
-	if _, ok := got["cat"]; ok {
-		t.Fatal("«Астраханской» — не Astra")
-	}
-	if len(order) != 2 || order[0] != "csp" || order[1] != "kb" {
-		t.Fatalf("порядок: имя платформы, затем бэкап; «для Linux» у прикладной программы — нет: %v", order)
-	}
-	if _, ok := got["termidesk"]; ok {
-		t.Fatal("свой вендор — экосистема, не вариант под платформу")
-	}
-}
-
-func TestUpsellEcosystemAndAssemble(t *testing.T) {
-	f := astraFixture()
-	data := &upsellData{compat: []domain.CompatDoc{{ID: "cd-1", ProductFamilies: []string{"Программа КриптоПро CSP 5.0"},
-		PlatformFamilies: []string{"Astra Linux Special Edition"}, Platform: "Astra Linux SE", PlatformVersion: "1.7",
-		Level: domain.EvidenceA, DocKind: "certificate", DocTitle: "Сертификат Ready for Astra", DocNumber: "29073/2025",
-		URL: "https://astra.example/cert.pdf"}}}
-	r, step := f.run("a-orel-ws", data)
-	eco := r.ecosystemCands()
-	if len(eco) != 1 || eco[0].fid != "termidesk" || eco[0].reason != "Из экосистемы «Группа Астра»" {
-		t.Fatalf("экосистема — другие категории вендора (ALD Pro в той же категории — нет): %+v", eco)
-	}
-	items := r.assemble()
-	byFam := map[string]out.Companion{}
-	for _, it := range items {
-		byFam[it.FamilyID] = it
-		if it.Evidence == nil || it.Reason == "" || it.EvidenceLevel == "" {
-			t.Fatalf("у карточки нет причины или основания: %+v", it)
-		}
-	}
-	if byFam["csp"].EvidenceLevel != domain.EvidenceA || byFam["csp"].Evidence.DocNumber != "29073/2025" {
-		t.Fatalf("КриптоПро — уровень A (документ сильнее варианта под платформу): %+v", byFam["csp"])
-	}
-	if byFam["astra"].ProductID != "s-orel-ws" || byFam["kb"].EvidenceLevel != domain.EvidenceB {
-		t.Fatalf("техподдержка и Кибер Бэкап: %+v", items)
-	}
-	if len(items) > upsellMax {
-		t.Fatalf("карточек больше %d", upsellMax)
-	}
-	if len(step.Considered) == 0 {
-		t.Fatal("трасса без рассмотренных")
 	}
 }
 
@@ -315,7 +255,7 @@ func TestUpsellLicenseKindVersionAndPlatform(t *testing.T) {
 	add("mod4", domain.LicenseKindModule, "КриптоПро CSP версии 4.0 Lic, Лицензия на право использования")
 	add("sup5", domain.LicenseKindSupport, "КриптоПро CSP, Сертификат на годовую техподдержку СКЗИ версии 5.0")
 	r, step := f.run("base5", nil)
-	cs := r.licenseKindCands()
+	cs := r.licenseKindCands(nil, "")
 	if len(cs) != 1 || cs[0].pid != "sup5" {
 		t.Fatalf("к CSP 5.0 — техподдержка 5.0 без платформы: %+v", cs)
 	}
@@ -325,5 +265,173 @@ func TestUpsellLicenseKindVersionAndPlatform(t *testing.T) {
 	}
 	if reasons["sup-astra"] != upRejectPlatform || reasons["mod4"] != upRejectVersion {
 		t.Fatalf("отказы по платформе и версии: %v", reasons)
+	}
+}
+
+// classFixture — Astra (ОС) и Microsoft 365 (офис) с классами: антивирус (Dr.Web с акцией, KES с документом),
+// СКЗИ (КриптоПро с вариантом под Astra), бэкап (два семейства Киберпротекта и Uranium), антивирус без цены.
+func classFixture() (*fx, *upsellData) {
+	f := astraFixture()
+	add := func(id, fam, famName, vendor, cat, title string, price float64) {
+		f.add(indexDoc{ProductID: id, FamilyID: fam, FamilyName: famName, VendorID: vendor, Vendor: vendor,
+			CategoryID: cat, Title: title, LicenseKind: domain.LicenseKindBase, PriceRub: ptr(price)})
+	}
+	f.lx.categoryName["av"] = "Антивирусы для организаций"
+	f.lx.categoryName["office"] = "Офисные пакеты"
+	add("kes", "kesb", "Kaspersky Endpoint Security для бизнеса Стандартный", "kaspersky", "av", "KES Стандартный, 1 год", 2281)
+	add("ks365", "ks365", "Kaspersky Security для Microsoft Office 365", "kaspersky", "av", "Kaspersky Security для Microsoft Office 365, 1 год", 900)
+	add("drw", "drweb", "Dr.Web Desktop Security Suite", "drweb", "av", "Dr.Web Desktop Security Suite, 1 год", 1000)
+	add("drw2", "drweb", "Dr.Web Desktop Security Suite", "drweb", "av", "Dr.Web Desktop Security Suite, 2 года", 1800)
+	f.add(indexDoc{ProductID: "nop", FamilyID: "noprice", FamilyName: "Антивирус по запросу", VendorID: "x", Vendor: "x",
+		CategoryID: "av", Title: "Антивирус по запросу", PriceOnRequest: true, PriceRub: ptr(0.0)})
+	add("kbs", "kbs", "Кибер Бэкап Старт", "cyberprotect", "backup", "Кибер Бэкап Старт, подписка", 1370)
+	add("ura", "ura", "Uranium Backup", "uranium", "backup", "Uranium Backup Pro", 5000)
+	add("m365", "m365", "Microsoft 365 Family (для семьи)", "microsoft", "office", "Microsoft 365 Family", 11250)
+	data := &upsellData{
+		compat: []domain.CompatDoc{
+			{ID: "cd-kes", ProductFamilies: []string{"Kaspersky Endpoint Security для бизнеса Стандартный"},
+				PlatformFamilies: []string{"Astra Linux Special Edition"}, PlatformLabel: "Astra Linux SE 1.5–1.8",
+				Level: domain.EvidenceA, DocKind: "documentation", DocLabel: "документация KES 12.2 для Linux", URL: "https://kes.example/"},
+			{ID: "cd-csp", ProductFamilies: []string{"Программа КриптоПро CSP 5.0"}, PlatformFamilies: []string{"Astra Linux Special Edition"},
+				PlatformLabel: "Astra Linux SE 1.7", Level: domain.EvidenceA, DocKind: "certificate",
+				DocLabel: "сертификат Ready for Astra", DocNumber: "29073/2025", URL: "https://astra.example/cert.pdf"},
+		},
+		promos: []domain.Promo{{ID: "p-drweb", Vendor: "drweb", Families: []string{"Dr.Web Desktop Security Suite"},
+			Text: "Акция: −50%", URL: "https://store.example/specials/drweb/", ValidTo: time.Date(2026, 7, 2, 0, 0, 0, 0, time.UTC)}},
+		classes: []domain.UpsellClass{
+			{ID: "os", Title: "ОС", Categories: []string{"os"}, Include: "linux"},
+			{ID: "office", Title: "Офис", Categories: []string{"office"}},
+			{ID: "antivirus", Title: "Антивирус", Categories: []string{"av"}},
+			{ID: "backup", Title: "Бэкап", Categories: []string{"backup"}},
+			{ID: "crypto", Title: "СКЗИ", Categories: []string{"sec"}, Include: "csp"},
+		},
+		links: []domain.UpsellLink{
+			{From: "os", To: domain.UpsellSelf, Kinds: []string{"support"}, Max: 1, Reason: "Техподдержка к этой лицензии", Source: "кикофф"},
+			{From: "os", To: "antivirus", Max: 1, Reason: "Защита рабочих мест", Source: "кикофф"},
+			{From: "os", To: "crypto", Max: 1, Reason: "Криптозащита", Source: "кикофф"},
+			{From: "os", To: "backup", Max: 1, Reason: "Резервное копирование инфраструктуры", Source: "кикофф"},
+			{From: "office", To: "antivirus", Max: 1, Reason: "Офису нужна защита", Source: "кикофф"},
+			{From: "office", To: "backup", Max: 1, Reason: "Офису нужна защита: резервное копирование", Source: "кикофф"},
+		},
+	}
+	return f, data
+}
+
+func (f *fx) runAt(anchorPID string, data *upsellData, now time.Time) (*upsellRun, *UpsellStep) {
+	r, step := f.run(anchorPID, data)
+	r.now = now
+	return r, step
+}
+
+func TestUpsellByClassAstra(t *testing.T) {
+	f, data := classFixture()
+	r, step := f.runAt("a-orel-ws", data, time.Date(2026, 5, 28, 12, 0, 0, 0, time.UTC))
+	if cls := r.ix.classOf("astra"); cls != "os" {
+		t.Fatalf("класс Astra — os: %q", cls)
+	}
+	items := r.assemble()
+	if step.Class != "os" || len(items) != 4 {
+		t.Fatalf("Astra → техподдержка, антивирус, СКЗИ, бэкап: %+v", items)
+	}
+	want := []struct{ fam, level string }{{"astra", "B"}, {"kesb", "A"}, {"csp", "A"}, {"kb", "B"}}
+	for i, w := range want {
+		if items[i].FamilyID != w.fam || items[i].EvidenceLevel != w.level || items[i].Reason == "" {
+			t.Fatalf("карточка %d: ждали %s/%s, есть %s/%s (%s)", i, w.fam, w.level, items[i].FamilyID, items[i].EvidenceLevel, items[i].Reason)
+		}
+	}
+	// Антивирус: вендор с документом (KES) выше Dr.Web с акцией без документа; причина — из таблицы + документ.
+	if !strings.HasPrefix(items[1].Reason, "Защита рабочих мест. Совместимо с Astra Linux SE 1.5–1.8") ||
+		items[1].Evidence.Kind != evKindCompat {
+		t.Fatalf("антивирус с документом: %+v", items[1])
+	}
+	// Бэкап без документа — уровень B, вид «логика класса».
+	if items[3].Evidence.Kind != evKindClass || !strings.HasPrefix(items[3].Reason, "Резервное копирование") {
+		t.Fatalf("бэкап по логике класса: %+v", items[3])
+	}
+	// СКЗИ: документ A и позиция под Astra.
+	if items[2].ProductID != "csp-astra" || items[2].Evidence.DocNumber != "29073/2025" ||
+		!strings.Contains(items[2].Reason, "Совместимо с Astra Linux SE 1.7") {
+		t.Fatalf("СКЗИ с документом: %+v", items[2])
+	}
+	vendors := map[string]bool{}
+	for _, it := range items {
+		if it.PriceRub == nil {
+			t.Fatalf("карточка без цены: %+v", it)
+		}
+		if it.FamilyID != "astra" {
+			if vendors[it.Vendor] {
+				t.Fatalf("два семейства одного вендора: %s", it.Vendor)
+			}
+			vendors[it.Vendor] = true
+		}
+	}
+}
+
+func TestUpsellByClassOfficeNamesAnchor(t *testing.T) {
+	f, data := classFixture()
+	r, _ := f.runAt("m365", data, time.Date(2026, 5, 28, 12, 0, 0, 0, time.UTC))
+	items := r.assemble()
+	if len(items) != 2 || items[0].FamilyID != "ks365" {
+		t.Fatalf("Microsoft 365 → Kaspersky Security для Microsoft Office 365 первым: %+v", items)
+	}
+	if !strings.Contains(items[0].Reason, "Вариант для Microsoft Office 365") || items[0].EvidenceLevel != domain.EvidenceB {
+		t.Fatalf("причина и уровень: %+v", items[0])
+	}
+	if items[1].FamilyID != "kb" && items[1].FamilyID != "kbs" && items[1].FamilyID != "ura" {
+		t.Fatalf("второе — бэкап: %+v", items[1])
+	}
+}
+
+func TestUpsellClassPromoLiftsAndExpires(t *testing.T) {
+	f, data := classFixture()
+	// Бэкап: документов нет ни у кого; акция Uranium поднимает его, после срока — порядок без неё.
+	data.promos = append(data.promos, domain.Promo{ID: "p-ura", Families: []string{"Uranium Backup"}, Text: "Акция",
+		URL: "https://store.example/specials/u/", ValidTo: time.Date(2026, 7, 2, 0, 0, 0, 0, time.UTC)})
+	r, _ := f.runAt("a-orel-ws", data, time.Date(2026, 5, 28, 12, 0, 0, 0, time.UTC))
+	cs := r.classCands("os", data.links[3])
+	if len(cs) < 2 || cs[0].fid != "ura" {
+		t.Fatalf("действующая акция поднимает карточку: %+v", cs)
+	}
+	r2, _ := f.runAt("a-orel-ws", data, time.Date(2027, 1, 15, 12, 0, 0, 0, time.UTC))
+	cs = r2.classCands("os", data.links[3])
+	if len(cs) < 2 || cs[0].fid == "ura" {
+		t.Fatalf("истёкшая акция не поднимает: %+v", cs)
+	}
+	// Антивирус: вендор с документом (KES) выше Dr.Web с акцией без документа; семейства без цены нет.
+	cs = r2.classCands("os", data.links[1])
+	for _, c := range cs {
+		if c.fid == "noprice" {
+			t.Fatal("семейство без цены в кандидатах")
+		}
+	}
+	if len(cs) == 0 || cs[0].fid != "kesb" {
+		t.Fatalf("KES с документом первым: %+v", cs)
+	}
+}
+
+func TestAnchorNameTerms(t *testing.T) {
+	if got := anchorNameTerms("Microsoft 365 Family (для семьи)"); len(got) != 1 || got[0] != "365" {
+		t.Fatalf("числа имени: %v", got)
+	}
+	if got := anchorNameTerms("Astra Linux Special Edition"); len(got) != 1 || got[0] != "astra linux" {
+		t.Fatalf("два слова: %v", got)
+	}
+	if namesAnchor("Kaspersky Security для Microsoft Office 365", []string{"2024"}) != "" {
+		t.Fatal("Office 365 — не Office 2024")
+	}
+}
+
+func TestUpsellClassTieBreakByDocOrder(t *testing.T) {
+	f, data := classFixture()
+	// Оба с документом A и оба с акцией — решает порядок записей compat_docs (KES раньше Dr.Web), а не ширина линейки.
+	data.compat = append(data.compat, domain.CompatDoc{ID: "cd-drw", ProductFamilies: []string{"Dr.Web Desktop Security Suite"},
+		PlatformFamilies: []string{"Astra Linux Special Edition"}, Level: domain.EvidenceA, DocKind: "documentation",
+		URL: "https://drweb.example/"})
+	data.promos = append(data.promos, domain.Promo{ID: "p-kes", Families: []string{"Kaspersky Endpoint Security для бизнеса Стандартный"},
+		Text: "Акция", URL: "https://store.example/specials/k/", ValidTo: time.Date(2026, 7, 2, 0, 0, 0, 0, time.UTC)})
+	r, _ := f.runAt("a-orel-ws", data, time.Date(2026, 5, 28, 12, 0, 0, 0, time.UTC))
+	cs := r.classCands("os", data.links[1])
+	if len(cs) < 2 || cs[0].fid != "kesb" || cs[1].fid != "drweb" {
+		t.Fatalf("ничья по ярусу и акции — порядок документов: %+v", cs)
 	}
 }

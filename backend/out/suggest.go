@@ -15,7 +15,29 @@ type SuggestResponse struct {
 	Vendors     []PanelVendor     `json:"vendors"`
 	Products    []PanelProduct    `json:"products"`
 	TotalHint   int               `json:"total_hint"`
-	Meta        SuggestMeta       `json:"meta"`
+	// Together — строка «Вместе с этим» (контур эталонов): одно-два дополнения из таблицы классов для первого семейства
+	// Products; [] — класса нет или дополнений с ценой нет.
+	Together []PanelTogether `json:"together"`
+	Meta     SuggestMeta     `json:"meta"`
+}
+
+// PanelTogether — дополнение в строке «Вместе с этим»: к какому семейству (AnchorFamilyID), что предлагаем, причина
+// из таблицы классов, уровень основания A|B, вид (class_logic | compat_document), ссылка на документ (SourceURL, у A).
+type PanelTogether struct {
+	AnchorFamilyID string   `json:"anchor_family_id"`
+	FamilyID       string   `json:"family_id"`
+	FamilyName     string   `json:"family_name"`
+	ProductID      string   `json:"product_id"`
+	Title          string   `json:"title"`
+	Vendor         string   `json:"vendor"`
+	PriceRub       *float64 `json:"price_rub"`
+	Reason         string   `json:"reason"`
+	Level          string   `json:"level"`
+	Kind           string   `json:"kind"`
+	Label          string   `json:"label"`
+	OfferURL       string   `json:"offer_url,omitempty"`
+	FamilyURL      string   `json:"family_url,omitempty"`
+	SourceURL      string   `json:"source_url,omitempty"`
 }
 
 // SuggestGroup — группа подсказок: query | product | vendor | category.

@@ -404,6 +404,14 @@ paths:
                         delivery_line: { type: [string, "null"] }
                         image_url: { type: [string, "null"] }
                   total_hint: { type: integer, description: "семейств для «Все результаты»" }
+                  together:
+                    type: array
+                    maxItems: 2
+                    description: >-
+                      «Вместе с этим» (контур эталонов): одно-два дополнения из таблицы классов допродажи
+                      (data/softline/upsell_links.csv) для первого семейства `products`; [] — класса нет или дополнений
+                      с ценой нет. Только с ценой, одно семейство на вендора, без типа лицензии того же семейства.
+                    items: { $ref: "#/components/schemas/PanelTogether" }
                   meta:
                     type: object
                     properties:
@@ -1815,6 +1823,50 @@ components:
         suggested_quantity: { type: [integer, "null"] }
         label: { type: string }
         upgrade_adds: { type: array, items: { type: string } }
+        evidence:
+          type: object
+          description: >-
+            Контур фида–7, фид: основание карточки. A — документ вендора о совместимости (compat_document, ссылка в url),
+            B — каталог (license_kind — тип лицензии в семействе; sku_platform — название позиции называет платформу)
+            или логика класса (class_logic — строка таблицы «класс запроса → класс дополнения» заказчика, ссылки нет;
+            подпись на фронте «по логике класса: <reason>»), C — проверьте совместимость. Даты нет.
+          properties:
+            level: { type: string, enum: [A, B, C] }
+            kind: { type: string, enum: [compat_document, license_kind, sku_platform, class_logic] }
+            title: { type: string }
+            url: { type: string }
+            doc_number: { type: string }
+        offer_url: { type: string }
+        family_url: { type: string }
+        promos: { type: array, items: { $ref: "#/components/schemas/ItemPromo" } }
+        badges: { type: array, items: { type: string }, description: "«Скидка N%» по old_price, «Акция» при действующей акции" }
+    ItemPromo:
+      type: object
+      description: Акция магазина на карточке (только с подтверждённым сроком; срок не выводится)
+      properties:
+        id: { type: string }
+        title: { type: string }
+        text: { type: string, description: "«Акция: …, условия по ссылке»" }
+        url: { type: string }
+    PanelTogether:
+      type: object
+      description: Дополнение в строке подсказок «Вместе с этим» (контур эталонов)
+      required: [anchor_family_id, family_id, family_name, product_id, title, vendor, price_rub, reason, level, kind, label]
+      properties:
+        anchor_family_id: { type: string, description: "к какому семейству подсказки (первое в products)" }
+        family_id: { type: string }
+        family_name: { type: string }
+        product_id: { type: string }
+        title: { type: string }
+        vendor: { type: string }
+        price_rub: { type: [number, "null"] }
+        reason: { type: string, description: "причина из таблицы классов; у A — плюс документ" }
+        level: { type: string, enum: [A, B] }
+        kind: { type: string, enum: [class_logic, compat_document] }
+        label: { type: string, description: "класс дополнения: «Антивирус для организаций», «Резервное копирование»…" }
+        offer_url: { type: string }
+        family_url: { type: string }
+        source_url: { type: string, description: "ссылка на документ совместимости (у A)" }
     ProductPage:
       type: object
       description: "Страница товара. Массивы — всегда массивы; полей margin и popularity нет."
@@ -1988,8 +2040,11 @@ components:
           items: { type: object, additionalProperties: true }
         companions:
           type: [object, "null"]
-          description: «Дополните решение» (контур коммерции); null — блока нет
+          description: >-
+            «Дополните решение» (контур коммерции; на фиде — контуры фида–7: тип лицензии, документ совместимости, таблица классов,
+            не больше четырёх карточек); null — блока нет
           properties:
+            title: { type: string, description: "заголовок блока, настройка UPSELL_BLOCK_TITLE; по умолчанию «Дополните решение»" }
             anchor:
               type: object
               properties:

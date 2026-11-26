@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 	"unicode"
 
@@ -43,12 +44,9 @@ const (
 
 // Лимиты блока: всего и по видам.
 const (
-	upsellMax          = 6
-	upsellMaxLicense   = 2
-	upsellMaxCompat    = 3
-	upsellMaxPlatform  = 2
-	upsellMaxEcosystem = 2
-	upsellMaxRejected  = 40
+	upsellMax         = 4
+	upsellMaxLicense  = 2
+	upsellMaxRejected = 40
 )
 
 // Причины отказа кандидату допродажи (trace upsell.rejected[].reason).
@@ -73,6 +71,7 @@ type UpsellStep struct {
 	Error       string               `json:"error,omitempty"`
 	Anchor      *out.CompanionAnchor `json:"anchor"`
 	AnchorOffer string               `json:"anchor_offer,omitempty"`
+	Class       string               `json:"class,omitempty"` // класс якоря по таблице классов; пусто — класса нет
 	Considered  []UpsellConsidered   `json:"considered"`
 	Rejected    []domain.RejectedHit `json:"rejected"`
 	Promos      []string             `json:"promos"`
@@ -101,16 +100,30 @@ type upsellIndex struct {
 	buyable map[string][]string
 	// vendorFams — вендор → семейства с позициями, которые можно купить (порядок каталога).
 	vendorFams map[string][]string
-	// lower — название позиции в нижнем регистре (для фраз «для …»), только покупаемые.
+	// lower — название позиции в нижнем регистре (для фраз «для …»), только покупаемые; feat — признаки названия,
+	// посчитанные один раз (платформа «для …», версии, «не лицензия»), чтобы запрос и подсказка не разбирали тысячи
+	// названий заново.
 	lower map[string]string
+	feat  map[string]offerFeat
+	// cands — готовые кандидаты строки таблицы классов для позиции-якоря (ключ: позиция|строка|день), не больше
+	// upsellCacheMax записей; together — то же для «Вместе с этим» по семейству.
+	cands    sync.Map
+	together sync.Map
+	cached   atomic.Int64
 	// compatByPlatform / compatByProduct — семейство → записи совместимости, где оно платформа / продукт.
 	compatByPlatform map[string][]int
 	compatByProduct  map[string][]int
 	compat           []domain.CompatDoc
 	// promoByFamily — семейство → акции.
 	promoByFamily map[string][]domain.Promo
-	// platformCache — семейство-платформа → найденные варианты SKU (считаются один раз).
-	platformCache sync.Map
+	// Таблица классов (upsell_classes.go): классы, строки по классу запроса, семейства класса с ценой, класс
+	// семейства, пары семейств с документом о совместимости.
+	classes     []*compiledClass
+	classByID   map[string]*compiledClass
+	links       map[string][]domain.UpsellLink
+	classFams   map[string][]string
+	familyClass map[string]string
+	compatPair  map[string]compatHit
 }
 
 func (s *Services) upsellIndexFor(lx *searchLexicon) *upsellIndex {
@@ -124,8 +137,9 @@ func (s *Services) upsellIndexFor(lx *searchLexicon) *upsellIndex {
 
 func buildUpsellIndex(lx *searchLexicon, data *upsellData) *upsellIndex {
 	ix := &upsellIndex{lx: lx, byName: map[string][]string{}, buyable: map[string][]string{},
-		vendorFams: map[string][]string{}, lower: map[string]string{}, compatByPlatform: map[string][]int{},
-		compatByProduct: map[string][]int{}, compat: data.compat, promoByFamily: map[string][]domain.Promo{}}
+		vendorFams: map[string][]string{}, lower: map[string]string{}, feat: map[string]offerFeat{},
+		compatByPlatform: map[string][]int{},
+		compatByProduct:  map[string][]int{}, compat: data.compat, promoByFamily: map[string][]domain.Promo{}}
 	for _, fid := range lx.familyOrder {
 		ix.byName[nameKey(lx.familyName[fid])] = append(ix.byName[nameKey(lx.familyName[fid])], fid)
 		for _, pid := range lx.families[fid] {
@@ -134,7 +148,9 @@ func buildUpsellIndex(lx *searchLexicon, data *upsellData) *upsellIndex {
 				continue
 			}
 			ix.buyable[fid] = append(ix.buyable[fid], pid)
-			ix.lower[pid] = strings.ReplaceAll(strings.ToLower(d.Title), "ё", "е")
+			low := strings.ReplaceAll(strings.ToLower(d.Title), "ё", "е")
+			ix.lower[pid] = low
+			ix.feat[pid] = offerFeatOf(low)
 		}
 		if len(ix.buyable[fid]) > 0 {
 			v := lx.familyVendor[fid]
@@ -165,6 +181,7 @@ func buildUpsellIndex(lx *searchLexicon, data *upsellData) *upsellIndex {
 			ix.promoByFamily[f] = append(ix.promoByFamily[f], p)
 		}
 	}
+	ix.buildClasses(data)
 	cov := ix.coverage()
 	zap.L().Info("допродажа: покрытие каталога", zap.Int("families_buyable", cov.Families),
 		zap.Int("with_support", cov.Support), zap.Int("with_renewal", cov.Renewal), zap.Int("with_module", cov.Module),
@@ -290,9 +307,37 @@ func titleVersions(title string) map[string]bool {
 var skuPlatformWords = []platformTerm{{"astra linux", 1}, {"linux", 1}, {"windows", 1}, {"macos", 1}, {"mac os", 1},
 	{"ред ос", 1}, {"альт", 1}, {"роса", 1}, {"android", 1}, {"эльбрус", 1}}
 
+// offerFeat — признаки названия позиции: платформа «для …», версии, носитель вместо лицензии.
+type offerFeat struct {
+	platform string
+	versions []string
+	notLic   bool
+}
+
+func offerFeatOf(low string) offerFeat {
+	f := offerFeat{platform: platformOfLow(low), notLic: notLicense(low)}
+	for _, m := range versionRe.FindAllStringSubmatch(low, -1) {
+		f.versions = append(f.versions, m[1])
+	}
+	return f
+}
+
+func (f offerFeat) hasVersion(v string) bool {
+	for _, x := range f.versions {
+		if x == v {
+			return true
+		}
+	}
+	return false
+}
+
 // titlePlatform — платформа из фразы «для …» в названии ("" — не названа).
 func titlePlatform(title string) string {
-	low := strings.ReplaceAll(strings.ToLower(title), "ё", "е")
+	return platformOfLow(strings.ReplaceAll(strings.ToLower(title), "ё", "е"))
+}
+
+// platformOfLow — то же для названия, уже приведённого к нижнему регистру.
+func platformOfLow(low string) string {
 	for _, w := range skuPlatformWords {
 		if p, n := forPhrase(low, low, []platformTerm{w}); n > 0 && p != "" {
 			return w.term
@@ -414,6 +459,7 @@ type upsellRun struct {
 	shown    map[string]bool // семейства выдачи и блока
 	step     *UpsellStep
 	rejected map[string]bool
+	now      time.Time
 }
 
 func (r *upsellRun) reject(pid, reason, detail string) {
@@ -425,7 +471,7 @@ func (r *upsellRun) reject(pid, reason, detail string) {
 }
 
 // licenseKindCands — техподдержка, продление, модуль, льготный переход внутри семейства якоря.
-func (r *upsellRun) licenseKindCands() []upsellCand {
+func (r *upsellRun) licenseKindCands(kinds []string, reasonOverride string) []upsellCand {
 	type spec struct {
 		kind, label, class, reason string
 	}
@@ -435,6 +481,18 @@ func (r *upsellRun) licenseKindCands() []upsellCand {
 		{domain.LicenseKindModule, "Модуль", CompanionComplement, "Модуль к этой редакции"},
 		{domain.LicenseKindMigration, "Льготный переход", CompanionComplement,
 			"Льготный переход: в каталоге — лицензия типа «Миграция»"},
+	}
+	if len(kinds) > 0 {
+		// Порядок видов — из строки таблицы классов («продление или расширение» — продление первым).
+		var ordered []spec
+		for _, k := range kinds {
+			for _, sp := range specs {
+				if sp.kind == k {
+					ordered = append(ordered, sp)
+				}
+			}
+		}
+		specs = ordered
 	}
 	var res []upsellCand
 	for i, sp := range specs {
@@ -463,6 +521,9 @@ func (r *upsellRun) licenseKindCands() []upsellCand {
 			continue
 		}
 		reason := sp.reason + editionNote(r.anchor)
+		if reasonOverride != "" && sp.kind != domain.LicenseKindMigration {
+			reason = reasonOverride + editionNote(r.anchor)
+		}
 		res = append(res, upsellCand{pid: bestPID, fid: r.anchor.FamilyID, kind: evKindLicense, level: domain.EvidenceB,
 			label: sp.label, class: sp.class, compat: domain.CompatVerified, reason: reason,
 			evTitle: "Каталог: тип лицензии «" + licenseKindLabels[sp.kind] + "» в семействе " + r.anchor.FamilyName,
@@ -588,8 +649,7 @@ func (r *upsellRun) pickOffer(fids []string, preferPlatform bool, versions ...st
 			}
 		}
 	}
-	foreign := func(low string) bool {
-		tp := titlePlatform(low)
+	foreign := func(tp string) bool {
 		if tp == "" || !preferPlatform {
 			return false
 		}
@@ -611,17 +671,17 @@ func (r *upsellRun) pickOffer(fids []string, preferPlatform bool, versions ...st
 		}
 		for _, pid := range r.ix.buyable[fid] {
 			d := r.lx.docs[pid]
-			low := r.ix.lower[pid]
+			low, f := r.ix.lower[pid], r.ix.feat[pid]
 			key := make([]float64, 8)
 			key[7] = -*docBuyPrice(d)
-			if !notLicense(low) {
+			if !f.notLic {
 				key[0] = 1
 			}
-			if !foreign(low) {
+			if !foreign(f.platform) {
 				key[1] = 1
 			}
 			for _, v := range versions {
-				if v != "" && titleVersions(low)[v] {
+				if v != "" && f.hasVersion(v) {
 					key[2] = 1
 				}
 			}
@@ -740,98 +800,6 @@ func (ix *upsellIndex) platformTerms(fid string) []platformTerm {
 	return res
 }
 
-// platformVariant — вариант SKU другого вендора, прямо называющий платформу якоря.
-type platformVariant struct {
-	pid, fid, phrase string
-	weight           int
-}
-
-// solutionCategoryHint — к ОС в первую очередь — защита, антивирус, резервное копирование, криптография: при равном
-// весе фразы эти категории выше (прикладные программы «для Linux» — после).
-var solutionCategoryHint = []string{"защиты информации", "антивирус", "резервного копирования",
-	"информационной безопасности", "криптограф"}
-
-// platformVariants — по одному варианту на семейство других вендоров; кэш на семейство-платформу.
-func (ix *upsellIndex) platformVariants(fid string) []platformVariant {
-	if v, ok := ix.platformCache.Load(fid); ok {
-		return v.([]platformVariant)
-	}
-	terms := ix.platformTerms(fid)
-	vendor := ix.lx.familyVendor[fid]
-	best := map[string]platformVariant{}
-	if len(terms) > 0 {
-		for pid, low := range ix.lower {
-			d := ix.lx.docs[pid]
-			if d.FamilyID == fid || ix.lx.familyVendor[d.FamilyID] == vendor || !strings.Contains(low, "для ") {
-				continue
-			}
-			phrase, w := forPhrase(d.Title, low, terms)
-			if w == 0 || w == 1 && !ix.solutionCategory(d.FamilyID) {
-				continue // «для Linux» у прикладной программы — не про решение на этой ОС
-			}
-			cur, ok := best[d.FamilyID]
-			better := !ok || w > cur.weight
-			if ok && w == cur.weight {
-				// В семействе — базовая лицензия, коммерческая, дешевле.
-				better = lessKey(variantKey(ix.lx.docs[cur.pid]), variantKey(d))
-			}
-			if better {
-				best[d.FamilyID] = platformVariant{pid: pid, fid: d.FamilyID, phrase: phrase, weight: w}
-			}
-		}
-	}
-	res := make([]platformVariant, 0, len(best))
-	for _, v := range best {
-		res = append(res, v)
-	}
-	hint := func(v platformVariant) int {
-		if ix.solutionCategory(v.fid) {
-			return 1
-		}
-		return 0
-	}
-	sort.Slice(res, func(i, j int) bool {
-		a, b := res[i], res[j]
-		if a.weight != b.weight {
-			return a.weight > b.weight
-		}
-		if ha, hb := hint(a), hint(b); ha != hb {
-			return ha > hb
-		}
-		if na, nb := len(ix.buyable[a.fid]), len(ix.buyable[b.fid]); na != nb {
-			return na < nb // узкое семейство — точнее про платформу, чем широкий прикладной пакет
-		}
-		return a.fid < b.fid
-	})
-	ix.platformCache.Store(fid, res)
-	return res
-}
-
-// solutionCategory — категория семейства — защита информации, антивирус, резервное копирование, криптография.
-func (ix *upsellIndex) solutionCategory(fid string) bool {
-	cat := strings.ToLower(ix.lx.categoryName[ix.lx.familyCat[fid]])
-	for _, h := range solutionCategoryHint {
-		if strings.Contains(cat, h) {
-			return true
-		}
-	}
-	return false
-}
-
-func variantKey(d indexDoc) []float64 {
-	k := []float64{0, 0, 0}
-	if d.LicenseKind == domain.LicenseKindBase || d.LicenseKind == "" {
-		k[0] = 1
-	}
-	if d.LicenseOrgType == "" || d.LicenseOrgType == "commercial" {
-		k[1] = 1
-	}
-	if p := docBuyPrice(d); p != nil {
-		k[2] = -*p
-	}
-	return k
-}
-
 // forPhrase — фраза «для …» из названия, если в ней названа платформа: текст фразы в регистре оригинала и вес.
 func forPhrase(title, low string, terms []platformTerm) (string, int) {
 	bestW, bestPhrase := 0, ""
@@ -908,56 +876,6 @@ func isWordByte(s string, i int, before bool) bool {
 	return unicode.IsLetter(r) || unicode.IsDigit(r)
 }
 
-func (r *upsellRun) platformCands() []upsellCand {
-	var res []upsellCand
-	for i, v := range r.ix.platformVariants(r.anchor.FamilyID) {
-		if i >= 12 {
-			break
-		}
-		res = append(res, upsellCand{pid: v.pid, fid: v.fid, kind: evKindPlatform, level: domain.EvidenceB,
-			label: "Вариант под платформу", class: CompanionCompatible, compat: domain.CompatConditional,
-			reason:  "Вариант для " + v.phrase,
-			evTitle: "Каталог: название позиции называет платформу («для " + v.phrase + "»)",
-			evURL:   r.lx.docs[v.pid].OfferURL, rank: i})
-	}
-	return res
-}
-
-// ecosystemCands — доступные семейства того же вендора из других категорий.
-func (r *upsellRun) ecosystemCands() []upsellCand {
-	vendor := r.lx.familyVendor[r.anchor.FamilyID]
-	cat := r.lx.familyCat[r.anchor.FamilyID]
-	fams := append([]string(nil), r.ix.vendorFams[vendor]...)
-	sort.SliceStable(fams, func(i, j int) bool { return len(r.ix.buyable[fams[i]]) > len(r.ix.buyable[fams[j]]) })
-	name := r.anchor.Vendor
-	if name == "" {
-		name = r.lx.vendorName[vendor]
-	}
-	quoted := name
-	if !strings.Contains(name, "«") {
-		quoted = "«" + name + "»"
-	}
-	var res []upsellCand
-	for _, fid := range fams {
-		if fid == r.anchor.FamilyID || r.lx.familyCat[fid] == cat {
-			continue
-		}
-		pid := r.pickOffer([]string{fid}, false)
-		if pid == "" {
-			continue
-		}
-		res = append(res, upsellCand{pid: pid, fid: fid, kind: evKindEcosystem, level: domain.EvidenceB,
-			label: "Экосистема вендора", class: CompanionComplement, compat: domain.CompatUnknown,
-			reason:  "Из экосистемы " + quoted,
-			evTitle: "Каталог: другие продукты вендора " + name,
-			evURL:   firstURL(r.anchor.VendorURL, r.lx.docs[pid].FamilyURL), rank: len(res)})
-		if len(res) >= 6 {
-			break
-		}
-	}
-	return res
-}
-
 // ---------- шаг поиска ----------
 
 // feedUpsellStage — блок «Дополните решение» и акции на фиде. Срабатывает, когда mock-подбор (companions.go)
@@ -999,13 +917,17 @@ func (s *Services) feedUpsellStage(lx *searchLexicon, analog bool, resp *out.Sea
 	}
 	step.Anchor = &out.CompanionAnchor{ProductID: anchorPID, FamilyID: it.FamilyID, Confidence: conf}
 	step.AnchorOffer = a.Title
-	r := &upsellRun{ix: ix, lx: lx, anchor: a, shown: map[string]bool{}, step: step, rejected: map[string]bool{}}
+	r := &upsellRun{ix: ix, lx: lx, anchor: a, shown: map[string]bool{}, step: step, rejected: map[string]bool{},
+		now: s.now()}
 	for _, x := range resp.Items {
 		r.shown[x.FamilyID] = true
 	}
 	items := r.assemble()
 	for i := range items {
 		items[i].Promos = ix.promosFor(items[i].FamilyID, []string{items[i].Title}, s.now())
+		if len(items[i].Promos) > 0 {
+			items[i].Badges = append(items[i].Badges, "Акция")
+		}
 	}
 	if len(items) == 0 {
 		step.Reason = "связей у якоря нет: ни типа лицензии, ни документа, ни варианта под платформу"
@@ -1015,57 +937,15 @@ func (s *Services) feedUpsellStage(lx *searchLexicon, analog bool, resp *out.Sea
 	return step
 }
 
-// assemble — кандидаты всех видов в блок: тип лицензии, документ, платформа, экосистема; по одному семейству.
+// assemble — блок: по таблице классов, если класс якоря известен (upsell_classes.go), иначе тип лицензии и документ.
 func (r *upsellRun) assemble() []out.Companion {
-	lic := r.licenseKindCands()
-	cmp := r.compatCands()
-	plat := r.platformCands()
-	eco := r.ecosystemCands()
 	var picked []upsellCand
-	inBlock := map[string]bool{}
-	cats := map[string]bool{} // категории карточек других семейств: вариант под платформу и экосистема — по одной на категорию
-	take := func(cs []upsellCand, max int, allowShown, onePerCat bool) {
-		n := 0
-		for _, c := range cs {
-			r.step.Considered = append(r.step.Considered, UpsellConsidered{ProductID: c.pid, FamilyID: c.fid,
-				Kind: c.kind, Level: c.level, Source: c.source})
-			switch {
-			case inBlock[c.fid] && c.fid != r.anchor.FamilyID:
-				r.reject(c.pid, upRejectShown, "семейство уже в блоке")
-				continue
-			case !allowShown && r.shown[c.fid]:
-				r.reject(c.pid, upRejectShown, "семейство уже в выдаче")
-				continue
-			case onePerCat && cats[r.lx.familyCat[c.fid]]:
-				r.reject(c.pid, upRejectCategory, "в блоке уже есть карточка этой категории")
-				continue
-			case n >= max || len(picked) >= upsellMax:
-				r.reject(c.pid, upRejectLimit, fmt.Sprintf("в блоке не больше %d карточек этого вида", max))
-				continue
-			}
-			if c.fid != r.anchor.FamilyID {
-				inBlock[c.fid] = true
-				cats[r.lx.familyCat[c.fid]] = true
-			}
-			picked = append(picked, c)
-			n++
-		}
+	if cls := r.ix.classOf(r.anchor.FamilyID); cls != "" && len(r.ix.links[cls]) > 0 {
+		r.step.Class = cls
+		picked = r.assembleByClass(cls)
+	} else {
+		picked = r.assembleFallback()
 	}
-	take(lic, upsellMaxLicense, true, false)
-	// Документ — основание сильнее, чем вид в выдаче: семейство из выдачи с подтверждённой совместимостью остаётся.
-	// Документы — по одному на категорию: KES и Dr.Web к Astra — оба антивирусы, второй уступает место бэкапу.
-	before := len(picked)
-	take(cmp, upsellMaxCompat, true, true)
-	platMax := upsellMaxPlatform
-	if len(picked)-before >= 2 {
-		platMax = 1 // документов достаточно — вариантов под платформу меньше
-	}
-	take(plat, platMax, false, true)
-	ecoMax := upsellMaxEcosystem
-	if len(picked) >= 4 {
-		ecoMax = 1
-	}
-	take(eco, ecoMax, false, true)
 	shown := map[string]bool{}
 	res := make([]out.Companion, 0, len(picked))
 	for _, c := range picked {
@@ -1076,6 +956,33 @@ func (r *upsellRun) assemble() []out.Companion {
 		r.step.Considered[i].Shown = shown[r.step.Considered[i].ProductID]
 	}
 	return res
+}
+
+// assembleFallback — класса нет: тип лицензии в семействе и документ о совместимости, не больше четырёх.
+func (r *upsellRun) assembleFallback() []upsellCand {
+	var picked []upsellCand
+	inBlock := map[string]bool{}
+	take := func(cs []upsellCand, max int) {
+		n := 0
+		for _, c := range cs {
+			r.step.Considered = append(r.step.Considered, UpsellConsidered{ProductID: c.pid, FamilyID: c.fid,
+				Kind: c.kind, Level: c.level, Source: c.source})
+			switch {
+			case inBlock[c.fid] && c.fid != r.anchor.FamilyID:
+				r.reject(c.pid, upRejectShown, "семейство уже в блоке")
+				continue
+			case n >= max || len(picked) >= upsellMax:
+				r.reject(c.pid, upRejectLimit, fmt.Sprintf("в блоке не больше %d карточек этого вида", max))
+				continue
+			}
+			inBlock[c.fid] = true
+			picked = append(picked, c)
+			n++
+		}
+	}
+	take(r.licenseKindCands(nil, ""), upsellMaxLicense)
+	take(r.compatCands(), upsellMaxLicense)
+	return picked
 }
 
 func (r *upsellRun) companionOf(c upsellCand) out.Companion {
@@ -1092,7 +999,7 @@ func (r *upsellRun) companionOf(c upsellCand) out.Companion {
 	return out.Companion{ProductID: c.pid, FamilyID: c.fid, Title: d.Title, Vendor: d.Vendor, Category: d.Category,
 		LicenseLine: licenseLine(d), PriceRub: price, PriceMode: mode, Class: c.class, Compatibility: c.compat,
 		Reason: c.reason, Conditions: []string{}, EvidenceLevel: c.level, Source: source, SourceURL: c.evURL,
-		Label: c.label, UpgradeAdds: []string{}, OfferURL: d.OfferURL, FamilyURL: d.FamilyURL,
+		Label: c.label, UpgradeAdds: []string{}, OfferURL: d.OfferURL, FamilyURL: d.FamilyURL, Badges: discountBadge(d),
 		Evidence: &out.CompanionEvidence{Level: c.level, Kind: c.kind, Title: c.evTitle, URL: c.evURL, DocNumber: c.docNo}}
 }
 

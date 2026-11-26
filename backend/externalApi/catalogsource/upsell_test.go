@@ -102,3 +102,48 @@ func TestUpsellDataFilesParse(t *testing.T) {
 		}
 	}
 }
+
+// Таблица классов допродажи в репозитории читается и ссылается только на известные классы.
+func TestUpsellClassFilesParse(t *testing.T) {
+	dir := filepath.Join("..", "..", "..", "data", "softline")
+	cls, err := ReadUpsellClasses(filepath.Join(dir, "upsell_classes.csv"))
+	if errors.Is(err, ErrNoFile) {
+		t.Skip("нет таблицы классов")
+	}
+	if err != nil {
+		t.Fatalf("upsell_classes.csv: %v", err)
+	}
+	links, err := ReadUpsellLinks(filepath.Join(dir, "upsell_links.csv"), cls)
+	if err != nil {
+		t.Fatalf("upsell_links.csv: %v", err)
+	}
+	from := map[string]bool{}
+	for _, l := range links {
+		from[l.From] = true
+	}
+	for _, need := range []string{"os", "office", "antivirus", "backup", "crypto"} {
+		if !from[need] {
+			t.Errorf("у класса %s нет строк таблицы", need)
+		}
+	}
+}
+
+func TestReadUpsellLinksRejectsUnknown(t *testing.T) {
+	cls := writeTmp(t, "id,title,categories\nos,ОС,1\n")
+	cs, err := ReadUpsellClasses(cls)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for name, row := range map[string]string{
+		"неизвестный класс": "os,nope,,,,Причина,кикофф,\n",
+		"нет причины":       "os,self,support,,,,кикофф,\n",
+		"max":               "os,self,support,9,,Причина,кикофф,\n",
+	} {
+		if _, err := ReadUpsellLinks(writeTmp(t, "from,to,kinds,max,require_doc,reason,source,added_at\n"+row), cs); err == nil {
+			t.Errorf("%s: ждали ошибку", name)
+		}
+	}
+	if _, err := ReadUpsellClasses(writeTmp(t, "id,title,categories,include\nx,X,1,(\n")); err == nil {
+		t.Error("неверное выражение — ошибка")
+	}
+}

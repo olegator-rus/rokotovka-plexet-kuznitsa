@@ -63,6 +63,14 @@ lexicon: ../lexicon.csv
 # читаются API при старте, переимпорт не нужен. Пути — от base_dir.
 compat_docs: ../compat_docs.csv
 promos: ../promos.csv
+# Таблица классов допродажи (контур эталонов, VENDORS.md): класс запроса → класс дополнения → причина на карточке.
+upsell_classes: ../upsell_classes.csv
+upsell_links: ../upsell_links.csv
+
+# Наборы оценки «по цели» (контур эталонов, `go run . eval --set etalon|tz|neighbors|understanding|feed_tune|feed_regression`):
+# эталоны заказчика, примеры ТЗ, соседи эталонов, контрольный набор понимания. Путь — от base_dir. Закрытого набора
+# здесь нет — он передаётся явным путём (--file) одним прогоном при заморозке.
+target_sets: ../eval
 
 # URL семейств (group_id → страница семейства на сайте) — собирает scripts/data/softline_family_urls.py.
 # Файла нет — URL семейства пустой, импорт пишет предупреждение.

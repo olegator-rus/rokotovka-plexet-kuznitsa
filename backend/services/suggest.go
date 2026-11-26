@@ -169,7 +169,7 @@ func (s *Services) Suggest(ctx context.Context, q, clientID string) (*out.Sugges
 		return nil, errs.NewValidationError(errs.MsgInvalidFields).WithDetails(errs.FieldError{
 			Field: "q", Code: errs.CodeOutOfRange, Message: "Слишком длинный запрос"})
 	}
-	resp := &out.SuggestResponse{Groups: []out.SuggestGroup{}}
+	resp := &out.SuggestResponse{Groups: []out.SuggestGroup{}, Together: []out.PanelTogether{}}
 	st := s.catalog.Load()
 	if st == nil || st.lex == nil || utf8.RuneCountInString(q) < 2 {
 		return resp, nil

@@ -113,6 +113,10 @@ func (s *Services) SuggestPanel(ctx context.Context, requestID string, req Sugge
 	tr := &panelTrace{Kind: "suggest", RequestID: requestID, IntentID: req.IntentID, Query: req.Q, Candidates: []string{},
 		Shifts: []panelShift{}, Before: []panelCandidate{}, Families: []string{}, Calls: map[string]int{"llm": 0, "embed": 0, "rerank": 0}}
 	defer func() {
+		// «Вместе с этим» (контур эталонов, upsell_classes.go): дополнения к первому семейству панели.
+		if st := s.catalog.Load(); st != nil && len(resp.Products) > 0 {
+			resp.Together = s.suggestTogether(st.lex, resp.Products[0])
+		}
 		resp.Meta.Ms.Total = msSince(started)
 		tr.Mode, tr.Ms, tr.Partial, tr.Cached = resp.Mode, resp.Meta.Ms, resp.Meta.Partial, resp.Meta.ProductsCached
 		tr.SuggestionsVersion, tr.IndexVersion, tr.CatalogVersion = resp.Meta.SuggestionsVersion, resp.Meta.IndexVersion, resp.Meta.CatalogVersion
