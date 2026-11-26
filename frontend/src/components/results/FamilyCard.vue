@@ -63,6 +63,11 @@ const perPlace = computed(() =>
     : '',
 )
 const isAlternative = computed(() => props.item.match_type === 'alternative')
+// У альтернативы одна подпись: пояснение сервера, если оно уже говорит о совместимости, иначе общее.
+const altNote = computed(() =>
+  /совместим/i.test(props.item.explain ?? '') ? (props.item.explain as string) : ALTERNATIVE_NOTE,
+)
+const explainShown = computed(() => (isAlternative.value ? '' : (props.item.explain ?? '')))
 // Одна позиция на одно место: цена и «В спецификацию» уже справа — в блоке выбранного не повторяем.
 const offerRepeatsSide = computed(() => action.value === 'spec' && offer.value?.quantity === 1)
 const isSoftware = computed(
@@ -183,10 +188,10 @@ function rowQuantity(v: SearchItemBase): string {
         <PromoLine :promos="item.promos" />
         <p v-if="item.analog_note" class="fcard__note t-xs t-muted">{{ item.analog_note }}</p>
         <p v-if="isAlternative" class="fcard__alt t-xs" data-testid="alternative-note">
-          {{ ALTERNATIVE_NOTE }}
+          {{ altNote }}
         </p>
-        <p v-if="item.explain" class="fcard__note t-xs t-muted" data-testid="item-explain">
-          {{ item.explain }}
+        <p v-if="explainShown" class="fcard__note t-xs t-muted" data-testid="item-explain">
+          {{ explainShown }}
         </p>
         <p v-if="store" class="fcard__store t-xs">
           <a

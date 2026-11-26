@@ -32,6 +32,8 @@ export const FALLBACK_NOTE =
 
 export interface MatchGroup {
   type: MatchType
+  /** Уникальный ключ группы на экране: тип, у продолжения группы после «Можно купить сейчас» — `<тип>-rest`. */
+  key: string
   title: string
   items: PositionedItem[]
 }
@@ -57,11 +59,29 @@ export function groupByMatchType(items: readonly PositionedItem[]): MatchGroup[]
     list.push(p)
     buckets.set(t, list)
   }
-  return MATCH_ORDER.filter((t) => buckets.has(t)).map((t) => ({
+  const groups: MatchGroup[] = MATCH_ORDER.filter((t) => buckets.has(t)).map((t) => ({
     type: t,
+    key: t,
     title: MATCH_TITLES[t],
     items: buckets.get(t) ?? [],
   }))
+  // : первая карточка «по запросу» — «Можно купить сейчас» сразу под ней, как в ответе сервера;
+  // остальные карточки её группы — после блока, отдельной группой с тем же заголовком.
+  const alt = groups.find((g) => g.type === 'alternative')
+  const head = groups[0]
+  if (!alt || !head || head === alt || !isOnRequest(head.items[0]?.item)) return groups
+  const rest = groups.filter((g) => g !== head && g !== alt)
+  const out: MatchGroup[] = [{ ...head, items: head.items.slice(0, 1) }, alt]
+  if (head.items.length > 1)
+    out.push({ ...head, key: `${head.type}-rest`, items: head.items.slice(1) })
+  return [...out, ...rest]
+}
+
+/** Карточка без цены: «Цена по запросу» (состояние сервера, иначе нет положительной цены). */
+function isOnRequest(item: SearchItem | undefined): boolean {
+  if (!item) return false
+  if (item.price_state) return item.price_state === 'on_request'
+  return !isPositivePrice(item.price_from) && !isPositivePrice(item.price_rub)
 }
 
 /** Пояснение над «Популярное в наличии»: своё у сервера, иначе сообщение пустого результата. */

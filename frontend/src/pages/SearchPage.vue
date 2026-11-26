@@ -1056,7 +1056,7 @@ async function onSupply() {
               </template>
               <ComparisonLine :comparison="response.comparison" />
               <template v-if="matchMode">
-                <template v-for="(g, gi) in matchGroups" :key="g.type">
+                <template v-for="(g, gi) in matchGroups" :key="g.key">
                   <p
                     v-if="g.type === 'fallback' && fallbackText"
                     :class="['mgroup__lead', { 'mgroup__lead--after': gi > 0 }]"
@@ -1067,11 +1067,11 @@ async function onSupply() {
                   </p>
                   <section
                     :class="['mgroup', `mgroup--${g.type}`, { 'mgroup--next': gi > 0 }]"
-                    :aria-labelledby="`mgroup-${g.type}`"
+                    :aria-labelledby="`mgroup-${g.key}`"
                     :data-match-group="g.type"
                   >
                     <div class="mgroup__head">
-                      <h2 :id="`mgroup-${g.type}`" class="mgroup__title">{{ g.title }}</h2>
+                      <h2 :id="`mgroup-${g.key}`" class="mgroup__title">{{ g.title }}</h2>
                       <span class="t-xs t-muted t-num">{{ g.items.length }}</span>
                     </div>
                     <p v-if="g.type === 'fallback'" class="mgroup__note t-sm t-muted">

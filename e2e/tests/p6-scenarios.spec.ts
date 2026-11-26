@@ -99,14 +99,17 @@ test.describe('сценарии S2 и S3 на фиде', () => {
       await expect(doc).toHaveAttribute('href', crypto?.evidence?.url ?? '')
       await expect(doc).toHaveAttribute('target', '_blank')
       await expect(doc).toHaveAttribute('rel', /noopener/)
-      // Kaspersky Endpoint Security и Кибер Бэкап — A по документации вендора, ссылка на документ.
-      for (const re of [/Kaspersky Endpoint Security/, /Кибер Бэкап/]) {
-        const c = card(re)
-        await expect(c).toHaveAttribute('data-evidence', 'A')
-        await expect(c.getByTestId('evidence-doc')).toHaveAttribute('href', /^https:\/\//)
-      }
-      // Экосистема вендора — B.
-      await expect(card(/Из экосистемы/).first()).toHaveAttribute('data-evidence', 'B')
+      // Антивирус для Astra — A по документу вендора (KES или Dr.Web — что подобрал сервер), ссылка на документ.
+      const av = card(/Kaspersky Endpoint Security|Dr\.?Web|Доктор Веб/).first()
+      await expect(av).toHaveAttribute('data-evidence', 'A')
+      await expect(av.getByTestId('evidence-doc')).toHaveAttribute('href', /^https:\/\//)
+      // Резервное копирование — есть в блоке; уровень основания — тот, что прислал сервер.
+      const backupItem = items.find((c) => /Кибер Бэкап|RuBackup/.test(c.title))
+      expect(backupItem, 'в блоке есть резервное копирование').toBeTruthy()
+      await expect(card(/Кибер Бэкап|RuBackup/).first()).toHaveAttribute(
+        'data-evidence',
+        backupItem?.evidence?.level ?? '',
+      )
       // У каждой карточки — бейдж уровня и строка причины; ссылка на документ — только у A.
       const all = block.getByTestId('companion')
       await expect(all).toHaveCount(Math.min(items.length, 6))

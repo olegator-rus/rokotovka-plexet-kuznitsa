@@ -91,6 +91,12 @@ test.describe('закупка и честное «нет»', () => {
         'Совместимость с вашими приложениями нужно проверить',
       )
       await expect(alt).not.toContainText('Аналог')
+      // Порядок как в ответе (): «Можно купить сейчас» сразу под первой карточкой, до «Похожих».
+      const order = await page
+        .locator('[data-match-group]')
+        .evaluateAll((els) => els.map((e) => e.getAttribute('data-match-group')))
+      expect(order.slice(0, 2)).toEqual(['exact', 'alternative'])
+      await expect(page.locator('[data-match-group="exact"]').first().getByRole('article')).toHaveCount(1)
       await shot(page, 's4-buy-now')
     })
 

@@ -75,6 +75,39 @@ test('groupByMatchType: порядок лестницы, подписи, поз�
   )
 })
 
+test('groupByMatchType: первая карточка «по запросу» — «Можно купить сейчас» сразу под ней (S4)', () => {
+  const groups = groupByMatchType(
+    positioned([
+      item('ws', { match_type: 'exact', price_state: 'on_request', price_rub: null }),
+      item('astra', { match_type: 'alternative' }),
+      item('alt', { match_type: 'alternative' }),
+      item('ws2', { match_type: 'exact', price_state: 'on_request', price_rub: null }),
+      item('cal', { match_type: 'related' }),
+    ]),
+  )
+  assert.deepEqual(
+    groups.map((g) => [g.key, g.items.map((p) => p.item.product_id)]),
+    [
+      ['exact', ['ws']],
+      ['alternative', ['astra', 'alt']],
+      ['exact-rest', ['ws2']],
+      ['related', ['cal']],
+    ],
+  )
+  // Первая с ценой — порядок лестницы прежний.
+  const priced = groupByMatchType(
+    positioned([
+      item('e', { match_type: 'exact', price_state: 'priced' }),
+      item('a', { match_type: 'alternative' }),
+      item('r', { match_type: 'related' }),
+    ]),
+  )
+  assert.deepEqual(
+    priced.map((g) => g.key),
+    ['exact', 'related', 'alternative'],
+  )
+})
+
 test('groupByMatchType: без ступени или с незнакомой — в «Похожие», пустых групп нет', () => {
   const groups = groupByMatchType(
     positioned([item('e', { match_type: 'exact' }), item('x'), item('y', { match_type: 'odd' })]),
