@@ -81,11 +81,11 @@ test.describe('Контур доводки: три раздела', () => {
     page,
   }) => {
     await page.goto('/proofs')
-    // Один уровень меню: семь экранов, вложенных вкладок нет.
+    // Один уровень меню: восемь экранов, вложенных вкладок нет.
     const menu = page.getByRole('tablist', { name: 'Разделы доказательств' })
-    await expect(menu.getByRole('tab')).toHaveCount(7)
+    await expect(menu.getByRole('tab')).toHaveCount(8)
     await expect(page.getByRole('tablist')).toHaveCount(1)
-    for (const name of ['Метрики', 'Один запрос', 'Ухудшения', 'Подсказки', 'Вклад компонентов', 'Стоимость', 'Коммерция'])
+    for (const name of ['Теоретические основы', 'Метрики', 'Один запрос', 'Ухудшения', 'Подсказки', 'Вклад компонентов', 'Стоимость', 'Коммерция'])
       await expect(menu.getByRole('tab', { name: new RegExp(`^${name}`) })).toBeVisible()
     await expect(page.getByRole('tab', { name: 'Эффект агента' })).toHaveCount(0)
     await page.getByRole('tab', { name: 'Вклад компонентов' }).click()
@@ -95,6 +95,8 @@ test.describe('Контур доводки: три раздела', () => {
     await expect(pending.or(table).first()).toBeVisible()
     await page.getByRole('tab', { name: 'Стоимость' }).click()
     await expect(page.getByRole('heading', { name: 'По маршрутам' })).toBeVisible()
+    await page.getByRole('tab', { name: /^Теоретические основы/ }).click()
+    await expect(page).toHaveURL(/tab=theory$/)
   })
 
   test('старые адреса — на новые места', async ({ page }) => {

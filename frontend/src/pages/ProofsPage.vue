@@ -1,7 +1,8 @@
 <script setup lang="ts">
-// «Доказательства» (S5; редизайн): один уровень навигации — семь экранов в меню
+// «Доказательства» (S5; редизайн): один уровень навигации — восемь экранов в меню
 // слева, группы — только подписи. Раздел открыт гостю (жюри): действия бэк-офиса внутри видит только сотрудник.
 // Адреса прежние: /proofs?tab=compare&view=metrics|one|regressions|panel|commerce, tab=contribution|cost.
+// «Теоретические основы» — tab=theory, первым пунктом меню; по умолчанию раздел по-прежнему открывает «Метрики».
 import {
   type Component,
   type ComponentPublicInstance,
@@ -15,6 +16,7 @@ import {
 import { useRoute, useRouter } from 'vue-router'
 import { TabsContent, TabsList, TabsRoot, TabsTrigger } from 'reka-ui'
 import {
+  GraduationCap,
   ChartColumn,
   Columns2,
   Coins,
@@ -26,8 +28,10 @@ import {
 import CompareTab from '@/components/proofs/CompareTab.vue'
 import ContributionTab from '@/components/proofs/ContributionTab.vue'
 import CostTab from '@/components/proofs/CostTab.vue'
+import TheoryTab from '@/components/proofs/TheoryTab.vue'
 
-type ViewId = 'metrics' | 'one' | 'regressions' | 'panel' | 'contribution' | 'cost' | 'commerce'
+type ViewId =
+  'theory' | 'metrics' | 'one' | 'regressions' | 'panel' | 'contribution' | 'cost' | 'commerce'
 
 interface View {
   id: ViewId
@@ -38,6 +42,18 @@ interface View {
 }
 
 const GROUPS: readonly { title: string; views: readonly View[] }[] = [
+  {
+    title: 'Основы',
+    views: [
+      {
+        id: 'theory',
+        label: 'Теоретические основы',
+        short: 'Как работает решение',
+        about: 'Как устроен поиск и на каких методах он держится — простыми словами.',
+        icon: GraduationCap,
+      },
+    ],
+  },
   {
     title: 'Качество поиска',
     views: [
@@ -101,6 +117,8 @@ const GROUPS: readonly { title: string; views: readonly View[] }[] = [
   },
 ]
 const VIEWS = GROUPS.flatMap((g) => g.views)
+/** Экраны со своим адресом tab=<id>; остальные — экраны сравнения tab=compare&view=<id>. */
+const STANDALONE: readonly ViewId[] = ['theory', 'contribution', 'cost']
 
 const route = useRoute()
 const router = useRouter()
@@ -108,14 +126,14 @@ const str = (v: unknown) => (typeof v === 'string' ? v : '')
 const current = computed<ViewId>({
   get: () => {
     const tab = str(route.query.tab)
-    if (tab === 'contribution' || tab === 'cost') return tab
+    if (STANDALONE.includes(tab as ViewId)) return tab as ViewId
     const view = str(route.query.view)
-    return VIEWS.some((v) => v.id === view && view !== 'contribution' && view !== 'cost')
+    return VIEWS.some((v) => v.id === view && !STANDALONE.includes(v.id))
       ? (view as ViewId)
       : 'metrics'
   },
   set: (id) => {
-    if (id === 'contribution' || id === 'cost') void router.replace({ query: { tab: id } })
+    if (STANDALONE.includes(id)) void router.replace({ query: { tab: id } })
     else {
       // Запрос и выбранные версии сравнения сохраняются при переходе между экранами оценки.
       const keep = str(route.query.tab) === 'compare' ? route.query : {}
@@ -124,7 +142,7 @@ const current = computed<ViewId>({
   },
 })
 const view = computed(() => VIEWS.find((v) => v.id === current.value) ?? VIEWS[0]!)
-const compare = computed(() => current.value !== 'contribution' && current.value !== 'cost')
+const compare = computed(() => !STANDALONE.includes(current.value))
 /** Число ухудшений известно после загрузки прогонов. */
 const regressions = ref<number | null>(null)
 
@@ -180,6 +198,7 @@ watch(current, () => void nextTick(revealActive))
           <p class="t-sm t-muted">{{ view.about }}</p>
         </header>
         <CompareTab v-if="compare" @regressions-total="regressions = $event" />
+        <TheoryTab v-else-if="current === 'theory'" />
         <ContributionTab v-else-if="current === 'contribution'" />
         <CostTab v-else />
       </TabsContent>

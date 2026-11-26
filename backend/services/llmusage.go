@@ -20,6 +20,9 @@ const PricingVersion = "yandex-ai-studio"
 // PricingDate — дата, на которую взят прайс (для экрана «Экономика»).
 const PricingDate = ""
 
+// PricingSourceURL — страница прайса Yandex AI Studio, с которой взяты цены.
+const PricingSourceURL = "https://aistudio.yandex.ru/ru/docs/ai-studio/pricing"
+
 // LLMProviderYandex — провайдер в llm_usage.provider.
 const LLMProviderYandex = "yandex-ai-studio"
 
@@ -28,13 +31,16 @@ type ModelPrice struct {
 	Model  string  `json:"model"`
 	Input  float64 `json:"input_rub_per_mtok"`
 	Output float64 `json:"output_rub_per_mtok"`
+	// Use — для чего модель используется в проекте. Пусто — модель в проекте не используется:
+	// цена остаётся для расчёта (её можно включить через LLM_MODEL), но в прайс экрана не выводится.
+	Use string `json:"-"`
 }
 
 // modelPrices — прайс на PricingDate (ARCHITECTURE §7). Токены из кэша провайдера считаются по цене
 // входа: скидку за них прайс не обещает, оценка консервативная.
 var modelPrices = []ModelPrice{
-	{Model: "aliceai-llm-flash", Input: 100, Output: 200},
-	{Model: "qwen3.6-35b-a3b", Input: 200, Output: 300},
+	{Model: "aliceai-llm-flash", Input: 100, Output: 200, Use: "Разбор сложных запросов (маршрут D) и агент SearchOps"},
+	{Model: "qwen3.6-35b-a3b", Input: 200, Output: 300, Use: "Резерв разбора и LLM-судья оценки"},
 	{Model: "aliceai-llm", Input: 500, Output: 1200},
 }
 

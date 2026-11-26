@@ -48,10 +48,13 @@ type CostsScenario struct {
 
 // CostsPricing — прайс, по которому посчитаны calculated_cost.
 type CostsPricing struct {
-	Version  string       `json:"version"`
-	Date     string       `json:"date"`
-	Currency string       `json:"currency"`
-	Prices   []CostsPrice `json:"prices"`
+	Version  string `json:"version"`
+	Date     string `json:"date"`
+	Currency string `json:"currency"`
+	// SourceURL — страница прайса провайдера.
+	SourceURL string `json:"source_url"`
+	// Prices — только модели, которые используются в проекте.
+	Prices []CostsPrice `json:"prices"`
 }
 
 // CostsPrice — цена модели, ₽ за 1 млн токенов.
@@ -59,6 +62,8 @@ type CostsPrice struct {
 	Model  string  `json:"model"`
 	Input  float64 `json:"input_rub_per_mtok"`
 	Output float64 `json:"output_rub_per_mtok"`
+	// Use — для чего модель используется в проекте.
+	Use string `json:"use"`
 }
 
 // CostsSummary — плитки «Экономики».

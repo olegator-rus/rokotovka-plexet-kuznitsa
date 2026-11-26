@@ -4,6 +4,7 @@
 // поисков) и версия прайса. Вкладка «Эффект» удалена в контуре доводки (формула — в docs/EFFECT_MODEL.md). Всё из GET /api/costs (llm_usage + search_events); фронт
 // ничего не пересчитывает, кроме сценариев месяца из замеров и допущений человека.
 import { computed, onMounted, ref, shallowRef } from 'vue'
+import { ExternalLink } from 'lucide-vue-next'
 import { getRuns } from '@/api/agent'
 import { getCosts, getCostsSummary } from '@/api/costs'
 import type { CostRouteRow, LlmCall } from '@/api/types'
@@ -34,6 +35,28 @@ const data = computed(() => res.data.value)
 const summary = computed(() => data.value?.summary ?? null)
 const pricing = computed(() => data.value?.pricing ?? null)
 const pricingVersion = computed(() => pricing.value?.version ?? 'не указан')
+/** Страница тарифов провайдера; сервер присылает её в pricing.source_url. */
+const PRICING_SOURCE_URL = 'https://aistudio.yandex.ru/ru/docs/ai-studio/pricing'
+/**
+ * Для чего модель используется в проекте. Сервер присылает это в prices[].use; словарь — запасной вариант
+ * для сервера старой версии, чтобы таблица не оказалась пустой. Модели без назначения в проекте не
+ * используются и в таблицу не попадают.
+ */
+const MODEL_USE: Record<string, string> = {
+  'aliceai-llm-flash': 'Разбор сложных запросов (маршрут D) и агент SearchOps',
+  'qwen3.6-35b-a3b': 'Резерв разбора и LLM-судья оценки',
+}
+const usedPrices = computed(() =>
+  (pricing.value?.prices ?? [])
+    .map((p) => ({ ...p, use: p.use || MODEL_USE[p.model] || '' }))
+    .filter((p) => p.use),
+)
+/** 2026-05-26 → 26.05.2026 */
+const pricingDate = computed(() => {
+  const d = pricing.value?.date ?? ''
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(d)
+  return m ? `${m[3]}.${m[2]}.${m[1]}` : d || '—'
+})
 const calls = computed(() => [...(data.value?.calls?.items ?? []), ...extraCalls.value])
 const routes = computed<CostRouteRow[]>(() => data.value?.routes ?? [])
 
@@ -362,16 +385,52 @@ function explainRoute(r: CostRouteRow, field: 'share' | 'avg_ms' | 'avg_cost_rub
           @explain="explain"
         />
 
-        <footer class="costs__pricing t-xs t-muted">
-          <span>
-            Прайс <span class="t-mono">{{ pricingVersion }}</span>
-            <template v-if="pricing?.date">, цены на {{ pricing.date }}</template>
-          </span>
-          <span v-for="p in pricing?.prices ?? []" :key="p.model">
-            <span class="t-mono">{{ p.model }}</span>: {{ formatInt(p.input_rub_per_mtok) }} /
-            {{ formatInt(p.output_rub_per_mtok) }} ₽ за 1 млн токенов (вход / выход)
-          </span>
-        </footer>
+        <!-- Модели в проекте: по этим ценам посчитана каждая сумма на вкладке -->
+        <section class="costs__models" aria-labelledby="models-title">
+          <div class="costs__models-head">
+            <h2 id="models-title" class="t-h2">Модели в проекте</h2>
+            <a
+              :href="pricing?.source_url || PRICING_SOURCE_URL"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="costs__models-link"
+            >
+              Тарифы Yandex AI Studio
+              <ExternalLink :size="12" aria-hidden="true" />
+            </a>
+          </div>
+          <div class="data-scroll">
+            <table class="data-table">
+              <caption class="sr-only">
+                Модели Yandex AI Studio, которые используются в проекте, и их цены
+              </caption>
+              <thead>
+                <tr>
+                  <th scope="col">Модель</th>
+                  <th scope="col">Для чего</th>
+                  <th scope="col" class="num">Вход</th>
+                  <th scope="col" class="num">Выход</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-if="!usedPrices.length">
+                  <td colspan="4" class="t-muted">Сервер не прислал цены моделей.</td>
+                </tr>
+                <tr v-for="p in usedPrices" :key="p.model">
+                  <th scope="row" class="t-mono costs__model">{{ p.model }}</th>
+                  <td>{{ p.use }}</td>
+                  <td class="num">{{ formatInt(p.input_rub_per_mtok) }} ₽</td>
+                  <td class="num">{{ formatInt(p.output_rub_per_mtok) }} ₽</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <p class="t-xs t-muted">
+            Цены за 1 млн токенов на {{ pricingDate }}, прайс
+            <span class="t-mono">{{ pricingVersion }}</span>. По ним сервер считает стоимость
+            каждого вызова модели.
+          </p>
+        </section>
       </template>
     </div>
 
@@ -420,10 +479,32 @@ function explainRoute(r: CostRouteRow, field: 'share' | 'avg_ms' | 'avg_cost_rub
   padding: var(--space-4);
   color: var(--text-2);
 }
-.costs__pricing {
+.costs__models {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: var(--space-2);
+}
+.costs__models-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+.costs__models-link {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  color: var(--text-2);
+  font-size: var(--fs-sm);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.costs__models-link:hover {
+  color: var(--text);
+}
+.costs__model {
+  white-space: nowrap;
 }
 @media (max-width: 1023px) {
   .costs__tiles {

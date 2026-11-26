@@ -608,12 +608,17 @@ export interface CostsPrice {
   model: string
   input_rub_per_mtok: number
   output_rub_per_mtok: number
+  /** Для чего модель используется в проекте. */
+  use?: string
 }
 
 export interface CostsPricing {
   version: string
   date: string
   currency: string
+  /** Страница прайса провайдера. */
+  source_url?: string
+  /** Только модели, которые используются в проекте. */
   prices: CostsPrice[]
 }
 

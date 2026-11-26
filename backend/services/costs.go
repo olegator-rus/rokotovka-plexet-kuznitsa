@@ -68,7 +68,7 @@ func (s *Services) Costs(ctx context.Context, req CostsRequest) (*out.Costs, err
 
 	res := &out.Costs{
 		LLMMode: s.LLMMode(),
-		Pricing: out.CostsPricing{Version: PricingVersion, Date: PricingDate, Currency: "RUB", Prices: []out.CostsPrice{}},
+		Pricing: out.CostsPricing{Version: PricingVersion, Date: PricingDate, Currency: "RUB", SourceURL: PricingSourceURL, Prices: []out.CostsPrice{}},
 		Routes:  []out.CostsRoute{},
 		Calls:   out.CostsCalls{Total: total, Limit: limit, Offset: offset, Items: []out.CostsCall{}},
 	}
@@ -76,7 +76,10 @@ func (s *Services) Costs(ctx context.Context, req CostsRequest) (*out.Costs, err
 		res.Calls.Limit, res.Calls.Offset, res.JournalHidden = 0, 0, true
 	}
 	for _, p := range modelPrices {
-		res.Pricing.Prices = append(res.Pricing.Prices, out.CostsPrice{Model: p.Model, Input: p.Input, Output: p.Output})
+		if p.Use == "" {
+			continue // модель не используется в проекте — в прайс экрана не выводим
+		}
+		res.Pricing.Prices = append(res.Pricing.Prices, out.CostsPrice{Model: p.Model, Input: p.Input, Output: p.Output, Use: p.Use})
 	}
 
 	byRoute := map[string]out.CostsRoute{}
