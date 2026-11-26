@@ -28,13 +28,14 @@ func (m MockJSON) Name() string { return "mock-json:" + m.Dir }
 // половину каталога хуже, чем не импортировать. Нет справочника или ссылка в никуда — предупреждение.
 func (m MockJSON) Load(ctx context.Context) (*domain.CatalogSnapshot, error) {
 	var catalog struct {
-		Version  string           `json:"version"`
-		Products []domain.Product `json:"products"`
+		Version   string           `json:"version"`
+		Synthetic []string         `json:"synthetic"`
+		Products  []domain.Product `json:"products"`
 	}
 	if err := readJSON(filepath.Join(m.Dir, "catalog.json"), &catalog); err != nil {
 		return nil, err
 	}
-	snap := &domain.CatalogSnapshot{Version: catalog.Version, Products: catalog.Products}
+	snap := &domain.CatalogSnapshot{Version: catalog.Version, Products: catalog.Products, Synthetic: catalog.Synthetic}
 	if snap.Version == "" {
 		snap.Version = "unversioned"
 		snap.Warnings = append(snap.Warnings, "catalog.json: нет version")
@@ -58,6 +59,22 @@ func (m MockJSON) Load(ctx context.Context) (*domain.CatalogSnapshot, error) {
 		case errors.Is(err, fs.ErrNotExist):
 			snap.Warnings = append(snap.Warnings, o.file+": файла нет")
 		case err != nil:
+			return nil, err
+		}
+	}
+	// Справочники контура коммерции: нет файла — пустой справочник без предупреждения, каталог контура поиска
+	// без них полноценен.
+	p2 := []struct {
+		file string
+		dst  any
+	}{
+		{"license_rules.json", &snap.LicenseRules},
+		{"compatibility_rules.json", &snap.CompatibilityRules},
+		{"attribute_definitions.json", &snap.AttributeDefinitions},
+		{"solution_templates.json", &snap.SolutionTemplates},
+	}
+	for _, o := range p2 {
+		if err := readJSON(filepath.Join(m.Dir, o.file), o.dst); err != nil && !errors.Is(err, fs.ErrNotExist) {
 			return nil, err
 		}
 	}
@@ -112,6 +129,10 @@ func validate(s *domain.CatalogSnapshot) error {
 		if len(s.Categories) > 0 && !categories[p.CategoryID] {
 			dangling = append(dangling, fmt.Sprintf("%s → category %q", p.ID, p.CategoryID))
 		}
+	}
+	applyDefaults(s)
+	if err := validateP2(s, seen); err != nil {
+		return err
 	}
 	if len(dangling) > 0 {
 		head := dangling

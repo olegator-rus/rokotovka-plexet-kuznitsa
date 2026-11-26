@@ -38,13 +38,29 @@ func (s *Services) RecordEvent(ctx context.Context, req in.EventRequest) error {
 	if bytes.Equal(payload, []byte("null")) {
 		payload = nil
 	}
+	var obj map[string]any
+	payloadOK := true
 	if len(payload) > 0 {
-		var obj map[string]any
 		switch {
 		case len(payload) > maxPayload:
-			bad = append(bad, errs.FieldError{Field: "payload", Code: errs.CodeOutOfRange, Message: "payload больше 4 КБ"})
+			bad, payloadOK = append(bad, errs.FieldError{Field: "payload", Code: errs.CodeOutOfRange, Message: "payload больше 4 КБ"}), false
 		case json.Unmarshal(payload, &obj) != nil:
-			bad = append(bad, errs.FieldError{Field: "payload", Code: errs.CodeInvalidFormat, Message: "payload — JSON-объект"})
+			bad, payloadOK = append(bad, errs.FieldError{Field: "payload", Code: errs.CodeInvalidFormat, Message: "payload — JSON-объект"}), false
+		}
+	}
+	if payloadOK {
+		for _, f := range domain.EventRequiredFields[req.Type] {
+			missing := obj[f] == nil
+			if f == "product_id" {
+				missing = req.ProductID == ""
+			}
+			if missing {
+				name := "payload." + f
+				if f == "product_id" {
+					name = f
+				}
+				bad = append(bad, errs.FieldError{Field: name, Code: errs.CodeRequired, Message: "Обязательное поле события " + req.Type})
+			}
 		}
 	}
 	if len(bad) > 0 {

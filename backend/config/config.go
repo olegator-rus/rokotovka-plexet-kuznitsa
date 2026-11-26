@@ -72,6 +72,8 @@ type Config struct {
 	Agent AgentConfig
 	// Ops — администрирование, лимит частоты, дневной бюджет LLM (ops.go).
 	Ops OpsConfig
+	// Features — флаги контура коммерции FEATURE_* (features.go).
+	Features Features
 }
 
 func (c Config) IsProduction() bool { return c.AppEnv == EnvProduction }
@@ -132,6 +134,9 @@ func Load() (Config, error) {
 	if c.Ops, err = loadOps(dev); err != nil {
 		problems = append(problems, err.Error())
 	}
+	if c.Features, err = loadFeatures(); err != nil {
+		problems = append(problems, err.Error())
+	}
 	for _, a := range c.TrustedProxies {
 		if !validProxy(a) {
 			problems = append(problems, fmt.Sprintf("TRUSTED_PROXIES: %q — не IP и не CIDR", a))
@@ -181,6 +186,7 @@ func (c Config) Summary() []string {
 		c.LLM.summary(),
 		c.Agent.summary(c.LLM),
 		c.Ops.summary(),
+		c.Features.summary(),
 	}
 }
 

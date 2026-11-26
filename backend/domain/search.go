@@ -1,5 +1,7 @@
 package domain
 
+import "gorm.io/gorm"
+
 // Журналы поиска и поведения. Пишутся сервисами поиска и событий;
 // читают их аналитика и агент.
 
@@ -61,10 +63,43 @@ const (
 	EventClarifyAnswer  = "clarify_answer"
 )
 
+// События контура коммерции: блок допродажи, спецификация, фасеты, маржа.
+const (
+	EventCompanionImpression = "companion_impression"
+	EventCompanionClick      = "companion_click"
+	EventCompanionAdd        = "companion_add"
+	EventCompanionDismiss    = "companion_dismiss"
+	EventSpecRemove          = "spec_remove"
+	EventTemplateApply       = "template_apply"
+	EventQuoteRequest        = "quote_request"
+	EventFacetApply          = "facet_apply"
+	EventMarginSimulate      = "margin_simulate"
+	EventMarginApply         = "margin_apply"
+	EventRelationDecision    = "relation_decision"
+)
+
 // BehaviorEventTypes — допустимые типы событий поведения.
 var BehaviorEventTypes = []string{
 	EventClick, EventAddToCart, EventOrder, EventPriceRequest, EventManagerRequest,
 	EventSuggestPick, EventCorrectionUndo, EventChipRemove, EventClarifyAnswer,
+	EventCompanionImpression, EventCompanionClick, EventCompanionAdd, EventCompanionDismiss, EventSpecRemove,
+	EventTemplateApply, EventQuoteRequest, EventFacetApply, EventMarginSimulate, EventMarginApply, EventRelationDecision,
+}
+
+// EventRequiredFields — обязательные поля событий контура коммерции: product_id — поле события, остальные — ключи payload.
+// Типам контура поиска обязательных полей нет.
+var EventRequiredFields = map[string][]string{
+	EventCompanionImpression: {"anchor", "items"},
+	EventCompanionClick:      {"product_id", "class"},
+	EventCompanionAdd:        {"product_id", "class", "quantity"},
+	EventCompanionDismiss:    {"product_id", "condition"},
+	EventSpecRemove:          {"product_id", "origin"},
+	EventTemplateApply:       {"template_id"},
+	EventQuoteRequest:        {"positions", "on_request"},
+	EventFacetApply:          {"key", "value"},
+	EventMarginSimulate:      {"weight"},
+	EventMarginApply:         {"version_before", "version_after"},
+	EventRelationDecision:    {"relation_id", "decision"},
 }
 
 // BehaviorEvent — действие покупателя после поиска.
@@ -104,7 +139,9 @@ func (LLMUsage) TableName() string { return "llm_usage" }
 // принятые правки агента.
 type ConfigVersion struct {
 	UUIDModel
-	Version int    `gorm:"uniqueIndex"`
+	// Kind — rules | relations | margin (контур коммерции); пусто при создании — rules. Нумерация версий своя у каждого вида.
+	Kind    string `gorm:"size:16;not null;default:rules;uniqueIndex:idx_config_versions_kind_version,priority:1"`
+	Version int    `gorm:"uniqueIndex:idx_config_versions_kind_version,priority:2"`
 	Source  string // import | agent | rollback
 	Comment string
 	Rules   JSONB `gorm:"type:jsonb;not null"`
@@ -118,4 +155,12 @@ type ConfigVersion struct {
 	// версий заново: прежние помечаются Archived (не удаляются), поиск и агент берут только версии текущего каталога.
 	CatalogVersion string `gorm:"index"`
 	Archived       bool   `gorm:"not null;default:false"`
+}
+
+// BeforeCreate — пустой вид версии — rules (цепочка правил поиска контура поиска).
+func (v *ConfigVersion) BeforeCreate(tx *gorm.DB) error {
+	if v.Kind == "" {
+		v.Kind = ConfigKindRules
+	}
+	return v.UUIDModel.BeforeCreate(tx)
 }

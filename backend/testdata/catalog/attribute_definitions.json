@@ -1,0 +1,56 @@
+[
+ {
+  "category_id": "server-memory",
+  "attrs": [
+   {
+    "key": "ram_gb",
+    "label": "Память",
+    "unit": "ГБ",
+    "type": "number",
+    "facet": true,
+    "unit_aliases": [
+     "гб",
+     "gb",
+     "г"
+    ]
+   }
+  ]
+ },
+ {
+  "category_id": "servers",
+  "attrs": [
+   {
+    "key": "ram_gb",
+    "label": "Память",
+    "unit": "ГБ",
+    "type": "number",
+    "facet": true,
+    "unit_aliases": [
+     "гб",
+     "gb"
+    ]
+   },
+   {
+    "key": "form_factor_u",
+    "label": "Высота",
+    "unit": "U",
+    "type": "number",
+    "facet": true,
+    "unit_aliases": [
+     "u",
+     "юнит"
+    ]
+   },
+   {
+    "key": "cpu_cores",
+    "label": "Ядра",
+    "unit": "",
+    "type": "number",
+    "facet": true,
+    "unit_aliases": [
+     "ядер"
+    ]
+   }
+  ]
+ }
+]

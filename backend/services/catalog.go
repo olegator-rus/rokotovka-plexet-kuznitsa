@@ -34,6 +34,8 @@ type catalogState struct {
 	productNames map[string]string
 	// lex — словарь каталога для нормализации и ранжирования B3 (search_lexicon.go).
 	lex *searchLexicon
+	// commerce — справочники контура коммерции: связи, правила лицензий и совместимости, атрибуты, шаблоны (commerce.go).
+	commerce *commerceCatalog
 }
 
 // newCatalogState — состояние из снимка.
@@ -54,6 +56,7 @@ func newCatalogState(s *domain.CatalogSnapshot, rulesVersion int) *catalogState 
 		purchased:    make(map[string]map[string]bool, len(s.Clients)),
 		productNames: make(map[string]string, len(s.Products)),
 		lex:          newSearchLexicon(s),
+		commerce:     newCommerceCatalog(s),
 	}
 	family := make(map[string]string, len(s.Products))
 	for _, p := range s.Products {
@@ -126,7 +129,8 @@ func (s *Services) loadCatalogState(ctx context.Context) {
 	}
 	s.catalog.Store(newCatalogState(snap, rules))
 	zap.L().Info("справочники каталога загружены", zap.String("from", from), zap.String("version", snap.Version),
-		zap.Int("products", len(snap.Products)), zap.Int("clients", len(snap.Clients)), zap.Int("rules_version", rules))
+		zap.Int("products", len(snap.Products)), zap.Int("clients", len(snap.Clients)), zap.Int("rules_version", rules),
+		zap.Int("license_rules", len(snap.LicenseRules)), zap.Int("compatibility_rules", len(snap.CompatibilityRules)))
 }
 
 // indexMetaTTL — сколько верить закешированной _meta индекса. Импорт из CLI (make import) идёт другим
@@ -172,12 +176,17 @@ func (s *Services) Meta() out.Meta {
 		DefaultConfig: domain.DefaultSearchConfig,
 		Clients:       []out.MetaClient{},
 		LLM:           s.LLMState(context.Background()),
+		Features:      out.Features(s.features),
+		Synthetic:     []string{},
 	}
 	st := s.catalog.Load()
 	if st == nil {
 		return m
 	}
 	m.CatalogVersion = st.version
+	if st.commerce != nil {
+		m.Synthetic = append(m.Synthetic, st.commerce.synthetic...)
+	}
 	m.RulesVersion = st.rulesVersion
 	for _, c := range st.clients {
 		m.Clients = append(m.Clients, out.MetaClient{ID: c.ID, Name: c.Name, Segment: c.Segment, Hint: clientHint(st, c)})

@@ -1,0 +1,28 @@
+[
+ {
+  "id": "tpl-server",
+  "title": "Сервер с ОС",
+  "triggers": [
+   "сервер под ключ"
+  ],
+  "approved": true,
+  "slots": [
+   {
+    "id": "server",
+    "label": "Сервер",
+    "category_id": "servers",
+    "query": "сервер",
+    "constraints": {},
+    "quantity_strategy": "one"
+   },
+   {
+    "id": "os",
+    "label": "Серверная ОС",
+    "category_id": "server-os",
+    "query": "windows server",
+    "constraints": {},
+    "quantity_strategy": "per_server"
+   }
+  ]
+ }
+]

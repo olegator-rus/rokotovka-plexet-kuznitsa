@@ -167,7 +167,7 @@ func (s *Services) SearchWith(ctx context.Context, requestID string, req in.Sear
 	resp := &out.SearchResponse{
 		RequestID: requestID, Query: req.Query, Normalized: normalized, Config: cfg,
 		Chips: []out.Chip{}, Items: []out.SearchItem{}, Relaxed: []out.Relaxed{}, RelatedQueries: []string{},
-		Complements: []out.Complement{},
+		Complements: []out.Complement{}, Facets: []out.Facet{},
 	}
 	resp.Items, resp.Total = groupByFamily(ranked, docs, normalized, effective, limit, func(d indexDoc) bool {
 		return st.purchasedBefore(req.ClientID, d.ProductID, d.FamilyID)
@@ -227,6 +227,7 @@ func validateSearch(req *in.SearchRequest) (string, int, error) {
 	default:
 		bad = append(bad, errs.FieldError{Field: "source", Code: errs.CodeInvalidFormat, Message: "Источник — live или compare"})
 	}
+	bad = append(bad, validateFilters(req.Filters)...)
 	if len(bad) > 0 {
 		return "", 0, errs.NewValidationError(errs.MsgInvalidFields).WithDetails(bad...)
 	}
@@ -367,6 +368,7 @@ func groupByFamily(ranked []fused, docs map[string]indexDoc, normalized, cfg str
 			LicenseLine: licenseLine(d), PriceRub: d.PriceRub, PriceOnRequest: d.PriceOnRequest,
 			Group: matchGroup(cfg, normalized, d), MatchesQuery: true, PurchasedBefore: purchased(d),
 			Final: round4(f.Relevance),
+			Kind:  docKind(d), MPN: d.MPNRaw, PriceMode: docPriceMode(d), Required: []out.Companion{},
 		}
 		if i, ok := at[d.FamilyID]; ok {
 			items[i].Variants = append(items[i].Variants, it)

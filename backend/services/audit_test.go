@@ -13,7 +13,7 @@ func TestAuditFixture(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if r.Volumes.Products != 8 || r.Search == nil || r.Search.Skipped == "" || len(r.Fields) != len(auditFieldLabels) {
+	if r.Volumes.Products != 12 || r.Search == nil || r.Search.Skipped == "" || len(r.Fields) != len(auditFieldLabels) {
 		t.Fatalf("аудит: %+v", r)
 	}
 	for _, f := range r.Fields {

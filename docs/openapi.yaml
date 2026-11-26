@@ -172,7 +172,16 @@ paths:
               properties:
                 type:
                   type: string
-                  enum: [click, add_to_cart, order, price_request, manager_request, suggest_pick, correction_undo, chip_remove, clarify_answer]
+                  enum: [click, add_to_cart, order, price_request, manager_request, suggest_pick, correction_undo, chip_remove, clarify_answer,
+                    companion_impression, companion_click, companion_add, companion_dismiss, spec_remove, template_apply,
+                    quote_request, facet_apply, margin_simulate, margin_apply, relation_decision]
+                  description: >-
+                    Контур коммерции — обязательные поля: companion_impression — payload.anchor, payload.items;
+                    companion_click — product_id, payload.class; companion_add — product_id, payload.class, payload.quantity;
+                    companion_dismiss — product_id, payload.condition; spec_remove — product_id, payload.origin;
+                    template_apply — payload.template_id; quote_request — payload.positions, payload.on_request;
+                    facet_apply — payload.key, payload.value; margin_simulate — payload.weight; margin_apply —
+                    payload.version_before, payload.version_after; relation_decision — payload.relation_id, payload.decision.
                 request_id: { type: string }
                 session_id: { type: string, description: "Токен из meta.session; иной — событие пишется без сессии" }
                 client_id: { type: string }
@@ -724,6 +733,18 @@ components:
             событий (или заголовком X-Session); в журнал попадает только номер сессии с верной подписью, самодельный
             session_id пишется как «без сессии». X-Session с действующим токеном в запросе к /api/meta продлевает
             сессию.
+        features:
+          type: object
+          description: Флаги контура коммерции (FEATURE_*)
+          properties:
+            hardware: { type: boolean }
+            companions: { type: boolean }
+            margin_policy: { type: boolean }
+            solutions: { type: boolean }
+        synthetic:
+          type: array
+          items: { type: string }
+          description: Что в данных придумано (catalog.synthetic, например margin, orders) → плашка «Синтетические данные»
     SearchRequest:
       type: object
       required: [query]
@@ -743,6 +764,18 @@ components:
         clarify: { type: object, additionalProperties: { type: string } }
         limit: { type: integer, minimum: 1, maximum: 50, default: 20 }
         source: { type: string, enum: [live, compare], description: "compare — в журнал, но не в аналитику и стоимость" }
+        filters:
+          type: array
+          maxItems: 20
+          description: Фасеты контура коммерции
+          items:
+            type: object
+            required: [key, op, value]
+            properties:
+              key: { type: string, example: ram_gb }
+              op: { type: string, enum: [eq, gte, lte, range, not] }
+              value: {}
+              value2: { description: "Вторая граница диапазона (op=range)" }
     SearchItem:
       type: object
       properties:
@@ -758,7 +791,39 @@ components:
         matches_query: { type: boolean }
         purchased_before: { type: boolean }
         final: { type: number }
+        kind: { type: string, enum: [software, hardware] }
+        mpn: { type: string, description: Парт-номер производителя; "" у ПО }
+        price_mode: { type: string, enum: [fixed, from, quote_required, customer_specific, unavailable] }
+        compatibility:
+          type: [object, "null"]
+          properties:
+            target_model: { type: string }
+            state: { type: string, enum: [verified, conditional, incompatible, unknown] }
+            condition: { type: string }
+        required: { type: array, items: { $ref: "#/components/schemas/Companion" }, description: Условно обязательное к позиции }
         variants: { type: array, items: { $ref: "#/components/schemas/SearchItem" } }
+    Companion:
+      type: object
+      description: Позиция блока «Дополните решение»
+      properties:
+        product_id: { type: string }
+        family_id: { type: string }
+        title: { type: string }
+        vendor: { type: string }
+        category: { type: string }
+        license_line: { type: string }
+        price_rub: { type: [number, "null"] }
+        price_mode: { type: string }
+        class: { type: string, enum: [conditional_required, compatible, complement, upgrade, renewal] }
+        compatibility: { type: string, enum: [verified, conditional, unknown] }
+        reason: { type: string }
+        conditions: { type: array, items: { type: string } }
+        evidence_level: { type: string }
+        source: { type: string }
+        source_url: { type: string }
+        suggested_quantity: { type: [integer, "null"] }
+        label: { type: string }
+        upgrade_adds: { type: array, items: { type: string } }
     SearchResponse:
       type: object
       properties:
@@ -815,6 +880,40 @@ components:
           type: array
           description: «С этим покупают» (связи complement)
           items: { type: object, additionalProperties: true }
+        companions:
+          type: [object, "null"]
+          description: «Дополните решение» (контур коммерции); null — блока нет
+          properties:
+            anchor:
+              type: object
+              properties:
+                product_id: { type: string }
+                family_id: { type: string }
+                confidence: { type: string, enum: [high, medium] }
+            items: { type: array, items: { $ref: "#/components/schemas/Companion" } }
+        solution:
+          type: [object, "null"]
+          description: Комплексное решение по шаблону; null — нет
+          additionalProperties: true
+        facets:
+          type: array
+          description: Фасеты характеристик выдачи (контур коммерции); [] — нет
+          items:
+            type: object
+            properties:
+              key: { type: string }
+              label: { type: string }
+              unit: { type: string }
+              type: { type: string, enum: [number, enum, bool] }
+              min: { type: [number, "null"] }
+              max: { type: [number, "null"] }
+              values:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    value: {}
+                    count: { type: integer }
         trace: { $ref: "#/components/schemas/Trace" }
     Trace:
       type: object

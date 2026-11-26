@@ -25,7 +25,8 @@ func (r *Repos) ReplaceCatalog(ctx context.Context, s *domain.CatalogSnapshot, i
 	}
 	return r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		for _, m := range []any{&domain.Product{}, &domain.Vendor{}, &domain.Category{}, &domain.Relation{},
-			&domain.Alias{}, &domain.Client{}} {
+			&domain.Alias{}, &domain.Client{}, &domain.LicenseRule{}, &domain.CompatibilityRule{},
+			&domain.AttributeDefinition{}, &domain.SolutionTemplate{}, &domain.CatalogInfo{}} {
 			if err := tx.Where("1 = 1").Delete(m).Error; err != nil {
 				return err
 			}
@@ -37,6 +38,13 @@ func (r *Repos) ReplaceCatalog(ctx context.Context, s *domain.CatalogSnapshot, i
 			func() error { return createAll(tx, s.Relations) },
 			func() error { return createAll(tx, s.Aliases) },
 			func() error { return createAll(tx, s.Clients) },
+			func() error { return createAll(tx, s.LicenseRules) },
+			func() error { return createAll(tx, s.CompatibilityRules) },
+			func() error { return createAll(tx, s.AttributeDefinitions) },
+			func() error { return createAll(tx, s.SolutionTemplates) },
+			func() error {
+				return tx.Create(&domain.CatalogInfo{Version: s.Version, Synthetic: s.Synthetic, ImportedAt: importedAt}).Error
+			},
 		} {
 			if err := insert(); err != nil {
 				return err
@@ -74,10 +82,19 @@ func (r *Repos) LoadCatalog(ctx context.Context) (*domain.CatalogSnapshot, error
 		order string
 	}{
 		{&s.Vendors, "id"}, {&s.Categories, "id"}, {&s.Relations, "created_at"}, {&s.Aliases, "created_at"}, {&s.Clients, "id"},
+		{&s.LicenseRules, "id"}, {&s.CompatibilityRules, "id"}, {&s.AttributeDefinitions, "category_id"},
+		{&s.SolutionTemplates, "id"},
 	} {
 		if err := db.Order(q.order).Find(q.dst).Error; err != nil {
 			return nil, err
 		}
+	}
+	var info []domain.CatalogInfo
+	if err := db.Where("version = ?", s.Version).Limit(1).Find(&info).Error; err != nil {
+		return nil, err
+	}
+	if len(info) == 1 {
+		s.Synthetic = info[0].Synthetic
 	}
 	return s, nil
 }
@@ -110,7 +127,7 @@ func (r *Repos) SaveImportRules(ctx context.Context, catalogVersion string, rule
 			return err
 		}
 		var latest domain.ConfigVersion
-		err := tx.Order("version DESC").First(&latest).Error
+		err := tx.Scopes(rulesKind).Order("version DESC").First(&latest).Error
 		switch {
 		case errors.Is(err, gorm.ErrRecordNotFound):
 			v := domain.ConfigVersion{Version: 1, Source: "import", Author: "system", Comment: comment, Rules: rules,
@@ -123,10 +140,11 @@ func (r *Repos) SaveImportRules(ctx context.Context, catalogVersion string, rule
 		if !latest.Archived && latest.CatalogVersion == catalogVersion {
 			res.Version = latest.Version
 			return tx.Exec(`UPDATE config_versions SET rules = ?, comment = ? WHERE version = (
-				SELECT MAX(version) FROM config_versions WHERE source = 'import' AND NOT archived AND catalog_version = ?)`,
+				SELECT MAX(version) FROM config_versions WHERE kind = 'rules' AND source = 'import' AND NOT archived AND catalog_version = ?)
+				AND kind = 'rules'`,
 				rules, comment, catalogVersion).Error
 		}
-		if err := tx.Model(&domain.ConfigVersion{}).Where("NOT archived").Update("archived", true).Error; err != nil {
+		if err := tx.Model(&domain.ConfigVersion{}).Scopes(rulesKind).Where("NOT archived").Update("archived", true).Error; err != nil {
 			return err
 		}
 		v := domain.ConfigVersion{Version: latest.Version + 1, Source: "import", Author: "system", Comment: comment,
@@ -150,7 +168,7 @@ func (r *Repos) RulesVersion(ctx context.Context) (int, error) {
 		return 0, ErrNoDatabase
 	}
 	var v *int
-	err := r.db.WithContext(ctx).Model(&domain.ConfigVersion{}).Select("MAX(version)").Scan(&v).Error
+	err := r.db.WithContext(ctx).Model(&domain.ConfigVersion{}).Scopes(rulesKind).Select("MAX(version)").Scan(&v).Error
 	if err != nil || v == nil {
 		return 0, err
 	}

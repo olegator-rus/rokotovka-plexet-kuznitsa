@@ -1,10 +1,72 @@
 [
-  { "id": "security", "name": "Безопасность", "parent_id": null },
-  { "id": "antivirus-home", "name": "Антивирусы для дома", "parent_id": "security" },
-  { "id": "antivirus-business", "name": "Антивирусы для бизнеса", "parent_id": "security" },
-  { "id": "creative", "name": "Графика и дизайн", "parent_id": null },
-  { "id": "graphics", "name": "Графические редакторы", "parent_id": "creative" },
-  { "id": "productivity", "name": "Офис и учёт", "parent_id": null },
-  { "id": "office", "name": "Офисные пакеты", "parent_id": "productivity" },
-  { "id": "accounting", "name": "Бухгалтерия", "parent_id": "productivity" }
+ {
+  "id": "security",
+  "name": "Безопасность",
+  "parent_id": null
+ },
+ {
+  "id": "antivirus-home",
+  "name": "Антивирусы для дома",
+  "parent_id": "security"
+ },
+ {
+  "id": "antivirus-business",
+  "name": "Антивирусы для бизнеса",
+  "parent_id": "security"
+ },
+ {
+  "id": "creative",
+  "name": "Графика и дизайн",
+  "parent_id": null
+ },
+ {
+  "id": "graphics",
+  "name": "Графические редакторы",
+  "parent_id": "creative"
+ },
+ {
+  "id": "productivity",
+  "name": "Офис и учёт",
+  "parent_id": null
+ },
+ {
+  "id": "office",
+  "name": "Офисные пакеты",
+  "parent_id": "productivity"
+ },
+ {
+  "id": "accounting",
+  "name": "Бухгалтерия",
+  "parent_id": "productivity"
+ },
+ {
+  "id": "server-software",
+  "name": "Серверное ПО",
+  "parent_id": null
+ },
+ {
+  "id": "server-os",
+  "name": "Серверные ОС",
+  "parent_id": "server-software"
+ },
+ {
+  "id": "server-cal",
+  "name": "Лицензии доступа",
+  "parent_id": "server-software"
+ },
+ {
+  "id": "hardware",
+  "name": "Оборудование",
+  "parent_id": null
+ },
+ {
+  "id": "servers",
+  "name": "Серверы",
+  "parent_id": "hardware"
+ },
+ {
+  "id": "server-memory",
+  "name": "Серверная память",
+  "parent_id": "hardware"
+ }
 ]

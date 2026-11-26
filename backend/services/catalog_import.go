@@ -74,7 +74,8 @@ func (s *Services) ImportCatalog(ctx context.Context) (*out.ImportResult, error)
 	// Индекс строится рядом с текущим, затем база, и только потом переключается алиас: API, который
 	// заметит новый индекс (indexInfo), прочитает из базы уже новый каталог.
 	t = time.Now()
-	meta := indexMeta{CatalogVersion: snap.Version, HasVectors: res.Vectors, Products: len(docs), Source: res.Source, BuiltAt: s.now().UTC()}
+	meta := indexMeta{CatalogVersion: snap.Version, HasVectors: res.Vectors, Products: len(docs), Source: res.Source,
+		BuiltAt: s.now().UTC(), SpecKeys: specKeys(snap)}
 	if res.Vectors {
 		meta.EmbeddingDim = embeddingDim
 	}

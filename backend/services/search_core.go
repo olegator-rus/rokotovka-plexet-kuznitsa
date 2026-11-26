@@ -501,7 +501,7 @@ const signalNoise = "noise"
 var sqlLike = regexp.MustCompile(`(?i)\b(select|insert|update|delete|drop|union|alter|truncate)\b.*\b(from|into|table|where|set|select|all)\b` +
 	`|'\s*(or|and)\b|\b\d+\s*=\s*\d+\b|--\s*$|;\s*--|/\*`)
 
-// isNoiseQuery — запрос не о товаре по форме (нагрузочный тест П3): разметка или код, SQL, меньше двух букв
+// isNoiseQuery — запрос не о товаре по форме: разметка или код, SQL, меньше двух букв
 // без единого слова каталога и артикула («!!!», «%%%», «№1», «123»). «1с», «r7» — слова каталога, не шум.
 func isNoiseQuery(nr normResult, lx *searchLexicon, rules *searchRules) bool {
 	if looksLikeMarkup(nr.raw) || sqlLike.MatchString(nr.raw) {

@@ -47,7 +47,7 @@ func (s *Services) searchB3(ctx context.Context, requestID string, req in.Search
 	resp := &out.SearchResponse{
 		RequestID: requestID, Query: req.Query, Config: cfg,
 		Chips: []out.Chip{}, Items: []out.SearchItem{}, Relaxed: []out.Relaxed{}, RelatedQueries: []string{},
-		Complements: []out.Complement{},
+		Complements: []out.Complement{}, Facets: []out.Facet{},
 	}
 
 	// normalize

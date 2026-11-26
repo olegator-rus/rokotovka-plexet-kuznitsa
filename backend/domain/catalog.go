@@ -44,6 +44,19 @@ type Product struct {
 	InReestr       bool     `json:"in_reestr"`
 	Popularity     float64  `json:"popularity"` // 0..1
 	Margin         float64  `json:"margin"`     // 0..1
+	// Контур коммерции: оборудование. Нет поля в источнике — software, пустой mpn, price_mode из
+	// price_on_request (catalogsource заполняет значения по умолчанию).
+	Kind string `gorm:"size:16;index;not null;default:software" json:"kind"` // software | hardware
+	// MPN — парт-номер производителя; "" у ПО.
+	MPN string `gorm:"index" json:"mpn"`
+	// Specs — числовые характеристики (ram_gb, storage_gb, …): ключи из attribute_definitions, значения — числа.
+	Specs map[string]float64 `gorm:"serializer:json;type:jsonb" json:"specs,omitempty"`
+	// CompatibleWith — канонические id моделей систем, с которыми совместим компонент.
+	CompatibleWith []string `gorm:"serializer:json;type:jsonb" json:"compatible_with,omitempty"`
+	// ModelID — каноническая модель самой системы (сервер, ноутбук); "" у компонентов и ПО.
+	ModelID string `gorm:"index" json:"model_id"`
+	// PriceMode — fixed | from | quote_required | customer_specific | unavailable.
+	PriceMode string `gorm:"size:24" json:"price_mode"`
 	// CatalogVersion — версия снимка каталога, из которого позиция импортирована.
 	CatalogVersion string    `json:"-"`
 	ImportedAt     time.Time `json:"-"`
@@ -78,15 +91,37 @@ const (
 	RelationComplement    = "complement"
 	RelationRenewal       = "renewal"
 	RelationCompatibility = "compatibility"
+	RelationUpgrade       = "upgrade" // старшая редакция (контур коммерции)
 )
 
-// Relation — типизированная связь семейств.
+// RelationTypes — все типы связей.
+var RelationTypes = []string{RelationSubstitute, RelationComplement, RelationRenewal, RelationCompatibility, RelationUpgrade}
+
+// Relation — типизированная связь семейств. Поля контура коммерции необязательны: в источнике контура поиска
+// их нет, значения по умолчанию — requirement optional, compatibility unknown.
 type Relation struct {
 	UUIDModel
+	// RelID — id связи в источнике ("rel-0001"); "" у связей контура поиска. Первичный ключ таблицы — UUID.
+	RelID      string `gorm:"column:rel_id;index" json:"id"`
 	FromFamily string `gorm:"index" json:"from_family"`
 	ToFamily   string `gorm:"index" json:"to_family"`
-	Type       string `json:"type"`
-	Note       string `json:"note"`
+	// FromProduct, ToProduct — уточнение до позиции; nil — вся семья.
+	FromProduct *string `json:"from_product"`
+	ToProduct   *string `json:"to_product"`
+	Type        string  `json:"type"`
+	// Note — одна строка «почему вместе» (= reason компаньона).
+	Note             string   `json:"note"`
+	Requirement      string   `gorm:"size:24" json:"requirement"`   // conditional_required | recommended | optional
+	Compatibility    string   `gorm:"size:16" json:"compatibility"` // verified | conditional | incompatible | unknown
+	Conditions       []string `gorm:"serializer:json;type:jsonb" json:"conditions"`
+	QuantityStrategy string   `gorm:"size:16" json:"quantity_strategy"` // per_user | per_device | … | one | none
+	Source           string   `gorm:"size:24" json:"source"`            // vendor_documentation | catalog_rule | expert | co_purchase | agent_proposal
+	SourceURL        string   `json:"source_url"`
+	EvidenceLevel    string   `gorm:"size:4" json:"evidence_level"` // E0..E5
+	ReviewStatus     string   `gorm:"size:16" json:"review_status"` // approved | pending | rejected
+	ReviewedAt       string   `json:"reviewed_at"`                  // дата YYYY-MM-DD
+	// UpgradeAdds — что добавится при переходе на старшую редакцию (только type=upgrade).
+	UpgradeAdds []string `gorm:"serializer:json;type:jsonb" json:"upgrade_adds"`
 }
 
 // Цели алиаса (Alias.Target).
@@ -138,6 +173,13 @@ type CatalogSnapshot struct {
 	Relations  []Relation
 	Aliases    []Alias
 	Clients    []Client
+	// Контур коммерции: справочники необязательны — нет файла, пустой срез.
+	LicenseRules         []LicenseRule
+	CompatibilityRules   []CompatibilityRule
+	AttributeDefinitions []AttributeDefinition
+	SolutionTemplates    []SolutionTemplate
+	// Synthetic — что в данных придумано (catalog.synthetic: "margin", "orders") → плашка «Синтетические данные».
+	Synthetic []string
 	// Warnings — некритичные расхождения источника (нет справочника, ссылка в никуда).
 	Warnings []string
 }

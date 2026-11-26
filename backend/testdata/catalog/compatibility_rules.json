@@ -1,0 +1,13 @@
+[
+ {
+  "id": "cr-ram-r740",
+  "product_id": "ram-32g-rdimm",
+  "target_model": "dell-poweredge-r740",
+  "state": "verified",
+  "condition": "",
+  "source": "vendor_documentation",
+  "source_url": "https://example.invalid/r740-memory",
+  "rule_version": 1,
+  "date": "2026-05-22"
+ }
+]

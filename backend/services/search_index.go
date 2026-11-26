@@ -32,6 +32,8 @@ type indexMeta struct {
 	Products       int       `json:"products"`
 	Source         string    `json:"source"`
 	BuiltAt        time.Time `json:"built_at"`
+	// SpecKeys — числовые характеристики позиций (specs.*), под которые в маппинге заведены поля double.
+	SpecKeys []string `json:"spec_keys,omitempty"`
 }
 
 // foldMappings — свёртка символов для char_filter индекса; те же замены, что foldRunes в Go.
@@ -66,19 +68,30 @@ func indexBody(meta indexMeta) map[string]any {
 					// склеивает «1С:Бухгалтерия» и «Dr.Web» в одно слово, и «бухгалтерия» не находилась.
 					// Точка между цифрами («8.3») остаётся частью версии.
 					"split": map[string]any{"type": "pattern_replace", "pattern": `(?<=[\p{L}\p{N}])[:.](?=\p{L})`, "replacement": " "},
+					// mpn_strip — парт-номер без дефисов, пробелов и слэшей (как normalizeMPN в Go).
+					"mpn_strip": map[string]any{"type": "pattern_replace", "pattern": mpnStripPattern, "replacement": ""},
+				},
+				"tokenizer": map[string]any{
+					"mpn_tri": map[string]any{"type": "ngram", "min_gram": 3, "max_gram": 3},
 				},
 				"normalizer": map[string]any{
 					"exact": map[string]any{"type": "custom", "char_filter": []string{"fold", "spaces"}, "filter": []string{"lowercase", "trim"}},
+					"mpn":   map[string]any{"type": "custom", "char_filter": []string{"mpn_strip"}, "filter": []string{"uppercase"}},
 				},
 				"filter": map[string]any{
-					"ru_stop": map[string]any{"type": "stop", "stopwords": "_russian_"},
-					"ru_stem": map[string]any{"type": "stemmer", "language": "russian"},
-					"edge":    map[string]any{"type": "edge_ngram", "min_gram": 2, "max_gram": 15},
+					"ru_stop":  map[string]any{"type": "stop", "stopwords": "_russian_"},
+					"ru_stem":  map[string]any{"type": "stemmer", "language": "russian"},
+					"edge":     map[string]any{"type": "edge_ngram", "min_gram": 2, "max_gram": 15},
+					"mpn_edge": map[string]any{"type": "edge_ngram", "min_gram": 2, "max_gram": 32},
 				},
 				"analyzer": map[string]any{
 					"ru":    map[string]any{"type": "custom", "char_filter": []string{"fold", "split"}, "tokenizer": "standard", "filter": []string{"lowercase", "ru_stop", "ru_stem"}},
 					"plain": map[string]any{"type": "custom", "char_filter": []string{"fold", "split"}, "tokenizer": "standard", "filter": []string{"lowercase"}},
 					"edge":  map[string]any{"type": "custom", "char_filter": []string{"fold", "split"}, "tokenizer": "standard", "filter": []string{"lowercase", "edge"}},
+					// Парт-номер целиком одним токеном: префиксы (ввод по началу) и триграммы (кусок из середины, опечатка).
+					"mpn_prefix": map[string]any{"type": "custom", "char_filter": []string{"mpn_strip"}, "tokenizer": "keyword", "filter": []string{"uppercase", "mpn_edge"}},
+					"mpn_query":  map[string]any{"type": "custom", "char_filter": []string{"mpn_strip"}, "tokenizer": "keyword", "filter": []string{"uppercase"}},
+					"mpn_tri":    map[string]any{"type": "custom", "char_filter": []string{"mpn_strip"}, "tokenizer": "mpn_tri", "filter": []string{"uppercase"}},
 				},
 			},
 		},
@@ -108,7 +121,7 @@ func indexBody(meta indexMeta) map[string]any {
 				"attributes":    text("ru"),
 				"relations": map[string]any{"properties": map[string]any{
 					domain.RelationSubstitute: keyword, domain.RelationComplement: keyword,
-					domain.RelationRenewal: keyword, domain.RelationCompatibility: keyword,
+					domain.RelationRenewal: keyword, domain.RelationCompatibility: keyword, domain.RelationUpgrade: keyword,
 				}},
 				"license_type":     keyword,
 				"license_metric":   keyword,
@@ -121,6 +134,17 @@ func indexBody(meta indexMeta) map[string]any {
 				"in_reestr":        map[string]any{"type": "boolean"},
 				"popularity":       map[string]any{"type": "float"},
 				"margin":           map[string]any{"type": "float"},
+				// Контур коммерции: вид позиции, парт-номер, характеристики, совместимость, тип цены.
+				"kind":    keyword,
+				"mpn_raw": keyword,
+				"mpn_normalized": map[string]any{"type": "keyword", "normalizer": "mpn", "fields": map[string]any{
+					"prefix": map[string]any{"type": "text", "analyzer": "mpn_prefix", "search_analyzer": "mpn_query"},
+					"tri":    map[string]any{"type": "text", "analyzer": "mpn_tri"},
+				}},
+				"specs":           map[string]any{"properties": specsProperties(meta.SpecKeys)},
+				"compatible_with": keyword,
+				"model_id":        keyword,
+				"price_mode":      keyword,
 				"embedding": map[string]any{
 					"type": "knn_vector", "dimension": embeddingDim,
 					"method": map[string]any{"name": "hnsw", "engine": "lucene", "space_type": "cosinesimil",
@@ -160,7 +184,15 @@ type indexDoc struct {
 	InReestr        bool                `json:"in_reestr"`
 	Popularity      float64             `json:"popularity"`
 	Margin          float64             `json:"margin"`
-	Embedding       []float32           `json:"embedding,omitempty"`
+	// Контур коммерции. Пустые поля ПО в документ не пишутся.
+	Kind           string             `json:"kind"`
+	MPNRaw         string             `json:"mpn_raw,omitempty"`
+	MPNNormalized  string             `json:"mpn_normalized,omitempty"`
+	Specs          map[string]float64 `json:"specs,omitempty"`
+	CompatibleWith []string           `json:"compatible_with,omitempty"`
+	ModelID        string             `json:"model_id,omitempty"`
+	PriceMode      string             `json:"price_mode"`
+	Embedding      []float32          `json:"embedding,omitempty"`
 }
 
 // buildDocs — документы индекса из снимка каталога: имена вендора и категории, путь категории, алиасы
@@ -209,6 +241,13 @@ func buildDocs(s *domain.CatalogSnapshot) []indexDoc {
 			InReestr:        p.InReestr,
 			Popularity:      p.Popularity,
 			Margin:          p.Margin,
+			Kind:            p.Kind,
+			MPNRaw:          p.MPN,
+			MPNNormalized:   normalizeMPN(p.MPN),
+			Specs:           p.Specs,
+			CompatibleWith:  p.CompatibleWith,
+			ModelID:         p.ModelID,
+			PriceMode:       p.PriceMode,
 		}
 		if d.Vendor == "" {
 			d.Vendor = p.VendorID
@@ -333,4 +372,47 @@ func indexVersion(alias, name string) int {
 		return 0
 	}
 	return n
+}
+
+// mpnStripPattern — что убирается из парт-номера при нормализации (тот же набор в Go и в анализаторе).
+const mpnStripPattern = `[\s\-/]+`
+
+var mpnStripRe = regexp.MustCompile(mpnStripPattern)
+
+// normalizeMPN — парт-номер для поля mpn_normalized: верхний регистр без дефисов, пробелов и слэшей
+// («sns-r740 32g» → «SNSR74032G»).
+func normalizeMPN(raw string) string {
+	return strings.ToUpper(mpnStripRe.ReplaceAllString(strings.TrimSpace(raw), ""))
+}
+
+// specKeys — ключи числовых характеристик каталога: из attribute_definitions (type number) и из самих позиций.
+func specKeys(s *domain.CatalogSnapshot) []string {
+	set := map[string]bool{}
+	for _, ad := range s.AttributeDefinitions {
+		for _, a := range ad.Attrs {
+			if a.Key != "" && (a.Type == "" || a.Type == "number") {
+				set[a.Key] = true
+			}
+		}
+	}
+	for _, p := range s.Products {
+		for k := range p.Specs {
+			set[k] = true
+		}
+	}
+	keys := make([]string, 0, len(set))
+	for k := range set {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+	return keys
+}
+
+// specsProperties — поля specs.<ключ> типа double: фильтры и фасеты по диапазону.
+func specsProperties(keys []string) map[string]any {
+	props := make(map[string]any, len(keys))
+	for _, k := range keys {
+		props[k] = map[string]any{"type": "double"}
+	}
+	return props
 }

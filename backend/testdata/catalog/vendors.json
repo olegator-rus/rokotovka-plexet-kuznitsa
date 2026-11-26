@@ -1,8 +1,37 @@
 [
-  { "id": "kaspersky", "name": "Kaspersky", "origin": "ru" },
-  { "id": "adobe", "name": "Adobe", "origin": "foreign" },
-  { "id": "amssoft", "name": "AMS Software", "origin": "ru" },
-  { "id": "microsoft", "name": "Microsoft", "origin": "foreign" },
-  { "id": "ncloudtech", "name": "МойОфис", "origin": "ru" },
-  { "id": "1c", "name": "1С", "origin": "ru" }
+ {
+  "id": "kaspersky",
+  "name": "Kaspersky",
+  "origin": "ru"
+ },
+ {
+  "id": "adobe",
+  "name": "Adobe",
+  "origin": "foreign"
+ },
+ {
+  "id": "amssoft",
+  "name": "AMS Software",
+  "origin": "ru"
+ },
+ {
+  "id": "microsoft",
+  "name": "Microsoft",
+  "origin": "foreign"
+ },
+ {
+  "id": "ncloudtech",
+  "name": "МойОфис",
+  "origin": "ru"
+ },
+ {
+  "id": "1c",
+  "name": "1С",
+  "origin": "ru"
+ },
+ {
+  "id": "dell",
+  "name": "Dell",
+  "origin": "foreign"
+ }
 ]

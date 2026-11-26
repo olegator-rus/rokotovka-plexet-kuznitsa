@@ -25,8 +25,13 @@ type SearchResponse struct {
 	RelatedQueries []string     `json:"related_queries"`
 	// Complements — «С этим покупают»: семейства, связанные с первой позицией выдачи (relations complement),
 	// до 3; пустой массив — связей нет или конфигурация без справочников (B0–B2).
-	Complements []Complement  `json:"complements"`
-	Trace       *domain.Trace `json:"trace"`
+	Complements []Complement `json:"complements"`
+	// Контур коммерции: поля всегда присутствуют. Companions — «Дополните решение» (null — блока нет),
+	// Solution — комплексное решение (null), Facets — фасеты числовых характеристик ([]).
+	Companions *CompanionBlock `json:"companions"`
+	Solution   *Solution       `json:"solution"`
+	Facets     []Facet         `json:"facets"`
+	Trace      *domain.Trace   `json:"trace"`
 }
 
 // Complement — сопутствующий товар: самая популярная позиция связанного семейства.
@@ -52,12 +57,14 @@ type Correction struct {
 	Applied    bool   `json:"applied"`
 }
 
-// Chip — понятое условие запроса.
+// Chip — понятое условие запроса. Op и Unit — у числовых характеристик контура коммерции («Память ≥ 32 ГБ»).
 type Chip struct {
 	Field  string `json:"field"`
 	Value  string `json:"value"`
 	Label  string `json:"label"`
 	Strict bool   `json:"strict"`
+	Op     string `json:"op,omitempty"`
+	Unit   string `json:"unit,omitempty"`
 }
 
 // Clarify — уточняющий вопрос.
@@ -75,19 +82,102 @@ type ClarifyOption struct {
 
 // SearchItem — позиция выдачи: лучшая лицензия семейства, остальные — в Variants.
 type SearchItem struct {
-	ProductID       string       `json:"product_id"`
-	FamilyID        string       `json:"family_id"`
-	Title           string       `json:"title"`
-	Vendor          string       `json:"vendor"`
-	Category        string       `json:"category"`
-	LicenseLine     string       `json:"license_line"`
-	PriceRub        *float64     `json:"price_rub"`
-	PriceOnRequest  bool         `json:"price_on_request"`
-	Group           string       `json:"group"` // exact | match | analog
-	MatchesQuery    bool         `json:"matches_query"`
-	PurchasedBefore bool         `json:"purchased_before"`
-	Final           float64      `json:"final"`
-	Variants        []SearchItem `json:"variants,omitempty"`
+	ProductID       string   `json:"product_id"`
+	FamilyID        string   `json:"family_id"`
+	Title           string   `json:"title"`
+	Vendor          string   `json:"vendor"`
+	Category        string   `json:"category"`
+	LicenseLine     string   `json:"license_line"`
+	PriceRub        *float64 `json:"price_rub"`
+	PriceOnRequest  bool     `json:"price_on_request"`
+	Group           string   `json:"group"` // exact | match | analog
+	MatchesQuery    bool     `json:"matches_query"`
+	PurchasedBefore bool     `json:"purchased_before"`
+	Final           float64  `json:"final"`
+	// Контур коммерции: всегда присутствуют. Kind — software | hardware; MPN — парт-номер ("" у ПО); PriceMode — тип цены;
+	// Compatibility — при запросе «X для Y», иначе null; Required — условно обязательное к позиции ([]).
+	Kind          string             `json:"kind"`
+	MPN           string             `json:"mpn"`
+	PriceMode     string             `json:"price_mode"`
+	Compatibility *ItemCompatibility `json:"compatibility"`
+	Required      []Companion        `json:"required"`
+	Variants      []SearchItem       `json:"variants,omitempty"`
+}
+
+// ItemCompatibility — совместимость позиции с моделью из запроса.
+type ItemCompatibility struct {
+	TargetModel string `json:"target_model"`
+	State       string `json:"state"` // verified | conditional | incompatible | unknown
+	Condition   string `json:"condition"`
+}
+
+// Companion — позиция блока «Дополните решение» или строки «условно обязательное».
+type Companion struct {
+	ProductID   string   `json:"product_id"`
+	FamilyID    string   `json:"family_id"`
+	Title       string   `json:"title"`
+	Vendor      string   `json:"vendor"`
+	Category    string   `json:"category"`
+	LicenseLine string   `json:"license_line"`
+	PriceRub    *float64 `json:"price_rub"`
+	PriceMode   string   `json:"price_mode"`
+	// Class — conditional_required | compatible | complement | upgrade | renewal; incompatible в блок не попадает.
+	Class             string   `json:"class"`
+	Compatibility     string   `json:"compatibility"` // verified | conditional | unknown
+	Reason            string   `json:"reason"`
+	Conditions        []string `json:"conditions"`
+	EvidenceLevel     string   `json:"evidence_level"`
+	Source            string   `json:"source"`
+	SourceURL         string   `json:"source_url"`
+	SuggestedQuantity *int     `json:"suggested_quantity"`
+	Label             string   `json:"label"`
+	UpgradeAdds       []string `json:"upgrade_adds"`
+}
+
+// CompanionBlock — «Дополните решение»: якорь и 2–4 компаньона.
+type CompanionBlock struct {
+	Anchor CompanionAnchor `json:"anchor"`
+	Items  []Companion     `json:"items"`
+}
+
+// CompanionAnchor — к чему подобраны компаньоны.
+type CompanionAnchor struct {
+	ProductID  string `json:"product_id"`
+	FamilyID   string `json:"family_id"`
+	Confidence string `json:"confidence"` // high | medium
+}
+
+// Solution — комплексное решение по шаблону.
+type Solution struct {
+	TemplateID string         `json:"template_id"`
+	Title      string         `json:"title"`
+	Slots      []SolutionSlot `json:"slots"`
+}
+
+// SolutionSlot — слот решения: подобранная позиция и альтернативы.
+type SolutionSlot struct {
+	ID           string       `json:"id"`
+	Label        string       `json:"label"`
+	Quantity     int          `json:"quantity"`
+	Item         *SearchItem  `json:"item"`
+	Alternatives []SearchItem `json:"alternatives"`
+}
+
+// Facet — фасет числовой или перечислимой характеристики.
+type Facet struct {
+	Key    string       `json:"key"`
+	Label  string       `json:"label"`
+	Unit   string       `json:"unit"`
+	Type   string       `json:"type"` // number | enum | bool
+	Min    *float64     `json:"min"`
+	Max    *float64     `json:"max"`
+	Values []FacetValue `json:"values"`
+}
+
+// FacetValue — значение фасета и сколько позиций выдачи с ним.
+type FacetValue struct {
+	Value any `json:"value"`
+	Count int `json:"count"`
 }
 
 // Relaxed — ослабленное условие и объяснение покупателю.
@@ -119,6 +209,18 @@ type Meta struct {
 	// Session — подписанный сервером токен сессии покупателя (handlers/session.go): фронт шлёт его в session_id
 	// поиска и событий; самодельные сессии в журнал не попадают.
 	Session string `json:"session"`
+	// Features — флаги контура коммерции (FEATURE_*): фронт не показывает блоки выключенных возможностей.
+	Features Features `json:"features"`
+	// Synthetic — что в данных придумано (catalog.synthetic) → плашка «Синтетические данные»; [] — нет.
+	Synthetic []string `json:"synthetic"`
+}
+
+// Features — флаги контура коммерции.
+type Features struct {
+	Hardware     bool `json:"hardware"`
+	Companions   bool `json:"companions"`
+	MarginPolicy bool `json:"margin_policy"`
+	Solutions    bool `json:"solutions"`
 }
 
 // LLMState — режим модели и бюджет (GET /api/meta → llm, POST /api/admin/llm-mode).

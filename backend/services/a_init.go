@@ -51,6 +51,8 @@ type Services struct {
 	agent *agentService
 	// agentStoreOverride — хранилище агента в тестах; nil — repos.
 	agentStoreOverride agentStore
+	// features — флаги контура коммерции (commerce.go).
+	features Features
 }
 
 // Options — настройки и клиенты сервисов из config. Нулевые клиенты — шаг выключен.
@@ -88,6 +90,8 @@ type Options struct {
 	AgentReserveRub float64
 	// PerIPDailyRub — суточная квота разборов маршрута D на адрес покупателя, ₽ (LLM_PER_IP_DAILY_RUB); 0 — без квоты.
 	PerIPDailyRub float64
+	// Features — флаги контура коммерции (FEATURE_*).
+	Features Features
 }
 
 // NewServices — граф сервисов. repos == nil — API без базы: health отдаёт db: down, поиск не пишет журнал.
@@ -112,6 +116,7 @@ func NewServices(repos *repositories.Repos, opts Options) *Services {
 		source:   opts.Source,
 		alias:    opts.IndexAlias,
 		judge:    opts.JudgeModel,
+		features: opts.Features,
 	}
 	var load func(context.Context, time.Time) (float64, error)
 	if repos.Enabled() {

@@ -512,6 +512,7 @@ func (rc rankCtx) toItem(fh *familyHit) out.SearchItem {
 			MatchesQuery:    fh.fits[d.ProductID],
 			PurchasedBefore: rc.purchased["p:"+d.ProductID] || rc.purchased["f:"+d.FamilyID],
 			Final:           fh.final,
+			Kind:            docKind(d), MPN: d.MPNRaw, PriceMode: docPriceMode(d), Required: []out.Companion{},
 		}
 	}
 	it := mk(fh.head)

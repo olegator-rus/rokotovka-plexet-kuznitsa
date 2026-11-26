@@ -144,4 +144,8 @@ var extraMigrations = []string{
 	// Версии правил до цепочек по каталогам (M1): каталог — из снимка правил.
 	`UPDATE config_versions SET catalog_version = rules->>'catalog_version'
 		WHERE COALESCE(catalog_version, '') = '' AND rules->>'catalog_version' IS NOT NULL`,
+	// Контур коммерции: цепочки версий по виду (rules | relations | margin) — уникальна пара (kind, version), прежний
+	// уникальный индекс по одному version снимается. Строки до kind — правила поиска.
+	`UPDATE config_versions SET kind = 'rules' WHERE COALESCE(kind, '') = ''`,
+	`DROP INDEX IF EXISTS idx_config_versions_version`,
 }

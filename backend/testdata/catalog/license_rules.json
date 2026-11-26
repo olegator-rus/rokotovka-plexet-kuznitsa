@@ -1,0 +1,23 @@
+[
+ {
+  "id": "lr-ws-cal",
+  "vendor_id": "microsoft",
+  "anchor_family": "windows-server-2025",
+  "anchor_attrs": {
+   "edition": "Standard"
+  },
+  "requires_category": "server-cal",
+  "requires_attrs": {
+   "version": ">=anchor.version"
+  },
+  "class": "conditional_required",
+  "conditions": [
+   "access_license_required",
+   "no_existing_equivalent_license"
+  ],
+  "quantity_strategy": "per_user",
+  "reason": "Каждому пользователю сервера нужна лицензия доступа",
+  "source": "vendor_documentation",
+  "source_url": "https://example.invalid/ws-cal"
+ }
+]

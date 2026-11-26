@@ -13,8 +13,8 @@ func TestImportFixture(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if res.CatalogVersion != "fixture-1" || res.Products != 8 || res.Families != 7 || res.Vendors != 6 || res.Categories != 8 ||
-		res.Relations != 2 || res.Aliases != 6 || res.Clients != 3 || res.Index != "products_v1" || !res.Vectors || res.Database {
+	if res.CatalogVersion != "fixture-1" || res.Products != 12 || res.Families != 11 || res.Vendors != 7 || res.Categories != 14 ||
+		res.Relations != 4 || res.Aliases != 6 || res.Clients != 3 || res.Index != "products_v1" || !res.Vectors || res.Database {
 		t.Fatalf("сводка: %+v", res)
 	}
 	if !slices.Contains(res.Warnings, "база не подключена: каталог только в индексе") {
@@ -24,14 +24,14 @@ func TestImportFixture(t *testing.T) {
 		t.Fatalf("алиас: %q", env.os.Alias("products"))
 	}
 	docs := env.os.Docs("products")
-	if len(docs) != 8 {
+	if len(docs) != 12 {
 		t.Fatalf("документов %d", len(docs))
 	}
 	kis := docs["kis-2dev-1y"]
 	if emb, _ := kis["embedding"].([]any); len(emb) != 1024 || kis["vendor"] != "Kaspersky" || kis["license_quantity"].(float64) != 2 {
 		t.Fatalf("документ: %v", kis)
 	}
-	// Векторы пачками по 32: 8 позиций — один вызов.
+	// Векторы пачками по 32: 12 позиций — один вызов.
 	if n := env.tei.EmbedCalls.Load(); n != 1 {
 		t.Fatalf("вызовов /embed %d", n)
 	}

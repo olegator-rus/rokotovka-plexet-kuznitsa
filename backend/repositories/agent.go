@@ -195,7 +195,7 @@ func (r *Repos) ListConfigVersions(ctx context.Context) ([]domain.ConfigVersion,
 		return nil, ErrNoDatabase
 	}
 	var rows []domain.ConfigVersion
-	err := r.db.WithContext(ctx).Order("version DESC").Find(&rows).Error
+	err := r.db.WithContext(ctx).Scopes(rulesKind).Order("version DESC").Find(&rows).Error
 	return rows, err
 }
 
@@ -205,7 +205,7 @@ func (r *Repos) GetConfigVersion(ctx context.Context, version int) (*domain.Conf
 		return nil, ErrNoDatabase
 	}
 	var v domain.ConfigVersion
-	err := r.db.WithContext(ctx).First(&v, "version = ?", version).Error
+	err := r.db.WithContext(ctx).Scopes(rulesKind).First(&v, "version = ?", version).Error
 	if errors.Is(err, gorm.ErrRecordNotFound) {
 		return nil, nil
 	}
@@ -217,7 +217,7 @@ func (r *Repos) SetConfigVersionEffect(ctx context.Context, version int, effect 
 	if !r.Enabled() {
 		return ErrNoDatabase
 	}
-	return r.db.WithContext(ctx).Model(&domain.ConfigVersion{}).Where("version = ?", version).
+	return r.db.WithContext(ctx).Model(&domain.ConfigVersion{}).Scopes(rulesKind).Where("version = ?", version).
 		Update("effect", effect).Error
 }
 
@@ -264,7 +264,7 @@ func (r *Repos) ApplyRulesChange(ctx context.Context, ch *RulesChange) error {
 		}
 		if ch.Version != nil {
 			var latest *int
-			if err := tx.Model(&domain.ConfigVersion{}).Select("MAX(version)").Scan(&latest).Error; err != nil {
+			if err := tx.Model(&domain.ConfigVersion{}).Scopes(rulesKind).Select("MAX(version)").Scan(&latest).Error; err != nil {
 				return err
 			}
 			if latest == nil || *latest != ch.Base {
@@ -273,7 +273,7 @@ func (r *Repos) ApplyRulesChange(ctx context.Context, ch *RulesChange) error {
 			// Новая версия — того же каталога, что и база (M1: цепочки версий по каталогам).
 			if ch.Version.CatalogVersion == "" {
 				var cv []string
-				if err := tx.Model(&domain.ConfigVersion{}).Where("version = ?", ch.Base).
+				if err := tx.Model(&domain.ConfigVersion{}).Scopes(rulesKind).Where("version = ?", ch.Base).
 					Pluck("catalog_version", &cv).Error; err != nil {
 					return err
 				}
@@ -290,7 +290,7 @@ func (r *Repos) ApplyRulesChange(ctx context.Context, ch *RulesChange) error {
 		}
 		if ch.RollBackAbove > 0 {
 			var archived []bool
-			if err := tx.Model(&domain.ConfigVersion{}).Where("version = ?", ch.RollBackAbove).
+			if err := tx.Model(&domain.ConfigVersion{}).Scopes(rulesKind).Where("version = ?", ch.RollBackAbove).
 				Pluck("archived", &archived).Error; err != nil {
 				return err
 			}

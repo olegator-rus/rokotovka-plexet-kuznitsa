@@ -428,6 +428,9 @@ func (l *genericLoader) load(ctx context.Context) (*genericData, error) {
 		tb.finish(l)
 	}
 	l.ensureGuest()
+	if err := l.loadP2(); err != nil {
+		return nil, err
+	}
 	qs, err := loadQueriesFile(l.m.queriesPath())
 	switch {
 	case errors.Is(err, ErrNoFile) && l.m.EvalQueries == "":
@@ -813,6 +816,7 @@ func (l *genericLoader) loadCatalog(tb *table) error {
 			raw, _ := json.Marshal(attrs)
 			p.Attributes = domain.JSONB(raw)
 		}
+		l.hardwareFields(tb, rec, &p)
 		snap.Products = append(snap.Products, p)
 		l.productByKey[p.ID] = p.ID
 		if p.SKU != "" {
@@ -985,6 +989,7 @@ var relationWords = []struct{ stem, value string }{
 	{"альтерн", domain.RelationSubstitute}, {"сопутств", domain.RelationComplement}, {"complem", domain.RelationComplement},
 	{"вместе", domain.RelationComplement}, {"доп", domain.RelationComplement}, {"продл", domain.RelationRenewal},
 	{"renew", domain.RelationRenewal}, {"совмест", domain.RelationCompatibility}, {"compat", domain.RelationCompatibility},
+	{"upgrad", domain.RelationUpgrade}, {"апгрейд", domain.RelationUpgrade}, {"старш", domain.RelationUpgrade},
 }
 
 func normRelation(raw string) string {
@@ -1039,8 +1044,9 @@ func (l *genericLoader) loadRelations(tb *table) error {
 			continue
 		}
 		seen[key] = true
-		l.d.snap.Relations = append(l.d.snap.Relations, domain.Relation{FromFamily: from, ToFamily: to, Type: typ,
-			Note: tb.get(rec, "note")})
+		rel := domain.Relation{FromFamily: from, ToFamily: to, Type: typ, Note: tb.get(rec, "note")}
+		l.relationFields(tb, rec, &rel)
+		l.d.snap.Relations = append(l.d.snap.Relations, rel)
 	}
 	return nil
 }

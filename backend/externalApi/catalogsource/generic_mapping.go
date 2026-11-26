@@ -38,6 +38,13 @@ type Mapping struct {
 	Events     *Table `yaml:"events"`
 	// EvalQueries — готовый queries.json в формате контракта (разметка, наборы); пусто — оценки нет.
 	EvalQueries string `yaml:"eval_queries"`
+	// Справочники контура коммерции — JSON-файлы в формате данных; пусто — справочник пуст.
+	LicenseRules         string `yaml:"license_rules"`
+	CompatibilityRules   string `yaml:"compatibility_rules"`
+	AttributeDefinitions string `yaml:"attribute_definitions"`
+	SolutionTemplates    string `yaml:"solution_templates"`
+	// Synthetic — что в данных придумано ("margin", "orders") → плашка «Синтетические данные».
+	Synthetic []string `yaml:"synthetic"`
 
 	dir string // каталог файлов данных (BaseDir, приведённый к абсолютному)
 }
@@ -67,6 +74,9 @@ type Table struct {
 	Defaults map[string]string `yaml:"defaults"`
 	// Attributes — (только catalog) колонки в свободные атрибуты позиции: "Платформа" или "Платформа: platform".
 	Attributes []string `yaml:"attributes"`
+	// Specs — (только catalog) колонки в числовые характеристики позиции: "Память, ГБ: ram_gb". Нечисловая
+	// ячейка пропускается.
+	Specs []string `yaml:"specs"`
 }
 
 // Column — одна колонка или список кандидатов.
@@ -93,15 +103,18 @@ func (c *Column) UnmarshalYAML(n *yaml.Node) error {
 var tableFields = map[string][]string{
 	"catalog": {"id", "sku", "title", "description", "family_id", "family_name", "vendor", "category",
 		"price_rub", "price_on_request", "license_type", "license_metric", "license_quantity",
-		"license_duration_months", "license_duration", "license_edition", "origin", "in_reestr", "popularity", "margin"},
+		"license_duration_months", "license_duration", "license_edition", "origin", "in_reestr", "popularity", "margin",
+		"kind", "mpn", "model_id", "compatible_with", "price_mode"},
 	"vendors":    {"id", "name", "origin"},
 	"categories": {"id", "name", "parent_id", "parent", "path"},
-	"relations":  {"from", "to", "type", "note"},
-	"aliases":    {"alias", "canonical", "kind", "target", "target_id"},
-	"clients":    {"id", "name", "segment"},
-	"purchases":  {"client_id", "product", "date"},
-	"query_log":  {"text", "freq", "ts", "session_id", "client_id", "results_count"},
-	"events":     {"ts", "session_id", "client_id", "type", "query", "product", "position", "results_count"},
+	"relations": {"from", "to", "type", "note", "id", "from_product", "to_product", "requirement", "compatibility",
+		"conditions", "quantity_strategy", "source", "source_url", "evidence_level", "review_status", "reviewed_at",
+		"upgrade_adds"},
+	"aliases":   {"alias", "canonical", "kind", "target", "target_id"},
+	"clients":   {"id", "name", "segment"},
+	"purchases": {"client_id", "product", "date"},
+	"query_log": {"text", "freq", "ts", "session_id", "client_id", "results_count"},
+	"events":    {"ts", "session_id", "client_id", "type", "query", "product", "position", "results_count"},
 }
 
 // requiredFields — без этих полей таблица бессмысленна.
@@ -188,6 +201,9 @@ func (m *Mapping) validate() error {
 		}
 		if len(t.Attributes) > 0 && name != "catalog" {
 			problems = append(problems, name+": attributes бывают только у catalog")
+		}
+		if len(t.Specs) > 0 && name != "catalog" {
+			problems = append(problems, name+": specs бывают только у catalog")
 		}
 	}
 	if len(problems) > 0 {

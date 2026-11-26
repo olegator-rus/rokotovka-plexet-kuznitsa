@@ -80,6 +80,9 @@ func main() {
 		DailyBudgetRub:  cfg.Ops.DailyBudgetRub,
 		AgentReserveRub: cfg.Ops.AgentReserveRub,
 		PerIPDailyRub:   cfg.Ops.PerIPDailyRub,
+
+		Features: services.Features{Hardware: cfg.Features.Hardware, Companions: cfg.Features.Companions,
+			MarginPolicy: cfg.Features.MarginPolicy, Solutions: cfg.Features.Solutions},
 	})
 
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
