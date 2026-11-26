@@ -35,6 +35,17 @@ func FormatAuditMarkdown(r *AuditReport) string {
 		w("| %s | %s | %s |\n", mdCell(p.Item), mdCell(p.Finding), mdCell(p.Change))
 	}
 
+	if p := r.P2; p != nil {
+		w("\n## Контур коммерции: что есть в данных\n\n| Что | Есть | Откуда | Примечание |\n|---|---|---|---|\n")
+		for _, it := range p.Items {
+			w("| %s | %s | %s | %s |\n", mdCell(it.What), mdCell(it.Have), mdCell(it.Origin), mdCell(orDash(it.Note)))
+		}
+		w("\n## Правила среза контура коммерции\n\n| Направление | Что в данных | Что следует |\n|---|---|---|\n")
+		for _, x := range p.Slice {
+			w("| %s | %s | %s |\n", mdCell(x.Item), mdCell(x.Finding), mdCell(x.Change))
+		}
+	}
+
 	v := r.Volumes
 	w("\n## Объёмы\n\n| Что | Сколько |\n|---|---|\n")
 	w("| Позиции | %d |\n| Семейства | %d |\n| Вендоры | %d |\n| Категории | %d |\n", v.Products, v.Families, v.Vendors, v.Categories)

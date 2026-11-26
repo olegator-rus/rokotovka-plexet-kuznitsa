@@ -1,9 +1,13 @@
 package services
 
 import (
+	"math"
 	"os/exec"
 	"path/filepath"
+	"slices"
+	"strings"
 	"testing"
+	"time"
 
 	"kuznica/api/domain"
 	"kuznica/api/externalApi/catalogsource"
@@ -175,8 +179,135 @@ func TestForeignDataset(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	// В «чужом» журнале — только действия магазина: события витрины контуров коммерции–3 make_foreign не переносит.
+	shop := wantEvs[:0:0]
+	for _, e := range wantEvs {
+		if slices.Contains([]string{"search", "click", "add_to_cart", "order", "price_request", "manager_request"}, e.Type) {
+			shop = append(shop, e)
+		}
+	}
+	wantEvs = shop
 	if len(evs) != len(wantEvs) || len(got.Clients) != len(want.Clients) || len(got.Relations) < len(want.Relations)*9/10 {
 		t.Errorf("журнал, клиенты или связи потерялись: %d событий, %d клиентов, %d связей", len(evs), len(got.Clients), len(got.Relations))
+	}
+	foreignP2(t, g, got, want, evs, wantEvs)
+}
+
+// foreignP2 — контур коммерции на «чужом» наборе: поля оборудования и маржа из прайса, заказы с номером и контрагентом
+// (заказы контура поиска без номера — восстановлены), разметка пар; статистика совместных покупок и аудит находят
+// заложенную пару P2-03 (data/mock/PLANTED.md: R750 ↔ ИБП Ippon Innova RT II) на восстановленных семействах.
+func foreignP2(t *testing.T, g *catalogsource.Generic, got, want *domain.CatalogSnapshot, evs, wantEvs []domain.LogEvent) {
+	t.Helper()
+	truth := map[string]domain.Product{}
+	for _, p := range want.Products {
+		truth[p.ID] = p
+	}
+	var hw, mpn, margin int
+	for _, p := range got.Products {
+		w := truth[p.ID]
+		if p.Kind == w.Kind && p.Kind == domain.KindHardware {
+			hw++
+		}
+		if p.MPN == w.MPN && p.ModelID == w.ModelID && slices.Equal(p.CompatibleWith, w.CompatibleWith) {
+			mpn++
+		}
+		if math.Abs(p.Margin-w.Margin) < 0.001 {
+			margin++
+		}
+	}
+	wantHW := 0
+	for _, p := range want.Products {
+		if p.Kind == domain.KindHardware {
+			wantHW++
+		}
+	}
+	if hw != wantHW || mpn != len(got.Products) || margin != len(got.Products) || len(got.CompatibilityRules) != len(want.CompatibilityRules) {
+		t.Errorf("контур коммерции в прайсе: оборудование %d/%d, mpn/модель/совместимость %d, маржа %d из %d, правил совместимости %d",
+			hw, wantHW, mpn, margin, len(got.Products), len(got.CompatibilityRules))
+	}
+	// Заказы: номер и контрагент из данных совпадают с mock; у заказов контура поиска — восстановлены и помечены.
+	line := map[string]domain.LogEvent{}
+	for _, w := range wantEvs {
+		if w.Type == domain.EventOrder && w.OrderID != "" {
+			line[w.OrderID+"|"+w.ProductID] = w
+		}
+	}
+	srcOrders, restored := 0, 0
+	for _, e := range evs {
+		if e.Type != domain.EventOrder {
+			continue
+		}
+		if catalogsource.IsRestoredOrder(e.OrderID) {
+			restored++
+			continue
+		}
+		w, ok := line[e.OrderID+"|"+e.ProductID]
+		if !ok || e.AccountID != w.AccountID || e.Quantity != w.Quantity {
+			t.Fatalf("строка заказа %s/%s/%s/%d не совпала с mock (%+v)", e.OrderID, e.ProductID, e.AccountID, e.Quantity, w)
+		}
+		srcOrders++
+	}
+	t.Logf("строк заказов: с номером из данных %d, восстановлено %d", srcOrders, restored)
+	if srcOrders == 0 || restored == 0 {
+		t.Error("ожидались и заказы с номером из данных, и восстановленные")
+	}
+	pairs, err := g.LoadCompanionPairs(t.Context())
+	wantPairs, _ := catalogsource.MockJSON{Dir: "../../data/mock"}.LoadCompanionPairs(t.Context())
+	if err != nil || len(pairs) != len(wantPairs) {
+		t.Errorf("разметка пар: %d, в mock %d (%v)", len(pairs), len(wantPairs), err)
+	}
+
+	// P2-03 — семейства R750 и ИБП Innova RT II в восстановленном каталоге.
+	fam := map[string]string{}
+	for _, p := range got.Products {
+		fam[p.ID] = p.FamilyID
+	}
+	anchor, ups := fam["srv-r750-g6338"], fam["ups-ippon-rt-3000"]
+	if anchor == "" || anchor != fam["srv-r750-s4314"] {
+		t.Fatalf("серверы R750 не в одном семействе: %q %q", anchor, fam["srv-r750-s4314"])
+	}
+	c := newCommerceCatalog(got)
+	docs := docsOfRelations(got.Relations)
+	bs, _ := ordersOf(evs, c)
+	s := &Services{now: time.Now}
+	from, to := s.orderWindow(bs)
+	sc := scanCopurchase(c, docs, bs, from, to)
+	found := false
+	for _, cand := range sc.Candidates {
+		ok, why := sc.structureCheck(c, docs, cand.Anchor, cand.Companion)
+		t.Logf("кандидат %s → %s: %d акк., %d заказов, p=%s, структура %v %s", cand.Anchor, cand.Companion, cand.Stat.Accounts,
+			cand.Stat.JointOrders, fmtP(cand.Stat.P), ok, why)
+		if cand.Anchor == anchor && cand.Companion == ups {
+			found = true
+			if !ok {
+				t.Errorf("P2-03 на чужом наборе не прошла структуру: %s", why)
+			}
+		}
+	}
+	if !found {
+		t.Fatalf("P2-03 (%s → %s) не найдена статистикой покупок на чужом наборе", anchor, ups)
+	}
+
+	// Аудит видит то же: пару, восстановленные заказы, отсутствие правил лицензий и шаблонов.
+	r, err := NewServices(nil, Options{Source: g}).Audit(t.Context(), AuditOptions{NoSearch: true})
+	if err != nil {
+		t.Fatal(err)
+	}
+	p2 := r.P2
+	if p2 == nil || p2.Copurchase == nil || !slices.ContainsFunc(p2.Copurchase.Candidates, func(x AuditCopurchasePair) bool {
+		return x.Anchor == anchor && x.Companion == ups && x.Structure
+	}) {
+		t.Fatalf("аудит не видит P2-03: %+v", p2)
+	}
+	if p2.RestoredOrders == 0 || p2.OrderIDRestored != restored || p2.CompanionPairs == nil || p2.LicenseRules != 0 {
+		t.Errorf("аудит контура коммерции: восстановленных заказов %d, строк %d (ожидалось %d), пар %v, правил лицензий %d",
+			p2.RestoredOrders, p2.OrderIDRestored, restored, p2.CompanionPairs, p2.LicenseRules)
+	}
+	md := FormatAuditMarkdown(r)
+	for _, want := range []string{"## Контур коммерции: что есть в данных", "## Правила среза контура коммерции", "Шаблоны решений", anchor + " → " + ups} {
+		if !strings.Contains(md, want) {
+			t.Errorf("в AUDIT.md нет %q", want)
+		}
 	}
 }
 

@@ -36,6 +36,9 @@ type Mapping struct {
 	Purchases  *Table `yaml:"purchases"`
 	QueryLog   *Table `yaml:"query_log"`
 	Events     *Table `yaml:"events"`
+	// CompanionPairs — размеченные пары блока допродажи (companion_pairs.json): файл или лист;
+	// нет — метрики блока в `make eval SET=p2` не считаются («нет разметки»).
+	CompanionPairs *Table `yaml:"companion_pairs"`
 	// EvalQueries — готовый queries.json в формате контракта (разметка, наборы); пусто — оценки нет.
 	EvalQueries string `yaml:"eval_queries"`
 	// Справочники контура коммерции — JSON-файлы в формате данных; пусто — справочник пуст.
@@ -114,20 +117,23 @@ var tableFields = map[string][]string{
 	"clients":   {"id", "name", "segment"},
 	"purchases": {"client_id", "product", "date"},
 	"query_log": {"text", "freq", "ts", "session_id", "client_id", "results_count"},
-	"events":    {"ts", "session_id", "client_id", "type", "query", "product", "position", "results_count"},
+	"events": {"ts", "session_id", "client_id", "type", "query", "product", "position", "results_count",
+		"order_id", "account_id", "quantity"},
+	"companion_pairs": {"anchor_product", "candidate_product", "class", "query"},
 }
 
 // requiredFields — без этих полей таблица бессмысленна.
 var requiredFields = map[string][]string{
-	"catalog":    {"title"},
-	"vendors":    {"name"},
-	"categories": {"name"},
-	"relations":  {"from", "to"},
-	"aliases":    {"alias", "canonical"},
-	"clients":    {"id"},
-	"purchases":  {"client_id", "product"},
-	"query_log":  {"text"},
-	"events":     {"ts", "type"},
+	"catalog":         {"title"},
+	"vendors":         {"name"},
+	"categories":      {"name"},
+	"relations":       {"from", "to"},
+	"aliases":         {"alias", "canonical"},
+	"clients":         {"id"},
+	"purchases":       {"client_id", "product"},
+	"query_log":       {"text"},
+	"events":          {"ts", "type"},
+	"companion_pairs": {"anchor_product", "candidate_product", "class"},
 }
 
 // LoadMapping — разобрать и проверить mapping.yaml.
@@ -163,7 +169,7 @@ func LoadMapping(path string) (*Mapping, error) {
 func (m *Mapping) tables() map[string]*Table {
 	return map[string]*Table{"catalog": m.Catalog, "vendors": m.Vendors, "categories": m.Categories,
 		"relations": m.Relations, "aliases": m.Aliases, "clients": m.Clients, "purchases": m.Purchases,
-		"query_log": m.QueryLog, "events": m.Events}
+		"query_log": m.QueryLog, "events": m.Events, "companion_pairs": m.CompanionPairs}
 }
 
 func (m *Mapping) validate() error {

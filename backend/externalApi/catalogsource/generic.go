@@ -86,6 +86,7 @@ type genericData struct {
 	hasEv    bool
 	queryLog []QueryLogRow
 	queries  []domain.EvalQuery
+	pairs    []domain.CompanionPair
 	report   []FieldReport
 	files    []FileInfo
 }
@@ -190,6 +191,12 @@ func (g *Generic) signature() string {
 		}
 	}
 	paths = append(paths, g.mapping.queriesPath())
+	for _, f := range []string{g.mapping.LicenseRules, g.mapping.CompatibilityRules, g.mapping.AttributeDefinitions,
+		g.mapping.SolutionTemplates} {
+		if f != "" {
+			paths = append(paths, g.mapping.path(f))
+		}
+	}
 	sort.Strings(paths)
 	for _, p := range paths {
 		if st, err := os.Stat(p); err == nil {
@@ -389,11 +396,13 @@ func (l *genericLoader) load(ctx context.Context) (*genericData, error) {
 		tb.finish(l)
 	}
 	sort.SliceStable(l.d.events, func(i, j int) bool { return l.d.events[i].TS.Before(l.d.events[j].TS) })
+	orderReports := l.restoreOrders()
 
 	// Восстановление — до связей и покупок: им нужны семейства и id позиций.
 	if l.enrich != nil {
 		l.d.report = l.enrich(snap, l.d.events)
 	}
+	l.d.report = append(l.d.report, orderReports...)
 	for _, p := range snap.Products {
 		l.familyByKey[p.FamilyID] = p.FamilyID
 		if p.FamilyName != "" {
@@ -412,10 +421,13 @@ func (l *genericLoader) load(ctx context.Context) (*genericData, error) {
 		{l.m.Clients, "clients", l.loadClients},
 		{l.m.Purchases, "purchases", l.loadPurchases},
 		{l.m.Aliases, "aliases", l.loadAliases},
+		{l.m.CompanionPairs, "companion_pairs", l.loadCompanionPairs},
 	}
 	for _, s := range later {
 		if s.t == nil {
-			snap.Warnings = append(snap.Warnings, s.name+": нет в сопоставлении")
+			if s.name != "companion_pairs" { // разметка блока — не данные магазина: её отсутствие видно в оценке и аудите
+				snap.Warnings = append(snap.Warnings, s.name+": нет в сопоставлении")
+			}
 			continue
 		}
 		tb, err := l.open(s.name, s.t)
@@ -907,6 +919,13 @@ func (l *genericLoader) loadEvents(tb *table) error {
 		ev := domain.LogEvent{TS: ts, Type: typ, SessionID: tb.get(rec, "session_id"),
 			ClientID: optString(tb.get(rec, "client_id")), Query: tb.get(rec, "query"),
 			ResultsCount: optInt(tb.get(rec, "results_count")), Position: optInt(tb.get(rec, "position"))}
+		if typ == domain.EventOrder {
+			// Контур коммерции: номер заказа, аккаунт, количество; недостающее восстанавливает restoreOrders.
+			ev.OrderID, ev.AccountID = tb.get(rec, "order_id"), tb.get(rec, "account_id")
+			if q, ok := parseInt(tb.get(rec, "quantity")); ok && q > 0 {
+				ev.Quantity = q
+			}
+		}
 		if raw := tb.get(rec, "product"); raw != "" {
 			if ev.ProductID = l.productID(raw); ev.ProductID == "" {
 				unknownProduct++

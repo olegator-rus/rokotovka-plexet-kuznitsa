@@ -17,12 +17,13 @@ import (
 // структура (правка накладывается, нет дублей), находка снята и новых нет (правила лицензий и совместимости),
 // блок допродажи на размеченных парах не хуже, регрессия поиска не хуже.
 
-// companionPairLoader — источник с размеченными парами блока (MockJSON).
+// companionPairLoader — источник с размеченными парами блока (MockJSON — companion_pairs.json, Generic — companion_pairs
+// из mapping.yaml).
 type companionPairLoader interface {
 	LoadCompanionPairs(ctx context.Context) ([]domain.CompanionPair, error)
 }
 
-// companionPairs — пары companion_pairs.json; нет файла или источника — пусто.
+// companionPairs — размеченные пары блока; нет разметки или источника — пусто.
 func (s *Services) companionPairs(ctx context.Context) []domain.CompanionPair {
 	l, ok := s.source.(companionPairLoader)
 	if !ok {

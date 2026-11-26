@@ -7,9 +7,15 @@
 Тот же магазин, но в виде, в каком данные обычно приходят: прайс в XLSX с шапкой над таблицей, справочники и
 журналы в CSV в cp1251 с «;», журнал действий в TSV с BOM и московским временем, другие имена колонок,
 вендор и категория — названиями (категория — путём «Родитель > Категория»), цены «12 990,00 ₽» и
-«по запросу», «да/нет». Каталог плоский: нет семейств, условий лицензии, популярности, маржи и
-происхождения позиции; из описаний убрана фраза «Лицензия: …» — всё это импорт должен восстановить сам.
+«по запросу», «да/нет». Каталог плоский: нет семейств, условий лицензии, популярности и происхождения
+позиции; из описаний убрана фраза «Лицензия: …» — всё это импорт должен восстановить сам.
 Коды позиций совпадают с id mock, поэтому разметка data/mock/queries.json годится для оценки.
+
+Часть контура коммерции: в прайсе — тип товара, парт-номер, модель, «совместим с», маржа в процентах и
+две характеристики; в журнале — номер заказа, контрагент и количество (номера и контрагента нет у заказов
+контура поиска — их импорт восстанавливает по клиенту и окну); правила совместимости — JSON контракта; разметка
+пар блока — CSV с классами по-русски. Правил лицензий, атрибутов, шаблонов решений и полей связей контура коммерции
+нет — аудит должен показать их отсутствие и правила среза.
 
 Только стандартная библиотека; XLSX собирается вручную (zip + XML, строки inline).
 """
@@ -32,6 +38,10 @@ ORIGIN = {"ru": "Россия", "foreign": "США"}
 SEGMENT = {"smb": "Малый бизнес", "enterprise": "Крупный бизнес", "gov": "Госсектор", "individual": "Физлицо"}
 RELATION = {"substitute": "Аналог", "complement": "Сопутствующий", "renewal": "Продление", "compatibility": "Совместимость",
             "upgrade": "Старшая редакция"}
+KIND = {"software": "ПО", "hardware": "Оборудование"}
+PAIR_CLASS = {"required": "обязательный", "compatible": "совместимый", "conditional": "условно совместимый",
+              "incompatible": "несовместимый", "unknown": "неизвестно", "complement": "сопутствующий",
+              "upgrade": "старшая редакция", "irrelevant": "нерелевантно"}
 ACTION = {"search": "Поиск", "click": "Переход в карточку", "add_to_cart": "Добавление в корзину", "order": "Заказ оформлен",
           "price_request": "Запрос цены", "manager_request": "Запрос менеджеру"}
 
@@ -46,6 +56,14 @@ def price_text(p):
         return "по запросу"
     whole, frac = divmod(round(p["price_rub"] * 100), 100)
     return f"{whole:,}".replace(",", " ") + f",{frac:02d} ₽"
+
+
+def num_text(v):
+    """Число по-русски: «7,1», целое — без дробной части; нет — пусто."""
+    if v is None:
+        return ""
+    v = round(float(v), 2)
+    return str(int(v)) if v == int(v) else str(v).replace(".", ",")
 
 
 def strip_license(desc):
@@ -134,7 +152,18 @@ catalog:
     category: Раздел каталога   # путь «Родитель > Категория»
     price_rub: Цена, руб.
     in_reestr: Реестр Минцифры
+    kind: Тип товара
+    mpn: Парт-номер
+    model_id: Модель
+    compatible_with: Совместим с
+    margin: Маржа, %
   attributes: ["Платформа: platform", "Язык: language", "Поставка: delivery"]
+  specs: ["Память, ГБ: ram_gb", "Мощность, Вт: power_w"]
+  values:
+    kind: {ПО: software, Оборудование: hardware}
+
+synthetic: [margin, orders]     # маржа и заказы в mock придуманы
+compatibility_rules: compatibility_rules.json
 
 vendors:
   file: vendors.csv
@@ -169,6 +198,13 @@ events:
     results_count: Найдено
     product: Артикул            # события ссылаются на артикул, а не на код
     position: Позиция
+    order_id: Номер заказа      # нет — заказ восстанавливается по клиенту и окну 30 мин
+    account_id: Контрагент      # нет — берётся клиент
+    quantity: Кол-во
+
+companion_pairs:
+  file: pairs.csv
+  columns: {anchor_product: Товар, candidate_product: Предлагаемый товар, class: Оценка, query: Запрос}
 
 eval_queries: ../mock/queries.json
 """
@@ -194,13 +230,17 @@ def main():
         return " > ".join(reversed(parts))
 
     head = ["Код товара", "Артикул", "Наименование", "Производитель", "Раздел каталога", "Описание", "Цена, руб.",
-            "Реестр Минцифры", "Платформа", "Язык", "Поставка"]
+            "Реестр Минцифры", "Платформа", "Язык", "Поставка", "Тип товара", "Парт-номер", "Модель", "Совместим с", "Маржа, %",
+            "Память, ГБ", "Мощность, Вт"]
     rows = [["Прайс-лист интернет-магазина ПО на 27.05.2026"], [], head]
     for p in catalog:
         a = p.get("attributes") or {}
         rows.append([p["id"], p["sku"], p["title"], vendors[p["vendor_id"]]["name"], cat_path(p["category_id"]),
                      strip_license(p["description"]), price_text(p), "да" if p["in_reestr"] else "нет",
-                     a.get("platform", ""), a.get("language", ""), a.get("delivery", "")])
+                     a.get("platform", ""), a.get("language", ""), a.get("delivery", ""), KIND[p.get("kind") or "software"],
+                     p.get("mpn") or "", p.get("model_id") or "", ", ".join(p.get("compatible_with") or []),
+                     num_text(p["margin"] * 100) if p.get("margin") else "",
+                     num_text((p.get("specs") or {}).get("ram_gb")), num_text((p.get("specs") or {}).get("power_w"))])
     write_xlsx(out / "Номенклатура.xlsx", "Прайс", rows)
 
     write_csv(out / "vendors.csv", ["Наименование", "Страна"],
@@ -230,14 +270,25 @@ def main():
             if not line.strip():
                 continue
             e = json.loads(line)
+            if e["type"] not in ACTION:
+                continue  # события витрины контуров коммерции–3 (подсказки, блок допродажи) — не журнал магазина
             ts = datetime.fromisoformat(e["ts"].replace("Z", "+00:00")).astimezone(MSK)
             pid = e.get("product_id") or ""
             ev_rows.append([ts.strftime("%d.%m.%Y %H:%M:%S"), e["session_id"], e.get("client_id") or "", ACTION[e["type"]],
                             e.get("query") or "", "" if e.get("results_count") is None else e["results_count"],
                             (by_id[pid]["sku"] or pid) if pid in by_id else pid,
-                            "" if e.get("position") is None else e["position"]])
+                            "" if e.get("position") is None else e["position"], e.get("order_id") or "",
+                            e.get("account_id") or "", e.get("quantity") or ""])
     write_csv(out / "actions.tsv", ["Дата и время", "Сессия", "Клиент", "Действие", "Поисковая фраза", "Найдено", "Артикул",
-                                    "Позиция"], ev_rows, encoding="utf-8", delimiter="\t", bom=True)
+                                    "Позиция", "Номер заказа", "Контрагент", "Кол-во"], ev_rows, encoding="utf-8", delimiter="\t",
+              bom=True)
+
+    (out / "compatibility_rules.json").write_text(json.dumps(load("compatibility_rules.json"), ensure_ascii=False, indent=1),
+                                                  encoding="utf-8")
+    pairs = load("companion_pairs.json")
+    write_csv(out / "pairs.csv", ["Товар", "Предлагаемый товар", "Оценка", "Запрос"],
+              [[by_id[x["anchor_product"]]["sku"] or x["anchor_product"], x["candidate_product"], PAIR_CLASS[x["class"]],
+                x.get("query") or ""] for x in pairs], encoding="utf-8", delimiter=",")
 
     mapping = MAPPING
     if out.resolve() != (ROOT / "data" / "foreign").resolve():

@@ -38,6 +38,7 @@ type AuditReport struct {
 	Structure      AuditStructure              `json:"structure"`
 	Search         *AuditSearch                `json:"search,omitempty"`
 	Plan           []AuditPlanItem             `json:"plan"`
+	P2             *AuditP2                    `json:"p2"`
 	Provenance     []catalogsource.FieldReport `json:"provenance,omitempty"`
 	DurationMs     int64                       `json:"duration_ms"`
 }
@@ -209,6 +210,7 @@ func (s *Services) Audit(ctx context.Context, opts AuditOptions) (*AuditReport, 
 		}
 	}
 	r.Plan = auditPlan(r)
+	r.P2 = s.auditP2(ctx, r, snap, events)
 	r.DurationMs = time.Since(started).Milliseconds()
 	return r, nil
 }

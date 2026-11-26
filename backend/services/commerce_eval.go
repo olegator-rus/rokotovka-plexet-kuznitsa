@@ -250,8 +250,11 @@ func (s *Services) RunCommerceEvaluation(ctx context.Context, persist bool) (*ou
 	if !ready["hardware"] {
 		res.Notes = append(res.Notes, "оборудование: не готово — шага hardware в трассе нет, точность разбора единиц не считается")
 	}
-	if !ready["companions"] {
-		res.Notes = append(res.Notes, "блок допродажи: не готово или нет companion_pairs.json — метрики блока не считаются")
+	switch {
+	case len(pairs) == 0:
+		res.Notes = append(res.Notes, "блок допродажи: нет разметки (companion_pairs в данных нет) — метрики блока не считаются, это не ноль")
+	case !ready["companions"]:
+		res.Notes = append(res.Notes, "блок допродажи: не готово (флаг FEATURE_COMPANIONS выключен) — метрики блока не считаются")
 	}
 	if !ready["margin"] {
 		res.Notes = append(res.Notes, "политика маржи: не готово — флаг выключен или политика не прочитана")
