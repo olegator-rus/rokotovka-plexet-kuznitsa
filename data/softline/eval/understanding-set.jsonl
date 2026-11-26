@@ -1,0 +1,64 @@
+{"query": "astra linux", "type": "name", "expect": {"family": ["121231"]}, "top": 1}
+{"query": "Microsoft Office для дома и бизнеса", "type": "name", "expect": {"family": ["391338"]}, "top": 1}
+{"query": "kaspersky small office security", "type": "name", "expect": {"family": ["3761"]}, "top": 1}
+{"query": "крипто про csp 5.0", "type": "name", "expect": {"family": ["22268"]}, "top": 1}
+{"query": "anydesk", "type": "name", "expect": {"family": ["306539"]}, "top": 1}
+{"query": "kaspersky endpoint security", "type": "name", "expect": {"family": ["3935", "3953"]}, "top": 3}
+{"query": "windows 11 pro", "type": "name", "expect": {"family": ["286676"]}, "top": 1}
+{"query": "secret net studio", "type": "name", "expect": {"family": ["42240"]}, "top": 1}
+{"query": "termidesk", "type": "name", "expect": {"family": ["299975"]}, "top": 1}
+{"query": "workspad", "type": "name", "expect": {"family": ["300796"]}, "top": 1}
+{"query": "компас-3d", "type": "name", "expect": {"family": ["11571"]}, "top": 3}
+{"query": "nanocad", "type": "name", "expect": {"family": ["268540"]}, "top": 3}
+{"query": "альт сервер", "type": "name", "expect": {"family": ["408335"]}, "top": 1}
+{"query": "postgres pro", "type": "name", "expect": {"vendor": ["postgrespro"]}, "top": 1}
+{"query": "яндекс 360", "type": "name", "expect": {"vendor": ["yandex"]}, "top": 1}
+{"query": "usergate", "type": "name", "expect": {"vendor": ["entensys"]}, "top": 1}
+{"query": "кибер бэкап", "type": "name", "expect": {"vendor": ["cyberprotect"]}, "top": 1}
+{"query": "dr.web", "type": "name", "expect": {"vendor": ["drweb"]}, "top": 1}
+{"query": "мтс линк", "type": "name", "expect": {"vendor": ["webinar"]}, "top": 1}
+{"query": "365", "type": "number", "expect": {"family": ["165034"]}, "top": 3}
+{"query": "сканер-вс", "type": "code", "expect": {"family": ["46421"]}, "top": 1}
+{"query": "сканер вс", "type": "code", "expect": {"family": ["46421"]}, "top": 1}
+{"query": "max patrol", "type": "code", "expect": {"family": ["437421"]}, "top": 1}
+{"query": "maxpatrol", "type": "code", "expect": {"family": ["437421"]}, "top": 1}
+{"query": "антивирь", "type": "jargon", "expect": {"category": ["650", "3775"]}, "top": 4}
+{"query": "винда", "type": "jargon", "expect": {"family": ["286676", "310176"]}, "top": 3}
+{"query": "офис", "type": "jargon", "expect": {"category": ["1145", "222323"]}, "top": 4}
+{"query": "касперыч", "type": "jargon", "expect": {"vendor": ["kaspersky"]}, "top": 1}
+{"query": "ворд", "type": "jargon", "expect": {"family": ["162037", "162743"]}, "top": 3}
+{"query": "астра линукс", "type": "spelling", "expect": {"family": ["121231"]}, "top": 1}
+{"query": "астралинукс", "type": "spelling", "expect": {"family": ["121231"]}, "top": 3}
+{"query": "мдаемон", "type": "spelling", "expect": {"vendor": ["alt-n-technologies-ltd"]}, "top": 1}
+{"query": "мдемон", "type": "spelling", "expect": {"vendor": ["alt-n-technologies-ltd"]}, "top": 1}
+{"query": "доктор веб", "type": "spelling", "expect": {"vendor": ["drweb"]}, "top": 1}
+{"query": "др веб", "type": "spelling", "expect": {"vendor": ["drweb"]}, "top": 1}
+{"query": "касперский", "type": "spelling", "expect": {"vendor": ["kaspersky"]}, "top": 1}
+{"query": "виндовс 11", "type": "spelling", "expect": {"family": ["286676", "310176"]}, "top": 2}
+{"query": "ред ос", "type": "spelling", "expect": {"family": ["165644"]}, "top": 1}
+{"query": "альт линукс", "type": "spelling", "expect": {"vendor": ["basealt"]}, "top": 1}
+{"query": "секрет нет", "type": "spelling", "expect": {"family": ["42240", "263917"]}, "top": 1}
+{"query": "термидеск", "type": "spelling", "expect": {"family": ["299975"]}, "top": 1}
+{"query": "rfcgthcrbq", "type": "layout", "expect": {"vendor": ["kaspersky"]}, "top": 1}
+{"query": "rhbgnjghj", "type": "layout", "expect": {"vendor": ["kripto-pro"]}, "top": 1}
+{"query": "kaspersky totl security", "type": "typo", "expect": {"family": ["3971"]}, "top": 3}
+{"query": "астра линкус", "type": "typo", "expect": {"family": ["121231"]}, "top": 3}
+{"query": "eset", "type": "successor", "expect": {"vendor": ["pro32"]}, "top": 1}
+{"query": "nod32", "type": "successor", "expect": {"vendor": ["pro32"]}, "top": 1}
+{"query": "abbyy finereader", "type": "successor", "expect": {"vendor": ["contentai"]}, "top": 1}
+{"query": "acronis", "type": "successor", "expect": {"vendor": ["cyberprotect"]}, "top": 1}
+{"query": "сервер", "type": "category", "expect": {"category": ["86563"], "exclude": ["offer-535372", "offer-535373"]}, "top": 4}
+{"query": "почтовый сервер", "type": "pair", "expect": {"category": ["369", "1267", "7413"]}, "top": 1}
+{"query": "антивирус для сервера", "type": "pair", "expect": {"category": ["650"]}, "top": 1}
+{"query": "серверная память", "type": "pair", "expect": {"category": ["76963"]}, "top": 1}
+{"query": "антивирус", "type": "category", "expect": {"category": ["650", "3775"]}, "top": 4}
+{"query": "оперативная память", "type": "category", "expect": {"category": ["76963"]}, "top": 4}
+{"query": "ноутбук", "type": "category", "expect": {"category": ["70824"]}, "top": 4}
+{"query": "сканер", "type": "category", "expect": {"category": ["94641"]}, "top": 1}
+{"query": "монитор", "type": "category", "expect": {"category": ["80843", "91767"]}, "top": 1}
+{"query": "kaspersky", "type": "name", "expect": {"vendor": ["kaspersky"], "normalized": "kaspersky"}, "top": 1}
+{"query": "видеоконференции", "type": "category", "expect": {"category": ["7388", "157991"]}, "top": 1}
+{"query": "1с на 5 пользователей", "type": "regular", "expect": {"vendor": ["1s-bitriks"]}, "top": 1}
+{"query": "электронная подпись", "type": "jargon", "expect": {"family": ["37267", "413744", "426903", "443262", "37278"]}, "top": 1}
+{"query": "windows server 2025", "type": "name", "expect": {"family": ["161664", "281974", "294539", "161826"]}, "top": 1}
+{"query": "продлить касперский на 100 пк на 2 года", "type": "regular", "expect": {"vendor": ["kaspersky"], "route_not": "D"}, "top": 1}

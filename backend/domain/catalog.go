@@ -184,6 +184,30 @@ type Alias struct {
 	TargetID  string `json:"target_id"`
 }
 
+// Виды связи словаря понимания запросов (контур фида): жаргон, написание и ребрендинг подставляются,
+// преемник — нет (показывается с пояснением «на этом рынке — …»), drop снимает запись импорта, которая на этом
+// каталоге ведёт не туда.
+const (
+	LexiconJargon    = "jargon"
+	LexiconSpelling  = "spelling"
+	LexiconRebrand   = "rebrand"
+	LexiconSuccessor = "successor"
+	LexiconDrop      = "drop"
+)
+
+// LexiconEntry — запись словаря понимания запросов (файл данных, загружается при старте): исходная форма,
+// каноническая форма, тип связи, цель (term | vendor | category; у category — несколько id через «|») и
+// основание. Note — пояснение для покупателя у преемника.
+type LexiconEntry struct {
+	Alias     string   `json:"alias"`
+	Canonical string   `json:"canonical"`
+	Kind      string   `json:"kind"`
+	Target    string   `json:"target"`
+	TargetIDs []string `json:"target_ids"`
+	Basis     string   `json:"basis"`
+	Note      string   `json:"note"`
+}
+
 // Сегменты клиентов (Client.Segment).
 const (
 	SegmentSMB        = "smb"

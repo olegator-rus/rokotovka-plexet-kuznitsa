@@ -1,0 +1,511 @@
+package services
+
+import (
+	"strings"
+	"unicode"
+	"unicode/utf8"
+
+	"kuznica/api/domain"
+	"kuznica/api/out"
+)
+
+// Цель ответа: куда ведёт первый кликабельный элемент. Шесть шагов по порядку:
+// совпадение с названием семейства или вендора → есть оффер с ценой и наличием → базовая лицензия выше продлений,
+// техподдержки, модулей и курсов → более общее семейство выше редакций → при равенстве семейств одного вендора —
+// вендор или вендор + категория второго уровня → при равенстве между вендорами — уточняющие чипы. Число офферов
+// семейства не считается. Ручных исключений нет: только слова запроса, названия семейств и вендоров каталога.
+
+// lineMin — со скольких равных семейств одного вендора это линейка: цель — вендор или вендор + категория.
+const lineMin = 3
+
+// targetDecision — выбранная цель и то, как она выбрана (шаг answer трассы).
+type targetDecision struct {
+	target *out.Target
+	// families — семейства, которые цель представляет: они получают match_type exact.
+	families map[string]bool
+	// skuDoc — позиция, названная артикулом (цель sku по артикулу).
+	skuDoc *indexDoc
+	// covering — семейства выдачи, чьё название покрывает запрос; brandOnly — запрос — только имя вендора.
+	covering  []string
+	brandOnly bool
+	// coverageMiss — семейство, у которого страница ещё не собрана: цель ведёт на SKU (журнал покрытия).
+	coverageMiss string
+	// clarify — вендоры для уточняющих чипов (равенство между вендорами, общее слово-категория).
+	clarify bool
+}
+
+// targetInput — что нужно выбору цели.
+type targetInput struct {
+	rc       rankCtx
+	words    []string // значимые слова запроса после нормализации (без служебных и атрибутов)
+	fams     []*familyHit
+	exactDoc func(indexDoc) bool
+	category string // категория, названная словами запроса ("" — нет)
+	help     *out.HelpAnswer
+}
+
+// queryWords — значимые слова запроса для сравнения с названиями: без служебных слов, атрибутов и отрицаний.
+func queryWords(tokens []string, consumed map[int]bool) []string {
+	var ws []string
+	for i, t := range tokens {
+		if consumed[i] || lexStopWords[t] {
+			continue
+		}
+		for _, w := range wordsOf(t) {
+			if !lexStopWords[w] {
+				ws = append(ws, w)
+			}
+		}
+	}
+	return ws
+}
+
+// wordMatch — слово запроса есть среди слов названия: целиком или основой от 4 букв («бэкапа» — «бэкап»,
+// «серверов» — «сервер»). Числа и короткие слова — только целиком.
+func wordMatch(w string, names []string) bool {
+	for _, n := range names {
+		if n == w {
+			return true
+		}
+		a, b := w, n
+		if utf8.RuneCountInString(a) > utf8.RuneCountInString(b) {
+			a, b = b, a
+		}
+		if utf8.RuneCountInString(a) >= 4 && strings.HasPrefix(b, a) && !hasDigit(a) {
+			return true
+		}
+	}
+	return false
+}
+
+// vendorWords — слова имени и слага вендора семейства.
+func (rc rankCtx) vendorWords(fid string) []string {
+	v := rc.lx.familyVendor[fid]
+	ws := wordsOf(rc.lx.vendorName[v])
+	ws = append(ws, wordsOf(strings.ReplaceAll(v, "-", " "))...)
+	return append(ws, strings.ReplaceAll(v, "-", ""))
+}
+
+// covers — название семейства покрывает запрос: каждое слово запроса есть в названии (два соседних слова могут
+// быть одним словом названия: «max patrol» — MaxPatrol). Слова, которыми назван вендор, можно не находить в
+// названии, если в запросе есть и другие слова; запрос из одного имени вендора сверяется с названием буквально.
+func (rc rankCtx) covers(fid string, words []string, brandOnly bool) bool {
+	names := wordsOf(rc.lx.familyName[fid])
+	vendor := rc.vendorWords(fid)
+	for i := 0; i < len(words); i++ {
+		w := words[i]
+		switch {
+		case wordMatch(w, names):
+		case i+1 < len(words) && wordMatch(w+words[i+1], names):
+			i++
+		case !brandOnly && (rc.ent.vendorTokens[w] || wordMatch(w, vendor)):
+		default:
+			return false
+		}
+	}
+	return len(words) > 0
+}
+
+// brandVendor — запрос целиком называет одного вендора («мтс», «astra linux» = слаг astralinux): его id, иначе "".
+func (rc rankCtx) brandVendor(words []string, fams []*familyHit) string {
+	if len(words) == 0 {
+		return ""
+	}
+	if len(rc.ent.vendors) == 1 {
+		all := true
+		for _, w := range words {
+			all = all && rc.ent.vendorTokens[w]
+		}
+		if all {
+			return rc.ent.vendors[0]
+		}
+	}
+	joined := strings.Join(words, "")
+	for _, fh := range fams {
+		v := rc.lx.familyVendor[fh.id]
+		if v != "" && (strings.ReplaceAll(v, "-", "") == joined || strings.ReplaceAll(foldText(rc.lx.vendorName[v]), " ", "") == joined) {
+			return v
+		}
+	}
+	// Каждое слово запроса — слово имени вендора («мтс» — «МТС Линк (Webinar Group)»).
+	for _, fh := range fams {
+		v := rc.lx.familyVendor[fh.id]
+		names := wordsOf(rc.lx.vendorName[v])
+		all := v != ""
+		for _, w := range words {
+			all = all && contains(names, w)
+		}
+		if all {
+			return v
+		}
+	}
+	return ""
+}
+
+// famBuyable — у семейства есть допустимая позиция, которую можно купить сейчас.
+func famBuyable(fh *familyHit) bool {
+	for _, d := range fh.heads {
+		if buyable(d) {
+			return true
+		}
+	}
+	return false
+}
+
+// famBase — у семейства есть допустимая базовая лицензия или вид, о котором просили (продление в «продлить …»);
+// источник без видов — шаг не различает.
+func famBase(rc rankCtx, fh *familyHit) bool {
+	for _, d := range fh.heads {
+		if k := rc.lx.kindOf(d); k == domain.LicenseKindBase || k != "" && kindRank(k, rc.wantKinds) == 0 {
+			return true
+		}
+	}
+	return false
+}
+
+// docCat2 — категория второго уровня позиции (фид: категория позиции; глубже — второй элемент пути).
+func docCat2(d indexDoc) string {
+	if len(d.CategoryIDs) >= 2 {
+		return d.CategoryIDs[1]
+	}
+	return d.CategoryID
+}
+
+// generalFamily — более общее семейство: значимые слова его названия (без имени вендора) есть в названии каждого
+// другого («Kaspersky Small Office Security» общее для «… for Desktops, Mobiles and File Servers»). "" — такого нет.
+func (rc rankCtx) generalFamily(ids []string) string {
+	words := func(fid string) map[string]bool {
+		vendor := map[string]bool{}
+		for _, w := range rc.vendorWords(fid) {
+			vendor[w] = true
+		}
+		m := map[string]bool{}
+		for _, w := range wordsOf(rc.lx.familyName[fid]) {
+			if !vendor[w] && !lexStopWords[w] {
+				m[w] = true
+			}
+		}
+		return m
+	}
+	for _, c := range ids {
+		cw := words(c)
+		general := len(cw) > 0
+		for _, o := range ids {
+			if o == c || !general {
+				continue
+			}
+			ow := words(o)
+			if len(ow) <= len(cw) {
+				general = false
+				break
+			}
+			for w := range cw {
+				if !ow[w] {
+					general = false
+					break
+				}
+			}
+		}
+		if general {
+			return c
+		}
+	}
+	return ""
+}
+
+// categoryQuery — запрос — общее слово-категория: категория найдена, вендор не назван, и каждое слово запроса — слово
+// названия этой категории или её родителя («сервер», «офис» → office, «антивирус»).
+func (rc rankCtx) categoryQuery(words []string, cat string) bool {
+	if cat == "" || len(rc.ent.vendors) > 0 || len(words) == 0 {
+		return false
+	}
+	names := wordsOf(rc.lx.categoryName[cat])
+	if root := rc.lx.categoryRoot[cat]; root != "" && root != cat {
+		names = append(names, wordsOf(rc.lx.categoryName[root])...)
+	}
+	for _, w := range words {
+		if !wordMatch(w, names) {
+			return false
+		}
+	}
+	return true
+}
+
+// selectTarget — цель ответа. nil — цели нет (пустая выдача, бессмыслица).
+func selectTarget(in targetInput) targetDecision {
+	rc := in.rc
+	dec := targetDecision{families: map[string]bool{}}
+	if rc.ent.nonProduct || in.help != nil && in.help.Mode == HelpModeAnswer {
+		t := &out.Target{Type: out.TargetService, Title: "Помощь менеджера", Reason: "запрос не о товаре"}
+		if in.help != nil {
+			t.Title, t.URL = in.help.Title, in.help.URL
+		}
+		dec.target = t
+		return dec
+	}
+	if len(in.fams) == 0 {
+		if in.category != "" && rc.categoryQuery(in.words, in.category) {
+			dec.target = categoryTarget(rc, in.category, "общее слово совпадает с категорией")
+		}
+		return dec
+	}
+	byID := map[string]*familyHit{}
+	for _, fh := range in.fams {
+		byID[fh.id] = fh
+	}
+
+	// 0. Точный артикул.
+	if in.exactDoc != nil {
+		for _, fh := range in.fams {
+			for _, d := range fh.heads {
+				if in.exactDoc(d) {
+					doc := d
+					dec.skuDoc = &doc
+					dec.families[fh.id] = true
+					dec.target = &out.Target{Type: out.TargetSKU, URL: d.OfferURL, Title: d.Title, Reason: "точный артикул"}
+					return dec
+				}
+			}
+		}
+	}
+
+	// 1. Совпадение с названием семейства (или вендора).
+	brand := rc.brandVendor(in.words, in.fams)
+	dec.brandOnly = brand != ""
+	var covering []string
+	for _, fh := range in.fams {
+		if fh.group == domain.GroupAnalog {
+			continue
+		}
+		if rc.covers(fh.id, in.words, dec.brandOnly) {
+			covering = append(covering, fh.id)
+		}
+	}
+	if brand != "" {
+		var own []string
+		for _, f := range covering {
+			if rc.lx.familyVendor[f] == brand {
+				own = append(own, f)
+			}
+		}
+		covering = own
+	}
+	// 2. Есть оффер с ценой и наличием. 3. Базовая лицензия выше продлений, поддержки, модулей и курсов.
+	covering = keepIf(covering, func(f string) bool { return famBuyable(byID[f]) })
+	covering = keepIf(covering, func(f string) bool { return famBase(rc, byID[f]) })
+	// Название начинается со слов запроса («365» — Microsoft 365 Family, а не PowerDirector 365 или CorelDRAW
+	// «Подписка 365-Day»): запрос называет продукт, а не его признак.
+	if !dec.brandOnly {
+		covering = keepIf(covering, func(f string) bool { return rc.leads(f, in.words) })
+	}
+	// Слово запроса — линейка одного вендора («nanocad» — 20 семейств Нанософт и 2 — других): у него не меньше двух
+	// третей покрывающих семейств — остаются только его.
+	covering = keepIf(covering, func(f string) bool { return ownerShare(rc, covering, rc.lx.familyVendor[f])*3 >= 2*len(covering) })
+	dec.covering = covering
+
+	// 4. Более общее семейство выше редакций: общее по словам названия или единственная «платформа» линейки.
+	single := ""
+	switch {
+	case len(covering) == 1:
+		single = covering[0]
+	case len(covering) > 1:
+		single = rc.generalFamily(covering)
+		if single == "" {
+			single = rc.baseOfLine(covering)
+		}
+	}
+	catQuery := rc.categoryQuery(in.words, in.category)
+	if single != "" && (!catQuery || rc.namedBy(single, in.words)) {
+		return familyTarget(rc, dec, byID[single], "совпадение с названием семейства")
+	}
+	if catQuery {
+		dec.target = categoryTarget(rc, in.category, "общее слово совпадает с категорией")
+		dec.clarify = true
+		return dec
+	}
+	if len(covering) == 0 {
+		if brand != "" {
+			return vendorTarget(rc, dec, brand, in.fams, "у вендора нет одного явного семейства")
+		}
+		return familyTarget(rc, dec, in.fams[0], "первое по релевантности")
+	}
+	// 5. Равенство семейств одного вендора: вендор или вендор + категория второго уровня.
+	vendors, cats := map[string]bool{}, map[string]bool{}
+	for _, f := range covering {
+		vendors[rc.lx.familyVendor[f]] = true
+		cats[docCat2(byID[f].head)] = true
+	}
+	if len(vendors) == 1 && len(covering) < lineMin && !dec.brandOnly {
+		// Два равных семейства — ещё не линейка: первое по релевантности, второе — сразу под ним.
+		return familyTarget(rc, dec, byID[covering[0]], "совпадение с названием семейства, первое по релевантности")
+	}
+	if len(vendors) == 1 {
+		v := rc.lx.familyVendor[covering[0]]
+		for _, f := range covering {
+			dec.families[f] = true
+		}
+		if len(cats) == 1 && !dec.brandOnly {
+			return vendorCategoryTarget(rc, dec, v, byID[covering[0]].head)
+		}
+		return vendorTarget(rc, dec, v, in.fams, "у вендора несколько равных семейств")
+	}
+	// 6. Равенство между вендорами — первое по релевантности и уточняющие чипы.
+	dec.clarify = true
+	return familyTarget(rc, dec, byID[covering[0]], "несколько вендоров с похожими семействами — уточните")
+}
+
+func keepIf(xs []string, ok func(string) bool) []string {
+	var res []string
+	for _, x := range xs {
+		if ok(x) {
+			res = append(res, x)
+		}
+	}
+	if len(res) == 0 {
+		return xs // признак не различает кандидатов — шаг пропускается
+	}
+	return res
+}
+
+// familyTarget — цель «семейство»; страница семейства не собрана — SKU головы и промах покрытия.
+func familyTarget(rc rankCtx, dec targetDecision, fh *familyHit, reason string) targetDecision {
+	dec.families[fh.id] = true
+	url := ""
+	for _, d := range fh.heads {
+		if d.FamilyURL != "" {
+			url = d.FamilyURL
+			break
+		}
+	}
+	if url == "" && fh.head.OfferURL != "" {
+		dec.coverageMiss = fh.id
+		dec.target = &out.Target{Type: out.TargetSKU, URL: fh.head.OfferURL, Title: fh.head.Title,
+			Reason: reason + "; страница семейства ещё не собрана — ведём на позицию"}
+		return dec
+	}
+	name := rc.lx.familyName[fh.id]
+	if name == "" {
+		name = fh.head.Title
+	}
+	dec.target = &out.Target{Type: out.TargetFamily, URL: url, Title: name, Reason: reason}
+	return dec
+}
+
+func vendorURLOf(fams []*familyHit, vendor string) string {
+	for _, fh := range fams {
+		if fh.head.VendorID == vendor && fh.head.VendorURL != "" {
+			return fh.head.VendorURL
+		}
+	}
+	return ""
+}
+
+func vendorTarget(rc rankCtx, dec targetDecision, vendor string, fams []*familyHit, reason string) targetDecision {
+	for _, fh := range fams {
+		if fh.head.VendorID == vendor && fh.group != domain.GroupAnalog {
+			dec.families[fh.id] = true
+		}
+	}
+	dec.target = &out.Target{Type: out.TargetVendor, URL: vendorURLOf(fams, vendor), Title: rc.lx.vendorName[vendor], Reason: reason}
+	return dec
+}
+
+// vendorCategoryTarget — «вендор + категория»: <vendorUrl>?filter[category][]=<id категории второго уровня>.
+func vendorCategoryTarget(rc rankCtx, dec targetDecision, vendor string, head indexDoc) targetDecision {
+	cat := docCat2(head)
+	url := ""
+	if head.VendorURL != "" && cat != "" {
+		url = head.VendorURL + "?filter[category][]=" + cat
+	}
+	title := rc.lx.vendorName[vendor]
+	if name := rc.lx.categoryName[cat]; name != "" {
+		title += " — " + lowerCategory(name)
+	}
+	dec.target = &out.Target{Type: out.TargetVendorCategory, URL: url, Title: title,
+		Reason: "у вендора несколько равных семейств в одной категории"}
+	return dec
+}
+
+func categoryTarget(rc rankCtx, cat, reason string) *out.Target {
+	return &out.Target{Type: out.TargetCategory, Title: rc.lx.categoryName[cat], Reason: reason}
+}
+
+// lowerCategory — название категории внутри заголовка: первая буква строчная, если это не аббревиатура («ПО»).
+func lowerCategory(s string) string {
+	r := []rune(s)
+	if len(r) > 1 && unicode.IsUpper(r[1]) {
+		return s
+	}
+	return lowerFirst(s)
+}
+
+// namedBy — запрос называет семейство целиком: каждое значимое слово его названия (кроме имени вендора) есть в
+// запросе. Общее слово-категория («антивирус») семейство «Softline Universe (ОС+офис+антивирус)» не называет.
+func (rc rankCtx) namedBy(fid string, words []string) bool {
+	vendor := rc.vendorWords(fid)
+	n := 0
+	for _, w := range wordsOf(rc.lx.familyName[fid]) {
+		if lexStopWords[w] || contains(vendor, w) {
+			continue
+		}
+		n++
+		if !wordMatch(w, words) {
+			return false
+		}
+	}
+	return n > 0
+}
+
+// leads — значимые слова названия семейства (без имени вендора) начинаются со слов запроса (без слов вендора).
+func (rc rankCtx) leads(fid string, words []string) bool {
+	vendor := rc.vendorWords(fid)
+	var names []string
+	for _, w := range wordsOf(rc.lx.familyName[fid]) {
+		if !lexStopWords[w] && !contains(vendor, w) && !lineBaseWords[w] {
+			names = append(names, w)
+		}
+	}
+	i := 0
+	for _, w := range words {
+		if rc.ent.vendorTokens[w] || wordMatch(w, vendor) {
+			continue
+		}
+		if i >= len(names) || !wordMatch(w, names[i:i+1]) {
+			return false
+		}
+		i++
+	}
+	return i > 0
+}
+
+// lineBaseWords — слова названия, которыми семейство называет себя основой линейки («Платформа nanoCAD 26»): такое
+// семейство общее для редакций, комплектов и модулей той же линейки.
+var lineBaseWords = setOf("платформа", "platform")
+
+// baseOfLine — единственное семейство-основа среди покрывающих («Платформа nanoCAD» среди «nanoCAD комплект …»,
+// «nanoCAD GeoniCS» …); "" — такого нет или их несколько.
+func (rc rankCtx) baseOfLine(ids []string) string {
+	found := ""
+	for _, f := range ids {
+		for _, w := range wordsOf(rc.lx.familyName[f]) {
+			if lineBaseWords[w] {
+				if found != "" && found != f {
+					return ""
+				}
+				found = f
+			}
+		}
+	}
+	return found
+}
+
+// ownerShare — сколько покрывающих семейств у вендора.
+func ownerShare(rc rankCtx, ids []string, vendor string) int {
+	n := 0
+	for _, f := range ids {
+		if rc.lx.familyVendor[f] == vendor {
+			n++
+		}
+	}
+	return n
+}

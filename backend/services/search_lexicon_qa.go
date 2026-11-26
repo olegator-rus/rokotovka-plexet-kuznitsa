@@ -201,6 +201,9 @@ func (lx *searchLexicon) categoryOf(tokens []string) (string, []string) {
 	found := ""
 	var words, qualified []string
 	for _, t := range tokens {
+		if lx.compoundNames[t] {
+			continue // «сканер-вс» — название продукта, а не «сканер»
+		}
 		for _, w := range wordsOf(t) {
 			if utf8.RuneCountInString(w) < 4 || lexStopWords[w] || lexServiceWords[w] {
 				continue

@@ -98,6 +98,7 @@ func main() {
 			MarginPolicy: cfg.Features.MarginPolicy, Solutions: cfg.Features.Solutions, ResultsV3: cfg.Features.ResultsV3,
 			Panel: cfg.Features.Panel, PanelProducts: cfg.Features.PanelProducts, PanelMargin: cfg.Features.PanelMargin,
 			PanelRecs: cfg.Features.PanelRecs, PanelViewed: cfg.Features.PanelViewed},
+		NoFallbackBlock: !cfg.Features.FallbackBlock,
 	})
 
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)

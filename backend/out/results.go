@@ -9,6 +9,10 @@ package out
 type ResultCounts struct {
 	Families int `json:"families"`
 	Variants int `json:"variants"`
+	// Контур фида: SKUs — разные позиции в карточках ответа и их вариантах; ByMatchType — карточки по ступени
+	// лестницы. Без FEATURE_RESULTS_V3 Families и Variants — по карточкам ответа.
+	SKUs        int            `json:"skus"`
+	ByMatchType map[string]int `json:"by_match_type"`
 }
 
 // ResultSort — применённая сортировка и пояснение к ней.

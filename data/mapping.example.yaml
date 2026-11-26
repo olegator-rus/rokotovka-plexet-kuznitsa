@@ -129,6 +129,8 @@ events:                         # клики, корзины, заказы по�
 #   columns: {anchor_product: Товар, candidate_product: Предлагаемый товар, class: Оценка, query: Запрос}
 
 eval_queries: queries.json      # наборы оценки в формате контракта (их собирает `go run . buildsets`)
+# lexicon: lexicon.csv          # словарь понимания запросов: alias, canonical, kind (jargon|spelling|rebrand|successor|drop),
+#                               # target (term|vendor|category), target_id (через «|»), basis, note; читается при старте API
 
 # --- Справочники контура коммерции: JSON-файлы в формате данных (пути от base_dir); нет — справочник пуст ---
 # license_rules: license_rules.json             # правила вендоров: что требуется якорю (CAL к Windows Server)

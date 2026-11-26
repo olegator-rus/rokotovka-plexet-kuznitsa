@@ -22,12 +22,15 @@ type Features struct {
 	// Панель поиска контура выдачи: FEATURE_PANEL, FEATURE_PANEL_PRODUCTS, FEATURE_PANEL_MARGIN,
 	// FEATURE_PANEL_RECS (on); FEATURE_PANEL_VIEWED — основание «недавно просмотренное» в рекомендациях (off).
 	Panel, PanelProducts, PanelMargin, PanelRecs, PanelViewed bool
+	// FallbackBlock — SEARCH_FALLBACK_BLOCK: блок «Популярное в наличии» под сервисным запросом и бессмыслицей
+	// (лестница, по умолчанию on). На остальных запросах блок добирает до четырёх всегда.
+	FallbackBlock bool
 }
 
 // loadFeatures — флаги из окружения.
 func loadFeatures() (Features, error) {
 	f := Features{Hardware: true, Companions: true, MarginPolicy: true, Solutions: true, ResultsV3: true,
-		Panel: true, PanelProducts: true, PanelMargin: true, PanelRecs: true}
+		Panel: true, PanelProducts: true, PanelMargin: true, PanelRecs: true, FallbackBlock: true}
 	var problems []string
 	for _, x := range []struct {
 		key string
@@ -38,7 +41,7 @@ func loadFeatures() (Features, error) {
 		{"FEATURE_RESULTS_V3", &f.ResultsV3},
 		{"FEATURE_PANEL", &f.Panel}, {"FEATURE_PANEL_PRODUCTS", &f.PanelProducts},
 		{"FEATURE_PANEL_MARGIN", &f.PanelMargin}, {"FEATURE_PANEL_RECS", &f.PanelRecs},
-		{"FEATURE_PANEL_VIEWED", &f.PanelViewed},
+		{"FEATURE_PANEL_VIEWED", &f.PanelViewed}, {"SEARCH_FALLBACK_BLOCK", &f.FallbackBlock},
 	} {
 		v := env(x.key, "")
 		switch strings.ToLower(v) {
@@ -64,7 +67,8 @@ func (f Features) summary() string {
 		}
 		return "off"
 	}
-	return fmt.Sprintf("контур коммерции: оборудование %s, допродажа %s, политика маржи %s, решения %s; страница результатов п3 %s; панель п3 %s (товары %s, маржа %s, рекомендации %s, просмотренное %s)",
+	return fmt.Sprintf("контур коммерции: оборудование %s, допродажа %s, политика маржи %s, решения %s; страница результатов п3 %s; панель п3 %s (товары %s, маржа %s, рекомендации %s, просмотренное %s); блок «Популярное в наличии» %s",
 		onOff(f.Hardware), onOff(f.Companions), onOff(f.MarginPolicy), onOff(f.Solutions), onOff(f.ResultsV3),
-		onOff(f.Panel), onOff(f.PanelProducts), onOff(f.PanelMargin), onOff(f.PanelRecs), onOff(f.PanelViewed))
+		onOff(f.Panel), onOff(f.PanelProducts), onOff(f.PanelMargin), onOff(f.PanelRecs), onOff(f.PanelViewed),
+		onOff(f.FallbackBlock))
 }

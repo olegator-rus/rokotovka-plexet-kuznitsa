@@ -44,8 +44,47 @@ type SearchResponse struct {
 	Help              *HelpAnswer     `json:"help,omitempty"`
 	AnalogOriginal    *AnalogOriginal `json:"analog_original,omitempty"`
 	ReestrUnconfirmed []SearchItem    `json:"reestr_unconfirmed,omitempty"`
-	Trace             *domain.Trace   `json:"trace"`
+	// Контур фида: цель ответа — первый кликабельный элемент (null — цели нет: бессмыслица,
+	// B0–B2); уточняющие чипы при равенстве семейств разных вендоров или общем слове-категории ([] — нет).
+	// Счётчики семейств, SKU и карточек по match_type — в Counts (всегда, не только при FEATURE_RESULTS_V3).
+	Target         *Target       `json:"target"`
+	Clarifications []Refinement  `json:"clarifications"`
+	Trace          *domain.Trace `json:"trace"`
 }
+
+// Типы цели ответа.
+const (
+	TargetSKU            = "sku"
+	TargetFamily         = "family"
+	TargetVendor         = "vendor"
+	TargetVendorCategory = "vendor_category"
+	TargetCategory       = "category"
+	TargetService        = "service"
+)
+
+// Target — куда ведёт ответ: SKU, семейство, вендор, вендор + категория второго уровня, категория или сервисная
+// страница. URL пустой — страницы у цели нет (категория без URL на сайте, справка без ссылки).
+type Target struct {
+	Type   string `json:"type"`
+	URL    string `json:"url"`
+	Title  string `json:"title"`
+	Reason string `json:"reason"`
+}
+
+// Ступени лестницы «минимум 4 товара» (SearchItem.MatchType).
+const (
+	MatchExact       = "exact"
+	MatchVariant     = "variant"
+	MatchRelated     = "related"
+	MatchAlternative = "alternative"
+	MatchFallback    = "fallback"
+)
+
+// Состояние цены карточки (SearchItem.PriceState).
+const (
+	PricePriced    = "priced"
+	PriceOnRequest = "on_request"
+)
 
 // Complement — сопутствующий товар: самая популярная позиция связанного семейства.
 type Complement struct {
@@ -132,6 +171,14 @@ type SearchItem struct {
 	Available   *bool    `json:"available,omitempty"`
 	OldPriceRub *float64 `json:"old_price_rub,omitempty"`
 	LicenseKind string   `json:"license_kind,omitempty"`
+	// Контур фида: ступень лестницы, состояние цены, цена «от» (минимум среди позиций семейства,
+	// которые можно купить сейчас и которые проходят условия запроса; null — таких нет), подписи («Скидка N%» по
+	// old_price_rub) и строка «почему здесь». У вложенных вариантов не заполняются.
+	MatchType  string   `json:"match_type,omitempty"`
+	PriceState string   `json:"price_state,omitempty"`
+	PriceFrom  *float64 `json:"price_from,omitempty"`
+	Badges     []string `json:"badges,omitempty"`
+	Explain    string   `json:"explain,omitempty"`
 }
 
 // ItemCompatibility — совместимость позиции с моделью из запроса.

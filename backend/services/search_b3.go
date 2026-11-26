@@ -80,6 +80,7 @@ func (s *Services) searchB3(ctx context.Context, requestID string, req in.Search
 	negFamilies = hw.withoutHandledNegations(negFamilies, negLabels)
 	ent.applyNegation(negVendors, negFamilies, negLabels, removed)
 	ent.applyAlternatives(lx, rules)
+	ent.setIntent(nr, lx, rules, req, removed, hw.active()) // намерение по категории (search_understanding.go)
 	hw.applyEntities(&ent)
 	chips, found := attrs.chips(ent, lx)
 	chips, found = hw.chips(chips, found)
@@ -92,6 +93,9 @@ func (s *Services) searchB3(ctx context.Context, requestID string, req in.Search
 	t = time.Now()
 	route, signals := routeSignals(nr.withoutNegatedChanges(negated), attrs, ent)
 	route, signals = hw.route(route, signals, ent)
+	if ent.intent != nil {
+		signals = append(signals, signalCategoryIntent)
+	}
 	routeStep := domain.RouteStep{StepBase: domain.StepBase{Name: domain.StepRoute}, Route: route, Signals: signals}
 	routeStep.Ms = msSince(t)
 
@@ -194,15 +198,34 @@ func (s *Services) searchB3(ctx context.Context, requestID string, req in.Search
 	denseCh := make(chan retrieval, 1)
 	filters := strictFilters(attrs, ent)
 	filters = append(filters, hw.filters()...)
-	go func() { denseCh <- s.denseSafe(ctx, denseText, info, filters...) }()
-	bm := s.lexicalB3(ctx, text, expansions, b3MinMatch, filters)
+	go func(f []any) { denseCh <- s.denseSafe(ctx, denseText, info, f...) }(filters)
+	var bm retrieval
+	if ent.intent != nil {
+		bm = s.lexicalIntent(ctx, ent.intent, text, expansions, filters) // по семейству из категорий намерения
+	} else {
+		bm = s.lexicalB3(ctx, text, expansions, b3MinMatch, filters)
+	}
 	if bm.err == nil && len(bm.step.Top) == 0 && strings.Contains(text, " ") {
 		// Все слова вместе не встретились ни в одной позиции — ослабляем до «любое слово».
 		bm = s.lexicalB3(ctx, text, expansions, "1", filters)
 		bm.step.Mode = "multi_match_any"
 	}
+	intentDropped := false
+	if ent.intent != nil && bm.err == nil {
+		if bm.step.Top = ent.intent.keepHits(lx, bm.step.Top); len(bm.step.Top) == 0 {
+			// В категориях намерения по словам запроса ничего нет — ищем без него.
+			ent.intent, intentDropped = nil, true
+			filters = append(strictFilters(attrs, ent), hw.filters()...)
+			bm = s.lexicalB3(ctx, text, expansions, b3MinMatch, filters)
+		}
+	}
 	s.exactRetrieve(ctx, hw, filters)
 	dn := <-denseCh
+	if intentDropped {
+		dn = s.denseSafe(ctx, denseText, info, filters...)
+	} else if ent.intent != nil {
+		dn.step.Top = ent.intent.keepHits(lx, dn.step.Top)
+	}
 	// Продление, а отдельной позиции продления у названного нет («продлить 1с итс», «продление veeam»): новый срок
 	// — это та же лицензия; показывается она с пояснением, а не «товара нет».
 	renewalRelaxed := false
@@ -248,6 +271,7 @@ func (s *Services) searchB3(ctx context.Context, requestID string, req in.Search
 	rc := s.rankContext(st, lx, req.ClientID, attrs, ent)
 	rc.hw = hw
 	rc.upgradeTargets = upgradeTargetSet(s.commerceFor(ctx))
+	rc.wantKinds = wantedKinds(nr.tokens, attrs)   // голова семейства — базовая лицензия, если о другом не просили (search_head.go)
 	cq := s.companionQuantity(ctx, lx, attrs, ent) // «на 50 пользователей» к серверу — количество CAL (search_companion_qty.go)
 	cq.apply(&rc)
 	for _, h := range bmTop {
@@ -297,7 +321,7 @@ func (s *Services) searchB3(ctx context.Context, requestID string, req in.Search
 				fmt.Sprintf("найден только векторами, скор %.3f < %.3f", denseScore[f.ProductID], minDense))
 			continue
 		}
-		if hidden, _ := rc.offerHidden(d); hidden {
+		if hidden, _ := rc.offerHiddenInFusion(d); hidden {
 			continue // вариант под сделку или организацию, которых запрос не называет: семейство он не поднимает
 		}
 		if absent && denseScore[f.ProductID] < absentDenseMin {
@@ -352,8 +376,8 @@ func (s *Services) searchB3(ctx context.Context, requestID string, req in.Search
 		}
 	default:
 		group := ""
-		if absent {
-			group = domain.GroupAnalog
+		if absent || len(ent.successors) > 0 {
+			group = domain.GroupAnalog // преемник ушедшего с рынка продукта — не точное совпадение
 		}
 		for _, f := range lx.familyOrder {
 			rel, ok := byFamily[f]
@@ -394,6 +418,7 @@ func (s *Services) searchB3(ctx context.Context, requestID string, req in.Search
 	}
 	// Категория раньше количества: «видеоконференции на 50» — TrueConf (до 25) остаётся, офисный пакет на 50 — нет.
 	fams = rc.dropOtherCategories(fams, &trace.Rejected)
+	fams = ent.intent.keepFamilies(fams, &trace.Rejected) // «сервер»: рабочая станция из «Rack-серверов» — не сервер
 	fams = rc.dropQuantityMisfits(fams, &trace.Rejected)
 	rerankStep := skipped(domain.StepRerank, rerankAnalogs)
 	if !(attrs.analog && len(ent.reference) > 0) {
@@ -466,6 +491,11 @@ func (s *Services) searchB3(ctx context.Context, requestID string, req in.Search
 	if m := metricRelaxedMessage(metricRelaxed, rc.attrs.quantity, fams); m != nil {
 		resp.Relaxed = append(resp.Relaxed, *m)
 	}
+	for _, sh := range ent.successors {
+		if len(fams) > 0 && sh.note != "" {
+			resp.Relaxed = append(resp.Relaxed, out.Relaxed{Field: fieldSuccessor, Message: sh.note})
+		}
+	}
 	if renewalRelaxed && len(fams) > 0 {
 		resp.Relaxed = append(resp.Relaxed, out.Relaxed{Field: domain.FieldRenewal,
 			Message: "Отдельной позиции продления нет — новый срок оформляется этой же лицензией"})
@@ -505,6 +535,7 @@ func (s *Services) searchB3(ctx context.Context, requestID string, req in.Search
 	rp.keep(fams)
 
 	resp.Total = len(fams)
+	foundFams := fams // до обрезки по limit: выбор цели видит все найденные семейства (search_target.go)
 	if len(fams) > limit {
 		fams = fams[:limit]
 	}
@@ -544,7 +575,14 @@ func (s *Services) searchB3(ctx context.Context, requestID string, req in.Search
 	trace.Steps = []any{normStep, attrStep, routeStep, intentStep, bm.step, dn.step, fusionStep, rerankStep, businessStep, relaxStep}
 	hw.decorate(resp)
 	rp.decorate(rc, resp, limit, exactDocMatcher(nr.tokens, hw))
+	if ent.intent != nil {
+		resp.Refinements = withIntentRefinements(resp.Refinements, intentRefinements(lx, ent.intent, req.Query))
+	}
 	procStep := s.procurementStage(st.lex, req.Query, nr.tokens, attrs, ent, fams, resp) // контур доводки: purchase_stage.go
+	// Контур фида: цель ответа, лестница «минимум 4 товара», поля карточки и счётчики (search_ladder.go).
+	ansStep := answerStage(answerInput{rc: rc, words: queryWords(nr.tokens, attrs.consumed), fams: foundFams,
+		exactDoc: exactDocMatcher(nr.tokens, hw), category: ent.category, limit: limit, storefront: !opts.NoLog,
+		fallbackOff: s.noFallbackBlock, serviceLike: ent.noise || ent.nonProduct}, resp, trace)
 	if hwStep := hw.step(); hwStep != nil {
 		trace.Steps = append(trace.Steps, hwStep)
 	}
@@ -560,7 +598,7 @@ func (s *Services) searchB3(ctx context.Context, requestID string, req in.Search
 	if marginStep != nil {
 		trace.Steps = append(trace.Steps, marginStep)
 	}
-	trace.Steps = append(trace.Steps, procStep)
+	trace.Steps = append(trace.Steps, procStep, ansStep)
 	trace.TotalMs = msSince(started)
 	resp.Trace = trace
 	if !opts.NoLog {
@@ -725,6 +763,9 @@ func strictFilters(attrs queryAttrs, ent queryEntities) []any {
 	}
 	if len(ent.vendors) > 0 && !attrs.analog {
 		f = append(f, map[string]any{"terms": map[string]any{"vendor_id": ent.vendors}})
+	}
+	if ent.intent != nil {
+		f = append(f, ent.intent.filter())
 	}
 	return append(f, negationFilters(ent)...)
 }

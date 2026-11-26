@@ -34,13 +34,18 @@ const (
 	OrgCommercial = "commercial"
 	OrgEducation  = "education"
 	OrgGovernment = "government"
+	OrgNonprofit  = "nonprofit"
 )
 
 var dealLabels = map[string]string{DealNew: "Новая лицензия", DealRenewal: "Продление", DealExtension: "Расширение",
 	DealMigration: "Миграция"}
 
 var orgLabels = map[string]string{OrgCommercial: "Коммерческая организация", OrgEducation: "Образовательное учреждение",
-	OrgGovernment: "Госучреждение"}
+	OrgGovernment: "Госучреждение", OrgNonprofit: "Некоммерческая организация"}
+
+// feedOrg — тип организации варианта фида (License.org_type: academic | government | nonprofit) → тип организации
+// запроса; "" — вариант не ограничен организацией (коммерческий, для дома или тип не указан).
+var feedOrg = map[string]string{"academic": OrgEducation, OrgGovernment: OrgGovernment, OrgNonprofit: OrgNonprofit}
 
 // rejectOffer — вариант под сделку или организацию, которых запрос не называет (trace.rejected[].reason).
 const rejectOffer = "offer_not_requested"
@@ -55,9 +60,10 @@ var dealStems = []struct{ stem, deal string }{
 // варианты по названию, а «госкомпании» в запросах test разбирает модель — их путь не меняется.
 var orgStems = []struct{ stem, org string }{
 	{"образова", OrgEducation}, {"школ", OrgEducation}, {"вуз", OrgEducation}, {"учебн", OrgEducation},
-	{"колледж", OrgEducation}, {"университет", OrgEducation},
+	{"колледж", OrgEducation}, {"университет", OrgEducation}, {"академ", OrgEducation},
 	{"госуч", OrgGovernment}, {"госком", OrgGovernment}, {"госорг", OrgGovernment}, {"государств", OrgGovernment},
 	{"бюджетн", OrgGovernment}, {"муниципал", OrgGovernment},
+	{"некоммерческ", OrgNonprofit}, {"нко", OrgNonprofit},
 	{"коммерческ", OrgCommercial},
 }
 
@@ -143,6 +149,9 @@ func (rc rankCtx) offerHidden(d indexDoc) (bool, string) {
 	a := rc.attrs
 	if org := docAttr(d, "org_type"); org != "" && org != a.org {
 		return true, "вариант только для: " + strings.ToLower(orgLabels[org])
+	}
+	if hidden, detail := rc.feedOrgHidden(d); hidden {
+		return true, detail
 	}
 	switch deal := docAttr(d, "deal"); deal {
 	case "":
@@ -263,7 +272,7 @@ func withoutHiddenOffers(lx *searchLexicon, attrs queryAttrs, hits []domain.Rank
 	dropped := false
 	for _, h := range hits {
 		if d, ok := lx.docs[h.ProductID]; ok {
-			if hidden, _ := rc.offerHidden(d); hidden {
+			if hidden, _ := rc.offerHiddenInFusion(d); hidden {
 				dropped = true
 				continue
 			}
@@ -279,3 +288,26 @@ func withoutHiddenOffers(lx *searchLexicon, attrs queryAttrs, hits []domain.Rank
 
 // isOffer — вариант под конкретную сделку или организацию (attributes.deal, attributes.org_type).
 func isOffer(d indexDoc) bool { return docAttr(d, "deal") != "" || docAttr(d, "org_type") != "" }
+
+// feedOrgHidden — вариант фида для академических, государственных или некоммерческих организаций (License.org_type),
+// а тип организации в запросе не назван: головой и вариантом карточки он не становится.
+func (rc rankCtx) feedOrgHidden(d indexDoc) (bool, string) {
+	if org := feedOrg[d.LicenseOrgType]; org != "" && org != rc.attrs.org {
+		return true, "вариант только для: " + strings.ToLower(orgLabels[org])
+	}
+	return false, ""
+}
+
+// offerHiddenInFusion — вариант не идёт в слияние и не поднимает семейство. Вариант фида под тип организации здесь
+// не скрывается: семейство релевантно по названию, какой бы из его вариантов ни совпал лучше («Microsoft Office Word
+// 2019 (для академических организаций)» поднимает Word 2019), а показываются только подходящие варианты.
+func (rc rankCtx) offerHiddenInFusion(d indexDoc) (bool, string) {
+	if hidden, _ := rc.feedOrgHidden(d); hidden {
+		saved := d.LicenseOrgType
+		d.LicenseOrgType = ""
+		h, detail := rc.offerHidden(d)
+		d.LicenseOrgType = saved
+		return h, detail
+	}
+	return rc.offerHidden(d)
+}

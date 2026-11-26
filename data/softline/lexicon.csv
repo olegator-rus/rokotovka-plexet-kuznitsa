@@ -1,0 +1,57 @@
+alias,canonical,kind,target,target_id,basis,note
+# Словарь понимания запросов на фиде softline-feed. Читается API при старте (mapping.yaml: lexicon).
+# kind: jargon | spelling | rebrand — подстановка; successor — не подстановка, показывается с пояснением note; drop — снять запись импорта.
+# target: term | vendor (target_id = слаг vendorUrl) | category (target_id = id категорий фида через «|»: основная выдача из них).
+# Основания: research/03_sources_semantics_upsell.md, таблица пар (строка N); [Ф] — проверено по фиду.
+винда,windows,jargon,category,445047|2050,"ТЗ заказчика, пример «винда» (цель — Windows, а не российская ОС); [Ф] категории «Windows 11: лицензии Home и Pro», «Операционные системы Windows»; research 03, строка 43",
+винду,windows,jargon,category,445047|2050,"форма слова «винда» (ТЗ); [Ф] те же категории",
+винды,windows,jargon,category,445047|2050,"форма слова «винда» (ТЗ); [Ф] те же категории",
+виндой,windows,jargon,category,445047|2050,"форма слова «винда» (ТЗ); [Ф] те же категории",
+виндовс,windows,spelling,category,445047|2050,"транслитерация Windows; research 03, строка 43; [Ф] те же категории",
+виндоус,windows,spelling,category,445047|2050,"транслитерация Windows; research 03, строка 43; [Ф] те же категории",
+виндоуз,windows,spelling,category,445047|2050,"транслитерация Windows; проверено вручную; [Ф] те же категории",
+офис,office,jargon,category,1145|222323,"ТЗ заказчика, пример «офис» — офисный пакет; [Ф] категории «Офисные пакеты программ Microsoft Office», «Российское офисное ПО»; research 03, строка 42",
+антивирь,антивирус,jargon,category,650|3775,"ТЗ заказчика, пример «антивирь»; [Ф] «Антивирусы для организаций» — 31 доступное семейство (Dr.Web, PRO32, Kaspersky), «Антивирусы для дома»; research 03, строка 44",
+антивирусник,антивирус,jargon,category,650|3775,"жаргон, проверено вручную; [Ф] те же категории",
+касперыч,kaspersky,jargon,vendor,kaspersky,"жаргон, источника нет — проверено вручную; [Ф] слаг /kaspersky/; research 03, строка 24",
+астра линукс,astra linux,spelling,term,,"ТЗ заказчика, пример «астра линукс»; [Ф] семейство Astra Linux Special Edition; research 03, строка 13",
+астралинукс,astra linux,spelling,term,,"написание слитно; research 03, строка 13",
+астра,astra,spelling,term,,"research 03, строка 13; [Ф] вендор «Группа Астра», семейство Astra Linux Special Edition",
+мдаемон,mdaemon,spelling,term,,"ТЗ заказчика, пример «мдаемон»; [Ф] 6 семейств MDaemon; research 03, строка 7",
+мдемон,mdaemon,spelling,term,,"research 03, строка 7; [Ф] семейства MDaemon",
+макспатрол,maxpatrol,spelling,term,,"research 03, строка 34; [Ф] семейство MaxPatrol Endpoint Protection Platform",
+сканер вс,сканер-вс,spelling,term,,"запрос заказчика «сканер-вс»; research 03, строка 36; [Ф] семейство Эшелон «СКАНЕР-ВС»",
+альт линукс,альт,spelling,vendor,basealt,"research 03, строка 21; [Ф] вендор BaseALT, семейства «Альт …»",
+alt linux,альт,spelling,vendor,basealt,"research 03, строка 21 (ALT ↔ Альт в документации Kaspersky); [Ф] вендор BaseALT",
+ред ос,ред ос,spelling,vendor,redsoft,"research 03, строка 22; [Ф] семейство «Операционная система РЕД ОС», вендор РЕД СОФТ",
+редос,ред ос,spelling,vendor,redsoft,"research 03, строка 22; [Ф] вендор РЕД СОФТ",
+red os,ред ос,spelling,vendor,redsoft,"research 03, строка 22 (RED OS ↔ РЕД ОС в документации Kaspersky); [Ф] вендор РЕД СОФТ",
+секрет нет,secret net,spelling,term,,"research 03, строка 37; [Ф] Secret Net Studio 8, Secret Net LSP",
+термидеск,termidesk,spelling,term,,"research 03, строка 18; [Ф] семейство Termidesk",
+рубэкап,rubackup,spelling,term,,"research 03, строка 19; [Ф] семейство RuBackup OneClick",
+воркспад,workspad,spelling,term,,"research 03, строка 20; [Ф] семейство Workspad",
+кибербэкап,кибер бэкап,spelling,term,,"research 03, строка 32; запрос заказчика «кибер бэкап»",
+кибербекап,кибер бэкап,spelling,term,,"research 03, строка 32; запрос заказчика «кибер бэкап»",
+энидеск,anydesk,spelling,term,,"research 03, строка 50; запрос заказчика «anydesk»",
+о365,microsoft 365,spelling,term,,"research 03, строка 41; [Ф] Microsoft 365 Family, Personal",
+м365,microsoft 365,spelling,term,,"research 03, строка 41; [Ф] Microsoft 365 Family, Personal",
+abbyy lingvo,lingvo,rebrand,term,,"research 03, строка 4; [Ф] семейства «Lingvo by Content AI …»",
+лингво,lingvo,rebrand,term,,"research 03, строка 4; [Ф] семейства «Lingvo by Content AI …»",
+eset,pro32,successor,vendor,pro32,"ComNews, 19.06.2023: PRO32 — бывший эксклюзивный дистрибьютор ESET в России, после ухода ESET выпустил свою линейку; research 03, строка 2","ESET в России не поставляется. На этом рынке — PRO32: российская линейка бывшего дистрибьютора ESET (ComNews, 19.06.2023)"
+есет,pro32,successor,vendor,pro32,"ComNews, 19.06.2023; research 03, строка 2","ESET в России не поставляется. На этом рынке — PRO32: российская линейка бывшего дистрибьютора ESET (ComNews, 19.06.2023)"
+eset nod32,pro32,successor,vendor,pro32,"ComNews, 19.06.2023; research 03, строка 2","ESET NOD32 в России не поставляется. На этом рынке — PRO32: российская линейка бывшего дистрибьютора ESET (ComNews, 19.06.2023)"
+nod32,pro32,successor,vendor,pro32,"ComNews, 19.06.2023; research 03, строка 2","ESET NOD32 в России не поставляется. На этом рынке — PRO32: российская линейка бывшего дистрибьютора ESET (ComNews, 19.06.2023)"
+нод32,pro32,successor,vendor,pro32,"ComNews, 19.06.2023; research 03, строка 2","ESET NOD32 в России не поставляется. На этом рынке — PRO32: российская линейка бывшего дистрибьютора ESET (ComNews, 19.06.2023)"
+abbyy,content ai,successor,vendor,contentai,"[Ф] имя вендора «Content AI (ООО «Контент ИИ», ранее ABBYY Россия)»; CNews: ContentReader PDF — замена ABBYY FineReader PDF; research 03, строка 3","ABBYY FineReader ушёл с российского рынка в 2022 году. На этом рынке — Content AI (ранее ABBYY Россия): ContentReader PDF, Lingvo"
+абби,content ai,successor,vendor,contentai,"[Ф] имя вендора Content AI; research 03, строка 3","ABBYY FineReader ушёл с российского рынка в 2022 году. На этом рынке — Content AI (ранее ABBYY Россия): ContentReader PDF, Lingvo"
+finereader,content ai,successor,vendor,contentai,"CNews: ContentReader PDF выпущен как замена ABBYY FineReader PDF; research 03, строка 3","ABBYY FineReader ушёл с российского рынка в 2022 году. На этом рынке — Content AI: ContentReader PDF"
+файнридер,content ai,successor,vendor,contentai,"CNews: ContentReader PDF — замена ABBYY FineReader PDF; research 03, строка 3","ABBYY FineReader ушёл с российского рынка в 2022 году. На этом рынке — Content AI: ContentReader PDF"
+abbyy finereader,content ai,successor,vendor,contentai,"CNews: ContentReader PDF — замена ABBYY FineReader PDF; research 03, строка 3","ABBYY FineReader ушёл с российского рынка в 2022 году. На этом рынке — Content AI: ContentReader PDF"
+acronis,киберпротект,successor,vendor,cyberprotect,"общее знание (бывш. «Акронис-Инфозащита»), источником не подтверждено — research 03, строка 33","Acronis в России не поставляется. На этом рынке — Киберпротект: Кибер Бэкап (связь по общему знанию, источником не подтверждена)"
+акронис,киберпротект,successor,vendor,cyberprotect,"общее знание, источником не подтверждено — research 03, строка 33","Acronis в России не поставляется. На этом рынке — Киберпротект: Кибер Бэкап (связь по общему знанию, источником не подтверждена)"
+сертификат,,drop,term,,"[Ф] «сертификат» в фиде — сертификат техподдержки и раздел «Цифровые сертификаты»; подстановка «сертифицирован» из mock уводила запрос",
+сертификатом,,drop,term,,"[Ф] то же, что «сертификат»",
+сетевое оборудование,,drop,term,,"[Ф] в фиде есть корневая категория «Сетевое оборудование»; подстановка «коммутаторы» из mock сужала запрос",
+электронная подпись,эцп,jargon,term,,"проверено вручную по фиду: [Ф] семейства «Рутокен ЭЦП …» (Актив); research 03, строка 30",
+электронной подписи,эцп,jargon,term,,"форма слова; [Ф] семейства «Рутокен ЭЦП …»",
+эп,эцп,jargon,term,,"сокращение «электронная подпись», проверено вручную; [Ф] семейства «Рутокен ЭЦП …»",

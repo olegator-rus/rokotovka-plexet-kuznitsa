@@ -39,6 +39,8 @@ type searchCore struct {
 	// suggest — индекс подсказок и связанных запросов; строится при первом обращении.
 	suggestMu sync.Mutex
 	suggest   *suggestIndex
+	// lexicon — словарь понимания запросов из файла данных (search_understanding.go); nil — нет.
+	lexicon atomic.Pointer[[]domain.LexiconEntry]
 }
 
 type cachedRules struct {
@@ -78,11 +80,11 @@ func (s *Services) rulesFor(ctx context.Context, cfg string, lx *searchLexicon, 
 	if override != nil {
 		r, err := rulesFromSnapshot(override)
 		if err == nil {
-			return r
+			return applyLexicon(r, lx, s.lexicon())
 		}
 		zap.L().Warn("поиск: снимок правил не разобран — исходные словари", zap.Error(err))
 	}
-	base := newSearchRules(1, lx.baseAliases)
+	base := applyLexicon(newSearchRules(1, lx.baseAliases), lx, s.lexicon())
 	if cfg != domain.ConfigB4 && cfg != domain.ConfigLive || !s.repos.Enabled() {
 		return base
 	}
@@ -96,7 +98,7 @@ func (s *Services) rulesFor(ctx context.Context, cfg string, lx *searchLexicon, 
 		zap.L().Warn("поиск: последняя версия правил не прочитана — исходные словари", zap.Error(err))
 	case snap != nil && snap.Version > 1:
 		if parsed, perr := rulesFromSnapshot(snap); perr == nil {
-			r = parsed
+			r = applyLexicon(parsed, lx, s.lexicon())
 		} else {
 			zap.L().Warn("поиск: правила версии не разобраны", zap.Int("version", snap.Version), zap.Error(perr))
 		}
@@ -148,6 +150,10 @@ type queryEntities struct {
 	familyNot []string
 	// familyNotLabel — исключённое семейство → слова запроса, которыми оно исключено (подпись чипа).
 	familyNotLabel map[string]string
+	// intent — намерение по категории: основная выдача из её категорий (search_understanding.go); nil — нет.
+	intent *categoryIntent
+	// successors — названное в запросе ушло с рынка, показывается преемник с пояснением (словарь, successor).
+	successors []successorHit
 }
 
 // nonProductStems — вопросы не о товаре: документы, доставка, оплата, заказ.
@@ -195,6 +201,7 @@ func findEntities(nr normResult, attrs queryAttrs, lx *searchLexicon, rules *sea
 		}
 	}
 	e.noise = isNoiseQuery(nr, lx, rules)
+	e.successors = nr.successors
 	e.abbrev = len(e.unknown) == 1 && !e.latinUnknown
 	for _, u := range e.unknown {
 		e.abbrev = e.abbrev && utf8.RuneCountInString(u) <= 4
@@ -212,7 +219,7 @@ func findEntities(nr normResult, attrs queryAttrs, lx *searchLexicon, rules *sea
 	e.vendors = lx.matchVendors(entityTokens, rules)
 	e.vendorTokens = map[string]bool{}
 	for _, t := range entityTokens {
-		if p := strings.Join(wordsOf(t), " "); lx.vendorPhrases[p] != "" || rules != nil && rules.vendorPhrases[p] != "" {
+		if p := strings.Join(wordsOf(t), " "); lx.vendorPhrases[p] != "" && !lx.vendorAmbiguous[p] || rules != nil && rules.vendorPhrases[p] != "" {
 			e.vendorTokens[t] = true
 		}
 	}
@@ -236,6 +243,11 @@ func findEntities(nr normResult, attrs queryAttrs, lx *searchLexicon, rules *sea
 	if e.category == "" {
 		e.category, e.purposeWords = lx.categoryOf(entityTokens)
 		e.categoryByWords = e.category != ""
+	}
+	if len(e.vendors) == 0 {
+		if v := lx.numberOwner(entityTokens); v != "" {
+			e.vendors = []string{v} // «365»: число из названий — чаще всего линейка одного вендора (Microsoft 365)
+		}
 	}
 	e.families = lx.matchFamilies(entityTokens)
 	for _, f := range e.families {
@@ -353,7 +365,9 @@ func routeSignals(nr normResult, attrs queryAttrs, ent queryEntities) (string, [
 	if attrs.analog {
 		signals = append(signals, "intent_words")
 	}
-	if significant+len(attrs.consumed) > 5 {
+	// Длинный запрос — много слов, которых правила не разобрали; слова условий (продление, количество, срок)
+	// разобраны и длины не добавляют: «продлить касперский на 100 пк на 2 года» — маршрут B, а не модель.
+	if significant > 3 && significant+len(attrs.consumed) > 5 {
 		signals = append(signals, "long_query")
 	}
 	if ent.nonProduct {
@@ -601,6 +615,9 @@ func isNoiseQuery(nr normResult, lx *searchLexicon, rules *searchRules) bool {
 		return false
 	}
 	for _, t := range nr.tokens {
+		if lx != nil && lx.nameNumbers[t] && len([]rune(t)) >= 2 {
+			return false // «365», «1с»-подобные коды: число — часть названий семейств
+		}
 		if looksLikeSKU(t) || lx != nil && strings.IndexFunc(t, unicode.IsLetter) >= 0 && knownWord(t, lx, rules) {
 			return false
 		}

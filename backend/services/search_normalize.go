@@ -94,6 +94,8 @@ type normResult struct {
 	protected map[string]bool
 	// raw — запрос как набран (для признака шума: разметка, SQL).
 	raw string
+	// successors — сработавшие записи словаря «преемник»: слова заменены для поиска, покупателю — пояснение.
+	successors []successorHit
 }
 
 // correctionInfo — исправление и его уверенность. applied=false — «Возможно, вы искали».
@@ -136,6 +138,7 @@ func normalizeFull(q string, lx *searchLexicon, rules *searchRules, asTyped bool
 	tokens = splitGlued(dropEmpty(tokens))
 	if lx != nil && !asTyped {
 		tokens = splitKnownWordNumber(tokens, lx, rules)
+		tokens = joinSplitNames(tokens, lx, &res)
 	}
 	original := append([]string(nil), tokens...)
 	conf := ""
@@ -148,6 +151,12 @@ func normalizeFull(q string, lx *searchLexicon, rules *searchRules, asTyped bool
 				continue
 			}
 			to, c := fixTypo(t, lx, rules)
+			if c != confidenceHigh {
+				// Несколько равных исправлений или слово короче пяти букв: решает соседнее слово запроса.
+				if ctx := typoByContext(tokens, i, lx, rules); ctx != "" {
+					to, c = ctx, confidenceHigh
+				}
+			}
 			switch c {
 			case confidenceHigh:
 				res.changes = append(res.changes, domain.Change{Kind: changeTypo, From: t, To: to})
@@ -169,7 +178,7 @@ func normalizeFull(q string, lx *searchLexicon, rules *searchRules, asTyped bool
 		tokens = completeWords(tokens, original, lx, rules, &res)
 	}
 	if rules != nil {
-		tokens = applyAliases(tokens, rules, &res)
+		tokens = applyAliases(tokens, rules, &res, lx)
 	}
 	res.tokens = tokens
 	return res
@@ -517,7 +526,7 @@ func damerau(a, b []rune, limit int) int {
 
 // applyAliases — алиасы «как пишут → как в каталоге», самый длинный ключ первым. Замена видна только в
 // трассе: плашки исправления сленг не вызывает.
-func applyAliases(tokens []string, rules *searchRules, res *normResult) []string {
+func applyAliases(tokens []string, rules *searchRules, res *normResult, lx *searchLexicon) []string {
 	var out []string
 	for i := 0; i < len(tokens); {
 		matched := false
@@ -527,7 +536,10 @@ func applyAliases(tokens []string, rules *searchRules, res *normResult) []string
 			if !ok {
 				continue
 			}
-			to := foldText(a.Canonical)
+			to := aliasReplacement(key, a, lx)
+			if e, ok := rules.successors[key]; ok {
+				res.successors = append(res.successors, successorHit{from: key, note: e.Note})
+			}
 			if to != key {
 				res.changes = append(res.changes, domain.Change{Kind: changeAlias, From: key, To: to})
 				res.expansions = append(res.expansions, key)
@@ -676,4 +688,15 @@ func digitsWithO(t string) string {
 		return ""
 	}
 	return string(out)
+}
+
+// aliasReplacement — чем заменить слова алиаса: каноническая форма без кавычек (««Лаборатория Касперского»» —
+// имя вендора, а не слова запроса). Алиас вендора, совпадающий со слагом вендора («kaspersky» → вендор
+// kaspersky), слова не меняет, если так вендор и пишется в названиях позиций: фильтром он становится и без замены.
+func aliasReplacement(key string, a domain.Alias, lx *searchLexicon) string {
+	if a.Target == domain.AliasTargetVendor && a.TargetID != "" && key == strings.Join(wordsOf(a.TargetID), " ") &&
+		lx != nil && lx.core[key] > 0 {
+		return key
+	}
+	return strings.Join(strings.Fields(strings.ReplaceAll(foldText(a.Canonical), "\"", " ")), " ")
 }

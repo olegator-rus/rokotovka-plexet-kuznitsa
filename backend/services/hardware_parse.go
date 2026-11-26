@@ -199,6 +199,10 @@ func (p *hwPlan) parse(nr normResult, attrs *queryAttrs) {
 	// словом категории оборудования.
 	var named []string
 	for _, t := range tokens {
+		if p.lx.compoundNames[t] {
+			named = append(named, t) // «сканер-вс» — название продукта, а не категория «Сканеры»
+			continue
+		}
 		if strings.IndexFunc(t, unicode.IsLetter) < 0 || len(p.hx.units[t]) > 0 || p.hx.categoryOfWord(t) != "" || contextKey(t) != "" {
 			continue
 		}
@@ -219,6 +223,9 @@ func (p *hwPlan) parse(nr normResult, attrs *queryAttrs) {
 	catAt := map[int]bool{}
 	for i, t := range head {
 		c := p.hx.categoryOfWord(t)
+		if p.lx.compoundNames[t] {
+			c = ""
+		}
 		if c == "" {
 			continue
 		}

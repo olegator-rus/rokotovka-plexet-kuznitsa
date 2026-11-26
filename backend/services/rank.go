@@ -93,6 +93,9 @@ type rankCtx struct {
 	// upgradeTargets — позиции-цели связей upgrade («старшая редакция»): у вариантов под сделку без названной
 	// редакции заранее не выбираются (purchase_attrs.go).
 	upgradeTargets map[string]bool
+	// wantKinds — виды позиции, названные в запросе (техподдержка, модуль, курс…): они наравне с базовой
+	// лицензией при выборе головы семейства (search_head.go).
+	wantKinds map[string]bool
 }
 
 // textTopN — сколько первых мест BM25 считаются совпадением по названию (не отсекаются категорией).
@@ -239,8 +242,8 @@ type familyHit struct {
 // buildFamily — семейство из всех его позиций: недопустимые уходят в отказы, лучшая по соответствию —
 // во главу, остальные — в варианты. nil — допустимых позиций нет.
 //
-// При равном соответствии условиям голова — позиция, которую поиск поставил выше (точное название,
-// артикул), затем более популярная.
+// При равном соответствии условиям голова — базовая лицензия, которую можно купить сейчас (search_head.go), затем
+// позиция, которую поиск поставил выше (точное название, артикул), затем более популярная.
 func (rc rankCtx) buildFamily(fid string, rel float64, rejected *[]domain.RejectedHit) *familyHit {
 	type scored struct {
 		d   indexDoc
@@ -261,8 +264,16 @@ func (rc rankCtx) buildFamily(fid string, rel float64, rejected *[]domain.Reject
 		return nil
 	}
 	sort.SliceStable(ok, func(i, j int) bool {
+		if bi, bj := rc.secondaryKind(ok[i].d), rc.secondaryKind(ok[j].d); bi != bj && ok[i].ok == ok[j].ok {
+			// Продление, поддержка, модуль, курс — головой, только если базовой с тем же соответствием условиям нет
+			// (search_head.go); вариант, который подходит под условия полностью, остаётся выше.
+			return bj
+		}
 		if ok[i].fit != ok[j].fit {
 			return ok[i].fit > ok[j].fit
+		}
+		if less, decided := rc.headLess(ok[i].d, ok[j].d); decided {
+			return less
 		}
 		if ri, rj := rc.productRel[ok[i].d.ProductID], rc.productRel[ok[j].d.ProductID]; ri != rj {
 			return ri > rj

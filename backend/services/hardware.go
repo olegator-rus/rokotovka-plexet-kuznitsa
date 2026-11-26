@@ -298,6 +298,9 @@ func (hx *hardwareLexicon) categoryOfWord(w string) string {
 		if l < 5 && !(l == utf8.RuneCountInString(w) && l >= 3 && strings.HasPrefix(cw, w)) {
 			continue
 		}
+		if l >= 5 && l < min(utf8.RuneCountInString(w), utf8.RuneCountInString(cw))-3 {
+			continue // общее только начало: «видеоконференции» — не «видеокарты», «видео» мало
+		}
 		for _, c := range cs {
 			nw := len(wordsOf(hx.catNames[c]))
 			if l > bestLen || l == bestLen && (nw < bestWords || nw == bestWords && c < best) {

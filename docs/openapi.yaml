@@ -1770,6 +1770,18 @@ components:
         available: { type: boolean, description: "Контур фида: в наличии по фиду; нет поля — источник наличие не сообщает" }
         old_price_rub: { type: number, description: "Контур фида: прежняя цена из фида; скидка — при old_price_rub > price_rub > 0" }
         license_kind: { type: string, enum: [base, renewal, upgrade, migration, support, module, course, other], description: "Контур фида: вид позиции по типу лицензии" }
+        match_type:
+          type: string
+          enum: [exact, variant, related, alternative, fallback]
+          description: |
+            Контур фида ступень лестницы «минимум 4 товара» — точное совпадение, другой вариант
+            лицензии того же семейства (точный артикул), похожее, «Можно купить сейчас» (точное только по запросу),
+            «Популярное в наличии» (шаги 1–4 дали меньше четырёх семейств; в метрики релевантности не входит).
+            Есть у каждой карточки, у вложенных variants нет.
+        price_state: { type: string, enum: [priced, on_request], description: "Контур фида: priced — есть price_from, иначе «Цена по запросу»" }
+        price_from: { type: number, description: "Контур фида: цена «от» — минимум среди позиций семейства в наличии с ценой > 0, проходящих условия запроса (matches_query); нет поля — по запросу" }
+        badges: { type: array, items: { type: string }, description: "Контур фида: подписи карточки — «Скидка N%» по old_price_rub у головы с действующей ценой" }
+        explain: { type: string, description: "Контур фида: почему карточка здесь — «совпадение с названием семейства», «точный артикул», подпись альтернативы и т. п." }
     Upgrade:
       description: «Старшая редакция» (связь upgrade, 1–2 строки upgrade_adds) — Companion с классом upgrade
       allOf:
@@ -2018,10 +2030,15 @@ components:
           description: «Старшая редакция» к первой позиции; null — связи upgrade нет
         counts:
           type: object
-          description: "Контур выдачи (FEATURE_RESULTS_V3): «N продуктов · M вариантов» после фильтров, до limit"
+          description: |
+            Контур выдачи (FEATURE_RESULTS_V3): «N продуктов · M вариантов» после фильтров, до limit. С контура фида
+            поле есть всегда (без флага families/variants — по карточкам ответа) и дополнено числом разных SKU в карточках
+            и их вариантах и числом карточек по match_type.
           properties:
             families: { type: integer }
             variants: { type: integer }
+            skus: { type: integer }
+            by_match_type: { type: object, additionalProperties: { type: integer } }
         refinements:
           type: array
           description: Контур выдачи, чипы-уточнения «+» над выдачей — тот же источник, что бейджи панели (без продолжений подсказок)
@@ -2090,6 +2107,22 @@ components:
           type: array
           items: { $ref: "#/components/schemas/SearchItem" }
           description: "Контур доводки: при явном требовании реестра неподтверждённые убраны из items сюда"
+        target:
+          type: [object, "null"]
+          description: |
+            Контур фида цель ответа — первый кликабельный элемент. null — цели нет
+            (бессмыслица, пустая выдача, B0–B2). sku — точный артикул или семейство без собранной страницы (промах
+            покрытия — trace.steps[answer].coverage_miss); vendor_category — `<vendorUrl>?filter[category][]=<id категории
+            второго уровня>`; category — url пустой (страниц категорий в фиде нет); service — url справки или пусто.
+          properties:
+            type: { type: string, enum: [sku, family, vendor, vendor_category, category, service] }
+            url: { type: string }
+            title: { type: string }
+            reason: { type: string }
+        clarifications:
+          type: array
+          description: "Контур фида: уточняющие чипы (формат Refinement, field=vendor) при равенстве семейств разных вендоров или общем слове-категории; [] — нет"
+          items: { $ref: "#/components/schemas/Refinement" }
         trace: { $ref: "#/components/schemas/Trace" }
     HelpAnswer:
       type: object

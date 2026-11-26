@@ -151,3 +151,27 @@ func engineText(s string) string {
 	}
 	return strings.Join(out, " ")
 }
+
+// bm25IntentQuery — B3 при намерении по категории: по одному кандидату на семейство (collapse по family_id —
+// обычный BM25, не гибридный запрос), чтобы семейство с тысячей лицензий (Dr.Web) не заняло все места
+// кандидатов. optional — слова запроса только поднимают позицию, но не обязательны: «антивирус» уже сказан
+// категорией, а в названии «Kaspersky Endpoint Security» этого слова нет.
+func bm25IntentQuery(text, expansions, minMatch string, optional bool, size int, filters []any) map[string]any {
+	q := bm25QueryB3(text, expansions, minMatch, size, filters)
+	if optional {
+		b := q["query"].(map[string]any)["bool"].(map[string]any)
+		b["minimum_should_match"] = 0
+		should := b["should"].([]any)
+		if mm, ok := should[0].(map[string]any)["multi_match"].(map[string]any); ok {
+			delete(mm, "minimum_should_match")
+		}
+	}
+	q["collapse"] = map[string]any{"field": "family_id"}
+	if optional {
+		// Слова запроса — сама категория: все её семейства одинаково подходят, и среди кандидатов первыми идут те,
+		// что можно купить сейчас. Нерелевантное это не поднимает — оно отсечено категорией.
+		q["sort"] = []any{map[string]any{"available": map[string]any{"order": "desc", "missing": "_last"}}, "_score",
+			map[string]any{"product_id": "asc"}}
+	}
+	return q
+}

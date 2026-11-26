@@ -63,6 +63,14 @@ type searchLexicon struct {
 	// skuCompact — артикул без разделителей и регистра → артикул как в каталоге после foldText («fqc10572» →
 	// «fqc-10572»); только артикулы с разделителем и только однозначные (restoreSKUs в search_b3.go).
 	skuCompact map[string]string
+	// Понимание запросов (search_understanding.go): числа из названий семейств («365»), составные слова через
+	// дефис («сканер-вс»), пары слов подряд в названиях, фразы вендоров, которые в названиях чаще означают чужие
+	// продукты («kit»), число семейств в категории (у корня — вместе с подкатегориями).
+	nameNumbers      map[string]bool
+	compoundNames    map[string]bool
+	familyBigrams    map[string]bool
+	vendorAmbiguous  map[string]bool
+	categoryFamilies map[string]int
 }
 
 // familyLink — связанное семейство и пояснение связи из справочника.
@@ -215,6 +223,7 @@ func newSearchLexicon(s *domain.CatalogSnapshot) *searchLexicon {
 	lx.buildTranslit()
 	lx.buildCategoryWords(s.Categories)
 	lx.buildScale()
+	lx.buildUnderstanding()
 	for k, v := range lx.skuCompact {
 		if v == "" {
 			delete(lx.skuCompact, k) // два артикула с одним сжатым видом — не угадываем
@@ -282,6 +291,10 @@ type searchRules struct {
 	words map[string]bool
 	// vendorPhrases — слова алиаса вендора и его канонической формы → вендор («dr web» → drweb).
 	vendorPhrases map[string]string
+	// categories — ключ записи словаря понимания с целью category → категории основной выдачи;
+	// successors — записи «преемник» (search_understanding.go).
+	categories map[string][]string
+	successors map[string]domain.LexiconEntry
 }
 
 // newSearchRules — правила из списка алиасов.
@@ -391,6 +404,9 @@ func (lx *searchLexicon) matchVendors(tokens []string, rules *searchRules) []str
 		for i := 0; i+n <= len(words); i++ {
 			p := strings.Join(words[i:i+n], " ")
 			id, ok := lx.vendorPhrases[p]
+			if ok && lx.vendorAmbiguous[p] {
+				id, ok = "", false // «kit», «universe»: в названиях чаще чужие продукты, вендором не считается
+			}
 			if !ok && rules != nil {
 				id, ok = rules.vendorPhrases[p]
 			}

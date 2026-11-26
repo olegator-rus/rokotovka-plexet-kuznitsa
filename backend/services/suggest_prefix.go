@@ -65,7 +65,7 @@ func normalizePrefix(q string, lx *searchLexicon, rules *searchRules) prefixQuer
 	complete, last := pq.split()
 	if rules != nil && len(complete) > 0 {
 		var nr normResult
-		aliased := applyAliases(append([]string(nil), complete...), rules, &nr)
+		aliased := applyAliases(append([]string(nil), complete...), rules, &nr, nil)
 		if t := strings.Join(append(aliased, last...), " "); t != typed {
 			pq.cands = append(pq.cands, prefixCand{text: t, kind: prefixAlias})
 		}

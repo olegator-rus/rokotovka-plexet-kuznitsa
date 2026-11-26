@@ -95,6 +95,7 @@ func (st *catalogState) purchasedBefore(clientID, productID, familyID string) bo
 // _meta индекса. Ошибка не роняет API: поиску справочники не обязательны, в журнале — предупреждение.
 func (s *Services) LoadCatalogState(ctx context.Context) {
 	s.loadCatalogState(ctx)
+	s.LoadLexicon(ctx)
 	if _, err := s.indexInfo(ctx); err != nil {
 		zap.L().Warn("индекс поиска не прочитан — make import?", zap.Error(err))
 	}

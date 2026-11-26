@@ -176,6 +176,7 @@ func (s *Services) SearchWith(ctx context.Context, requestID string, req in.Sear
 	if len(resp.Items) == 0 {
 		resp.Empty = &out.Empty{Message: fmt.Sprintf("Товара «%s» нет в каталоге", req.Query), ShowManager: true}
 	}
+	finishCards(resp) // поля карточки контура фида и счётчики; цели и лестницы в B0–B2 нет (search_ladder.go)
 
 	trace.Steps = []any{normStep, attrStep, routeStep, intentStep, bm.step, dn.step, fusionStep, rerankStep, businessStep, relaxStep}
 	trace.TotalMs = msSince(started)
@@ -258,6 +259,20 @@ func (s *Services) lexicalB3(ctx context.Context, text, expansions, minMatch str
 	t := time.Now()
 	r := retrieval{step: domain.RetrievalStep{StepBase: domain.StepBase{Name: domain.StepBM25}, Mode: "multi_match_msm"}}
 	res, err := s.search.Search(ctx, s.alias, bm25QueryB3(text, expansions, minMatch, candidatesTop, filters))
+	if err != nil {
+		r.err = err
+		return r
+	}
+	r.step.Top, r.docs, r.err = parseHits(res)
+	r.step.Ms = msSince(t)
+	return r
+}
+
+// lexicalIntent — текстовая ветка B3 при намерении по категории (bm25IntentQuery).
+func (s *Services) lexicalIntent(ctx context.Context, ci *categoryIntent, text, expansions string, filters []any) retrieval {
+	t := time.Now()
+	r := retrieval{step: domain.RetrievalStep{StepBase: domain.StepBase{Name: domain.StepBM25}, Mode: "multi_match_category"}}
+	res, err := s.search.Search(ctx, s.alias, bm25IntentQuery(text, expansions, b3MinMatch, ci.textOptional, candidatesTop, filters))
 	if err != nil {
 		r.err = err
 		return r

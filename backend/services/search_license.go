@@ -18,6 +18,16 @@ var licenseTypeLabels = map[string]string{
 	domain.LicenseCloud:        "Облачная",
 }
 
+// licenseKindLabels — вид позиции фида, если это не базовая лицензия: подпись вместо типа («Продление», а не «Подписка»).
+var licenseKindLabels = map[string]string{
+	domain.LicenseKindRenewal:   "Продление",
+	domain.LicenseKindUpgrade:   "Обновление",
+	domain.LicenseKindMigration: "Переход с другого продукта",
+	domain.LicenseKindSupport:   "Техподдержка",
+	domain.LicenseKindModule:    "Модуль",
+	domain.LicenseKindCourse:    "Курс",
+}
+
 // metricForms — формы слова для 1, 2–4, 5+.
 var metricForms = map[string][3]string{
 	domain.MetricDevice: {"устройство", "устройства", "устройств"},
@@ -29,7 +39,9 @@ var metricForms = map[string][3]string{
 // licenseLine — тип, количество с метрикой, срок; неизвестные части пропускаются.
 func licenseLine(d indexDoc) string {
 	var parts []string
-	if l := licenseTypeLabels[d.LicenseType]; l != "" {
+	if l := licenseKindLabels[d.LicenseKind]; l != "" {
+		parts = append(parts, l)
+	} else if l := licenseTypeLabels[d.LicenseType]; l != "" {
 		parts = append(parts, l)
 	} else if d.LicenseType != "" {
 		parts = append(parts, d.LicenseType)
