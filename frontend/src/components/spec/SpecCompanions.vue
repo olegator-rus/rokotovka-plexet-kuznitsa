@@ -37,6 +37,11 @@ onMounted(async () => {
 
 const shown = computed(() => items.value.filter((c) => !spec.has(c.product_id)).slice(0, 3))
 
+// Только первая буква строчная: в подписи бывают названия моделей («Совместимо с Dell PowerEdge R740»).
+function lowerFirst(s: string): string {
+  return s.charAt(0).toLowerCase() + s.slice(1)
+}
+
 function add(c: Companion, index: number) {
   const qty = c.suggested_quantity ?? 1
   spec.add(lineFromCompanion(c, qty, props.title))
@@ -66,7 +71,7 @@ function add(c: Companion, index: number) {
           <strong v-if="c.price_rub != null" class="spec-cmp__price t-num">
             {{ priceModeLabel({ price_rub: c.price_rub, price_mode: c.price_mode || 'fixed' }) }}
           </strong>
-          {{ classLabel(c).toLowerCase() }}
+          {{ lowerFirst(classLabel(c)) }}
         </span>
       </span>
       <span class="spec-cmp__plus" aria-hidden="true"><Plus :size="16" /></span>

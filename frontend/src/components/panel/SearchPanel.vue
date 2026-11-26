@@ -1229,6 +1229,12 @@ const popularCache = vueRef<Sugg[] | null>(null)
 .sp--open {
   z-index: 41;
 }
+/* Без затемнения (узкий экран) панель при прокрутке уходит под прилипшую шапку, а не наезжает на неё. */
+@media (max-width: 1023.98px) {
+  .sp--open {
+    z-index: 19;
+  }
+}
 .sp__form {
   position: relative;
   z-index: 2;

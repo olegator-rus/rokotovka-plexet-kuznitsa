@@ -40,11 +40,16 @@ const auth = useAuthStore()
 const needContact = computed(() => !auth.signedIn)
 const contact = ref('')
 const contactTried = ref(false)
+const contactInput = ref<HTMLInputElement | null>(null)
 const contactErr = computed(() => (contactTried.value ? contactProblem(contact.value) : null))
 function requestQuote() {
   if (needContact.value) {
     contactTried.value = true
-    if (contactProblem(contact.value)) return
+    if (contactProblem(contact.value)) {
+      // Ошибка видна и с клавиатуры: фокус — в поле контакта.
+      contactInput.value?.focus()
+      return
+    }
     void spec.sendQuote(`Контакт: ${contact.value.trim()}`)
     return
   }
@@ -229,6 +234,7 @@ function startOver() {
               <label for="spec-contact" class="t-sm">Контакт для ответа — почта или телефон</label>
               <input
                 id="spec-contact"
+                ref="contactInput"
                 v-model="contact"
                 class="spec-sheet__input"
                 autocomplete="email"

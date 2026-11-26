@@ -43,6 +43,8 @@ const expanded = ref(false)
 const offer = computed(() => selectedOffer(props.item, props.purchase))
 const variants = computed(() => otherVariants(props.item))
 const action = computed(() => cardAction(props.item, variants.value.length))
+// Одна позиция на одно место: цена и «В спецификацию» уже справа — в блоке выбранного не повторяем.
+const offerRepeatsSide = computed(() => action.value === 'spec' && offer.value?.quantity === 1)
 const isSoftware = computed(
   () => (props.item.kind ?? 'software') !== 'hardware' && !!props.item.attrs,
 )
@@ -126,19 +128,21 @@ function rowQuantity(v: SearchItemBase): string {
           <p>
             <span class="t-muted">Выбрано по запросу:</span>&nbsp;<strong>{{ offer.label }}</strong>
           </p>
-          <p class="t-num">{{ offer.sum }}</p>
-          <span v-if="inSpec(item.product_id)" class="t-xs t-muted" role="status">
-            В спецификации
-          </span>
-          <button
-            v-else
-            type="button"
-            class="btn btn--primary btn--sm"
-            data-testid="offer-spec"
-            @click="emit('spec', item, position)"
-          >
-            <ListPlus :size="14" aria-hidden="true" /> В спецификацию
-          </button>
+          <template v-if="!offerRepeatsSide">
+            <p class="t-num">{{ offer.sum }}</p>
+            <span v-if="inSpec(item.product_id)" class="t-xs t-muted" role="status">
+              В спецификации
+            </span>
+            <button
+              v-else
+              type="button"
+              class="btn btn--primary btn--sm"
+              data-testid="offer-spec"
+              @click="emit('spec', item, position)"
+            >
+              <ListPlus :size="14" aria-hidden="true" /> В спецификацию
+            </button>
+          </template>
         </div>
       </div>
 

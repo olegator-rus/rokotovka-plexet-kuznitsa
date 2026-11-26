@@ -752,7 +752,9 @@ async function onSupply() {
               {{
                 blocks.analogs.length
                   ? 'Ниже — похожие по назначению. Если не подходят, менеджер подберёт решение.'
-                  : 'Похожих товаров в каталоге тоже нет. Менеджер подберёт решение или предложит замену.'
+                  : reestrUnconfirmed.length
+                    ? 'Ниже — позиции, запись которых в реестре не подтверждена. Менеджер проверит статус.'
+                    : 'Похожих товаров в каталоге тоже нет. Менеджер подберёт решение или предложит замену.'
               }}
             </p>
             <div v-if="showManager || supply" class="search-page__absent-actions">
@@ -1223,6 +1225,7 @@ async function onSupply() {
   flex-direction: column;
   gap: var(--space-2);
   padding: var(--space-4) var(--space-5);
+  overflow-wrap: anywhere;
 }
 .search-page__absent-actions {
   display: flex;

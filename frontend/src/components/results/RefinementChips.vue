@@ -4,7 +4,7 @@
 // сервером числом результатов (hits). На мобильном — первые 4.
 import { Plus } from 'lucide-vue-next'
 import type { Refinement } from '@/api/typesResults'
-import { formatInt } from '@/lib/format'
+import { formatInt, plural } from '@/lib/format'
 
 defineProps<{ items: Refinement[] }>()
 const emit = defineEmits<{ apply: [item: Refinement] }>()
@@ -22,7 +22,7 @@ const emit = defineEmits<{ apply: [item: Refinement] }>()
         <button
           type="button"
           class="refine__chip"
-          :aria-label="`Уточнить: ${r.label} — ${formatInt(r.hits)} продуктов`"
+          :aria-label="`Уточнить: ${r.label} — ${formatInt(r.hits)} ${plural(r.hits, ['продукт', 'продукта', 'продуктов'])}`"
           @click="emit('apply', r)"
         >
           <Plus :size="14" aria-hidden="true" />

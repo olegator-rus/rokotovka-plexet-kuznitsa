@@ -232,6 +232,7 @@ const rangeText = (v: number, unit = '') =>
               <button
                 type="button"
                 class="rfacet__value"
+                :aria-label="`${valueText(f, v)}: ${formatInt(v.count)}`"
                 :aria-pressed="isPicked(f, v.value)"
                 @click="pick(f, v.value)"
               >
