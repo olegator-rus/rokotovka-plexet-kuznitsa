@@ -21,7 +21,7 @@ info:
       <BACKOFFICE_TOKEN>` (роль `system`); Basic с паролем = токен принимается по-прежнему. Решение чужой зоны — 403
       `PERMISSION_DENIED` «Это решение принимает <роль>». Открыты без входа (`security: []` у операции): GET
       `/api/health`, `/api/meta`, `/api/suggest`, `/api/suggest/recommendations`, `/api/evaluations`,
-      `/api/evaluations/commerce`, `/api/companions`, `/api/auth/*`, `/api/quotes/mine` (проверяет обработчик) и POST
+      `/api/evaluations/commerce`, `/api/costs/summary`, `/api/companions`, `/api/auth/*`, `/api/quotes/mine` (проверяет обработчик) и POST
       `/api/search`, `/api/events`, `/api/quotes`. При `AUTH_REQUIRED=off` (только development) без токена — `system`.
     - Квота модели на адрес: разбор запроса моделью (маршрут D) не дороже `LLM_PER_IP_DAILY_RUB` ₽ в сутки с
       одного адреса; сверх неё и сверх дневного бюджета разбор идёт по правилам (`fallback_reason` в трассе:
@@ -629,6 +629,29 @@ paths:
       responses:
         "200":
           description: Экономика
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Costs" }
+        "422": { $ref: "#/components/responses/Error" }
+        "503": { $ref: "#/components/responses/Error" }
+  /api/costs/summary:
+    get:
+      tags: [Экономика]
+      summary: Открытая сводка стоимости (гость) — без журнала вызовов
+      description: |
+        Тот же объект, что `GET /api/costs` (маршруты A–D с ценой запроса, средняя, доля без LLM, кэш, прайс,
+        месячные сценарии), но `calls` пуст и `journal_hidden: true`: журнал вызовов с текстами запросов — только
+        сотруднику. Открыт без входа (вкладка «Доказательства → Стоимость»).
+      operationId: costsSummary
+      security: []
+      parameters:
+        - $ref: "#/components/parameters/ServerRub20k"
+        - $ref: "#/components/parameters/ServerRub200k"
+        - $ref: "#/components/parameters/AgentRunsMonth"
+        - $ref: "#/components/parameters/AgentRunsMonth200k"
+      responses:
+        "200":
+          description: Сводка без журнала
           content:
             application/json:
               schema: { $ref: "#/components/schemas/Costs" }
@@ -1961,6 +1984,7 @@ components:
               avg_cost_rub: { type: [number, "null"] }
               llm_parses: { type: integer }
               cache_hits: { type: integer }
+        journal_hidden: { type: boolean, description: "Только в /api/costs/summary: журнал вызовов скрыт, calls пуст" }
         calls:
           type: object
           properties:

@@ -12,6 +12,7 @@ const PUBLIC = new Set([
   'GET /api/suggest/recommendations', // контур выдачи: рекомендации панели
   'GET /api/evaluations',
   'GET /api/evaluations/contribution', // контур доводки: «Доказательства» → «Вклад компонентов»
+  'GET /api/costs/summary', // хвосты контура доводки: «Доказательства» → «Стоимость» без журнала вызовов
   'POST /api/search',
   'POST /api/events',
   'POST /api/quotes', // контур коммерции: запрос КП из спецификации (витрина без входа)
@@ -56,6 +57,10 @@ test.describe('гость', () => {
     await expect(
       page.getByText('Прогон не запускался').or(page.getByRole('table').first()).first(),
     ).toBeVisible()
+    // «Стоимость» гостю — открытая сводка (GET /api/costs/summary): плитки и маршруты, без журнала и без «нужен вход».
+    await page.getByRole('tab', { name: 'Стоимость' }).click()
+    await expect(page.getByText('Средняя стоимость запроса').first()).toBeVisible()
+    await expect(page.getByText(/нужен вход/i)).toHaveCount(0)
     expect(closed, 'витрина запросила закрытые пути').toEqual([])
 
     // Старые адреса: /compare и /costs — в «Доказательства», /analytics — в SearchOps (вход с возвратом).

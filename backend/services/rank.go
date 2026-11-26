@@ -227,7 +227,8 @@ type familyHit struct {
 	tier int
 	// signals — почему семейство стоит выше (в трассу).
 	signals []string
-	// scale — 0: домашняя линейка в запросе бизнес-масштаба (ниже), 1 — остальное.
+	// scale — 0: домашняя линейка в запросе бизнес-масштаба (ниже), 2 — семейство из подкатегории, названной словами
+	// запроса (выше, namedCategory), 1 — остальное.
 	scale int
 	// exactQty — 1: лицензия головы ровно на запрошенное количество («Р7-Офис на 30 мест» на «офис на 30 мест»):
 	// выше позиций, которые закрывают количество поштучно. Условие «учтено строго» — и в порядке выдачи.
@@ -305,9 +306,9 @@ func (rc rankCtx) assignGroup(fh *familyHit) {
 	if rc.business && rc.lx.consumer[fh.id] {
 		fh.scale = 0
 		fh.signals = append(fh.signals, signalConsumerScale)
-	} else if rc.siblingCategory(fh.id) {
-		fh.scale = 0
-		fh.signals = append(fh.signals, signalSiblingCategory)
+	} else if rc.namedCategory(fh.id) {
+		fh.scale = 2
+		fh.signals = append(fh.signals, signalNamedCategory)
 	}
 	named := rc.exactNamed(fh.id)
 	switch {
@@ -347,41 +348,77 @@ const (
 	signalRenewalPath = "renewal_path"
 	// signalConsumerScale — домашняя линейка ниже бизнес-линеек: количество от 10 или клиент-организация.
 	signalConsumerScale = "consumer_scale"
-	// signalSiblingCategory — соседняя подкатегория ниже названной словами («dr.web для бизнеса»: Security Space
-	// из «Антивирус для дома» ниже Enterprise Security Suite из «Антивирус для бизнеса»).
-	signalSiblingCategory = "sibling_category"
+	// signalNamedCategory — семейство из подкатегории, названной словами запроса («dr.web для бизнеса»: Enterprise
+	// Security Suite из «Антивирус для бизнеса» выше Security Space из «Антивирус для дома»).
+	signalNamedCategory = "named_category"
 	// signalFullName — названо целиком среди нескольких названных: «windows server 2025» — сервер выше
 	// «Windows Server 2025 CAL», у которой в запросе нет слова «cal».
 	signalFullName = "full_name"
 )
 
-// siblingCategory — категория названа словами запроса (мягкое условие), а семейство — из другой подкатегории того же
-// корня. Такое семейство остаётся в выдаче, но ниже семейств названной подкатегории внутри своей ступени.
-func (rc rankCtx) siblingCategory(fid string) bool {
+// namedCategory — вендор назван, и словами запроса названа подкатегория (мягкое условие, не корень каталога):
+// семейство вендора из неё внутри своей ступени стоит выше его семейств из соседних подкатегорий («dr.web для
+// бизнеса», «kaspersky … для бизнеса»). Без вендора не действует: слово категории без бренда («защита от утечек»)
+// угадывается хуже, чем его находит текстовый поиск.
+func (rc rankCtx) namedCategory(fid string) bool {
 	want := rc.ent.category
-	if !rc.ent.categoryByWords || want == "" {
-		return false
-	}
-	got := rc.lx.familyCat[fid]
-	if got == "" || got == want {
+	if !rc.ent.categoryByWords || want == "" || len(rc.ent.vendors) == 0 {
 		return false
 	}
 	root := rc.lx.categoryRoot[want]
-	return root != "" && root != want && rc.lx.categoryRoot[got] == root
+	return root != "" && root != want && rc.lx.familyCat[fid] == want
 }
 
-// fullNamed — среди нескольких семейств, названных в запросе, это названо целиком (все значимые слова названия
-// есть в запросе), а хотя бы одно другое — нет: у него в названии есть слово, которого в запросе нет.
+// fullNamed — среди нескольких семейств, названных в запросе, это названо целиком (все значимые слова названия, кроме
+// имени вендора, есть в запросе), а хотя бы одно другое — нет: у него в названии есть слово, которого в запросе нет.
 func (rc rankCtx) fullNamed(fid string) bool {
-	if len(rc.ent.named) < 2 || rc.lx.familyCoverage(fid, rc.ent.entityTokens) < 1-1e-9 {
+	if len(rc.ent.named) < 2 || !rc.namedWhole(fid) {
 		return false
 	}
 	for _, f := range rc.ent.named {
-		if f != fid && rc.lx.familyCoverage(f, rc.ent.entityTokens) < 1-1e-9 {
+		if f != fid && !rc.namedWhole(f) && !rc.pointsTo(f, fid) {
 			return true
 		}
 	}
 	return false
+}
+
+// pointsTo — в запросе есть слово, которое называет семейство f, но не fid: слово его названия или основа слова из
+// его названий и описаний («клиентские лицензии windows server 2025» — это CAL, а не сервер).
+func (rc rankCtx) pointsTo(f, fid string) bool {
+	fs, own := rc.lx.familyStems(f), rc.lx.familyStems(fid)
+	for _, t := range rc.ent.entityTokens {
+		for _, w := range wordsOf(t) {
+			if rc.lx.familyWords[f][w] && !rc.lx.familyWords[fid][w] {
+				return true
+			}
+			if st := cqStem(w); st != "" && fs[st] && !own[st] {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+// namedWhole — каждое значимое слово названия семейства есть в запросе; слова имени вендора («Microsoft») можно
+// не называть.
+func (rc rankCtx) namedWhole(fid string) bool {
+	in := map[string]bool{}
+	for _, t := range rc.ent.entityTokens {
+		for _, w := range wordsOf(t) {
+			in[w] = true
+		}
+	}
+	vendor := map[string]bool{}
+	for _, w := range wordsOf(rc.lx.vendorName[rc.lx.familyVendor[fid]]) {
+		vendor[w] = true
+	}
+	for w := range rc.lx.familyWords[fid] {
+		if !in[w] && !vendor[w] {
+			return false
+		}
+	}
+	return len(rc.lx.familyWords[fid]) > 0
 }
 
 // tierOf — ступень семейства внутри группы. Семейство, названное в запросе целиком («kaspersky internet
