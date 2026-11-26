@@ -101,8 +101,8 @@ func (s *Services) SuggestRecommendations(ctx context.Context, req RecsRequest) 
 	}
 	if name := lx.categoryName[req.Category]; name != "" {
 		if items := popularInCategory(lx, req.Category); len(items) > 0 {
-			return &out.PanelRecommendations{Basis: recsBasisCategory, Title: "Популярное в категории " + name,
-				Why: "Самые популярные позиции категории запроса; совместимость с вашим заказом не проверялась", Items: items}, nil
+			return &out.PanelRecommendations{Basis: recsBasisCategory, Title: "Вам может быть интересно",
+				Why: "Подобрано по категории запроса и популярности; совместимость с вашим заказом не проверялась", Items: items}, nil
 		}
 	}
 	return nil, nil

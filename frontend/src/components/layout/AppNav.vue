@@ -1,5 +1,6 @@
 <script setup lang="ts">
-// Список разделов: ссылки роутера, активный — светлая подложка и полоса слева (не цвет).
+// Список разделов: ссылки роутера. Активный: в выезжающей панели — подложка и полоса слева, в шапке
+// (horizontal) — белая пилюля на дорожке.
 import { RouterLink, useRoute } from 'vue-router'
 import { storeToRefs } from 'pinia'
 import { plural } from '@/lib/format'
@@ -16,12 +17,13 @@ const route = useRoute()
 /** Вложенные страницы раздела (/searchops/runs/:id) подсвечивают свой раздел. */
 const inSection = (path: string) => route.path === path || route.path.startsWith(`${path}/`)
 
+defineProps<{ horizontal?: boolean }>()
 defineEmits<{ navigate: [] }>()
 </script>
 
 <template>
   <nav aria-label="Разделы">
-    <ul class="app-nav">
+    <ul :class="['app-nav', { 'app-nav--row': horizontal }]">
       <li v-for="s in sections" :key="s.path">
         <RouterLink
           :to="s.path"
@@ -92,6 +94,41 @@ defineEmits<{ navigate: [] }>()
   font-size: var(--fs-xs);
   line-height: 1.25rem;
   text-align: center;
+}
+/* В шапке: переключатель разделов на общей дорожке, активный раздел — белая пилюля (заливка, а не
+   только цвет текста). */
+.app-nav--row {
+  flex-direction: row;
+  gap: var(--space-1);
+  padding: var(--space-1);
+  border-radius: var(--radius-pill);
+  background: var(--hero-track);
+}
+.app-nav--row .app-nav__link {
+  gap: var(--space-2);
+  box-sizing: border-box;
+  min-height: var(--control-h-sm);
+  height: calc(var(--control-h) - var(--space-1));
+  padding: 0 var(--space-3);
+  border-radius: var(--radius-pill);
+}
+.app-nav--row .app-nav__link:hover {
+  background: var(--hero-hover);
+}
+.app-nav--row .app-nav__link--active,
+.app-nav--row .app-nav__link--active:hover {
+  background: var(--on-hero);
+  color: var(--hero);
+}
+.app-nav--row .app-nav__link--active::before {
+  display: none;
+}
+/* В шапке разделы — только текстом: иконки не помещаются в строку вместе с кнопками сотрудника. */
+.app-nav--row .app-nav__icon {
+  display: none;
+}
+.app-nav--row .app-nav__count {
+  margin-left: 0;
 }
 .app-nav__icon {
   flex: none;

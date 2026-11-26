@@ -4,6 +4,7 @@
 // действие по состоянию — «Выбрать лицензию» (раскрывает варианты), «В спецификацию» (вариант определён),
 // «Запросить цену» (цены нет). Раскрытие — таблица «редакция — срок — метрика и количество — цена» с действием
 // у каждой строки. Справа — скор, он же «почему здесь» (трасса). Рейтингов, рассрочки и избранного нет.
+import VendorLogo from '@/components/common/VendorLogo.vue'
 import { computed, ref } from 'vue'
 import { Check, ChevronDown, ListPlus, Route } from 'lucide-vue-next'
 import type { Purchase, SearchItem, SearchItemBase } from '@/api/types'
@@ -77,6 +78,7 @@ function rowQuantity(v: SearchItemBase): string {
   >
     <div class="fcard__row">
       <div class="fcard__main">
+        <VendorLogo :vendor="item.vendor" class="fcard__main-logo" />
         <p class="fcard__meta t-xs">
           <span class="fcard__vendor">{{ item.vendor }}</span>
           <span v-if="item.category" aria-hidden="true"> · </span>
@@ -300,6 +302,12 @@ function rowQuantity(v: SearchItemBase): string {
 .fcard__offer p {
   margin: 0;
 }
+.fcard__offer p.t-num {
+  font-size: var(--fs-h1);
+  line-height: var(--lh-h1);
+  font-weight: var(--fw-bold);
+  white-space: normal;
+}
 .fcard {
   container-type: inline-size;
   border: var(--border-w) solid var(--border);
@@ -520,5 +528,20 @@ function rowQuantity(v: SearchItemBase): string {
   .vtable__act {
     justify-content: flex-end;
   }
+}
+/* Значок производителя — своя колонка слева от названия и атрибутов. */
+.fcard__main {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-content: start;
+  column-gap: var(--space-3);
+}
+.fcard__main > * {
+  grid-column: 2;
+}
+.fcard__main > .fcard__main-logo {
+  grid-column: 1;
+  grid-row: 1 / span 3;
+  align-self: start;
 }
 </style>

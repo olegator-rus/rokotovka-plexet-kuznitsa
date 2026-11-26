@@ -1,30 +1,19 @@
 <script setup lang="ts">
-import { PRODUCT_NAME, PRODUCT_SHORT } from '@/lib/brand'
-
-defineProps<{ compact?: boolean }>()
+// Логотип «Софтлайн Решения»: белый PNG как маска, цвет берётся из --logo-color (на красной шапке —
+// белый, на обычном фоне — фирменный красный).
 </script>
 
 <template>
-  <span class="brand" :aria-label="PRODUCT_NAME">
-    <span class="brand__name">{{ PRODUCT_SHORT }}</span>
-    <span v-if="!compact" class="brand__sub">SearchOps</span>
-  </span>
+  <span class="brand" role="img" aria-label="Софтлайн Решения" />
 </template>
 
 <style scoped>
 .brand {
-  display: inline-flex;
-  align-items: baseline;
-  gap: var(--space-2);
-  white-space: nowrap;
-}
-.brand__name {
-  font-weight: var(--fw-semibold);
-  font-size: var(--fs-h2);
-  letter-spacing: -0.01em;
-}
-.brand__sub {
-  color: var(--text-2);
-  font-size: var(--fs-sm);
+  display: block;
+  flex: none;
+  width: 8.5rem;
+  aspect-ratio: 600 / 133;
+  background: var(--logo-color, var(--accent));
+  mask: url('@/assets/softline-logo.png') center / contain no-repeat;
 }
 </style>

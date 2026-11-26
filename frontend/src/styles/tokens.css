@@ -1,81 +1,113 @@
-/* Дизайн-токены, тема одна — «Ночь». Компоненты берут цвета, размеры, радиусы и тени только отсюда:
-   сырых hex и произвольных размеров в компонентах нет.
+/* Дизайн-токены, тема одна — светлая.
+   Компоненты берут цвета, размеры, радиусы и тени только отсюда: сырых hex и произвольных размеров в них нет.
 
-   Интерфейс монохромный: основная кнопка, выбранное и фокус — светлые на тёмном, без оттенка.
-   Цвет несёт смысл только в трёх местах («Визуальные правила»):
+   Нейтральная основа; фирменный красный «Софтлайн Решения» — шапка, первый экран поиска и основное действие.
+   Смысловой цвет несут только три группы («Визуальные правила»):
    • маршрут запроса A–D — --route-*;
    • статус предложения агента — --status-*;
    • знак изменения метрики — --delta-up / --delta-down.
    Плюс --danger для ошибок. Рядом с цветом всегда стоит текст или иконка.
    Контраст текста к фону ≥ 4,5:1, контуров контролов ≥ 3:1 — проверяет tests/contrast.test.ts. */
 
+/* Цвета */
 :root {
-  color-scheme: dark;
+  color-scheme: light;
 
   /* Поверхности: фон, панели, вложенные блоки, выбранное */
-  --bg: #0d0f13;
-  --surface: #14171d;
-  --surface-2: #1b1f27;
-  --surface-3: #242a34;
-  --border: #262c36;
-  --border-control: #5f6a7a;
+  --bg: #ffffff;
+  --surface: #ffffff;
+  --surface-2: #f2f5f8;
+  --surface-3: #e4eaf0;
+  --border: #d2dce5;
+  --border-control: #737d86;
 
   /* Текст: основной, вторичный, третичный (пропущенные шаги, подписи осей) */
-  --text: #e9ecf1;
-  --text-2: #a7b0bd;
-  --text-3: #8a94a3;
+  --text: #212424;
+  --text-2: #464e55;
+  --text-3: #58616a;
 
-  /* Основное действие и выбранное — светлая заливка, тёмный текст */
-  --accent: #e9ecf1;
-  --accent-hover: #c9ced6;
-  --on-accent: #0d0f13;
-  --focus-ring: #e9ecf1;
+  /* Основное действие и выбранное — контрастная заливка */
+  --accent: #a50f2d;
+  --accent-hover: #870c25;
+  --on-accent: #ffffff;
+  --focus-ring: #212424;
+
+  /* Фирменная красная полоса: шапка и первый экран поиска; контролы на ней — белые */
+  --hero: #a50f2d;
+  --on-hero: #ffffff;
+  --on-hero-2: #f6dde2;
+  --hero-line: rgb(255 255 255 / 0.28);
+  --hero-control: rgb(255 255 255 / 0.6);
+  --hero-hover: rgb(255 255 255 / 0.12);
+  --hero-track: rgb(0 0 0 / 0.18);
+  --hero-button: #212424;
+  --hero-button-hover: #000000;
+  --on-hero-button: #ffffff;
 
   /* Маршрут запроса: A точный, B нормализованный, C семантический, D с LLM */
-  --route-a: #7fd4a6;
-  --route-a-bg: #12281d;
-  --route-b: #86b9ee;
-  --route-b-bg: #122337;
-  --route-c: #e3c06e;
-  --route-c-bg: #2a2312;
-  --route-d: #f2a08f;
-  --route-d-bg: #311b17;
+  --route-a: #11633c;
+  --route-a-bg: #e3f4ea;
+  --route-b: #1a5596;
+  --route-b-bg: #e5effb;
+  --route-c: #755000;
+  --route-c-bg: #faf0d6;
+  --route-d: #a3301c;
+  --route-d-bg: #fbe9e5;
 
   /* Статус предложения агента */
-  --status-pending: #e3c06e;
-  --status-pending-bg: #2a2312;
-  --status-accepted: #7fd4a6;
-  --status-accepted-bg: #12281d;
-  --status-rejected: #f2a08f;
-  --status-rejected-bg: #311b17;
-  --status-rolled-back: #a7b0bd;
-  --status-rolled-back-bg: #1b1f27;
+  --status-pending: #755000;
+  --status-pending-bg: #faf0d6;
+  --status-accepted: #11633c;
+  --status-accepted-bg: #e3f4ea;
+  --status-rejected: #a3301c;
+  --status-rejected-bg: #fbe9e5;
+  --status-rolled-back: #454d5a;
+  --status-rolled-back-bg: #eef0f4;
 
   /* Лента агента (контур автономии): шаги памяти выделены своим цветом и всегда подписаны словом «память» */
-  --feed-memory: #86b9ee;
-  --feed-memory-bg: #122337;
+  --feed-memory: #1a5596;
+  --feed-memory-bg: #e5effb;
 
   /* Знак изменения метрики */
-  --delta-up: #7fd4a6;
-  --delta-down: #f2a08f;
+  --delta-up: #11633c;
+  --delta-down: #a3301c;
 
   /* Ошибка */
-  --danger: #f2a08f;
-  --danger-bg: #311b17;
+  --danger: #a3301c;
+  --danger-bg: #fbe9e5;
 
   /* Разложение скора: четыре ступени нейтральной шкалы (не цвет — подписи стоят рядом) */
-  --score-relevance: #c9ced6;
-  --score-popularity: #8a94a3;
-  --score-margin: #5f6a7a;
-  --score-context: #3d4553;
+  --score-relevance: #2b313c;
+  --score-popularity: #586170;
+  --score-margin: #8a94a3;
+  --score-context: #c3cad4;
 
   /* Затемнение под диалогами и шторкой */
-  --scrim: rgb(0 0 0 / 0.6);
+  --scrim: rgb(15 18 25 / 0.45);
 
-  /* Типографика: Inter (variable, self-host). Плотность инструмента — основной текст 14 px */
+  /* Тени — только у всплывающих слоёв */
+  --shadow-overlay: 0 18px 44px rgb(15 18 25 / 0.28);
+}
+
+/* Размеры и типографика */
+:root {
+  /* Исходные цвета для белой строки поиска и панели внутри .on-hero */
+  --field-text: var(--text);
+  --field-text-2: var(--text-2);
+  --field-text-3: var(--text-3);
+  --field-surface: var(--surface);
+  --field-surface-2: var(--surface-2);
+  --field-surface-3: var(--surface-3);
+  --field-border: var(--border);
+  --field-border-control: var(--border-control);
+}
+
+:root {
+  /* Типографика: Manrope (variable, self-host). Плотность инструмента — основной текст 14 px */
   --font-sans:
-    'Inter Variable', 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, Arial, sans-serif;
+    'Manrope Variable', 'Manrope', system-ui, -apple-system, 'Segoe UI', Roboto, Arial, sans-serif;
   --font-mono: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+  --fs-hero: clamp(1.875rem, 4.4vw, 3.125rem);
   --fs-h1: 1.25rem;
   --lh-h1: 1.75rem;
   --fs-h2: 1rem;
@@ -90,6 +122,7 @@
   --fw-regular: 400;
   --fw-medium: 500;
   --fw-semibold: 600;
+  --fw-bold: 800;
 
   /* Сетка: шаг 4 px */
   --space-1: 0.25rem;
@@ -104,19 +137,22 @@
 
   /* Радиусы */
   --radius-sm: 0.25rem;
-  --radius-control: 0.375rem;
-  --radius-card: 0.5rem;
+  --radius-control: 0.5rem;
+  --radius-card: 0.875rem;
+  --radius-panel: 1.25rem;
   --radius-pill: 999px;
 
   /* Размеры оболочки и контролов */
   --sidebar-w: 14rem;
-  --header-h: 3.5rem;
+  --header-h: 4.25rem;
   --control-h: 2.25rem;
   --control-h-sm: 1.75rem;
-  --search-h: 2.75rem;
+  --search-h: 3.75rem;
   --touch-min: 2.75rem;
   --icon-sm: 1rem;
   --icon-md: 1.125rem;
+  --logo-size: 2.25rem;
+  --logo-size-sm: 1.25rem;
   --content-max: 72rem;
   --trace-w: 33.333%;
   --trace-min-w: 24rem;
@@ -128,9 +164,6 @@
   --skeleton-line: 0.75rem;
   --border-w: 1px;
   --focus-w: 2px;
-
-  /* Тени — только у всплывающих слоёв */
-  --shadow-overlay: 0 12px 32px rgb(0 0 0 / 0.5);
 
   /* Движение */
   --dur-fast: 120ms;

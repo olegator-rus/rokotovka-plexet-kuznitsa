@@ -14,7 +14,7 @@ function noindexPlugin(): Plugin {
   }
 }
 
-// Предзагрузка кириллической Inter (вариативная, весь интерфейс): без неё шрифт запрашивается только
+// Предзагрузка кириллической Manrope (вариативная, весь интерфейс): без неё шрифт запрашивается только
 // после разбора CSS. Имя файла с хешем известно лишь в бандле, поэтому тег добавляется на этапе сборки.
 function fontPreloadPlugin(): Plugin {
   let base = '/'
@@ -28,7 +28,7 @@ function fontPreloadPlugin(): Plugin {
       order: 'post',
       handler(_html, ctx) {
         const font = Object.keys(ctx.bundle ?? {}).find((f) =>
-          /inter-cyrillic-wght-normal-[\w-]+\.woff2$/.test(f),
+          /manrope-cyrillic-wght-normal-[\w-]+\.woff2$/.test(f),
         )
         if (!font) return []
         return [

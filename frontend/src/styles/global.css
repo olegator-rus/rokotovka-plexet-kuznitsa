@@ -116,7 +116,7 @@
     min-height: var(--control-h);
     padding: 0 var(--space-3);
     border: var(--border-w) solid transparent;
-    border-radius: var(--radius-control);
+    border-radius: var(--radius-pill);
     background: transparent;
     font-size: var(--fs-body);
     line-height: var(--lh-body);
@@ -328,6 +328,21 @@
     text-decoration-color: var(--text);
   }
 
+  /* Область на красной полосе: те же контролы берут белые цвета, их разметка не меняется. */
+  .on-hero {
+    --text: var(--on-hero);
+    --text-2: var(--on-hero-2);
+    --text-3: var(--on-hero-2);
+    --surface: transparent;
+    --surface-2: var(--hero-hover);
+    --surface-3: var(--hero-hover);
+    --border: var(--hero-line);
+    --border-control: var(--hero-control);
+    --focus-ring: var(--on-hero);
+    background: var(--hero);
+    color: var(--on-hero);
+  }
+
   .panel {
     background: var(--surface);
     border: var(--border-w) solid var(--border);
@@ -351,6 +366,7 @@
     box-sizing: border-box;
     width: 100%;
     max-width: var(--content-max);
+    margin-inline: auto;
     padding: var(--space-6) var(--gutter) var(--space-12);
   }
 }

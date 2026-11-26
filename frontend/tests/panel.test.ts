@@ -122,7 +122,7 @@ const base = (over: Partial<OptionsInput> = {}): OptionsInput => ({
 test('buildOptions: линейный порядок — левая колонка, товары, рекомендации, «Все результаты»', () => {
   const recs = {
     basis: 'category_popular',
-    title: 'Популярное в категории Антивирусы',
+    title: 'Вам может быть интересно',
     why: '',
     items: [{ product_id: 'r1', title: 'R1' }] as never[],
   }

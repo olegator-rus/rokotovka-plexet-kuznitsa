@@ -1,11 +1,12 @@
 <script setup lang="ts">
-// Шапка: на мобильном — кнопка меню и знак; справа — плашка режима LLM (сотруднику), «Глазами клиента» (только сотруднику на
+// Красная шапка: логотип и разделы (на узком экране — кнопка меню и логотип); справа — плашка режима LLM (сотруднику), «Глазами клиента» (только сотруднику на
 // витрине: роль приходит из входа) и вход: гость — «Войти», вошедший — меню аккаунта. На узком экране
 // инструменты уходят второй строкой.
 import { computed } from 'vue'
-import { useRoute } from 'vue-router'
+import { RouterLink, useRoute } from 'vue-router'
 import { Menu } from 'lucide-vue-next'
 import AccountMenu from './AccountMenu.vue'
+import AppNav from './AppNav.vue'
 import BrandMark from './BrandMark.vue'
 import ClientSwitch from './ClientSwitch.vue'
 import LlmModeBadge from './LlmModeBadge.vue'
@@ -22,11 +23,10 @@ const auth = useAuthStore()
 const backoffice = computed(() => route.meta.backoffice === true)
 // Контур коммерции: «Спецификация» — в шапке раздела «Поиск».
 const storefront = computed(() => route.path === '/search')
-const title = computed(() => (typeof route.meta.section === 'string' ? route.meta.section : ''))
 </script>
 
 <template>
-  <header class="app-header">
+  <header class="app-header on-hero">
     <div class="app-header__lead">
       <button
         type="button"
@@ -36,9 +36,11 @@ const title = computed(() => (typeof route.meta.section === 'string' ? route.met
       >
         <Menu :size="20" aria-hidden="true" />
       </button>
-      <BrandMark compact class="app-header__brand" />
-      <span v-if="title" class="app-header__title">{{ title }}</span>
+      <RouterLink to="/search" class="app-header__brand" aria-label="Софтлайн Решения — к поиску">
+        <BrandMark />
+      </RouterLink>
     </div>
+    <AppNav horizontal class="app-header__nav" />
     <div class="app-header__tools">
       <SpecButton v-if="storefront" />
       <LlmModeBadge v-if="auth.staff" />
@@ -50,6 +52,7 @@ const title = computed(() => (typeof route.meta.section === 'string' ? route.met
 
 <style scoped>
 .app-header {
+  --logo-color: var(--on-hero);
   position: sticky;
   top: 0;
   z-index: 20;
@@ -57,12 +60,11 @@ const title = computed(() => (typeof route.meta.section === 'string' ? route.met
   flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  gap: var(--space-2) var(--space-3);
+  gap: var(--space-2) var(--space-4);
   min-height: var(--header-h);
-  padding: var(--space-2) var(--gutter);
+  padding: var(--space-2) max(var(--gutter), (100% - var(--content-max)) / 2 + var(--gutter));
   box-sizing: border-box;
-  background: var(--bg);
-  border-bottom: var(--border-w) solid var(--border);
+  border-bottom: var(--border-w) solid var(--hero-line);
 }
 .app-header__lead {
   display: flex;
@@ -70,10 +72,9 @@ const title = computed(() => (typeof route.meta.section === 'string' ? route.met
   gap: var(--space-2);
   min-width: 0;
 }
-.app-header__title {
-  color: var(--text-2);
-  font-weight: var(--fw-medium);
-  white-space: nowrap;
+.app-header__brand {
+  display: block;
+  border-radius: var(--radius-sm);
 }
 .app-header__tools {
   display: flex;
@@ -84,14 +85,34 @@ const title = computed(() => (typeof route.meta.section === 'string' ? route.met
   min-width: 0;
   margin-left: auto;
 }
+/* Всё в правой части шапки — одной высоты и одним кеглем: кнопки, плашка режима, выбор клиента. */
+.app-header__tools :deep(.btn),
+.app-header__tools :deep(.badge),
+.app-header__tools :deep(.ui-select) {
+  box-sizing: border-box;
+  height: var(--control-h);
+  min-height: var(--control-h);
+  font-size: var(--fs-body);
+  line-height: var(--lh-body);
+  border-radius: var(--radius-pill);
+}
+.app-header__tools :deep(.btn) {
+  padding-inline: var(--space-3);
+}
+.app-header__tools :deep(.ui-select__prefix) {
+  display: none;
+}
+.app-header__tools :deep(.btn--icon) {
+  width: var(--control-h);
+  padding-inline: 0;
+}
 @media (min-width: 1024px) {
-  .app-header__menu,
-  .app-header__brand {
+  .app-header__menu {
     display: none;
   }
 }
 @media (max-width: 1023px) {
-  .app-header__title {
+  .app-header__nav {
     display: none;
   }
 }
@@ -99,9 +120,6 @@ const title = computed(() => (typeof route.meta.section === 'string' ? route.met
   .app-header__tools {
     width: 100%;
     justify-content: space-between;
-  }
-  .app-header__tools :deep(.ui-select__prefix) {
-    display: none;
   }
 }
 </style>

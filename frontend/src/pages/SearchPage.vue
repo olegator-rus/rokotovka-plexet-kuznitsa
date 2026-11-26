@@ -659,459 +659,474 @@ async function onSupply() {
 </script>
 
 <template>
-  <div :class="['search-page', { 'search-page--trace': state.trace && isDesktop }]">
-    <div class="search-page__main">
-      <h1 class="sr-only">Поиск по каталогу</h1>
-      <div class="search-page__bar">
+  <div class="search-page">
+    <div :class="['search-hero on-hero', { 'search-hero--idle': status === 'idle' }]">
+      <div class="search-hero__inner">
+        <h1 class="sr-only">Поиск по каталогу</h1>
+        <p v-if="status === 'idle'" class="search-hero__title">
+          Лицензии и оборудование для бизнеса
+        </p>
         <SearchPanel
           ref="box"
           v-model="text"
           :client-id="state.client ?? GUEST_CLIENT_ID"
           @submit="onPanelSubmit"
         />
-        <div class="search-page__controls">
+      </div>
+    </div>
+
+    <div :class="['search-page__cols', { 'search-page__cols--trace': state.trace && isDesktop }]">
+      <div class="search-page__main">
+        <div v-if="auth.staff" class="search-page__controls">
           <ConfigSwitch
-            v-if="auth.staff"
             :configs="configs"
             :model-value="effectiveConfig"
             @update:model-value="onConfig"
           />
-          <UiSwitch label="Трасса" :model-value="state.trace" @update:model-value="setTrace" />
         </div>
-      </div>
+        <Teleport defer to="#footer-tools">
+          <UiSwitch label="Трасса" :model-value="state.trace" @update:model-value="setTrace" />
+        </Teleport>
 
-      <ResultSkeleton v-if="status === 'loading'" />
+        <ResultSkeleton v-if="status === 'loading'" />
 
-      <SearchError v-else-if="status === 'error' && error" :error="error" @retry="run(state)" />
+        <SearchError v-else-if="status === 'error' && error" :error="error" @retry="run(state)" />
 
-      <template v-else-if="status === 'ready' && response">
-        <h2 v-if="helpShown" class="sr-only" role="status">
-          Ответ справки по запросу «{{ response.query }}»
-        </h2>
-        <h2 v-else-if="resultsOn" class="search-page__heading" role="status">
-          {{ resultsHeading(response) }}
-          <span v-if="response.trace?.total_ms != null" class="t-sm t-muted">
-            · {{ formatMs(response.trace.total_ms) }}
-          </span>
-        </h2>
-        <p v-else class="search-page__found t-sm t-muted t-num" role="status">
-          {{ formatFound(response.total, response.trace?.total_ms) }} · {{ response.config }}
-        </p>
-
-        <UnderstandingBar
-          :response="response"
-          :as-typed="state.asTyped"
-          :removed="state.removed"
-          @as-typed="onAsTyped"
-          @try-query="submit"
-          @remove-chip="onRemoveChip"
-          @restore-chips="go(withChipsRestored(state))"
-          @clarify="onClarify"
-        />
-
-        <HelpAnswer v-if="helpHint && response.help" :help="response.help" @open="onHelpOpen" />
-
-        <ul v-if="relaxed.length" class="search-page__notes">
-          <li v-for="r in relaxed" :key="r.field">
-            <Info :size="16" aria-hidden="true" />
-            <span>{{ r.message }}</span>
-          </li>
-        </ul>
-
-        <SolutionCard v-if="solution" :solution="solution" @apply="onSolutionApply" />
-
-        <section v-if="filteredEmpty" class="panel search-page__absent" role="status">
-          <h2 class="t-h2">{{ response.empty?.message || 'По выбранным фильтрам позиций нет' }}</h2>
-          <p class="t-muted">Снимите один из фильтров или сбросьте все — запрос останется.</p>
-          <div>
-            <button type="button" class="btn btn--secondary" @click="onFiltersReset">
-              Сбросить фильтры
-            </button>
-          </div>
-        </section>
-
-        <HelpAnswer
-          v-else-if="helpShown && response.help"
-          :help="response.help"
-          @open="onHelpOpen"
-        />
-
-        <section v-else-if="blocks.absent || blocks.nothing" class="panel search-page__absent">
-          <h2 class="t-h2">
-            {{
-              blocks.absent
-                ? emptyTitle(response)
-                : `По запросу «${response.query}» ничего не нашлось`
-            }}
+        <template v-else-if="status === 'ready' && response">
+          <h2 v-if="helpShown" class="sr-only" role="status">
+            Ответ справки по запросу «{{ response.query }}»
           </h2>
-          <p class="t-muted">
-            {{
-              blocks.analogs.length
-                ? 'Ниже — похожие по назначению. Если не подходят, менеджер подберёт решение.'
-                : 'Похожих товаров в каталоге тоже нет. Менеджер подберёт решение или предложит замену.'
-            }}
+          <h2 v-else-if="resultsOn" class="search-page__heading" role="status">
+            {{ resultsHeading(response) }}
+            <span v-if="response.trace?.total_ms != null" class="t-sm t-muted">
+              · {{ formatMs(response.trace.total_ms) }}
+            </span>
+          </h2>
+          <p v-else class="search-page__found t-sm t-muted t-num" role="status">
+            {{ formatFound(response.total, response.trace?.total_ms) }} · {{ response.config }}
           </p>
-          <div v-if="showManager || supply" class="search-page__absent-actions">
-            <template v-if="supply">
-              <span
-                v-if="supplySent === response.request_id"
-                class="t-sm t-muted"
-                role="status"
-                data-testid="supply-sent"
-              >
-                Запрос поставки отправлен
-              </span>
-              <button
-                v-else
-                type="button"
-                class="btn btn--primary"
-                data-testid="supply-request"
-                @click="onSupply"
-              >
-                Запросить поставку
-              </button>
-            </template>
-            <button
-              v-if="showManager"
-              type="button"
-              class="btn btn--secondary"
-              @click="managerOpen = true"
-            >
-              <Headset :size="16" aria-hidden="true" />
-              Спросить менеджера
-            </button>
-          </div>
-        </section>
 
-        <p v-if="conditionalNote" class="search-page__compat t-sm">
-          <ShieldAlert :size="16" aria-hidden="true" />
-          Для точной проверки укажите конфигурацию сервера
-        </p>
-
-        <template v-if="resultsOn">
-          <RefinementChips :items="refinements" @apply="onRefinement" />
-          <ResultsToolbar
-            v-if="response.items.length || filters.length"
+          <UnderstandingBar
             :response="response"
-            :sort="sortValue"
-            :group="groupValue"
-            :forced-flat="forcedFlat"
-            @sort="onSort"
-            @group="onGroup"
+            :as-typed="state.asTyped"
+            :removed="state.removed"
+            @as-typed="onAsTyped"
+            @try-query="submit"
+            @remove-chip="onRemoveChip"
+            @restore-chips="go(withChipsRestored(state))"
+            @clarify="onClarify"
           />
-          <AppliedFilters
-            :filters="filters"
-            :facets="resultFacets"
-            @remove="onFilterRemove"
-            @reset="onFiltersReset"
+
+          <HelpAnswer v-if="helpHint && response.help" :help="response.help" @open="onHelpOpen" />
+
+          <ul v-if="relaxed.length" class="search-page__notes">
+            <li v-for="r in relaxed" :key="r.field">
+              <Info :size="16" aria-hidden="true" />
+              <span>{{ r.message }}</span>
+            </li>
+          </ul>
+
+          <SolutionCard v-if="solution" :solution="solution" @apply="onSolutionApply" />
+
+          <section v-if="filteredEmpty" class="panel search-page__absent" role="status">
+            <h2 class="t-h2">
+              {{ response.empty?.message || 'По выбранным фильтрам позиций нет' }}
+            </h2>
+            <p class="t-muted">Снимите один из фильтров или сбросьте все — запрос останется.</p>
+            <div>
+              <button type="button" class="btn btn--secondary" @click="onFiltersReset">
+                Сбросить фильтры
+              </button>
+            </div>
+          </section>
+
+          <HelpAnswer
+            v-else-if="helpShown && response.help"
+            :help="response.help"
+            @open="onHelpOpen"
           />
+
+          <section v-else-if="blocks.absent || blocks.nothing" class="panel search-page__absent">
+            <h2 class="t-h2">
+              {{
+                blocks.absent
+                  ? emptyTitle(response)
+                  : `По запросу «${response.query}» ничего не нашлось`
+              }}
+            </h2>
+            <p class="t-muted">
+              {{
+                blocks.analogs.length
+                  ? 'Ниже — похожие по назначению. Если не подходят, менеджер подберёт решение.'
+                  : 'Похожих товаров в каталоге тоже нет. Менеджер подберёт решение или предложит замену.'
+              }}
+            </p>
+            <div v-if="showManager || supply" class="search-page__absent-actions">
+              <template v-if="supply">
+                <span
+                  v-if="supplySent === response.request_id"
+                  class="t-sm t-muted"
+                  role="status"
+                  data-testid="supply-sent"
+                >
+                  Запрос поставки отправлен
+                </span>
+                <button
+                  v-else
+                  type="button"
+                  class="btn btn--primary"
+                  data-testid="supply-request"
+                  @click="onSupply"
+                >
+                  Запросить поставку
+                </button>
+              </template>
+              <button
+                v-if="showManager"
+                type="button"
+                class="btn btn--secondary"
+                @click="managerOpen = true"
+              >
+                <Headset :size="16" aria-hidden="true" />
+                Спросить менеджера
+              </button>
+            </div>
+          </section>
+
+          <p v-if="conditionalNote" class="search-page__compat t-sm">
+            <ShieldAlert :size="16" aria-hidden="true" />
+            Для точной проверки укажите конфигурацию сервера
+          </p>
+
+          <template v-if="resultsOn">
+            <RefinementChips :items="refinements" @apply="onRefinement" />
+            <ResultsToolbar
+              v-if="response.items.length || filters.length"
+              :response="response"
+              :sort="sortValue"
+              :group="groupValue"
+              :forced-flat="forcedFlat"
+              @sort="onSort"
+              @group="onGroup"
+            />
+            <AppliedFilters
+              :filters="filters"
+              :facets="resultFacets"
+              @remove="onFilterRemove"
+              @reset="onFiltersReset"
+            />
+          </template>
+
+          <div
+            :class="[
+              'search-page__body',
+              { 'search-page__body--facets': resultsOn ? showResultFacets : showFacets },
+            ]"
+          >
+            <ResultsFacets
+              v-if="resultsOn && showResultFacets"
+              class="search-page__facets"
+              :facets="resultFacets"
+              :filters="filters"
+              :query-key="state.q"
+              @apply="onResultFacet"
+              @reset="onFiltersReset"
+            />
+            <FacetsPanel
+              v-else-if="!resultsOn && showFacets"
+              class="search-page__facets"
+              :facets="facets"
+              :filters="filters"
+              @apply="onFacet"
+              @reset="onFacetsReset"
+            />
+            <div class="search-page__results">
+              <ol v-if="mainTop.length" class="search-page__list" aria-label="Результаты">
+                <li v-for="p in mainTop" :key="p.item.product_id">
+                  <FamilyCard
+                    v-if="resultsOn"
+                    :item="p.item"
+                    :position="p.position"
+                    :named="named"
+                    :selected="state.trace && selected === p.item.product_id"
+                    :in-spec="inSpec"
+                    :show-compat="hardwareOn"
+                    :purchase="response.purchase"
+                    @expand="onVariantExpand"
+                    @spec="onSpecTarget"
+                    @price-request="(t, pos) => onAction('price_request', t, pos)"
+                    @why="onWhy"
+                  >
+                    <RequiredLine
+                      v-if="requiredOf(p.item).length"
+                      :required="requiredOf(p.item)"
+                      :anchor-id="p.item.product_id"
+                      :anchor-title="p.item.title"
+                      :request-id="response.request_id"
+                    />
+                  </FamilyCard>
+                  <ResultCard
+                    v-else
+                    :item="p.item"
+                    :position="p.position"
+                    :selected="state.trace && selected === p.item.product_id"
+                    :in-spec="spec.has(p.item.product_id)"
+                    :show-compat="hardwareOn"
+                    @open="onOpen"
+                    @action="onAction"
+                    @why="onWhy"
+                    @spec="onSpec"
+                  >
+                    <RequiredLine
+                      v-if="requiredOf(p.item).length"
+                      :required="requiredOf(p.item)"
+                      :anchor-id="p.item.product_id"
+                      :anchor-title="p.item.title"
+                      :request-id="response.request_id"
+                    />
+                  </ResultCard>
+                </li>
+              </ol>
+
+              <CompanionsBlock
+                v-if="companionItems.length"
+                :items="companionItems"
+                :anchor="companionAnchorTitle"
+                @open="onCompanionOpen"
+                @add="onCompanionAdd"
+                @search="submit"
+              />
+
+              <ol
+                v-if="mainRest.length"
+                class="search-page__list"
+                :start="BLOCK_AFTER + 1"
+                aria-label="Продолжение выдачи"
+              >
+                <li v-for="p in mainRest" :key="p.item.product_id">
+                  <FamilyCard
+                    v-if="resultsOn"
+                    :item="p.item"
+                    :position="p.position"
+                    :named="named"
+                    :selected="state.trace && selected === p.item.product_id"
+                    :in-spec="inSpec"
+                    :show-compat="hardwareOn"
+                    :purchase="response.purchase"
+                    @expand="onVariantExpand"
+                    @spec="onSpecTarget"
+                    @price-request="(t, pos) => onAction('price_request', t, pos)"
+                    @why="onWhy"
+                  >
+                    <RequiredLine
+                      v-if="requiredOf(p.item).length"
+                      :required="requiredOf(p.item)"
+                      :anchor-id="p.item.product_id"
+                      :anchor-title="p.item.title"
+                      :request-id="response.request_id"
+                    />
+                  </FamilyCard>
+                  <ResultCard
+                    v-else
+                    :item="p.item"
+                    :position="p.position"
+                    :selected="state.trace && selected === p.item.product_id"
+                    :in-spec="spec.has(p.item.product_id)"
+                    :show-compat="hardwareOn"
+                    @open="onOpen"
+                    @action="onAction"
+                    @why="onWhy"
+                    @spec="onSpec"
+                  >
+                    <RequiredLine
+                      v-if="requiredOf(p.item).length"
+                      :required="requiredOf(p.item)"
+                      :anchor-id="p.item.product_id"
+                      :anchor-title="p.item.title"
+                      :request-id="response.request_id"
+                    />
+                  </ResultCard>
+                </li>
+              </ol>
+
+              <UpgradeCard
+                v-if="upgrade"
+                :upgrade="upgrade"
+                :base="upgradeBase"
+                @open="onUpgradeOpen"
+                @add="onUpgradeAdd"
+              />
+
+              <section
+                v-if="blocks.fill.length"
+                class="search-page__section"
+                aria-labelledby="fill-title"
+              >
+                <h2 id="fill-title" class="t-h2">{{ fillHeading }}</h2>
+                <p class="t-sm t-muted">
+                  Поиск по запросу их не нашёл — популярное по выбранному фильтру, не по
+                  соответствию запросу.
+                </p>
+                <ol class="search-page__list">
+                  <li v-for="p in blocks.fill" :key="p.item.product_id">
+                    <FamilyCard
+                      v-if="resultsOn"
+                      :item="p.item"
+                      :position="p.position"
+                      :named="named"
+                      :selected="state.trace && selected === p.item.product_id"
+                      :in-spec="inSpec"
+                      :show-compat="hardwareOn"
+                      @expand="onVariantExpand"
+                      @spec="onSpecTarget"
+                      @price-request="(t, pos) => onAction('price_request', t, pos)"
+                      @why="onWhy"
+                    />
+                    <ResultCard
+                      v-else
+                      :item="p.item"
+                      :position="p.position"
+                      :selected="state.trace && selected === p.item.product_id"
+                      :in-spec="spec.has(p.item.product_id)"
+                      :show-compat="hardwareOn"
+                      @open="onOpen"
+                      @action="onAction"
+                      @why="onWhy"
+                      @spec="onSpec"
+                    />
+                  </li>
+                </ol>
+              </section>
+
+              <section
+                v-if="blocks.analogs.length"
+                class="search-page__section"
+                aria-labelledby="analogs-title"
+              >
+                <h2 id="analogs-title" class="t-h2">
+                  {{
+                    blocks.absent || (!blocks.main.length && !response.analog_original)
+                      ? 'Похожие по назначению'
+                      : 'Аналоги'
+                  }}
+                </h2>
+                <AnalogOriginal
+                  v-if="response.analog_original"
+                  :original="response.analog_original"
+                />
+                <ol class="search-page__list">
+                  <li v-for="p in blocks.analogs" :key="p.item.product_id">
+                    <FamilyCard
+                      v-if="resultsOn"
+                      :item="p.item"
+                      :position="p.position"
+                      :named="named"
+                      :selected="state.trace && selected === p.item.product_id"
+                      :in-spec="inSpec"
+                      :show-compat="hardwareOn"
+                      @expand="onVariantExpand"
+                      @spec="onSpecTarget"
+                      @price-request="(t, pos) => onAction('price_request', t, pos)"
+                      @why="onWhy"
+                    />
+                    <ResultCard
+                      v-else
+                      :item="p.item"
+                      :position="p.position"
+                      :selected="state.trace && selected === p.item.product_id"
+                      :in-spec="spec.has(p.item.product_id)"
+                      :show-compat="hardwareOn"
+                      @open="onOpen"
+                      @action="onAction"
+                      @why="onWhy"
+                      @spec="onSpec"
+                    />
+                  </li>
+                </ol>
+              </section>
+
+              <section
+                v-if="reestrUnconfirmed.length"
+                class="search-page__section"
+                aria-labelledby="reestr-unknown-title"
+                data-testid="reestr-unconfirmed"
+              >
+                <h2 id="reestr-unknown-title" class="t-h2">Статус не установлен</h2>
+                <p class="t-sm t-muted">
+                  Запрос требует реестр российского ПО, а подтверждения записи в данных нет —
+                  проверьте у менеджера.
+                </p>
+                <ol class="search-page__list">
+                  <li v-for="(it, i) in reestrUnconfirmed" :key="it.product_id">
+                    <FamilyCard
+                      :item="it"
+                      :position="response.items.length + i + 1"
+                      :named="named"
+                      :in-spec="inSpec"
+                      @expand="onVariantExpand"
+                      @spec="onSpecTarget"
+                      @price-request="(t, pos) => onAction('price_request', t, pos)"
+                      @why="onWhy"
+                    />
+                  </li>
+                </ol>
+              </section>
+
+              <ComplementsBlock
+                v-if="!companionItems.length && complements.length && blocks.main.length"
+                :items="complements"
+                :anchor="complementAnchor"
+                @action="onComplement"
+              />
+            </div>
+          </div>
+
+          <section
+            v-if="related.length"
+            class="search-page__related"
+            aria-labelledby="related-title"
+          >
+            <h2 id="related-title" class="t-sm t-muted">Похожие запросы</h2>
+            <ul class="search-page__chips">
+              <li v-for="q in related" :key="q">
+                <button type="button" class="btn btn--secondary btn--sm" @click="submit(q)">
+                  {{ q }}
+                </button>
+              </li>
+            </ul>
+          </section>
         </template>
 
-        <div
-          :class="[
-            'search-page__body',
-            { 'search-page__body--facets': resultsOn ? showResultFacets : showFacets },
-          ]"
-        >
-          <ResultsFacets
-            v-if="resultsOn && showResultFacets"
-            class="search-page__facets"
-            :facets="resultFacets"
-            :filters="filters"
-            :query-key="state.q"
-            @apply="onResultFacet"
-            @reset="onFiltersReset"
-          />
-          <FacetsPanel
-            v-else-if="!resultsOn && showFacets"
-            class="search-page__facets"
-            :facets="facets"
-            :filters="filters"
-            @apply="onFacet"
-            @reset="onFacetsReset"
-          />
-          <div class="search-page__results">
-            <ol v-if="mainTop.length" class="search-page__list" aria-label="Результаты">
-              <li v-for="p in mainTop" :key="p.item.product_id">
-                <FamilyCard
-                  v-if="resultsOn"
-                  :item="p.item"
-                  :position="p.position"
-                  :named="named"
-                  :selected="state.trace && selected === p.item.product_id"
-                  :in-spec="inSpec"
-                  :show-compat="hardwareOn"
-                  :purchase="response.purchase"
-                  @expand="onVariantExpand"
-                  @spec="onSpecTarget"
-                  @price-request="(t, pos) => onAction('price_request', t, pos)"
-                  @why="onWhy"
-                >
-                  <RequiredLine
-                    v-if="requiredOf(p.item).length"
-                    :required="requiredOf(p.item)"
-                    :anchor-id="p.item.product_id"
-                    :anchor-title="p.item.title"
-                    :request-id="response.request_id"
-                  />
-                </FamilyCard>
-                <ResultCard
-                  v-else
-                  :item="p.item"
-                  :position="p.position"
-                  :selected="state.trace && selected === p.item.product_id"
-                  :in-spec="spec.has(p.item.product_id)"
-                  :show-compat="hardwareOn"
-                  @open="onOpen"
-                  @action="onAction"
-                  @why="onWhy"
-                  @spec="onSpec"
-                >
-                  <RequiredLine
-                    v-if="requiredOf(p.item).length"
-                    :required="requiredOf(p.item)"
-                    :anchor-id="p.item.product_id"
-                    :anchor-title="p.item.title"
-                    :request-id="response.request_id"
-                  />
-                </ResultCard>
-              </li>
-            </ol>
-
-            <CompanionsBlock
-              v-if="companionItems.length"
-              :items="companionItems"
-              :anchor="companionAnchorTitle"
-              @open="onCompanionOpen"
-              @add="onCompanionAdd"
-              @search="submit"
-            />
-
-            <ol
-              v-if="mainRest.length"
-              class="search-page__list"
-              :start="BLOCK_AFTER + 1"
-              aria-label="Продолжение выдачи"
-            >
-              <li v-for="p in mainRest" :key="p.item.product_id">
-                <FamilyCard
-                  v-if="resultsOn"
-                  :item="p.item"
-                  :position="p.position"
-                  :named="named"
-                  :selected="state.trace && selected === p.item.product_id"
-                  :in-spec="inSpec"
-                  :show-compat="hardwareOn"
-                  :purchase="response.purchase"
-                  @expand="onVariantExpand"
-                  @spec="onSpecTarget"
-                  @price-request="(t, pos) => onAction('price_request', t, pos)"
-                  @why="onWhy"
-                >
-                  <RequiredLine
-                    v-if="requiredOf(p.item).length"
-                    :required="requiredOf(p.item)"
-                    :anchor-id="p.item.product_id"
-                    :anchor-title="p.item.title"
-                    :request-id="response.request_id"
-                  />
-                </FamilyCard>
-                <ResultCard
-                  v-else
-                  :item="p.item"
-                  :position="p.position"
-                  :selected="state.trace && selected === p.item.product_id"
-                  :in-spec="spec.has(p.item.product_id)"
-                  :show-compat="hardwareOn"
-                  @open="onOpen"
-                  @action="onAction"
-                  @why="onWhy"
-                  @spec="onSpec"
-                >
-                  <RequiredLine
-                    v-if="requiredOf(p.item).length"
-                    :required="requiredOf(p.item)"
-                    :anchor-id="p.item.product_id"
-                    :anchor-title="p.item.title"
-                    :request-id="response.request_id"
-                  />
-                </ResultCard>
-              </li>
-            </ol>
-
-            <UpgradeCard
-              v-if="upgrade"
-              :upgrade="upgrade"
-              :base="upgradeBase"
-              @open="onUpgradeOpen"
-              @add="onUpgradeAdd"
-            />
-
-            <section
-              v-if="blocks.fill.length"
-              class="search-page__section"
-              aria-labelledby="fill-title"
-            >
-              <h2 id="fill-title" class="t-h2">{{ fillHeading }}</h2>
-              <p class="t-sm t-muted">
-                Поиск по запросу их не нашёл — популярное по выбранному фильтру, не по соответствию
-                запросу.
-              </p>
-              <ol class="search-page__list">
-                <li v-for="p in blocks.fill" :key="p.item.product_id">
-                  <FamilyCard
-                    v-if="resultsOn"
-                    :item="p.item"
-                    :position="p.position"
-                    :named="named"
-                    :selected="state.trace && selected === p.item.product_id"
-                    :in-spec="inSpec"
-                    :show-compat="hardwareOn"
-                    @expand="onVariantExpand"
-                    @spec="onSpecTarget"
-                    @price-request="(t, pos) => onAction('price_request', t, pos)"
-                    @why="onWhy"
-                  />
-                  <ResultCard
-                    v-else
-                    :item="p.item"
-                    :position="p.position"
-                    :selected="state.trace && selected === p.item.product_id"
-                    :in-spec="spec.has(p.item.product_id)"
-                    :show-compat="hardwareOn"
-                    @open="onOpen"
-                    @action="onAction"
-                    @why="onWhy"
-                    @spec="onSpec"
-                  />
-                </li>
-              </ol>
-            </section>
-
-            <section
-              v-if="blocks.analogs.length"
-              class="search-page__section"
-              aria-labelledby="analogs-title"
-            >
-              <h2 id="analogs-title" class="t-h2">
-                {{
-                  blocks.absent || (!blocks.main.length && !response.analog_original)
-                    ? 'Похожие по назначению'
-                    : 'Аналоги'
-                }}
-              </h2>
-              <AnalogOriginal
-                v-if="response.analog_original"
-                :original="response.analog_original"
-              />
-              <ol class="search-page__list">
-                <li v-for="p in blocks.analogs" :key="p.item.product_id">
-                  <FamilyCard
-                    v-if="resultsOn"
-                    :item="p.item"
-                    :position="p.position"
-                    :named="named"
-                    :selected="state.trace && selected === p.item.product_id"
-                    :in-spec="inSpec"
-                    :show-compat="hardwareOn"
-                    @expand="onVariantExpand"
-                    @spec="onSpecTarget"
-                    @price-request="(t, pos) => onAction('price_request', t, pos)"
-                    @why="onWhy"
-                  />
-                  <ResultCard
-                    v-else
-                    :item="p.item"
-                    :position="p.position"
-                    :selected="state.trace && selected === p.item.product_id"
-                    :in-spec="spec.has(p.item.product_id)"
-                    :show-compat="hardwareOn"
-                    @open="onOpen"
-                    @action="onAction"
-                    @why="onWhy"
-                    @spec="onSpec"
-                  />
-                </li>
-              </ol>
-            </section>
-
-            <section
-              v-if="reestrUnconfirmed.length"
-              class="search-page__section"
-              aria-labelledby="reestr-unknown-title"
-              data-testid="reestr-unconfirmed"
-            >
-              <h2 id="reestr-unknown-title" class="t-h2">Статус не установлен</h2>
-              <p class="t-sm t-muted">
-                Запрос требует реестр российского ПО, а подтверждения записи в данных нет —
-                проверьте у менеджера.
-              </p>
-              <ol class="search-page__list">
-                <li v-for="(it, i) in reestrUnconfirmed" :key="it.product_id">
-                  <FamilyCard
-                    :item="it"
-                    :position="response.items.length + i + 1"
-                    :named="named"
-                    :in-spec="inSpec"
-                    @expand="onVariantExpand"
-                    @spec="onSpecTarget"
-                    @price-request="(t, pos) => onAction('price_request', t, pos)"
-                    @why="onWhy"
-                  />
-                </li>
-              </ol>
-            </section>
-
-            <ComplementsBlock
-              v-if="!companionItems.length && complements.length && blocks.main.length"
-              :items="complements"
-              :anchor="complementAnchor"
-              @action="onComplement"
-            />
-          </div>
-        </div>
-
-        <section v-if="related.length" class="search-page__related" aria-labelledby="related-title">
-          <h2 id="related-title" class="t-sm t-muted">Похожие запросы</h2>
-          <ul class="search-page__chips">
-            <li v-for="q in related" :key="q">
+        <section v-else class="search-page__idle" aria-labelledby="idle-title">
+          <h2 id="idle-title" class="t-h2">Что ищем?</h2>
+          <p class="t-muted">
+            Название продукта, задача своими словами («аналог фотошопа на 20 пользователей») или
+            артикул. Опечатки, раскладку и сленг поиск исправит сам; как он понял запрос — видно в
+            трассе.
+          </p>
+          <ul class="search-page__chips" aria-label="Примеры запросов">
+            <li v-for="q in EXAMPLES" :key="q">
               <button type="button" class="btn btn--secondary btn--sm" @click="submit(q)">
                 {{ q }}
               </button>
             </li>
           </ul>
         </section>
-      </template>
+      </div>
 
-      <section v-else class="search-page__idle" aria-labelledby="idle-title">
-        <h2 id="idle-title" class="t-h2">Что ищем?</h2>
-        <p class="t-muted">
-          Название продукта, задача своими словами («аналог фотошопа на 20 пользователей») или
-          артикул. Опечатки, раскладку и сленг поиск исправит сам; как он понял запрос — видно в
-          трассе.
-        </p>
-        <ul class="search-page__chips" aria-label="Примеры запросов">
-          <li v-for="q in EXAMPLES" :key="q">
-            <button type="button" class="btn btn--secondary btn--sm" @click="submit(q)">
-              {{ q }}
-            </button>
-          </li>
-        </ul>
-      </section>
+      <aside v-if="state.trace && isDesktop" class="search-page__trace" aria-label="Трасса запроса">
+        <TracePanel
+          :trace="response?.trace ?? null"
+          :loading="status === 'loading'"
+          :titles="titles"
+          :selected="selected"
+          :query="response?.query ?? null"
+          closable
+          @select="selected = $event"
+          @close="setTrace(false)"
+        />
+      </aside>
     </div>
-
-    <aside v-if="state.trace && isDesktop" class="search-page__trace" aria-label="Трасса запроса">
-      <TracePanel
-        :trace="response?.trace ?? null"
-        :loading="status === 'loading'"
-        :titles="titles"
-        :selected="selected"
-        :query="response?.query ?? null"
-        closable
-        @select="selected = $event"
-        @close="setTrace(false)"
-      />
-    </aside>
 
     <DialogRoot
       :open="state.trace && !isDesktop"
@@ -1147,6 +1162,30 @@ async function onSupply() {
 .search-page {
   display: flex;
   flex: 1;
+  flex-direction: column;
+  min-width: 0;
+}
+.search-hero__inner {
+  box-sizing: border-box;
+  width: 100%;
+  max-width: var(--content-max);
+  margin-inline: auto;
+  padding: var(--space-5) var(--gutter) var(--space-8);
+}
+.search-hero--idle .search-hero__inner {
+  padding-block: var(--space-4) var(--space-12);
+}
+.search-hero__title {
+  margin: 0 0 var(--space-5);
+  font-size: var(--fs-hero);
+  line-height: 1.12;
+  font-weight: var(--fw-medium);
+  letter-spacing: -0.025em;
+  text-wrap: balance;
+}
+.search-page__cols {
+  display: flex;
+  flex: 1;
   min-width: 0;
 }
 .search-page__main {
@@ -1158,15 +1197,11 @@ async function onSupply() {
   box-sizing: border-box;
   min-width: 0;
   max-width: var(--content-max);
+  margin-inline: auto;
   padding: var(--space-4) var(--gutter) var(--space-12);
 }
-.search-page--trace .search-page__main {
+.search-page__cols--trace .search-page__main {
   max-width: none;
-}
-.search-page__bar {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-2);
 }
 .search-page__controls {
   display: flex;
@@ -1182,7 +1217,8 @@ async function onSupply() {
   margin: 0;
   font-variant-numeric: tabular-nums;
   overflow-wrap: anywhere;
-  font-size: var(--fs-h2, 1.125rem);
+  font-size: var(--fs-h1);
+  line-height: var(--lh-h1);
   font-weight: var(--fw-semibold);
 }
 .search-page__notes {

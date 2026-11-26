@@ -1,6 +1,6 @@
 <script setup lang="ts">
-// Оболочка приложения: левая панель с разделами (на мобильном — выезжающая, reka Dialog), шапка и
-// содержимое раздела. Ссылка «К содержимому» — первый Tab на странице.
+// Оболочка приложения: красная шапка с логотипом и разделами (на узком экране разделы — в выезжающей
+// панели, reka Dialog) и содержимое раздела. Ссылка «К содержимому» — первый Tab на странице.
 import { ref, watch } from 'vue'
 import { storeToRefs } from 'pinia'
 import { RouterLink, useRoute } from 'vue-router'
@@ -34,24 +34,24 @@ watch(
 <template>
   <a class="skip-link" href="#main">К содержимому</a>
   <div class="shell">
-    <aside class="shell__sidebar" aria-label="Навигация">
-      <div class="shell__brand"><BrandMark /></div>
-      <AppNav />
-      <p v-if="meta" class="shell__versions t-xs">
-        Каталог {{ meta.catalog_version }} · правила v{{ meta.rules_version }}
-      </p>
-    </aside>
-
-    <div class="shell__main">
-      <AppHeader @open-menu="drawer = true" />
-      <main id="main" class="shell__content" tabindex="-1">
-        <slot />
-      </main>
-      <footer class="shell__footer t-xs">
-        На сайте применяются рекомендательные технологии.
+    <AppHeader @open-menu="drawer = true" />
+    <main id="main" class="shell__content" tabindex="-1">
+      <slot />
+    </main>
+    <footer class="shell__footer t-xs">
+      <span>
+        Концепт для хакатона, не сайт компании. Данные вымышлены. На сайте применяются
+        рекомендательные технологии.
         <RouterLink class="link" to="/rules">Правила рекомендаций</RouterLink>
-      </footer>
-    </div>
+      </span>
+      <span class="shell__footer-end">
+        <!-- Инструменты страницы (на «Поиске» — переключатель «Трасса»). -->
+        <span id="footer-tools" />
+        <span v-if="meta" class="t-num">
+          Каталог {{ meta.catalog_version }} · правила v{{ meta.rules_version }}
+        </span>
+      </span>
+    </footer>
   </div>
 
   <DialogRoot v-model:open="drawer">
@@ -91,16 +91,8 @@ watch(
 }
 .shell {
   display: flex;
-  min-height: 100dvh;
-}
-.shell__sidebar {
-  display: none;
-}
-.shell__main {
-  display: flex;
-  flex: 1;
   flex-direction: column;
-  min-width: 0;
+  min-height: 100dvh;
 }
 .shell__content {
   display: flex;
@@ -109,7 +101,18 @@ watch(
   min-width: 0;
   outline: none;
 }
+.shell__footer-end {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2) var(--space-6);
+}
 .shell__footer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2) var(--space-4);
   padding: var(--space-3) var(--gutter);
   border-top: var(--border-w) solid var(--border);
   color: var(--text-3);
@@ -118,28 +121,6 @@ watch(
   margin-top: auto;
   padding: var(--space-3);
   color: var(--text-3);
-}
-@media (min-width: 1024px) {
-  .shell__sidebar {
-    position: sticky;
-    top: 0;
-    display: flex;
-    flex: none;
-    flex-direction: column;
-    gap: var(--space-4);
-    box-sizing: border-box;
-    width: var(--sidebar-w);
-    height: 100dvh;
-    padding: var(--space-3) var(--space-2);
-    background: var(--surface);
-    border-right: var(--border-w) solid var(--border);
-  }
-  .shell__brand {
-    display: flex;
-    align-items: center;
-    min-height: calc(var(--header-h) - 2 * var(--space-3));
-    padding: 0 var(--space-3);
-  }
 }
 </style>
 

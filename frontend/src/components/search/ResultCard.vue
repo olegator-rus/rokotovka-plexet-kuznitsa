@@ -3,6 +3,7 @@
 // лицензии, пометки «Аналог» / «Вы покупали», цена или «Цена по запросу», действия. Справа — скор,
 // он же «почему здесь»: открывает трассу этой позиции. Раскрытие показывает другие лицензии семейства,
 // подходящая под запрос — первой и с пометкой.
+import VendorLogo from '@/components/common/VendorLogo.vue'
 import { computed, ref } from 'vue'
 import { Check, ChevronDown, ChevronRight, ListPlus, Route } from 'lucide-vue-next'
 import type { SearchItem, SearchItemBase } from '@/api/types'
@@ -54,6 +55,7 @@ function toggle() {
   >
     <div class="result__row">
       <div class="result__main">
+        <VendorLogo :vendor="item.vendor" class="result__main-logo" />
         <h3 class="result__title">
           <button
             type="button"
@@ -368,5 +370,20 @@ function toggle() {
   .variant__actions {
     grid-column: auto;
   }
+}
+/* Значок производителя — своя колонка слева от названия и атрибутов. */
+.result__main {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-content: start;
+  column-gap: var(--space-3);
+}
+.result__main > * {
+  grid-column: 2;
+}
+.result__main > .result__main-logo {
+  grid-column: 1;
+  grid-row: 1 / span 3;
+  align-self: start;
 }
 </style>

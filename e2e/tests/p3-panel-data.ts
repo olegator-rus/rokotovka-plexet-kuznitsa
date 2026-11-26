@@ -248,7 +248,7 @@ export const RECS_EXACT = {
 
 export const RECS_CATEGORY = {
   basis: 'category_popular',
-  title: 'Популярное в категории Антивирусы для организаций',
+  title: 'Вам может быть интересно',
   why: 'Популярные семейства категории за 30 дней',
   items: [
     companion('kes-b', 'Kaspersky Endpoint Security для бизнеса Стандартный', 'Популярное'),

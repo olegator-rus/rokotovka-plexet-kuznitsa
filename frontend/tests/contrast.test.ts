@@ -1,4 +1,4 @@
-// Контраст пар текст/фон темы «Ночь» (src/styles/tokens.css): текст ≥ 4,5:1, контуры контролов ≥ 3:1.
+// Контраст пар текст/фон интерфейса (src/styles/tokens.css): текст ≥ 4,5:1, контуры контролов ≥ 3:1.
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
@@ -55,6 +55,13 @@ test('текст на акценте и смысловые цвета на св�
   for (const fg of ['delta-up', 'delta-down', 'danger']) {
     for (const bg of surfaces) assert.ok(ratio(fg, bg) >= 4.5, `--${fg} на --${bg}`)
   }
+})
+
+test('красная полоса: белый и приглушённый текст, кнопка поиска ≥ 4,5:1', () => {
+  assert.ok(ratio('on-hero', 'hero') >= 4.5)
+  assert.ok(ratio('on-hero-2', 'hero') >= 4.5)
+  assert.ok(ratio('on-hero-button', 'hero-button') >= 4.5)
+  assert.ok(ratio('on-hero-button', 'hero-button-hover') >= 4.5)
 })
 
 test('контур контролов и фокус ≥ 3:1 к фону и панели', () => {

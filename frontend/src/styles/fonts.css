@@ -1,24 +1,23 @@
-/* Inter, self-host (OFL-1.1, @fontsource-variable/inter): одна вариативная гарнитура 100–900,
+/* Manrope, self-host (OFL-1.1, @fontsource-variable/manrope): одна вариативная гарнитура 200–800,
    сабсеты кириллица + латиница, только woff2. unicode-range — браузер качает сабсет, лишь когда на
-   странице есть его символы; font-display: swap — текст виден системным шрифтом, пока Inter грузится.
-   Кириллица предзагружается из index.html (плагин font-preload в vite.config.ts). */
+   странице есть его символы; font-display: swap — текст виден системным шрифтом, пока Manrope грузится. */
 
 @font-face {
-  font-family: 'Inter Variable';
+  font-family: 'Manrope Variable';
   font-style: normal;
-  font-weight: 100 900;
+  font-weight: 200 800;
   font-display: swap;
-  src: url('@fontsource-variable/inter/files/inter-cyrillic-wght-normal.woff2')
+  src: url('@fontsource-variable/manrope/files/manrope-cyrillic-wght-normal.woff2')
     format('woff2-variations');
   unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
 }
 
 @font-face {
-  font-family: 'Inter Variable';
+  font-family: 'Manrope Variable';
   font-style: normal;
-  font-weight: 100 900;
+  font-weight: 200 800;
   font-display: swap;
-  src: url('@fontsource-variable/inter/files/inter-latin-wght-normal.woff2')
+  src: url('@fontsource-variable/manrope/files/manrope-latin-wght-normal.woff2')
     format('woff2-variations');
   unicode-range:
     U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329,
@@ -27,11 +26,11 @@
 
 /* Латиница-расширение: в ней знак рубля U+20BD — без сабсета цена рисовалась бы системным шрифтом. */
 @font-face {
-  font-family: 'Inter Variable';
+  font-family: 'Manrope Variable';
   font-style: normal;
-  font-weight: 100 900;
+  font-weight: 200 800;
   font-display: swap;
-  src: url('@fontsource-variable/inter/files/inter-latin-ext-wght-normal.woff2')
+  src: url('@fontsource-variable/manrope/files/manrope-latin-ext-wght-normal.woff2')
     format('woff2-variations');
   unicode-range:
     U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329,

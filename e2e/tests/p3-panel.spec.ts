@@ -159,7 +159,7 @@ test.describe('Панель поиска (контур выдачи)', () => {
     const list = listbox(page)
     await expect(list.getByText('Подсказки', { exact: true })).toBeVisible()
     await expect(list.getByText('Товары', { exact: true })).toHaveCount(0)
-    await expect(list.getByText(/^Популярное в категории/)).toHaveCount(0)
+    await expect(list.getByText('Вам может быть интересно')).toHaveCount(0)
     await expect(list.getByRole('option', { name: 'Все результаты (37)' })).toBeVisible()
     const [req] = await Promise.all([
       page.waitForRequest(isSearchReq),

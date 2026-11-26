@@ -288,7 +288,7 @@ func TestSuggestRecommendationsLadder(t *testing.T) {
 	st := env.svc.catalog.Load()
 	cat := st.lex.docs["kis-2dev-1y"].CategoryID
 	r, err = env.svc.SuggestRecommendations(ctx, RecsRequest{Category: cat})
-	if err != nil || r == nil || r.Basis != recsBasisCategory || !strings.HasPrefix(r.Title, "Популярное в категории") {
+	if err != nil || r == nil || r.Basis != recsBasisCategory || r.Title != "Вам может быть интересно" {
 		t.Fatalf("категория: %+v %v", r, err)
 	}
 	// Флаг рекомендаций выключен — null.

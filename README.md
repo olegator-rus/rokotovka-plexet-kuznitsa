@@ -198,7 +198,7 @@ C3 = C2 по построению: действующий вес маржи 0,05
 | Эмбеддинги и реранкер | BAAI/bge-m3, BAAI/bge-reranker-v2-m3 — свой сервис, TEI-совместимый HTTP (`ml/`) |
 | LLM | Yandex AI Studio: Alice AI LLM Flash, резерв Qwen3.6 35B |
 | База | PostgreSQL 19: события, трассы, кэш разборов, учёт вызовов LLM, версии правил, агент и его память, прогоны оценки |
-| Фронт | Vue 3.5, TypeScript, Vite, reka-ui, Tailwind CSS 4, Pinia, Vue Router, Lucide, Inter |
+| Фронт | Vue 3.5, TypeScript, Vite, reka-ui, Tailwind CSS 4, Pinia, Vue Router, Lucide, Manrope |
 
 ## Запуск локально
 Нужны Go (тулчейн 1.27 докачается сам), Node 22 с pnpm, Docker, Python 3.13 (для `ml/`).

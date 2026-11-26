@@ -29,7 +29,7 @@
 | reka-ui | 2.11.x | reka-ui.com | MIT | frontend (примитивы: Combobox, Select, Dialog, Toast, Tooltip, ToggleGroup, Switch, Collapsible) |
 | Tailwind CSS | 4.x | tailwindcss.com | MIT | frontend |
 | Lucide (lucide-vue-next) | 1.x | lucide.dev | ISC | frontend (иконки) |
-| Inter (@fontsource-variable/inter) | 5.3.x | github.com/rsms/inter | SIL OFL 1.1 | frontend (шрифт, self-host) |
+| Manrope (@fontsource-variable/manrope) | 5.3.x | github.com/sharanda/manrope | SIL OFL 1.1 | frontend (шрифт, self-host) |
 | Caddy | 2.x | caddyserver.com | Apache-2.0 | deploy (web) |
 | OpenSearch (образ opensearchproject/opensearch) | 3.9.0 | opensearch.org | Apache-2.0 | deploy (поиск: BM25 и k-NN; backend ходит по REST через net/http, без SDK) |
 | BAAI/bge-m3 (веса) | ревизия 5617a9f | huggingface.co/BAAI/bge-m3 | MIT | ml (эмбеддинги; качается в кеш HF, в репо не лежит) |
@@ -42,3 +42,12 @@
 | Uvicorn | 0.54.0 | github.com/Kludex/uvicorn | BSD-3-Clause | ml (HTTP-сервер) |
 | Прочие транзитивные пакеты ml | см. `ml/requirements.txt` | pypi.org | MIT / BSD / Apache-2.0 / ISC; исключения: tqdm — MPL-2.0 AND MIT, typing_extensions — PSF-2.0, regex — Apache-2.0 AND CNRI-Python | ml (ставятся pip, не распространяются; tqdm тянут transformers и huggingface_hub) |
 | Playwright (@playwright/test) | 1.61.1 | playwright.dev | Apache-2.0 | e2e (сквозные тесты и запись видео; Chromium из кеша Playwright) |
+
+## Значки производителей (`frontend/public/vendors/`)
+
+49 значков сайтов производителей из mock-каталога, получены по их доменам (сервис значков Google; для
+Kaspersky и D-Link — файл с сайта производителя) и приведены к PNG. Это **товарные знаки их владельцев, а не
+материалы под открытой лицензией**; используются только чтобы обозначить производителя товара в концепте для
+хакатона. До публичного использования нужно проверить условия правообладателей или убрать значки (без файла
+интерфейс показывает общую иконку).
+

@@ -1,0 +1,61 @@
+// Значки производителей: файлы лежат в public/vendors/<id>.png (self-host), здесь — имя производителя из
+// каталога → id файла. Производителя нет в списке (например, в данных организаторов) — значка нет,
+// показывается общая иконка. Товарные знаки принадлежат их владельцам (LICENSES.md).
+const IDS: Record<string, string> = {
+  Microsoft: 'microsoft',
+  'Группа Астра': 'astra',
+  'РЕД СОФТ': 'redsoft',
+  'Базальт СПО': 'basealt',
+  МойОфис: 'myoffice',
+  Р7: 'r7',
+  Adobe: 'adobe',
+  ABBYY: 'abbyy',
+  'Content AI': 'content-ai',
+  Kaspersky: 'kaspersky',
+  'Доктор Веб': 'drweb',
+  ESET: 'eset',
+  'Positive Technologies': 'ptsecurity',
+  InfoWatch: 'infowatch',
+  'Код Безопасности': 'securitycode',
+  '1С': '1c',
+  Corel: 'corel',
+  Serif: 'serif',
+  'AMS Software': 'ams-software',
+  Autodesk: 'autodesk',
+  АСКОН: 'ascon',
+  Нанософт: 'nanosoft',
+  'Renga Software': 'renga-software',
+  VMware: 'vmware',
+  Veeam: 'veeam',
+  Киберпротект: 'cyberprotect',
+  'Postgres Professional': 'postgrespro',
+  Zoom: 'zoom',
+  TrueConf: 'trueconf',
+  Яндекс: 'yandex',
+  JetBrains: 'jetbrains',
+  TeamViewer: 'teamviewer',
+  AnyDesk: 'anydesk',
+  САФИБ: 'safib',
+  'Dell Technologies': 'dell',
+  'Hewlett Packard Enterprise': 'hpe',
+  Lenovo: 'lenovo',
+  HP: 'hp',
+  Huawei: 'huawei',
+  Kingston: 'kingston',
+  Samsung: 'samsung',
+  Seagate: 'seagate',
+  'D-Link': 'dlink',
+  Eaton: 'eaton',
+  Ippon: 'ippon',
+  YADRO: 'yadro',
+  Аквариус: 'aquarius',
+  Элтекс: 'eltex',
+  КриптоПро: 'cryptopro',
+}
+
+const BY_NAME = new Map(Object.entries(IDS).map(([name, id]) => [name.toLowerCase(), id]))
+
+export function vendorLogo(vendor: string | null | undefined): string | null {
+  const id = BY_NAME.get((vendor ?? '').trim().toLowerCase())
+  return id ? `/vendors/${id}.png` : null
+}

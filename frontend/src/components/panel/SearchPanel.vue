@@ -7,7 +7,7 @@
 // Сервер без полей §11.2 (флаг FEATURE_PANEL выключен) — прежний список групп контура коммерции.
 import { computed, nextTick, onBeforeUnmount, ref, shallowRef, watch } from 'vue'
 import { storeToRefs } from 'pinia'
-import { CircleHelp, Clock, Folder, Plus, Search, TrendingUp, X } from 'lucide-vue-next'
+import { ArrowRight, CircleHelp, Clock, Folder, Plus, Search, TrendingUp, X } from 'lucide-vue-next'
 import { getPanelRecs, getPanelSuggest } from '@/api/panel'
 import { postEvent } from '@/api/events'
 import type { EventType } from '@/api/types'
@@ -21,7 +21,7 @@ import type {
 } from '@/api/typesPanel'
 import { useMediaQuery } from '@/composables/useMediaQuery'
 import { buildEvent, type EventFields } from '@/lib/events'
-import { formatInt } from '@/lib/format'
+import { formatInt, formatPrice } from '@/lib/format'
 import {
   DESKTOP_LIMITS,
   GROUP_LABELS,
@@ -56,6 +56,7 @@ import type { Companion } from '@/api/typesP2'
 import { useAppStore } from '@/stores/app'
 import { useSpecStore } from '@/stores/spec'
 import { useToast } from '@/components/ui/useToast'
+import VendorLogo from '@/components/common/VendorLogo.vue'
 import PanelProductCard from './PanelProductCard.vue'
 
 const model = defineModel<string>({ required: true })
@@ -861,6 +862,7 @@ const popularCache = vueRef<Sugg[] | null>(null)
         role="group"
         aria-label="Уточнения запроса"
       >
+        <span class="sp__badges-label t-sm" aria-hidden="true">Уточнить</span>
         <button
           v-for="r in applied"
           :key="`a-${r.field}-${String(r.value)}`"
@@ -1057,6 +1059,7 @@ const popularCache = vueRef<Sugg[] | null>(null)
                 :class="['sp__opt', { 'is-active': isActive(oid('vendor', i)) }]"
                 @click="pick(oid('vendor', i))"
               >
+                <VendorLogo :vendor="v.name" class="sp__vendor-logo" />
                 <span class="sp__opt-text">{{ v.name }}</span>
               </div>
             </div>
@@ -1083,8 +1086,10 @@ const popularCache = vueRef<Sugg[] | null>(null)
             >
               <div v-for="n in limits.products" :key="n" class="sp__prod sp__prod--skel">
                 <span class="skeleton sp__skel-media" />
-                <span class="skeleton sp__skel-line" />
-                <span class="skeleton sp__skel-line sp__skel-line--short" />
+                <span class="sp__skel-text">
+                  <span class="skeleton sp__skel-line" />
+                  <span class="skeleton sp__skel-line sp__skel-line--short" />
+                </span>
               </div>
             </div>
             <div v-else :class="['sp__grid', { 'sp__grid--stale': productsStale }]">
@@ -1102,10 +1107,10 @@ const popularCache = vueRef<Sugg[] | null>(null)
                   :class="['sp__prod', { 'is-active': isActive(oid('product', i)) }]"
                   @click="pick(oid('product', i))"
                 >
-                  <PanelProductCard :product="p" :row="!wide" />
+                  <PanelProductCard :product="p" />
                 </div>
                 <div v-else class="sp__prod sp__prod--stale" aria-disabled="true">
-                  <PanelProductCard :product="p" :row="!wide" />
+                  <PanelProductCard :product="p" />
                 </div>
                 <div
                   v-if="p.sku_exact && has(oid('product_add', 0))"
@@ -1154,6 +1159,7 @@ const popularCache = vueRef<Sugg[] | null>(null)
               class="sp__rec-wrap"
               role="none"
             >
+              <VendorLogo :vendor="c.vendor" class="sp__rec-logo" />
               <div
                 :id="oid('rec', i)"
                 role="option"
@@ -1162,9 +1168,15 @@ const popularCache = vueRef<Sugg[] | null>(null)
                 @click="pick(oid('rec', i))"
               >
                 <span class="sp__rec-title t-sm">{{ c.title }}</span>
-                <span v-if="c.label || c.reason" class="t-xs t-muted">{{
-                  c.label || c.reason
-                }}</span>
+                <span class="sp__rec-meta t-xs t-muted">
+                  <strong v-if="c.price_rub != null" class="sp__rec-price t-num">{{
+                    formatPrice(c.price_rub)
+                  }}</strong>
+                  <!-- Основание «по категории» уже названо над блоком — под позицией не повторяем. -->
+                  <span v-if="recsShown.basis !== 'category_popular' && (c.label || c.reason)">{{
+                    c.label || c.reason
+                  }}</span>
+                </span>
               </div>
               <div
                 :id="oid('rec_add', i)"
@@ -1174,7 +1186,7 @@ const popularCache = vueRef<Sugg[] | null>(null)
                 :class="['sp__add', { 'is-active': isActive(oid('rec_add', i)) }]"
                 @click="pick(oid('rec_add', i))"
               >
-                <Plus :size="16" aria-hidden="true" /> Добавить
+                <Plus :size="18" aria-hidden="true" />
               </div>
             </div>
           </div>
@@ -1190,8 +1202,14 @@ const popularCache = vueRef<Sugg[] | null>(null)
         >
           <Search :size="16" aria-hidden="true" />
           <span class="t-num">{{ allLabel }}</span>
+          <ArrowRight :size="16" aria-hidden="true" class="sp__all-arrow" />
         </div>
       </div>
+      <p v-if="desktop" class="sp__keys t-xs" aria-hidden="true">
+        <span><kbd>↑</kbd><kbd>↓</kbd> выбрать</span>
+        <span><kbd>Enter</kbd> открыть</span>
+        <span><kbd>Esc</kbd> закрыть</span>
+      </p>
     </div>
   </div>
 </template>
@@ -1201,6 +1219,17 @@ const popularCache = vueRef<Sugg[] | null>(null)
   position: relative;
   flex: 1;
   min-width: 0;
+  /* Строка стоит на красной полосе: внутри неё и в панели — обычные цвета темы. */
+  --text: var(--field-text);
+  --text-2: var(--field-text-2);
+  --text-3: var(--field-text-3);
+  --surface: var(--field-surface);
+  --surface-2: var(--field-surface-2);
+  --surface-3: var(--field-surface-3);
+  --border: var(--field-border);
+  --border-control: var(--field-border-control);
+  --focus-ring: var(--field-text);
+  color: var(--text);
 }
 .sp--open {
   z-index: 41;
@@ -1209,8 +1238,17 @@ const popularCache = vueRef<Sugg[] | null>(null)
   position: relative;
   z-index: 2;
   display: flex;
+  align-items: center;
   gap: var(--space-2);
+  box-sizing: border-box;
   min-width: 0;
+  min-height: var(--search-h);
+  padding: var(--space-1) var(--space-1) var(--space-1) var(--space-2);
+  border-radius: var(--radius-pill);
+  background: var(--surface);
+}
+.sp__form:focus-within {
+  box-shadow: 0 0 0 3px var(--hero-control);
 }
 .sp__field {
   position: relative;
@@ -1218,14 +1256,6 @@ const popularCache = vueRef<Sugg[] | null>(null)
   flex: 1;
   min-width: 0;
   align-items: center;
-  min-height: var(--search-h);
-  border: var(--border-w) solid var(--border-control);
-  border-radius: var(--radius-control);
-  background: var(--surface);
-}
-.sp__field:focus-within {
-  border-color: var(--focus-ring);
-  box-shadow: inset 0 0 0 1px var(--focus-ring);
 }
 .sp__icon {
   flex: none;
@@ -1235,7 +1265,7 @@ const popularCache = vueRef<Sugg[] | null>(null)
 .sp__input {
   flex: 1;
   min-width: 0;
-  height: var(--search-h);
+  height: var(--control-h);
   padding: 0 var(--space-2);
   border: 0;
   background: transparent;
@@ -1252,7 +1282,14 @@ const popularCache = vueRef<Sugg[] | null>(null)
   margin-right: var(--space-1);
 }
 .sp__submit {
-  min-height: var(--search-h);
+  align-self: stretch;
+  min-height: calc(var(--search-h) - 2 * var(--space-1));
+  padding: 0 var(--space-6);
+  background: var(--hero-button);
+  color: var(--on-hero-button);
+}
+.sp__submit.btn--primary:hover:not(:disabled) {
+  background: var(--hero-button-hover);
 }
 @media (max-width: 479px) {
   .sp__submit {
@@ -1269,36 +1306,41 @@ const popularCache = vueRef<Sugg[] | null>(null)
 
 .sp__pop {
   position: absolute;
-  top: calc(100% + var(--space-1));
+  top: calc(100% + var(--space-2));
   left: 0;
   z-index: 1;
   box-sizing: border-box;
   width: 100%;
   display: flex;
   flex-direction: column;
-  gap: var(--space-2);
-  padding: var(--space-3);
-  background: var(--surface-2);
+  overflow: hidden;
+  background: var(--surface);
   border: var(--border-w) solid var(--border);
-  border-radius: var(--radius-card);
+  border-radius: var(--radius-panel);
   box-shadow: var(--shadow-overlay);
 }
-@media (min-width: 768px) {
-  .sp__pop {
-    width: max(100%, min(60rem, calc(100vw - var(--sidebar-w) - 2 * var(--gutter))));
-  }
-}
 
+/* Уточнения — полоса над списком */
 .sp__badges {
   display: flex;
   flex-wrap: wrap;
+  align-items: center;
   gap: var(--space-2);
+  padding: var(--space-3) var(--space-4);
+  border-bottom: var(--border-w) solid var(--border);
+}
+.sp__badges-label {
+  flex: none;
+  color: var(--text-3);
 }
 @media (max-width: 767px) {
   .sp__badges {
     flex-wrap: nowrap;
     overflow-x: auto;
     scrollbar-width: none;
+  }
+  .sp__badges-label {
+    display: none;
   }
 }
 .sp__badge {
@@ -1308,34 +1350,46 @@ const popularCache = vueRef<Sugg[] | null>(null)
   gap: var(--space-1);
   min-height: var(--control-h-sm);
   padding: 0 var(--space-3);
-  border: var(--border-w) dashed var(--border-control);
+  border: var(--border-w) solid var(--border);
   border-radius: var(--radius-pill);
-  background: transparent;
-  color: var(--text-2);
+  background: var(--surface);
+  color: var(--text);
   font: inherit;
   font-size: var(--fs-sm);
+  font-weight: var(--fw-medium);
   cursor: pointer;
+  transition:
+    border-color var(--dur-fast) var(--ease-standard),
+    background-color var(--dur-fast) var(--ease-standard);
+}
+.sp__badge svg {
+  color: var(--accent);
 }
 .sp__badge:hover {
-  color: var(--text);
-  border-color: var(--text-3);
+  border-color: var(--accent);
 }
 .sp__badge--on {
-  border-style: solid;
   border-color: var(--accent);
-  background: var(--surface-3);
-  color: var(--text);
+  background: var(--accent);
+  color: var(--on-accent);
+}
+.sp__badge--on svg {
+  color: var(--on-accent);
 }
 .sp__badge:focus-visible {
   outline: var(--focus-w) solid var(--focus-ring);
   outline-offset: 2px;
 }
 
+/* Список: слева подсказки на серой подложке, справа товары на белом */
 .sp__card {
   display: flex;
   flex-direction: column;
-  gap: var(--space-3);
   min-width: 0;
+}
+.sp__card > .sp__group,
+.sp__card > .sp__corrected {
+  padding: var(--space-2);
 }
 .sp__card--two {
   display: grid;
@@ -1346,17 +1400,20 @@ const popularCache = vueRef<Sugg[] | null>(null)
     'empty empty'
     'recs recs'
     'all all';
-  column-gap: var(--space-4);
 }
 .sp__card--two .sp__corrected {
   grid-area: corr;
+  border-bottom: var(--border-w) solid var(--border);
 }
 .sp__card--two .sp__left {
   grid-area: left;
+  padding: var(--space-3) var(--space-2);
+  background: var(--surface-2);
 }
 .sp__card--two .sp__right {
   grid-area: right;
   min-height: 10rem;
+  padding: var(--space-3) var(--space-3);
 }
 .sp__card--two .sp__sec-empty {
   grid-area: empty;
@@ -1370,6 +1427,9 @@ const popularCache = vueRef<Sugg[] | null>(null)
 /* Мобильный порядок: подсказки, товары, категории и производители, «Все результаты», рекомендации. */
 .sp__card--mobile .sp__left {
   display: contents;
+}
+.sp__card--mobile .sp__left > .sp__group {
+  padding: var(--space-2);
 }
 .sp__card--mobile .sp__corrected {
   order: 0;
@@ -1411,14 +1471,15 @@ const popularCache = vueRef<Sugg[] | null>(null)
   align-items: center;
   justify-content: space-between;
   gap: var(--space-2);
-  padding: var(--space-1) var(--space-2);
+  padding: var(--space-1) var(--space-3);
   color: var(--text-3);
   font-size: var(--fs-xs);
   line-height: var(--lh-xs);
+  font-weight: var(--fw-semibold);
 }
 .sp__corrected {
   margin: 0;
-  padding: 0 var(--space-2);
+  padding: var(--space-2) var(--space-4);
   color: var(--text-2);
 }
 .sp__corrected strong {
@@ -1439,16 +1500,16 @@ const popularCache = vueRef<Sugg[] | null>(null)
 .sp__rec,
 .sp__prod {
   border: var(--border-w) solid transparent;
-  border-radius: var(--radius-control);
   cursor: pointer;
 }
 .sp__opt {
   display: flex;
   align-items: center;
-  gap: var(--space-2);
+  gap: var(--space-3);
   min-height: var(--control-h);
   min-width: 0;
-  padding: 0 var(--space-2);
+  padding: 0 var(--space-3);
+  border-radius: var(--radius-control);
   color: var(--text-2);
 }
 .sp__opt-icon {
@@ -1466,36 +1527,35 @@ const popularCache = vueRef<Sugg[] | null>(null)
 }
 .sp__cont {
   color: var(--text);
-  font-weight: var(--fw-semibold);
+  font-weight: var(--fw-bold);
 }
-/* Выделение не только цветом: рамка фокуса и фон. */
-.sp__opt:hover,
-.sp__all:hover,
-.sp__rec:hover,
-.sp__prod:hover,
-.sp__add:hover {
-  background: var(--surface-3);
-  color: var(--text);
+/* Производители — пилюли в строку */
+.sp__sec-vendors {
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-content: flex-start;
+  gap: var(--space-1);
 }
-.is-active {
-  background: var(--surface-3);
-  border-color: var(--focus-ring);
-  color: var(--text);
+.sp__sec-vendors .sp__label {
+  width: 100%;
 }
-.sp__grid {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+.sp__sec-vendors .sp__opt {
+  min-height: var(--control-h-sm);
   gap: var(--space-2);
+  padding-inline: var(--space-2) var(--space-3);
+  margin-left: var(--space-2);
+  border-color: var(--border);
+  border-radius: var(--radius-pill);
+  background: var(--surface);
+  color: var(--text);
+  font-size: var(--fs-sm);
 }
-@media (max-width: 1023px) {
-  .sp__grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-}
-@media (max-width: 767px) {
-  .sp__grid {
-    grid-template-columns: minmax(0, 1fr);
-  }
+
+/* Товары — строки одной высоты, цены в одну колонку */
+.sp__grid {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
 }
 .sp__prod-wrap {
   display: flex;
@@ -1504,9 +1564,9 @@ const popularCache = vueRef<Sugg[] | null>(null)
   min-width: 0;
 }
 .sp__prod {
-  padding: var(--space-2);
-  background: var(--surface);
   min-width: 0;
+  padding: var(--space-1) var(--space-3);
+  border-radius: var(--radius-control);
 }
 .sp__prod--stale,
 .sp__grid--stale .sp__prod {
@@ -1516,35 +1576,77 @@ const popularCache = vueRef<Sugg[] | null>(null)
 }
 .sp__prod--skel {
   display: flex;
-  flex-direction: column;
-  gap: var(--space-2);
-  min-height: 9rem;
+  align-items: center;
+  gap: var(--space-3);
   cursor: default;
 }
 .sp__skel-media {
-  width: 2.5rem;
-  height: 2.5rem;
+  flex: none;
+  width: 2.25rem;
+  height: 2.25rem;
+}
+.sp__skel-text {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: var(--space-2);
 }
 .sp__skel-line {
+  width: 70%;
   height: var(--skeleton-line);
 }
 .sp__skel-line--short {
-  width: 60%;
+  width: 45%;
 }
+
+/* Наведение и выбор: не только цветом — у выбранного клавишами есть рамка */
+.sp__opt:hover,
+.sp__prod:hover,
+.sp__rec:hover {
+  background: var(--surface-3);
+  color: var(--text);
+}
+.sp__sec-vendors .sp__opt:hover {
+  border-color: var(--accent);
+}
+.is-active {
+  background: var(--surface-3);
+  color: var(--text);
+}
+.sp__opt.is-active,
+.sp__prod.is-active,
+.sp__rec.is-active,
+.sp__add.is-active,
+.sp__all.is-active,
+.sp__sec-vendors .sp__opt.is-active {
+  border-color: var(--accent);
+}
+
+/* «В спецификацию» у точного артикула — широкая кнопка под строкой товара */
 .sp__add {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: var(--space-1);
-  min-height: var(--control-h-sm);
-  padding: 0 var(--space-3);
-  border-color: var(--border-control);
-  color: var(--text);
+  min-height: var(--control-h);
+  padding: 0 var(--space-4);
+  border-radius: var(--radius-pill);
+  border-color: var(--border);
+  background: var(--surface);
+  color: var(--accent);
   font-size: var(--fs-sm);
+  font-weight: var(--fw-semibold);
   white-space: nowrap;
 }
-.sp__recs {
-  padding-top: var(--space-2);
+.sp__add:hover {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: var(--on-accent);
+}
+
+/* Рекомендации: три компактные карточки, кнопка «+» внутри карточки */
+.sp__card > .sp__recs {
+  padding: var(--space-3) var(--space-3);
   border-top: var(--border-w) solid var(--border);
 }
 .sp__why {
@@ -1556,7 +1658,7 @@ const popularCache = vueRef<Sugg[] | null>(null)
 }
 .sp__why-line {
   margin: 0;
-  padding: 0 var(--space-2) var(--space-1);
+  padding: 0 var(--space-3) var(--space-2);
 }
 .sp__recs-list {
   display: grid;
@@ -1570,38 +1672,108 @@ const popularCache = vueRef<Sugg[] | null>(null)
 }
 .sp__rec-wrap {
   display: flex;
-  align-items: stretch;
+  align-items: center;
   gap: var(--space-1);
   min-width: 0;
+  padding-right: var(--space-2);
+  border: var(--border-w) solid var(--border);
+  border-radius: var(--radius-control);
 }
 .sp__rec {
   display: flex;
   flex: 1;
+  align-self: stretch;
   flex-direction: column;
   justify-content: center;
+  gap: 2px;
   min-width: 0;
-  padding: var(--space-2);
-  background: var(--surface);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-control);
+}
+.sp__rec-logo {
+  margin-left: var(--space-2);
+}
+.sp__vendor-logo {
+  width: var(--logo-size-sm);
+  height: var(--logo-size-sm);
+  border: 0;
 }
 .sp__rec-title {
   color: var(--text);
+  font-weight: var(--fw-medium);
   overflow-wrap: anywhere;
+}
+.sp__rec-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  column-gap: var(--space-2);
+}
+.sp__rec-price {
+  color: var(--text);
+  font-size: var(--fs-sm);
+  font-weight: var(--fw-bold);
 }
 .sp__rec-wrap .sp__add {
   flex: none;
+  width: var(--control-h);
+  height: var(--control-h);
+  padding: 0;
 }
+
 .sp__empty {
   margin: 0;
-  padding: var(--space-2);
 }
+.sp__card > .sp__empty {
+  padding: var(--space-3) var(--space-4);
+}
+/* «Все результаты» — главный переход панели */
 .sp__all {
   display: flex;
   align-items: center;
-  gap: var(--space-2);
-  min-height: var(--control-h);
-  padding: 0 var(--space-2);
-  border-top-color: var(--border);
-  color: var(--text-2);
+  gap: var(--space-3);
+  min-height: var(--touch-min);
+  margin: 0 var(--space-3) var(--space-3);
+  padding: 0 var(--space-4);
+  border-radius: var(--radius-pill);
+  background: var(--surface-2);
+  color: var(--text);
+  font-weight: var(--fw-semibold);
+}
+.sp__card--two .sp__all {
+  margin-top: var(--space-1);
+}
+.sp__all-arrow {
+  margin-left: auto;
+}
+.sp__all:hover,
+.sp__all.is-active {
+  background: var(--accent);
+  color: var(--on-accent);
+}
+.sp__all.is-active {
+  outline: var(--focus-w) solid var(--focus-ring);
+  outline-offset: 1px;
+}
+.sp__keys {
+  display: flex;
+  gap: var(--space-4);
+  margin: 0;
+  padding: var(--space-2) var(--space-4);
+  border-top: var(--border-w) solid var(--border);
+  background: var(--surface-2);
+  color: var(--text-3);
+}
+.sp__keys kbd {
+  display: inline-block;
+  min-width: 1.25rem;
+  margin-right: var(--space-1);
+  padding: 0 var(--space-1);
+  border: var(--border-w) solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  font: inherit;
+  text-align: center;
 }
 .sp__clear-all {
   border: 0;
