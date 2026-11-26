@@ -10,7 +10,7 @@ import (
 	"github.com/gofiber/fiber/v2"
 )
 
-// Costs — GET /api/costs?limit=&offset=&server_rub_20k=&server_rub_200k=&agent_runs_month=: стоимость по
+// Costs — GET /api/costs?limit=&offset=&server_rub_20k=&server_rub_200k=&agent_runs_month=&agent_runs_month_200k=: стоимость по
 // маршрутам, кэш, журнал вызовов модели, месячные сценарии.
 func (h *Handler) Costs(c *fiber.Ctx) error {
 	var bad []errs.FieldError
@@ -65,9 +65,10 @@ func (h *Handler) Effect(c *fiber.Ctx) error {
 
 func monthlyParams(c *fiber.Ctx, bad *[]errs.FieldError) services.MonthlyParams {
 	return services.MonthlyParams{
-		ServerRub20k:   queryFloat(c, "server_rub_20k", bad),
-		ServerRub200k:  queryFloat(c, "server_rub_200k", bad),
-		AgentRunsMonth: queryFloat(c, "agent_runs_month", bad),
+		ServerRub20k:       queryFloat(c, "server_rub_20k", bad),
+		ServerRub200k:      queryFloat(c, "server_rub_200k", bad),
+		AgentRunsMonth:     queryFloat(c, "agent_runs_month", bad),
+		AgentRunsMonth200k: queryFloat(c, "agent_runs_month_200k", bad),
 	}
 }
 

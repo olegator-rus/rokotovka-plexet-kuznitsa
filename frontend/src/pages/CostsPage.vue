@@ -36,6 +36,21 @@ const runs = useResource((opts) => getRuns(opts))
 const runCost = computed(() =>
   agentRunCost(runs.data.value?.items ?? [], summary.value?.agent_run_avg_cost_rub ?? null),
 )
+// «Месяц» считается от тех же замеров, что и monthly в GET /api/costs (и CSV-экспорт): онлайн-LLM на запрос =
+// доля D × (1 − доля кэша) × стоимость разбора, запуск агента — среднее завершённых запусков. Нет блока — запасной путь.
+const monthly = computed(() => data.value?.monthly ?? null)
+const monthParam = (key: string) => monthly.value?.params.find((p) => p.key === key) ?? null
+const monthLlmPerRequest = computed(
+  () => monthly.value?.scenarios[0]?.llm_per_request_rub ?? summary.value?.avg_cost_rub ?? null,
+)
+const monthAgentRun = computed(() => {
+  const p = monthParam('agent_run_cost_rub')
+  return p && p.source === 'measured' ? p.value : runCost.value.rub
+})
+const monthAgentNote = computed(() => {
+  const p = monthParam('agent_run_cost_rub')
+  return p && p.source === 'measured' ? p.hint.replace(/^Замер — /, '') : runCostNote.value
+})
 const runCostNote = computed(() =>
   runCost.value.full
     ? `среднее по ${formatInt(runCost.value.full)} ${plural(runCost.value.full, ['полному запуску', 'полным запускам', 'полным запускам'])}`
@@ -314,9 +329,9 @@ function explainRoute(r: CostRouteRow, field: 'share' | 'avg_ms' | 'avg_cost_rub
       </p>
 
       <MonthBlock
-        :llm-per-request-rub="summary?.avg_cost_rub ?? null"
-        :agent-run-rub="runCost.rub"
-        :agent-run-note="runCostNote"
+        :llm-per-request-rub="monthLlmPerRequest"
+        :agent-run-rub="monthAgentRun"
+        :agent-run-note="monthAgentNote"
         :pricing-version="pricingVersion"
         @explain="explain"
       />

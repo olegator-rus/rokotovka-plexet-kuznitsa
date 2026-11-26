@@ -170,6 +170,11 @@ type familyHit struct {
 	final   float64
 	parts   domain.ScoreParts
 	context float64
+	// tier — ступень внутри группы: 2 — семейство названо в запросе, 1 — путь продления названного семейства
+	// (relations renewal), 0 — остальное (вендор назван, название совпало частично).
+	tier int
+	// signals — почему семейство стоит выше (в трассу).
+	signals []string
 }
 
 // buildFamily — семейство из всех его позиций: недопустимые уходят в отказы, лучшая по соответствию —
@@ -230,6 +235,7 @@ func (rc rankCtx) assignGroup(fh *familyHit) {
 	if fh.group == domain.GroupAnalog {
 		return
 	}
+	fh.tier, fh.signals = rc.tierOf(fh.id)
 	named := contains(rc.ent.families, fh.id) || contains(rc.ent.vendors, rc.lx.familyVendor[fh.id])
 	switch {
 	case named && fh.headOK:
@@ -239,6 +245,34 @@ func (rc rankCtx) assignGroup(fh *familyHit) {
 	default:
 		fh.group = domain.GroupMatch
 	}
+}
+
+// Сигналы позиции в трассе (trace.items[].signals).
+const (
+	signalNamedFamily = "named_family"
+	signalRenewalPath = "renewal_path"
+)
+
+// tierOf — ступень семейства внутри группы. Семейство, названное в запросе целиком («kaspersky internet
+// security продление»), стоит выше семейств того же вендора, у которых совпала только часть названия
+// («Kaspersky Standard»): бизнес-слой внутри группы не может переставить их местами. При «продлить» сразу за
+// названным идёт семейство, на которое оно продлевается по справочнику (KIS снят → продление переходом на Plus).
+// Названо всё семейство вендора («касперский») — ступени равны, порядок прежний.
+func (rc rankCtx) tierOf(fid string) (int, []string) {
+	if len(rc.ent.named) == 0 || rc.attrs.analog {
+		return 0, nil
+	}
+	if contains(rc.ent.named, fid) {
+		return 2, []string{signalNamedFamily}
+	}
+	if rc.attrs.renewal {
+		for _, f := range rc.ent.named {
+			if contains(rc.lx.renewals[f], fid) {
+				return 1, []string{signalRenewalPath}
+			}
+		}
+	}
+	return 0, nil
 }
 
 // score — бизнес-слой: слагаемые итогового скора (уже умноженные на веса).
@@ -263,8 +297,11 @@ func (rc rankCtx) dropQuantityMisfits(fams []*familyHit, rejected *[]domain.Reje
 	if a.quantity == 0 {
 		return fams
 	}
+	// Поштучная позиция закрывает и количество, и метрику: нужное число мест указывается при заказе — так же,
+	// как в rejectReason. Раньше здесь метрика была строгой, и для «аналог фотошопа на 20 пользователей»
+	// ФотоМАСТЕР и Affinity (поштучно, на устройство) уходили в отказы — оставался один CorelDRAW.
 	strictOK := func(d indexDoc) bool {
-		return quantityOK(d, a.quantity) && (a.metric == "" || d.LicenseMetric == nil || *d.LicenseMetric == a.metric)
+		return quantityOK(d, a.quantity) && (a.metric == "" || d.LicenseMetric == nil || *d.LicenseMetric == a.metric || isPerUnit(d))
 	}
 	some := false
 	for _, fh := range fams {
@@ -341,11 +378,14 @@ func (rc rankCtx) licenseFit(d indexDoc) float64 {
 	return fit
 }
 
-// sortFamilies — по группе, внутри группы — по итоговому скору.
+// sortFamilies — по группе, внутри группы — по ступени (названное семейство выше), затем по итоговому скору.
 func sortFamilies(fs []*familyHit) {
 	sort.SliceStable(fs, func(i, j int) bool {
 		if gi, gj := groupOrder[fs[i].group], groupOrder[fs[j].group]; gi != gj {
 			return gi < gj
+		}
+		if fs[i].tier != fs[j].tier {
+			return fs[i].tier > fs[j].tier
 		}
 		if fs[i].final != fs[j].final {
 			return fs[i].final > fs[j].final

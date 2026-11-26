@@ -525,12 +525,42 @@ export interface CostsCalls {
   items: LlmCall[]
 }
 
+export interface CostsParam {
+  key: string
+  label: string
+  value: number
+  default: number
+  source: 'measured' | 'assumed' | 'request' | string
+  unit: string
+  hint: string
+}
+
+export interface CostsScenario {
+  requests: number
+  llm_calls: number
+  server_rub: number
+  llm_rub: number
+  agent_rub: number
+  total_rub: number
+  per_request_rub: number
+  /** Онлайн-LLM на запрос: доля маршрута D × (1 − доля кэша) × стоимость разбора. */
+  llm_per_request_rub: number
+}
+
+export interface CostsMonthly {
+  formula: string
+  params: CostsParam[]
+  scenarios: CostsScenario[]
+}
+
 export interface CostsResponse {
   llm_mode: LlmMode
   pricing: CostsPricing
   summary: CostsSummary
   routes: CostRouteRow[]
   calls: CostsCalls
+  /** Месячные сценарии сервера: из них блок «Месяц» берёт LLM на запрос и стоимость запуска. */
+  monthly?: CostsMonthly
 }
 
 // ── SearchOps: агент, предложения, версии правил ──

@@ -41,6 +41,8 @@ type searchLexicon struct {
 	substitutes map[string][]string
 	// complements — семейство → что с ним покупают (relations complement, от from к to), с пояснением.
 	complements map[string][]familyLink
+	// renewals — семейство → на что оно продлевается (relations renewal, от from к to).
+	renewals map[string][]string
 	// baseAliases — алиасы снимка: правила версии 1.
 	baseAliases []domain.Alias
 }
@@ -89,7 +91,7 @@ func newSearchLexicon(s *domain.CatalogSnapshot) *searchLexicon {
 		familyCat: map[string]string{}, familyWords: map[string]map[string]bool{}, idf: map[string]float64{},
 		vendorName: map[string]string{}, vendorPhrases: map[string]string{}, categoryName: map[string]string{},
 		categoryRoot: map[string]string{},
-		substitutes:  map[string][]string{}, complements: map[string][]familyLink{}, baseAliases: s.Aliases,
+		substitutes:  map[string][]string{}, complements: map[string][]familyLink{}, renewals: map[string][]string{}, baseAliases: s.Aliases,
 	}
 	addCore := func(text string) {
 		for _, w := range wordsOf(text) {
@@ -179,6 +181,11 @@ func newSearchLexicon(s *domain.CatalogSnapshot) *searchLexicon {
 			seen["c:"+r.FromFamily+">"+r.ToFamily] = true
 			lx.complements[r.FromFamily] = append(lx.complements[r.FromFamily], familyLink{Family: r.ToFamily, Note: r.Note})
 		}
+		if r.Type == domain.RelationRenewal && r.FromFamily != r.ToFamily && !seen["r:"+r.FromFamily+">"+r.ToFamily] {
+			seen["r:"+r.FromFamily+">"+r.ToFamily] = true
+			lx.renewals[r.FromFamily] = append(lx.renewals[r.FromFamily], r.ToFamily)
+		}
+		// Совместимость (compatibility) — не аналог: «KES для Astra Linux» не делает Astra заменой KES.
 		if r.Type != domain.RelationSubstitute {
 			continue
 		}
@@ -291,6 +298,28 @@ func (lx *searchLexicon) matchFamilies(tokens []string) []string {
 		}
 	}
 	return out
+}
+
+// familyCoverage — какая доля названия семейства (по весу idf значимых слов) есть в запросе: 1 — названо
+// целиком («kaspersky internet security»), мало — совпало одно общее слово («офис» в «Small Office Security»).
+func (lx *searchLexicon) familyCoverage(fid string, tokens []string) float64 {
+	total, hit := 0.0, 0.0
+	in := map[string]bool{}
+	for _, t := range tokens {
+		for _, w := range wordsOf(t) {
+			in[w] = true
+		}
+	}
+	for w := range lx.familyWords[fid] {
+		total += lx.idf[w]
+		if in[w] {
+			hit += lx.idf[w]
+		}
+	}
+	if total == 0 {
+		return 0
+	}
+	return hit / total
 }
 
 // matchVendors — вендоры, названные в запросе: фраза названия вендора среди слов запроса.

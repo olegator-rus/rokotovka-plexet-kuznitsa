@@ -27,14 +27,18 @@ type MonthlyParams struct {
 	ServerRub20k   *float64
 	ServerRub200k  *float64
 	AgentRunsMonth *float64
+	// AgentRunsMonth200k — запусков агента в месяц при 200 тыс. запросов.
+	AgentRunsMonth200k *float64
 }
 
-// Допущения по умолчанию (ARCHITECTURE §7): сервер 4 vCPU / 16 ГБ ≈ 7 500 ₽ при 20 тыс., 8 vCPU / 32 ГБ при
-// 200 тыс.; агент — ежедневный запуск. Когда живых поисков нет — доли и стоимость разбора тоже из §7.
+// Допущения по умолчанию (docs/COSTS.md): сервер 4 vCPU / 16 ГБ ≈ 7 500 ₽ при 20 тыс., 8 vCPU / 32 ГБ ≈ 15 000 ₽
+// при 200 тыс.; агент — раз в день (30) при 20 тыс. и 4 раза в день (120) при 200 тыс. Когда живых поисков нет —
+// доли и стоимость разбора тоже допущения.
 const (
 	defaultServerRub20k   = 7500
-	defaultServerRub200k  = 22000
+	defaultServerRub200k  = 15000
 	defaultAgentRunsMonth = 30
+	defaultAgentRuns200k  = 120
 	assumedRouteDShare    = 0.2
 	assumedCacheHitShare  = 0.3
 	assumedParseCostRub   = 0.12
@@ -49,7 +53,7 @@ const monthlyFormula = "вызовов LLM = запросы × доля марш
 func checkMonthly(p MonthlyParams) []errs.FieldError {
 	var bad []errs.FieldError
 	for field, v := range map[string]*float64{"server_rub_20k": p.ServerRub20k, "server_rub_200k": p.ServerRub200k,
-		"agent_runs_month": p.AgentRunsMonth} {
+		"agent_runs_month": p.AgentRunsMonth, "agent_runs_month_200k": p.AgentRunsMonth200k} {
 		if v != nil && (*v < 0 || *v > 1e8 || math.IsNaN(*v)) {
 			bad = append(bad, errs.FieldError{Field: field, Code: errs.CodeOutOfRange, Message: "Ожидается неотрицательное число"})
 		}
@@ -102,8 +106,10 @@ func computeMonthly(sum out.CostsSummary, routes []out.CostsRoute, runs []domain
 			"Замер — расход llm_usage живых поисков / число разборов моделью (с повторами и резервом)", parseCost, assumedParseCostRub, nil),
 		costParam("agent_run_cost_rub", "Стоимость одного запуска агента", "₽",
 			fmt.Sprintf("Замер — средняя стоимость завершённых запусков агента (%d)", n), runCost, assumedAgentRunRub, nil),
-		costParam("agent_runs_month", "Запусков агента в месяц", "шт.",
-			"Допущение — ежедневный запуск по расписанию", nil, defaultAgentRunsMonth, p.AgentRunsMonth),
+		costParam("agent_runs_month", "Запусков агента в месяц при 20 тыс. запросов", "шт.",
+			"Допущение — раз в день по расписанию", nil, defaultAgentRunsMonth, p.AgentRunsMonth),
+		costParam("agent_runs_month_200k", "Запусков агента в месяц при 200 тыс. запросов", "шт.",
+			"Допущение — 4 раза в день по расписанию", nil, defaultAgentRuns200k, p.AgentRunsMonth200k),
 		costParam("server_rub_20k", "Сервер при 20 тыс. запросов", "₽/мес",
 			"Допущение — 4 vCPU / 16 ГБ в Яндекс Облаке", nil, defaultServerRub20k, p.ServerRub20k),
 		costParam("server_rub_200k", "Сервер при 200 тыс. запросов", "₽/мес",
@@ -117,10 +123,11 @@ func computeMonthly(sum out.CostsSummary, routes []out.CostsRoute, runs []domain
 	for _, sc := range []struct {
 		requests int
 		server   string
-	}{{20000, "server_rub_20k"}, {200000, "server_rub_200k"}} {
+		runs     string
+	}{{20000, "server_rub_20k", "agent_runs_month"}, {200000, "server_rub_200k", "agent_runs_month_200k"}} {
 		calls := float64(sc.requests) * v["route_d_share"] * (1 - v["cache_hit_share"])
 		llmRub := calls * v["llm_parse_cost_rub"]
-		agentRub := v["agent_runs_month"] * v["agent_run_cost_rub"]
+		agentRub := v[sc.runs] * v["agent_run_cost_rub"]
 		totalRub := v[sc.server] + llmRub + agentRub
 		res.Scenarios = append(res.Scenarios, out.CostsScenario{
 			Requests: sc.requests, LLMCalls: math.Round(calls), ServerRub: math.Round(v[sc.server]),

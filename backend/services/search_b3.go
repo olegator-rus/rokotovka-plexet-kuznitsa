@@ -289,6 +289,7 @@ func (s *Services) searchB3(ctx context.Context, requestID string, req in.Search
 	}
 	fams = rc.dropQuantityMisfits(fams, &trace.Rejected)
 	fams = rc.dropOtherCategories(fams, &trace.Rejected)
+	rerankStep := s.rerankFamilies(ctx, resp.Normalized, trace.Route, fams)
 	for _, fh := range fams {
 		rc.assignGroup(fh)
 		rc.score(fh)
@@ -348,7 +349,7 @@ func (s *Services) searchB3(ctx context.Context, requestID string, req in.Search
 		addTrace := func(pid string) {
 			f := fusedByID[pid]
 			trace.Items = append(trace.Items, domain.TraceItem{ProductID: pid, Final: fh.final, Group: fh.group,
-				Parts: fh.parts, BM25Rank: f.BM25Rank, DenseRank: f.DenseRank})
+				Parts: fh.parts, BM25Rank: f.BM25Rank, DenseRank: f.DenseRank, Signals: fh.signals})
 		}
 		addTrace(it.ProductID)
 		for _, v := range it.Variants {
@@ -358,7 +359,6 @@ func (s *Services) searchB3(ctx context.Context, requestID string, req in.Search
 	trace.Rejected = dropShown(trace.Rejected, trace.Items)
 	businessStep := domain.BusinessStep{StepBase: domain.StepBase{Name: domain.StepBusiness, Ms: msSince(t)}, Weights: businessWeights}
 	relaxStep := domain.RelaxationStep{StepBase: domain.StepBase{Name: domain.StepRelaxation}, Ladder: ladder}
-	rerankStep := skipped(domain.StepRerank, "disabled")
 	resp.RelatedQueries = s.relatedQueries(ctx, lx, resp)
 	if len(resp.Items) > 0 {
 		resp.Complements = complementsOf(lx, resp.Items[0].FamilyID, map[string]bool{resp.Items[0].FamilyID: true})
@@ -429,6 +429,18 @@ func relaxedMessages(rc rankCtx, fams []*familyHit) []out.Relaxed {
 	if a.quantity > 0 && !some(func(d indexDoc) bool { return quantityOK(d, a.quantity) }) {
 		res = append(res, out.Relaxed{Field: domain.FieldLicenseQuantity,
 			Message: fmt.Sprintf("Лицензий ровно на %s нет, показаны другие количества", quantityLabel(a.quantity, a.metric))})
+	}
+	// Поштучные позиции с другой метрикой допускаются (rejectReason, dropQuantityMisfits) — покупателю об этом
+	// говорится прямо, а не молча.
+	if forms, ok := metricForms[a.metric]; ok {
+		for _, fh := range fams {
+			d := fh.head
+			if d.LicenseMetric != nil && *d.LicenseMetric != a.metric && isPerUnit(d) {
+				res = append(res, out.Relaxed{Field: domain.FieldLicenseMetric,
+					Message: fmt.Sprintf("Часть позиций лицензируется не на %s, а продаётся поштучно: число мест указывается при заказе", forms[1])})
+				break
+			}
+		}
 	}
 	return res
 }

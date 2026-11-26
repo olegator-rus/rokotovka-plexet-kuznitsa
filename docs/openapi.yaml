@@ -259,6 +259,7 @@ paths:
         - $ref: "#/components/parameters/ServerRub20k"
         - $ref: "#/components/parameters/ServerRub200k"
         - $ref: "#/components/parameters/AgentRunsMonth"
+        - $ref: "#/components/parameters/AgentRunsMonth200k"
       responses:
         "200":
           description: Экономика
@@ -277,6 +278,7 @@ paths:
         - $ref: "#/components/parameters/ServerRub20k"
         - $ref: "#/components/parameters/ServerRub200k"
         - $ref: "#/components/parameters/AgentRunsMonth"
+        - $ref: "#/components/parameters/AgentRunsMonth200k"
       responses:
         "200":
           description: "CSV, UTF-8 с BOM, колонки: раздел, показатель, ключ, значение, единица, источник, пояснение"
@@ -566,8 +568,9 @@ components:
   parameters:
     ID: { name: id, in: path, required: true, schema: { type: string, format: uuid } }
     ServerRub20k: { name: server_rub_20k, in: query, description: "Допущение: сервер при 20 тыс. запросов, ₽/мес (7500)", schema: { type: number, minimum: 0 } }
-    ServerRub200k: { name: server_rub_200k, in: query, description: "Допущение: сервер при 200 тыс. запросов, ₽/мес (22000)", schema: { type: number, minimum: 0 } }
-    AgentRunsMonth: { name: agent_runs_month, in: query, description: "Допущение: запусков агента в месяц (30)", schema: { type: number, minimum: 0 } }
+    ServerRub200k: { name: server_rub_200k, in: query, description: "Допущение: сервер при 200 тыс. запросов, ₽/мес (15000)", schema: { type: number, minimum: 0 } }
+    AgentRunsMonth: { name: agent_runs_month, in: query, description: "Допущение: запусков агента в месяц при 20 тыс. запросов (30)", schema: { type: number, minimum: 0 } }
+    AgentRunsMonth200k: { name: agent_runs_month_200k, in: query, description: "Допущение: запусков агента в месяц при 200 тыс. запросов (120)", schema: { type: number, minimum: 0 } }
   responses:
     Error:
       description: Ошибка в едином конверте
@@ -719,6 +722,7 @@ components:
         items: { type: array, items: { $ref: "#/components/schemas/SearchItem" } }
         relaxed:
           type: array
+          description: Какие условия ослаблены (тип, срок, количество, метрика у поштучных позиций)
           items:
             type: object
             properties:
@@ -804,6 +808,9 @@ components:
               outcome: { type: string, enum: [empty, reformulated, no_click] }
               outcome_label: { type: string }
               diagnosis: { type: string }
+              proposal_id: { type: [string, "null"], description: Предложение агента по кластеру этого запроса }
+              proposal_status: { type: [string, "null"], enum: [pending, accepted, rejected, rolled_back, null] }
+              proposal_diagnosis: { oneOf: [{ $ref: "#/components/schemas/Diagnosis" }, { type: "null" }] }
         sources: { type: object, additionalProperties: { type: integer } }
         effect:
           oneOf:
@@ -957,7 +964,7 @@ components:
                 properties:
                   key:
                     type: string
-                    enum: [route_d_share, cache_hit_share, llm_parse_cost_rub, agent_run_cost_rub, agent_runs_month, server_rub_20k, server_rub_200k]
+                    enum: [route_d_share, cache_hit_share, llm_parse_cost_rub, agent_run_cost_rub, agent_runs_month, agent_runs_month_200k, server_rub_20k, server_rub_200k]
                   label: { type: string }
                   value: { type: number }
                   default: { type: number }

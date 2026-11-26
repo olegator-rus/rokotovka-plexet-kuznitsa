@@ -134,7 +134,9 @@ func TestComputeMonthly(t *testing.T) {
 		s20.PerRequestRub != 0.5525 {
 		t.Fatalf("20 тыс.: %+v", s20)
 	}
-	if s200 := m.Scenarios[1]; s200.Requests != 200000 || s200.LLMRub != 1200 || s200.PerRequestRub >= s20.PerRequestRub {
+	// 200 тыс.: сервер 15 000 и 120 запусков агента по умолчанию — 15 000 + 1 200 + 120 × 31 = 19 920 ₽.
+	if s200 := m.Scenarios[1]; s200.Requests != 200000 || s200.LLMRub != 1200 || s200.ServerRub != 15000 ||
+		s200.AgentRub != 3720 || s200.TotalRub != 19920 || s200.PerRequestRub >= s20.PerRequestRub {
 		t.Fatalf("200 тыс.: %+v", s200)
 	}
 	// Без живых поисков — допущения §7, помеченные assumed.
@@ -350,5 +352,30 @@ func TestReadableQuery(t *testing.T) {
 		if readableQuery(q) != want {
 			t.Errorf("%q: ждали %v", q, want)
 		}
+	}
+}
+
+// «аналог фотошопа на 20 пользователей»: поштучные позиции на устройство закрывают количество и метрику —
+// как в rejectReason; позиция на 1 устройство без «поштучно» уходит в отказы. Покупателю это сказано в relaxed.
+func TestPerUnitCoversMetric(t *testing.T) {
+	one, user, device := 1, domain.MetricUser, domain.MetricDevice
+	doc := func(pid, metric, attrs string) indexDoc {
+		m := metric
+		return indexDoc{ProductID: pid, LicenseQuantity: &one, LicenseMetric: &m, Attributes: attrs}
+	}
+	fams := []*familyHit{
+		{id: "coreldraw", head: doc("cdr-sub1y", user, "purchase: поштучно"), heads: []indexDoc{doc("cdr-sub1y", user, "purchase: поштучно")}},
+		{id: "fotomaster", head: doc("fm-prem", device, "purchase: поштучно"), heads: []indexDoc{doc("fm-prem", device, "purchase: поштучно")}},
+		{id: "other", head: doc("x-1", device, ""), heads: []indexDoc{doc("x-1", device, "")}},
+	}
+	rc := rankCtx{attrs: queryAttrs{quantity: 20, metric: user, analog: true}}
+	var rejected []domain.RejectedHit
+	kept := rc.dropQuantityMisfits(fams, &rejected)
+	if len(kept) != 2 || kept[1].id != "fotomaster" || len(rejected) != 1 || rejected[0].ProductID != "x-1" {
+		t.Fatalf("оставлены %d, отказы %+v", len(kept), rejected)
+	}
+	msgs := relaxedMessages(rc, kept)
+	if len(msgs) != 1 || msgs[0].Field != domain.FieldLicenseMetric || !strings.Contains(msgs[0].Message, "поштучно") {
+		t.Fatalf("relaxed: %+v", msgs)
 	}
 }

@@ -28,7 +28,7 @@ type CostsRequest struct {
 	Monthly       MonthlyParams
 }
 
-// Costs — GET /api/costs?limit=&offset=&server_rub_20k=&server_rub_200k=&agent_runs_month=.
+// Costs — GET /api/costs?limit=&offset=&server_rub_20k=&server_rub_200k=&agent_runs_month=&agent_runs_month_200k=.
 func (s *Services) Costs(ctx context.Context, req CostsRequest) (*out.Costs, error) {
 	limit, offset := req.Limit, req.Offset
 	bad := checkMonthly(req.Monthly)

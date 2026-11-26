@@ -18,6 +18,10 @@ import (
 // маршрут A/B/C/D → [D] разбор намерения → BM25 + векторы + RRF → допустимость → порог → группы →
 // бизнес-слой → лестница пустой выдачи. Этот файл — состояние ядра, правила и сущности запроса.
 
+// namedCoverageMin — семейство считается названным целиком, если в запросе есть такая доля его названия
+// (по весу слов). Подобрано на tune.
+const namedCoverageMin = 0.6
+
 // rulesTTL — сколько верить закешированной последней версии правил (B4): агент принимает правку — через
 // TTL поиск её видит.
 const rulesTTL = 10 * time.Second
@@ -96,8 +100,11 @@ func (s *Services) rulesFor(ctx context.Context, cfg string, lx *searchLexicon, 
 
 // queryEntities — что названо в запросе: вендоры, семейства, категория, референс аналога, непонятные слова.
 type queryEntities struct {
-	vendors   []string
-	families  []string
+	vendors  []string
+	families []string
+	// named — семейства, названные в запросе целиком (familyCoverage ≥ namedCoverageMin): ступень выше
+	// остальных семейств того же вендора (rank.go tierOf).
+	named     []string
 	reference []string
 	category  string
 	// unknown — значимые слова, которых нет ни в каталоге, ни в словарях.
@@ -196,6 +203,11 @@ func findEntities(nr normResult, attrs queryAttrs, lx *searchLexicon, rules *sea
 		}
 	}
 	e.families = lx.matchFamilies(entityTokens)
+	for _, f := range e.families {
+		if lx.familyCoverage(f, entityTokens) >= namedCoverageMin {
+			e.named = append(e.named, f)
+		}
+	}
 	if attrs.analog {
 		e.reference = e.families
 		if len(e.reference) == 0 {

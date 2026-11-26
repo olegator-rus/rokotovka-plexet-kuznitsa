@@ -151,6 +151,9 @@ type TraceItem struct {
 	Parts     ScoreParts `json:"parts"`
 	BM25Rank  *int       `json:"bm25_rank"`
 	DenseRank *int       `json:"dense_rank"`
+	// Signals — почему позиция поднята внутри группы: named_family (семейство названо в запросе),
+	// renewal_path (продление названного семейства по справочнику). Пусто — не было.
+	Signals []string `json:"signals,omitempty"`
 }
 
 // RejectedHit — кандидат, исключённый из выдачи, и причина.
