@@ -426,12 +426,19 @@ func (s *Services) saveSearch(req in.SearchRequest, normalized string, resp *out
 	}
 	tr := resp.Trace
 	raw, err := domain.ToJSONB(tr)
+	if err == nil {
+		raw, err = maskJSONStrings(raw)
+	}
 	if err != nil {
 		zap.L().Error("поиск: трасса не сериализована", zap.String("request_id", tr.RequestID), zap.Error(err))
 		return
 	}
+	// ПДн в журнал не пишутся: запрос и его нормальная форма — с метками вместо телефона, почты, ИНН и т. п.
+	// (тот же llm.MaskPII, что перед моделью). Его читают трасса, «Запросы без ответа», журнал вызовов и агент.
+	query, _ := maskPII(req.Query)
+	normalized, _ = maskPII(normalized)
 	ev := &domain.SearchEvent{
-		RequestID: tr.RequestID, Query: req.Query, Normalized: normalized, Route: tr.Route, ParseSource: tr.ParseSource,
+		RequestID: tr.RequestID, Query: query, Normalized: normalized, Route: tr.Route, ParseSource: tr.ParseSource,
 		Config: tr.Config, ResultsCount: resp.Total, RulesVersion: tr.RulesVersion, CatalogVersion: tr.CatalogVersion,
 		ClientID: optional(req.ClientID), SessionID: optional(req.SessionID), TotalMs: int(math.Round(tr.TotalMs)),
 		Source: domain.EventSourceLive, IntentID: intentForLog(req.IntentID),

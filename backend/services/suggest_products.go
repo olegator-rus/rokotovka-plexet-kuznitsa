@@ -41,6 +41,7 @@ const (
 // начала слов названий (title.ngram), все слова обязательны. Категория и описание — с малым весом: «антивирус»
 // находит продукты, в названии которых этого слова нет.
 func instantQuery(text string, size int) map[string]any {
+	text = engineText(text)
 	return map[string]any{
 		"size":    size,
 		"_source": sourceExcludes,

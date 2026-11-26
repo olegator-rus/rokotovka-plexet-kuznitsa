@@ -140,6 +140,14 @@ func TestAnchorOf(t *testing.T) {
 		false, false, false); a == nil || a.Confidence != "medium" {
 		t.Fatalf("вендор назван, семейство одно: %+v", a)
 	}
+	// S1: точный артикул на маршруте A — товар назван номером, хотя группа match (артикул не слово названия).
+	kes := &familyHit{id: "kaspersky-endpoint-security", group: domain.GroupMatch, head: indexDoc{ProductID: "kes-std10", SKU: "KL7076RGUVS"}}
+	if a, _, _ := anchorOf(c, lx, []string{"kl7076rguvs"}, []*familyHit{kes}, domain.RouteExact, false, false, false); a == nil || a.ProductID != "kes-std10" {
+		t.Fatalf("артикул на маршруте A: %+v", a)
+	}
+	if a, _, _ := anchorOf(c, lx, []string{"kl0000"}, []*familyHit{kes}, domain.RouteExact, false, false, false); a != nil {
+		t.Fatalf("чужой артикул дал якорь: %+v", a)
+	}
 }
 
 func TestScoreCompanions(t *testing.T) {

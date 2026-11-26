@@ -1,6 +1,9 @@
 package services
 
-import "strings"
+import (
+	"strings"
+	"unicode"
+)
 
 // Запросы к OpenSearch. Строит их только код: ни запрос покупателя, ни ответ модели в тело запроса не
 // попадают иначе как значением поля.
@@ -38,7 +41,7 @@ func bm25Query(normalized string, size int) map[string]any {
 		"size":    size,
 		"_source": sourceExcludes,
 		"query": map[string]any{"multi_match": map[string]any{
-			"query": normalized, "fields": bm25Fields, "type": "best_fields", "tie_breaker": 0.3,
+			"query": engineText(normalized), "fields": bm25Fields, "type": "best_fields", "tie_breaker": 0.3,
 		}},
 		"sort": []any{"_score", map[string]any{"popularity": "desc"}, map[string]any{"product_id": "asc"}},
 	}
@@ -71,6 +74,7 @@ const b3MinMatch = "2<-34%"
 // bm25QueryB3 — B3: multi_match с minimum_should_match по тексту запроса; исходные слова алиасов — отдельной
 // веткой should (найти «Р7-Офис» по «офис», когда алиас заменил слово на office).
 func bm25QueryB3(text, expansions, minMatch string, size int, filters []any) map[string]any {
+	text, expansions = engineText(text), engineText(expansions)
 	should := []any{map[string]any{"multi_match": map[string]any{
 		"query": text, "fields": bm25Fields, "type": "best_fields", "tie_breaker": 0.3,
 		"minimum_should_match": minMatch,
@@ -88,4 +92,53 @@ func bm25QueryB3(text, expansions, minMatch string, size int, filters []any) map
 			"filter": append([]any{}, filters...)}},
 		"sort": []any{"_score", map[string]any{"popularity": "desc"}, map[string]any{"product_id": "asc"}},
 	}
+}
+
+// engineMaxUnits — сколько слов запроса уходит в текстовый запрос движка. Каждое слово разворачивается в предложение
+// по каждому из полей bm25Fields (и в n-граммы title.ngram); у OpenSearch потолок — 1024 предложения
+// (too_many_nested_clauses → 502). 32 слова — с запасом больше любого осмысленного запроса покупателя.
+const engineMaxUnits = 32
+
+// engineText — текст запроса для движка: эмодзи, символы и невидимые знаки форматирования (So, Sk, Co, Cs, Cf,
+// селекторы вариантов) — пробелом: смысла для каталога в них нет, а стандартный токенизатор делает из каждого
+// отдельное слово («😀» ×150 — 150 слов). Затем не больше engineMaxUnits слов; иероглифы, кана, хангыль и тайское
+// письмо токенизатор режет по знаку — там слово считается по числу таких знаков.
+func engineText(s string) string {
+	if s == "" {
+		return s
+	}
+	clean := strings.Map(func(r rune) rune {
+		switch {
+		case r >= 0xFE00 && r <= 0xFE0F, r == 0x20E3, unicode.IsControl(r),
+			unicode.In(r, unicode.So, unicode.Sk, unicode.Co, unicode.Cs, unicode.Cf):
+			return ' '
+		}
+		return r
+	}, s)
+	words := strings.Fields(clean)
+	budget := engineMaxUnits
+	out := make([]string, 0, len(words))
+	for _, w := range words {
+		if budget <= 0 {
+			break
+		}
+		cost, cut := 1, len(w)
+		n := 0
+		for i, r := range w {
+			if unicode.In(r, unicode.Han, unicode.Hiragana, unicode.Katakana, unicode.Hangul, unicode.Thai, unicode.Lao,
+				unicode.Khmer, unicode.Myanmar) {
+				n++
+				if n > budget {
+					cut = i
+					break
+				}
+			}
+		}
+		if n > 0 {
+			cost = min(n, budget)
+		}
+		out = append(out, w[:cut])
+		budget -= cost
+	}
+	return strings.Join(out, " ")
 }

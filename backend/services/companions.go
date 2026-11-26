@@ -121,8 +121,9 @@ func anchorOf(c *commerceCatalog, lx *searchLexicon, tokens []string, fams []*fa
 	case clarify:
 		return nil, -1, "запрос неоднозначный — нужно уточнение"
 	}
-	// Точный парт-номер (маршрут A) — товар назван номером, даже если группа не exact.
-	if fams[0].group != domain.GroupExact && !(route == domain.RouteExact && namesMPN(fams[0].head.MPNRaw, tokens)) {
+	// Точный парт-номер или артикул (S1, маршрут A) — товар назван номером, даже если группа не exact.
+	if fams[0].group != domain.GroupExact && !(route == domain.RouteExact &&
+		(namesMPN(fams[0].head.MPNRaw, tokens) || namesMPN(fams[0].head.SKU, tokens))) {
 		return nil, -1, "категорийный запрос — товар не назван"
 	}
 	scan := fams

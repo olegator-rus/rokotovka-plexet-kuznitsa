@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"math"
+	"slices"
 	"sort"
 	"sync/atomic"
 	"time"
@@ -451,6 +452,11 @@ func (s *Services) marginStage(ctx context.Context, cfg string, rc rankCtx, rout
 	res := marginReorderW(in, marginWeights{global: step.Weight, cats: step.CategoryWeights}, marginMaxShift)
 	step.Shifts = marginShifts(in, res.order)
 	step.Guards = append(res.guards, marginNotes(in)...)
+	// Точный запрос: сдвиг выключен всегда, а не только когда маржа переставила бы позиции (S1: строка в трассе).
+	// В симуляции политики (marginSimulatePosition) защита по-прежнему считается сработавшей только при перестановке.
+	if in.exactQuery && len(fams) > 0 && !slices.Contains(step.Guards, domain.MarginGuardExactQuery) {
+		step.Guards = append([]string{domain.MarginGuardExactQuery}, step.Guards...)
+	}
 	if len(step.Shifts) > 0 {
 		next := make([]*familyHit, len(fams))
 		for to, from := range res.order {
@@ -462,18 +468,28 @@ func (s *Services) marginStage(ctx context.Context, cfg string, rc rankCtx, rout
 	return fams, step
 }
 
-// stripMarginStep — шаг маржи убирается из трассы ответа витрины (числа маржи — только в бэк-офисе:
-// GET /api/traces/{id} читает сохранённую трассу целиком).
+// stripMarginStep — числа маржи убираются из трассы ответа витрины (только в бэк-офисе: GET /api/traces/{id} читает
+// сохранённую трассу целиком). Точный запрос оставляет шаг без чисел — одну защиту «точный запрос: сдвиг отключён»
+// (S1: закупщик видит, что коммерческая логика его не трогает); остальные шаги маржи уходят целиком.
 func stripMarginStep(tr *domain.Trace) {
 	if tr == nil {
 		return
 	}
 	out := tr.Steps[:0]
 	for _, st := range tr.Steps {
-		if _, ok := st.(*domain.MarginStep); ok {
+		if m, ok := st.(*domain.MarginStep); ok {
+			if slices.Contains(m.Guards, domain.MarginGuardExactQuery) {
+				out = append(out, publicMarginStep{StepBase: m.StepBase, Guards: []string{domain.MarginGuardExactQuery}})
+			}
 			continue
 		}
 		out = append(out, st)
 	}
 	tr.Steps = out
+}
+
+// publicMarginStep — шаг маржи в ответе витрины: без веса, версии политики и сдвигов, только защита точного запроса.
+type publicMarginStep struct {
+	domain.StepBase
+	Guards []string `json:"guards"`
 }
