@@ -544,6 +544,9 @@ func applyAliases(tokens []string, rules *searchRules, res *normResult, lx *sear
 			if !ok {
 				continue
 			}
+			if n == 1 && placeWord(tokens, i, rules.categories[lexiconKey(a.Alias)], lx) {
+				continue // «в офисе», «для офиса», «защита … офис»: место или назначение, а не офисный пакет
+			}
 			to := aliasReplacement(key, a, lx)
 			if e, ok := rules.successors[key]; ok {
 				res.successors = append(res.successors, successorHit{from: key, note: e.Note})
@@ -707,4 +710,37 @@ func aliasReplacement(key string, a domain.Alias, lx *searchLexicon) string {
 		return key
 	}
 	return strings.Join(strings.Fields(strings.ReplaceAll(foldText(a.Canonical), "\"", " ")), " ")
+}
+
+// placePrepositions — предлоги, после которых слово-категория называет место или назначение, а не продукт.
+var placePrepositions = setOf("в", "во", "для")
+
+// placeWord — слово, которое словарь переводит в категорию («офис» → офисные пакеты), здесь значит место или
+// назначение: стоит после «в», «во», «для» («защита для компьютеров в офисе», «антивирус для офиса») или запрос уже
+// называет другое назначение словами категории («защита … офис»). Тогда подстановки нет. Только для записей с
+// целью category: названия продуктов («для астра линукс») подставляются как раньше.
+func placeWord(tokens []string, i int, cats []string, lx *searchLexicon) bool {
+	if len(cats) == 0 {
+		return false
+	}
+	if i > 0 && placePrepositions[tokens[i-1]] {
+		return true
+	}
+	if lx == nil {
+		return false
+	}
+	in := map[string]bool{}
+	for _, c := range cats {
+		in[c] = true
+	}
+	for j, t := range tokens {
+		if j == i || lexStopWords[t] || lexServiceWords[t] {
+			continue
+		}
+		c, _ := lx.categoryOf([]string{t})
+		if c != "" && !in[c] && !in[lx.categoryRoot[c]] {
+			return true // «защита», «антивирус» — назначение другой категории
+		}
+	}
+	return false
 }

@@ -155,3 +155,26 @@ func TestP7TargetWidestOfTwoEqualFamilies(t *testing.T) {
 		t.Fatalf("места не различаются — первое по релевантности: %+v", dec.target)
 	}
 }
+
+// «Офис» как место или при другом назначении — не офисный пакет (контур подбора, D1).
+func TestOfficeAsPlace(t *testing.T) {
+	lx := newSearchLexicon(understandingSnapshot())
+	rules := applyLexicon(newSearchRules(1, lx.baseAliases), lx, testLexicon())
+	for q, want := range map[string]string{
+		"офис":          "office",
+		"офис для дома": "office для дома",
+		"офис на 10 пк": "office на 10 пк",
+		"защита для компьютеров в офисе": "защита для компьютеров в офисе",
+		"антивирус для офиса":            "антивирус для офиса",
+		"антивирус в офис":               "антивирус в офис",
+		"антивирус офис":                 "антивирус офис",
+	} {
+		if got := normalizeFull(q, lx, rules, false).normalized(); got != want {
+			t.Errorf("%q → %q, ожидалось %q", q, got, want)
+		}
+	}
+	// Название продукта после «для» подставляется как раньше: правило — только для слов-категорий словаря.
+	if got := normalizeFull("антивирус для eset", lx, rules, false).normalized(); got != "антивирус для pro32" {
+		t.Errorf("антивирус для eset → %q", got)
+	}
+}
