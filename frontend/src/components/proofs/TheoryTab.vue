@@ -42,11 +42,28 @@ onMounted(async () => {
 <template>
   <article class="theory">
     <p class="theory__lead">
-      Здесь — что происходит с запросом от ввода до выдачи и почему сделано именно так, а также как
-      агент SearchOps чинит поиск и как мы проверяем результат. Названия разделов совпадают с шагами
-      трассы на экране «Поиск». Числа в тексте — настройки алгоритмов из кода; измеренное качество и
-      деньги — на соседних вкладках, по ссылкам.
+      Здесь описано, что поиск делает с запросом от ввода до выдачи и почему, как агент SearchOps
+      разбирает неудачные запросы и как мы проверяем результат. В конце большинства разделов есть
+      ссылки на запрос с трассой: на экране «Поиск» видно, как шаг сработал на самом деле.
     </p>
+    <div class="theory__kinds">
+      <p class="t-sm t-muted">Числа на вкладке трёх видов:</p>
+      <ul class="theory__kinds-list t-sm" role="list">
+        <li>
+          <span class="badge">настройка</span> пороги, лимиты и веса из кода, так же помечены
+          формулы. Тест сверяет эти числа с константами бэкенда, поэтому они совпадают с тем, что
+          работает на стенде.
+        </li>
+        <li>
+          <span class="badge">пример расчёта</span> условные товары и оценки, чтобы показать
+          арифметику формулы. Это не выдача поиска.
+        </li>
+        <li>
+          <span class="badge">результат прогона</span> качество, скорость и деньги. Здесь их нет:
+          они на вкладках «Метрики», «Вклад компонентов» и «Стоимость».
+        </li>
+      </ul>
+    </div>
 
     <nav ref="toc" class="theory__toc panel" aria-labelledby="theory-toc-title">
       <h3 id="theory-toc-title" class="theory__toc-title">Содержание</h3>
@@ -95,6 +112,23 @@ onMounted(async () => {
 .theory__lead {
   max-width: 72ch;
   margin: 0;
+}
+.theory__kinds {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  max-width: 72ch;
+}
+.theory__kinds p {
+  margin: 0;
+}
+.theory__kinds-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
 }
 .theory__toc {
   padding: var(--space-4);
@@ -216,6 +250,10 @@ onMounted(async () => {
   border-left: 3px solid var(--accent);
   border-radius: var(--radius-control);
   background: var(--surface-2);
+}
+.theory-formula__kind {
+  display: table;
+  margin-bottom: var(--space-1);
 }
 .theory-formula code {
   white-space: pre-wrap;

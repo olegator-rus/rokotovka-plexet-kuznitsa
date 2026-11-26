@@ -11,6 +11,9 @@ frontend/dist/
 data/foreign/
 
 __pycache__/
+
+# Фид заказчика (Mindbox YML, 290 МБ) и производные большие файлы — не в git
+data/softline/feed/
 agency/
 artifacts/
 data/eval/*-*T*-*.json
