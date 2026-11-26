@@ -83,17 +83,19 @@ type intentFamily struct {
 
 // intentDict — справочники для промпта и сверки, построенные из одного снимка каталога.
 type intentDict struct {
-	version      string
-	systemPrompt string
-	categories   map[string]string        // id → название
-	vendors      map[string]domain.Vendor // id → вендор
-	families     map[string]intentFamily  // id → семейство
-	familyList   []intentFamily           // по id, для поиска по токенам
-	byName       map[string]map[string]string
-	aliases      map[string]domain.Alias // нормализованный алиас → алиас
+	version string
+	// promptText — промпт с плейсхолдерами; срез справочника подставляет promptFor (intent_context.go).
+	promptText string
+	index      *intentIndex
+	categories map[string]string        // id → название
+	vendors    map[string]domain.Vendor // id → вендор
+	families   map[string]intentFamily  // id → семейство
+	familyList []intentFamily           // по id, для поиска по токенам
+	byName     map[string]map[string]string
+	aliases    map[string]domain.Alias // нормализованный алиас → алиас
 }
 
-// newIntentDict — справочники и системный промпт с подставленными категориями и вендорами.
+// newIntentDict — справочники для сверки и индекс слов названий для среза в промпт (intent_context.go).
 func newIntentDict(snap *domain.CatalogSnapshot, promptText string) *intentDict {
 	d := &intentDict{
 		version:    snap.Version,
@@ -133,17 +135,8 @@ func newIntentDict(snap *domain.CatalogSnapshot, promptText string) *intentDict 
 	for _, a := range snap.Aliases {
 		d.aliases[intentNorm(a.Alias)] = a
 	}
-
-	var cats, vends []string
-	for id, name := range d.categories {
-		cats = append(cats, id+" — "+name)
-	}
-	for id, v := range d.vendors {
-		vends = append(vends, id+" — "+v.Name)
-	}
-	sort.Strings(cats)
-	sort.Strings(vends)
-	d.systemPrompt = strings.NewReplacer("{{CATEGORIES}}", strings.Join(cats, "\n"), "{{VENDORS}}", strings.Join(vends, "\n")).Replace(promptText)
+	d.promptText = promptText
+	d.index = newIntentIndex(snap, d.families)
 	return d
 }
 

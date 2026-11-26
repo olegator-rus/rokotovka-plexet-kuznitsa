@@ -587,7 +587,7 @@ func (lx *searchLexicon) buildUnderstanding() {
 	}
 	lx.knownStems = map[string]bool{}
 	for w := range lx.core {
-		if isCyrillicWord(w) && utf8.RuneCountInString(w) >= minStemRunes+1 {
+		if isCyrillicWord(w) && utf8.RuneCountInString(w) >= minStemRunes { // «линк» — основа «линком»
 			lx.knownStems[stemWord(w)] = true
 		}
 	}

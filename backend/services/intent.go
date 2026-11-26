@@ -153,7 +153,7 @@ func (p *intentService) parseMasked(ctx context.Context, normalized string, rule
 	// Вызов идёт от первого запроса ключа; его отмена (покупатель ушёл) не роняет разбор остальным ждущим.
 	// Расход и трасса LLM — у первого, ждущие получают тот же разбор как из кэша (стоимость 0).
 	v, _, shared := p.flight.Do(key, func() (any, error) {
-		parsed, info, reason := p.callModel(context.WithoutCancel(ctx), dict, normalized, clientSegment)
+		parsed, info, reason := p.callModel(context.WithoutCancel(ctx), dict, normalized, clientSegment, rulesGuess)
 		if parsed == nil {
 			return &intentFlight{info: info, reason: reason}, nil
 		}
@@ -191,15 +191,16 @@ func (f *intentFlight) claim() bool {
 
 // callModel — вызов модели: ошибка схемы — один повтор той же моделью; сбой вызова — резервная модель
 // (если есть). nil — откат на правила с причиной. info — сумма расхода по всем попыткам.
-func (p *intentService) callModel(ctx context.Context, dict *intentDict, normalized, segment string) (*rawIntent, *domain.LLMCallInfo, string) {
+func (p *intentService) callModel(ctx context.Context, dict *intentDict, normalized, segment string, guess domain.Intent) (*rawIntent, *domain.LLMCallInfo, string) {
 	info := &domain.LLMCallInfo{}
 	reason := fallbackLLMError
+	system := dict.promptFor(normalized, guess) // срез справочника по словам запроса, а не весь каталог
 	for _, model := range []ChatModel{p.primary, p.fallback} {
 		if model == nil {
 			continue
 		}
 		msgs := []llm.Message{
-			{Role: "system", Content: dict.systemPrompt},
+			{Role: "system", Content: system},
 			{Role: "user", Content: intentUserMessage(normalized, segment)},
 		}
 		for attempt := 0; attempt < 2; attempt++ {

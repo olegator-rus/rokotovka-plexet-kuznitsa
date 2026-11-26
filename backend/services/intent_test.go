@@ -129,10 +129,12 @@ func TestDecodeIntent(t *testing.T) {
 func TestIntentValidate(t *testing.T) {
 	p := newIntentEnv(t, "off", nil, nil, nil)
 	dict := p.dictionary(t.Context())
-	if dict == nil || !strings.Contains(dict.systemPrompt, "graphics — ") || !strings.Contains(dict.systemPrompt, "kaspersky — Kaspersky") {
-		t.Fatalf("справочники не подставлены в промпт")
+	// В промпт идёт срез справочника по словам запроса (intent_context.go), а не весь каталог.
+	prompt := dict.promptFor("аналог фотошопа для дизайна от kaspersky", domain.Intent{})
+	if dict == nil || !strings.Contains(prompt, "graphics — ") || !strings.Contains(prompt, "kaspersky — Kaspersky") {
+		t.Fatalf("кандидаты не подставлены в промпт")
 	}
-	if strings.Contains(dict.systemPrompt, "{{") {
+	if strings.Contains(prompt, "{{") {
 		t.Fatal("в промпте остались плейсхолдеры")
 	}
 
@@ -393,7 +395,7 @@ func TestIntentCacheKey(t *testing.T) {
 			t.Errorf("%s не входит в ключ", name)
 		}
 	}
-	if v := newIntentEnv(t, "off", nil, nil, nil).PromptVersion(); !strings.HasPrefix(v, "intent-v3+") {
+	if v := newIntentEnv(t, "off", nil, nil, nil).PromptVersion(); !strings.HasPrefix(v, "intent-v4+") {
 		t.Fatalf("версия промпта: %q", v)
 	}
 }
