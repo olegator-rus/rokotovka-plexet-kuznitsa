@@ -2,6 +2,7 @@ package services
 
 import (
 	"context"
+	"slices"
 	"sort"
 	"strings"
 	"unicode"
@@ -19,9 +20,12 @@ import (
 // строки или слова; если префиксов нет — n-граммы (опечатка в начале ввода).
 
 const (
-	suggestMaxRows   = 8
-	suggestMaxQuery  = 100
-	suggestMinNgram  = 0.34
+	suggestMaxRows  = 8
+	suggestMaxQuery = 100
+	suggestMinNgram = 0.34
+	// suggestMinFreq — запрос из логов попадает в подсказки, только если его искали не меньше двух раз:
+	// разовый запрос одного покупателя («1с для ООО …») другим не показывается.
+	suggestMinFreq   = 2
 	relatedMax       = 5
 	relatedMin       = 3
 	suggestLabelQ    = "Запросы"
@@ -132,6 +136,7 @@ func (s *Services) suggestions(ctx context.Context, lx *searchLexicon) *suggestI
 		byText[text] = len(idx.entries)
 		idx.entries = append(idx.entries, e)
 	}
+	idx.entries = slices.DeleteFunc(idx.entries, func(e suggestEntry) bool { return e.weight < suggestMinFreq })
 	for _, f := range lx.familyOrder {
 		pop := 0.0
 		for _, pid := range lx.families[f] {

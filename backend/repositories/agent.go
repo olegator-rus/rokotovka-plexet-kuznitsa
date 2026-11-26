@@ -124,6 +124,31 @@ func (r *Repos) SaveProposal(ctx context.Context, p *domain.Proposal) error {
 	return r.db.WithContext(ctx).Save(p).Error
 }
 
+// ProposalCheck — результат перепроверки правки: только эти поля пишутся в предложение.
+type ProposalCheck struct {
+	Evidence    domain.JSONB
+	Evaluation  domain.JSONB // nil — не менять
+	BaseVersion *int         // nil — не менять
+}
+
+// UpdateProposalCheck — записать перепроверку в предложение, только если оно всё ещё в статусе status (ревью-2 n1:
+// не Save всей строки — иначе копия, прочитанная до чужого решения или импорта, вернула бы его в pending).
+// false — статус успел смениться, ничего не записано.
+func (r *Repos) UpdateProposalCheck(ctx context.Context, id uuid.UUID, status string, ch ProposalCheck) (bool, error) {
+	if !r.Enabled() {
+		return false, ErrNoDatabase
+	}
+	fields := map[string]any{"evidence": ch.Evidence}
+	if ch.Evaluation != nil {
+		fields["evaluation"] = ch.Evaluation
+	}
+	if ch.BaseVersion != nil {
+		fields["base_version"] = *ch.BaseVersion
+	}
+	res := r.db.WithContext(ctx).Model(&domain.Proposal{}).Where("id = ? AND status = ?", id, status).Updates(fields)
+	return res.RowsAffected > 0, res.Error
+}
+
 // GetProposal — предложение по id; нет — nil без ошибки.
 func (r *Repos) GetProposal(ctx context.Context, id uuid.UUID) (*domain.Proposal, error) {
 	if !r.Enabled() {
@@ -318,4 +343,35 @@ func (r *Repos) AgentRunUsage(ctx context.Context, runID string) (AgentUsage, er
 		Select("COUNT(*) AS calls, COALESCE(SUM(input_tokens),0) AS input_tokens, COALESCE(SUM(output_tokens),0) AS output_tokens, " +
 			"COALESCE(SUM(calculated_cost),0) AS cost_rub").Scan(&u).Error
 	return u, err
+}
+
+// StaleProposalsOfRuns — ждущие предложения запусков с id, начинающимися с prefixes, → stale с причиной reason и
+// комментарием comment. Принятые и решённые не трогаются. Возвращает id переведённых.
+func (r *Repos) StaleProposalsOfRuns(ctx context.Context, prefixes []string, reason, comment string) ([]string, error) {
+	if !r.Enabled() {
+		return nil, ErrNoDatabase
+	}
+	var ids []string
+	err := r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		likes := make([]string, len(prefixes))
+		args := []any{domain.ProposalPending}
+		for i, p := range prefixes {
+			likes[i] = "run_id::text LIKE ?"
+			args = append(args, strings.ToLower(p)+"%")
+		}
+		var rows []domain.Proposal
+		if err := tx.Where("status = ? AND ("+strings.Join(likes, " OR ")+")", args...).Find(&rows).Error; err != nil {
+			return err
+		}
+		if len(rows) == 0 {
+			return nil
+		}
+		for _, p := range rows {
+			ids = append(ids, p.ID.String())
+		}
+		return tx.Model(&domain.Proposal{}).Where("id IN ? AND status = ?", ids, domain.ProposalPending).
+			Updates(map[string]any{"status": domain.ProposalStale, "decided_at": time.Now().UTC(),
+				"decided_reason": reason, "decided_comment": comment}).Error
+	})
+	return ids, err
 }

@@ -21,10 +21,13 @@ import {
   evaluationLines,
   hypothesisLines,
   isTicket,
+  lostDemandLabel,
   proposalRoleLabel,
   proposalStatus,
+  recheckView,
   rejectReasonLabel,
   searchCheckUrl,
+  staleReason,
   targetQueryRows,
   ticketLines,
 } from '@/lib/proposals'
@@ -47,6 +50,8 @@ const rejectedCount = computed(() => hypotheses.value.filter((h) => !h.passed).l
 const targetRows = computed(() => targetQueryRows(p.value.evaluation))
 const todo = computed(() => (ticket.value ? ticketLines(p.value) : []))
 const effect = computed(() => effectLine(p.value.effect))
+const recheck = computed(() => recheckView(p.value))
+const stale = computed(() => staleReason(p.value))
 const detailsOpen = ref(false)
 const runLink = computed(() =>
   p.value.run_id
@@ -69,12 +74,18 @@ const runLink = computed(() =>
       <span :class="['badge', 'badge--tone', status.tone]">{{ status.label }}</span>
       <span class="badge">{{ diagnosisLabel(p.diagnosis) }}</span>
       <span class="t-xs t-muted">{{ proposalRoleLabel(p.role) }}</span>
-      <span class="pcard__demand t-xs t-muted t-num">
-        потерянный спрос {{ formatInt(p.cluster?.lost_demand ?? 0) }}
+      <span
+        class="pcard__demand t-xs t-muted t-num"
+        title="Различные сессии, в которых поиск по запросам кластера не удался"
+      >
+        {{ lostDemandLabel(p.cluster?.lost_demand) }}
       </span>
     </header>
 
     <h3 :id="`p-${p.id}-title`" class="t-h2">Кластер «{{ p.cluster?.label }}»</h3>
+    <p v-if="stale" class="pcard__stale t-sm">
+      <span class="pcard__effect-label">Почему устарело:</span> {{ stale }}. Принять нельзя.
+    </p>
     <p v-if="p.diagnosis_text" class="pcard__diag">{{ p.diagnosis_text }}</p>
 
     <section class="pcard__block" aria-label="Запросы кластера">
@@ -213,6 +224,31 @@ const runLink = computed(() =>
       </CollapsibleRoot>
     </section>
 
+    <section
+      v-if="recheck"
+      :class="['pcard__recheck', recheck.passed ? 'status-accepted' : 'status-rejected']"
+      aria-label="Перепроверка на действующих правилах"
+    >
+      <p class="pcard__recheck-title t-sm">
+        <component :is="recheck.passed ? CircleCheck : CircleX" :size="14" aria-hidden="true" />
+        <span>{{ recheck.title }}</span>
+      </p>
+      <ul v-if="recheck.reasons.length" class="pcard__eval">
+        <li v-for="r in recheck.reasons" :key="r">{{ r }}</li>
+      </ul>
+      <template v-if="recheck.lines">
+        <p class="pcard__label">{{ recheck.linesTitle }}</p>
+        <ul class="pcard__eval">
+          <li>{{ recheck.lines.target }}</li>
+          <li>{{ recheck.lines.regression }}</li>
+          <li v-for="x in recheck.lines.extra" :key="x">{{ x }}</li>
+        </ul>
+      </template>
+      <p v-if="recheck.checkedAt" class="t-xs t-muted">
+        Перепроверено {{ formatDateTime(recheck.checkedAt) }}
+      </p>
+    </section>
+
     <p
       v-if="effect"
       :class="['pcard__effect t-sm', effect.holds ? 'status-accepted' : 'status-rejected']"
@@ -243,7 +279,7 @@ const runLink = computed(() =>
           {{ status.label }}
           <template v-if="p.decided_at">{{ formatDateTime(p.decided_at) }}</template>
           <template v-if="p.config_version"> · версия правил {{ p.config_version }}</template>
-          <template v-if="p.decided_reason && p.status !== 'accepted'">
+          <template v-if="p.decided_reason && p.status !== 'accepted' && p.status !== 'stale'">
             · причина: {{ rejectReasonLabel(p.decided_reason).toLowerCase() }}</template
           >
           <template v-if="p.decided_comment"> · «{{ p.decided_comment }}»</template>
@@ -401,6 +437,24 @@ const runLink = computed(() =>
   font-weight: var(--fw-regular);
 }
 .pcard__tq-tone {
+  color: var(--tone);
+}
+.pcard__recheck {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  padding: var(--space-2) var(--space-3);
+  border: var(--border-w) solid var(--border);
+  border-radius: var(--radius-card);
+}
+.pcard__recheck-title {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-1);
+}
+.pcard__recheck-title svg {
+  flex: none;
+  margin-top: 2px;
   color: var(--tone);
 }
 .pcard__effect {

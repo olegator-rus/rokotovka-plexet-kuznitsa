@@ -25,6 +25,7 @@ type agentStore interface {
 	SaveIssueCluster(ctx context.Context, c *domain.IssueCluster) error
 	CreateProposal(ctx context.Context, p *domain.Proposal) error
 	SaveProposal(ctx context.Context, p *domain.Proposal) error
+	UpdateProposalCheck(ctx context.Context, id uuid.UUID, status string, ch repositories.ProposalCheck) (bool, error)
 	GetProposal(ctx context.Context, id uuid.UUID) (*domain.Proposal, error)
 	ListProposals(ctx context.Context, status, role string) ([]domain.Proposal, error)
 	ListDecisions(ctx context.Context) ([]domain.Decision, error)

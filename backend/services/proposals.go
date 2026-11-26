@@ -26,7 +26,7 @@ const (
 	MsgRejectComment    = "Для причины «другое» напишите комментарий"
 )
 
-var proposalStatuses = []string{domain.ProposalPending, domain.ProposalAccepted, domain.ProposalRejected, domain.ProposalRolledBack}
+var proposalStatuses = []string{domain.ProposalPending, domain.ProposalAccepted, domain.ProposalRejected, domain.ProposalRolledBack, domain.ProposalStale}
 var proposalRoles = []string{domain.RoleEcom, domain.RoleProduct, domain.RoleContent}
 
 // Proposals — GET /api/proposals?status=&role=.
@@ -37,7 +37,7 @@ func (s *Services) Proposals(ctx context.Context, status, role string) (*out.Pro
 	}
 	var bad []errs.FieldError
 	if status != "" && !slices.Contains(proposalStatuses, status) {
-		bad = append(bad, errs.FieldError{Field: "status", Code: errs.CodeInvalidFormat, Message: "Статус — pending, accepted, rejected или rolled_back"})
+		bad = append(bad, errs.FieldError{Field: "status", Code: errs.CodeInvalidFormat, Message: "Статус — pending, accepted, rejected, rolled_back или stale"})
 	}
 	if role != "" && !slices.Contains(proposalRoles, role) {
 		bad = append(bad, errs.FieldError{Field: "role", Code: errs.CodeInvalidFormat, Message: "Роль — ecom, product или content"})
@@ -136,7 +136,9 @@ func (s *Services) ApproveProposal(ctx context.Context, id string, req in.Approv
 	}
 	if rechecked {
 		// Решение уже записано; новый прогон и база — отдельной записью (ApplyRulesChange меняет только статус).
-		if err := st.SaveProposal(context.WithoutCancel(ctx), p); err != nil {
+		bv := p.BaseVersion
+		if _, err := st.UpdateProposalCheck(context.WithoutCancel(ctx), p.ID, domain.ProposalAccepted,
+			repositories.ProposalCheck{Evidence: p.Evidence, Evaluation: p.Evaluation, BaseVersion: &bv}); err != nil {
 			zap.L().Warn("перепроверка: новый прогон не записан в принятое предложение", zap.Error(err))
 		}
 	}
@@ -183,8 +185,14 @@ func (s *Services) recheckProposal(ctx context.Context, p *domain.Proposal, patc
 	if !ev.Passed {
 		evidence["recheck"] = recheck
 		p.Evidence = toJSON(evidence)
-		if err := s.store().SaveProposal(ctx, p); err != nil {
+		// Только evidence и только пока предложение ждёт: за время перепрогона его могли отклонить или перевести
+		// в stale — тогда копия p устарела и не пишется (ревью-2 n1).
+		ok, err := s.store().UpdateProposalCheck(context.WithoutCancel(ctx), p.ID, domain.ProposalPending,
+			repositories.ProposalCheck{Evidence: p.Evidence})
+		if err != nil {
 			zap.L().Warn("перепроверка: результат не записан в предложение", zap.Error(err))
+		} else if !ok {
+			zap.L().Info("перепроверка: предложение уже не ждёт решения — результат не записан", zap.String("proposal_id", p.ID.String()))
 		}
 		zap.L().Info("предложение не прошло перепроверку", zap.String("proposal_id", p.ID.String()),
 			zap.Int("base", p.BaseVersion), zap.Int("active", cur.Version))
@@ -279,6 +287,13 @@ func proposalView(p *domain.Proposal) out.Proposal {
 	if p.DecidedAt != nil {
 		v.DecidedReason, v.DecidedComment = &p.DecidedReason, &p.DecidedComment
 	}
+	if p.Status == domain.ProposalStale {
+		reason := p.DecidedReason
+		if reason == "" {
+			reason = domain.ProposalStaleReason
+		}
+		v.StaleReason = &reason
+	}
 	v.Cluster = out.ProposalCluster{Label: p.ClusterLabel, LostDemand: p.LostDemand, Queries: []out.ProposalQuery{}}
 	if p.ClusterID != nil {
 		v.Cluster.ID = *p.ClusterID
@@ -292,4 +307,27 @@ func proposalView(p *domain.Proposal) out.Proposal {
 		v.CheckQuery = v.Cluster.Queries[0].Text
 	}
 	return v
+}
+
+// StaleProposalsOfRuns — `go run . proposals stale --run <id> … --reason "<текст>"`: ждущие предложения запусков
+// до разреза журнала → stale (pre_holdout). Id запуска — полный или префикс не короче 8 знаков.
+func (s *Services) StaleProposalsOfRuns(ctx context.Context, runs []string, comment string) ([]string, error) {
+	var prefixes []string
+	for _, r := range runs {
+		r = strings.ToLower(strings.TrimSpace(r))
+		if len(r) < 8 || strings.Trim(r, "0123456789abcdef-") != "" {
+			return nil, errs.NewValidationError(fmt.Sprintf("id запуска %q: полный uuid или первые 8+ знаков", r))
+		}
+		prefixes = append(prefixes, r)
+	}
+	if len(prefixes) == 0 {
+		return nil, errs.NewValidationError("нужен хотя бы один --run")
+	}
+	if strings.TrimSpace(comment) == "" {
+		return nil, errs.NewValidationError("нужна причина --reason")
+	}
+	if !s.repos.Enabled() {
+		return nil, errs.NewUnavailableError(MsgNoAgentStore)
+	}
+	return s.repos.StaleProposalsOfRuns(ctx, prefixes, domain.ProposalStalePreHoldout, strings.TrimSpace(comment))
 }

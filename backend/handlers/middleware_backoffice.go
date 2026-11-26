@@ -60,6 +60,12 @@ func (h *Handler) Backoffice(c *fiber.Ctx) error {
 	return c.Next()
 }
 
+// backofficeAuthorized — запрос несёт вход в бэк-офис (или вход выключен: пустой токен в development). Для
+// открытых маршрутов, которые отдают больше данных вошедшему.
+func (h *Handler) backofficeAuthorized(c *fiber.Ctx) bool {
+	return len(h.token) == 0 || validBackofficeAuth(c.Get(fiber.HeaderAuthorization), h.token)
+}
+
 // validBackofficeAuth — заголовок Authorization несёт токен: Bearer <токен> или Basic с паролем = токен
 // (имя пользователя любое). token — SHA-256 токена: сравнение за постоянное время без утечки длины.
 func validBackofficeAuth(header string, token []byte) bool {

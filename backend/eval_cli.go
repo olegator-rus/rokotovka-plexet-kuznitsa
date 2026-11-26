@@ -129,3 +129,30 @@ func runWarmup(ctx context.Context, log *zap.Logger, svc *services.Services, arg
 	}
 	fmt.Print(res.String())
 }
+
+// runProposals — `go run . proposals stale --run <id> [--run <id>] --reason "<текст>"`: ждущие предложения запусков
+// до разреза журнала → stale с причиной pre_holdout (ревью-2 N2). Принятые не трогаются.
+func runProposals(ctx context.Context, log *zap.Logger, svc *services.Services, args []string) {
+	if len(args) == 0 || args[0] != "stale" {
+		log.Fatal("proposals: известна только команда stale — go run . proposals stale --run <id> --reason \"<текст>\"")
+	}
+	fs := flag.NewFlagSet("proposals stale", flag.ExitOnError)
+	var runs multiFlag
+	fs.Var(&runs, "run", "id запуска агента (полный или первые 8+ знаков); можно несколько раз")
+	reason := fs.String("reason", "", "почему предложения устарели (пишется в decided_comment)")
+	_ = fs.Parse(args[1:])
+	ids, err := svc.StaleProposalsOfRuns(ctx, runs, *reason)
+	if err != nil {
+		log.Fatal("proposals stale", zap.Error(err))
+	}
+	fmt.Printf("предложений переведено в stale (pre_holdout): %d\n", len(ids))
+	for _, id := range ids {
+		fmt.Println("  " + id)
+	}
+}
+
+// multiFlag — повторяемый флаг.
+type multiFlag []string
+
+func (m *multiFlag) String() string     { return strings.Join(*m, ",") }
+func (m *multiFlag) Set(v string) error { *m = append(*m, v); return nil }

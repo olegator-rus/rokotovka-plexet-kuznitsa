@@ -204,3 +204,12 @@ func TestSearchUnavailable(t *testing.T) {
 		t.Fatalf("без OpenSearch: %v", err)
 	}
 }
+
+// Ревью-2 n4: паника в dense (горутина вне recover Fiber) не роняет процесс — dense пропускается.
+func TestDenseSafeRecovers(t *testing.T) {
+	env := imported(t, true)
+	r := env.svc.denseSafe(t.Context(), "фигма", nil) // nil-метаданные индекса — паника внутри dense
+	if !r.step.Skipped || r.step.Reason != reasonKNNFailed || r.step.Top == nil {
+		t.Fatalf("dense после паники: %+v", r.step)
+	}
+}

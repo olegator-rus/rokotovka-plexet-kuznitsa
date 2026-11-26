@@ -57,6 +57,16 @@ export const SKIP_REASON_LABELS: Record<string, string> = {
   llm_off: 'режим без LLM',
   not_needed: 'не понадобился',
   disabled: 'выключен в настройках',
+  not_route_d: 'запрос не на маршруте D',
+  reference_analogs: 'выключен на запросах «аналог X»',
+  parser_not_connected: 'разбор LLM не подключён',
+  // Почему разбор намерения остался на правилах (Intent.fallback_reason → reason шага intent).
+  llm_not_configured: 'модель не подключена',
+  llm_error: 'ошибка модели',
+  schema_error: 'ответ модели не прошёл проверку',
+  catalog_not_loaded: 'каталог не загружен',
+  budget_exceeded: 'дневной бюджет LLM исчерпан',
+  ip_quota: 'суточная квота LLM для адреса исчерпана',
 }
 
 /** Почему выбран маршрут: сигналы шага route. */
@@ -137,6 +147,13 @@ export function stepSummary(step: TraceStep): string {
   }
   if (step.error) return 'ошибка, запасной путь'
   switch (step.name) {
+    case 'intent': {
+      const src =
+        typeof step.source === 'string' && step.source ? parseSourceLabel(step.source) : ''
+      const why = skipReasonLabel(step.reason)
+      if (why) return `${src || 'правила'} · ${why}`
+      return src || 'выполнено'
+    }
     case 'normalize': {
       const n = step.changes?.length ?? 0
       return n === 0 ? 'без изменений' : `${n} ${plural(n, ['замена', 'замены', 'замен'])}`
@@ -209,4 +226,11 @@ export function rejectedLabel(r: Rejected): string {
 /** Сырые данные трассы для «Скопировать JSON». */
 export function traceJson(trace: Trace): string {
   return JSON.stringify(trace, null, 2)
+}
+
+/** Почему разбор остался на правилах (бюджет, квота адреса, режим без LLM…) — для сводки трассы. */
+export function intentFallback(trace: Pick<Trace, 'steps'> | null | undefined): string | null {
+  const step = (trace?.steps ?? []).find((s) => s.name === 'intent')
+  if (!step || step.skipped || typeof step.reason !== 'string' || !step.reason) return null
+  return skipReasonLabel(step.reason)
 }

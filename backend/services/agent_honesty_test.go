@@ -3,12 +3,14 @@ package services
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"strings"
 	"sync"
 	"testing"
 	"time"
 
 	"kuznica/api/domain"
+	"kuznica/api/externalApi/catalogsource"
 	"kuznica/api/externalApi/llm"
 	"kuznica/api/in"
 
@@ -449,5 +451,95 @@ func TestAgentStreamDoneAndEmptySubs(t *testing.T) {
 	defer cancel3()
 	if _, open := <-ch3; open {
 		t.Fatal("после окончания запуска канал подписки сразу закрыт")
+	}
+}
+
+// Ревью-2 n8: разметка не читается — агент не стартует, а не учится молча на текстах test.
+func TestAgentStopsWithoutTestSet(t *testing.T) {
+	s, _ := agentEnv(t, &scriptModel{})
+	src := s.source
+	s.source = qSourceErr{src, errors.New("queries.json: битая строка")}
+	if _, _, err := s.agentQueryStats(t.Context(), 30, HoldoutOptions{Enabled: true, ExcludeTest: true}); err == nil {
+		t.Fatal("при нечитаемой разметке вход агента должен давать ошибку")
+	}
+	// Без исключения test (AGENT_EXCLUDE_TEST=off) разметка не нужна.
+	if _, _, err := s.agentQueryStats(t.Context(), 30, HoldoutOptions{Enabled: true}); err != nil {
+		t.Fatal(err)
+	}
+	// Файла разметки нет вовсе — исключать нечего, запуск идёт.
+	s.source = qSourceErr{src, catalogsource.ErrNoFile}
+	if _, _, err := s.agentQueryStats(t.Context(), 30, HoldoutOptions{Enabled: true, ExcludeTest: true}); err != nil {
+		t.Fatal(err)
+	}
+}
+
+type qSourceErr struct {
+	CatalogSource
+	err error
+}
+
+func (q qSourceErr) LoadQueries(context.Context) ([]domain.EvalQuery, error) { return nil, q.err }
+
+// Ревью-2 n1: пока шёл перепрогон, предложение отклонили — проваленная перепроверка не возвращает его в pending.
+func TestRecheckDoesNotResurrect(t *testing.T) {
+	s, ms := agentEnv(t, &scriptModel{})
+	ms.versions = append(ms.versions, domain.ConfigVersion{Version: 2, Rules: ms.versions[0].Rules})
+	p := &domain.Proposal{Status: domain.ProposalPending, Action: domain.ActionRulesPatch, ClusterLabel: "кис", BaseVersion: 1,
+		ClusterQueries: toJSON([]clusterQuery{{Text: "кис", Freq: 3}}), Evaluation: toJSON(evalResult(0, 1, 0)),
+		Patch: toJSON(RulePatch{Add: []PatchAlias{{Kind: "alias", Alias: "кис", Canonical: "Kaspersky Internet Security",
+			Target: "family", TargetID: "kaspersky-internet-security"}}})}
+	_ = ms.CreateProposal(t.Context(), p)
+	s.agent.evalHook = func(context.Context, *failedCluster, RulePatch) (*patchEval, error) {
+		ms.mu.Lock()
+		q := ms.proposals[p.ID]
+		q.Status, q.DecidedReason = domain.ProposalRejected, domain.RejectNotNow
+		ms.proposals[p.ID] = q
+		ms.mu.Unlock()
+		return evalResult(0, 1, 3), nil
+	}
+	if _, err := s.ApproveProposal(t.Context(), p.ID.String(), in.ApproveRequest{}); !isConflict(err) {
+		t.Fatalf("ожидался 409: %v", err)
+	}
+	got, _ := ms.GetProposal(t.Context(), p.ID)
+	if got.Status != domain.ProposalRejected || strings.Contains(string(got.Evidence), `"recheck"`) {
+		t.Fatalf("решение затёрто перепроверкой: %s %s", got.Status, got.Evidence)
+	}
+}
+
+// `proposals stale`: id запуска — uuid или префикс от 8 знаков, причина обязательна.
+func TestStaleProposalsValidation(t *testing.T) {
+	s := NewServices(nil, Options{})
+	for _, c := range []struct {
+		runs   []string
+		reason string
+	}{{nil, "до разреза"}, {[]string{"01a2"}, "до разреза"}, {[]string{"01a20fe2; drop"}, "до разреза"}, {[]string{"01a20fe2"}, " "}} {
+		if _, err := s.StaleProposalsOfRuns(t.Context(), c.runs, c.reason); err == nil || isUnavailable(err) {
+			t.Errorf("%v %q: ждали ошибку проверки, есть %v", c.runs, c.reason, err)
+		}
+	}
+	if _, err := s.StaleProposalsOfRuns(t.Context(), []string{"01a20fe2", "01A21002-aaaa"}, "до разреза"); !isUnavailable(err) {
+		t.Errorf("верные аргументы без базы — 503: %v", err)
+	}
+}
+
+func TestProposalViewStaleReason(t *testing.T) {
+	now := time.Now()
+	v := proposalView(&domain.Proposal{Status: domain.ProposalStale, DecidedAt: &now, DecidedReason: domain.ProposalStalePreHoldout})
+	if v.StaleReason == nil || *v.StaleReason != domain.ProposalStalePreHoldout {
+		t.Fatalf("stale_reason: %v", v.StaleReason)
+	}
+	if v := proposalView(&domain.Proposal{Status: domain.ProposalPending}); v.StaleReason != nil {
+		t.Fatal("у ждущего stale_reason — null")
+	}
+}
+
+// Фильтр очереди по stale допустим (вкладка устаревших предложений).
+func TestListProposalsStale(t *testing.T) {
+	s, ms := agentEnv(t, &scriptModel{})
+	p := &domain.Proposal{Status: domain.ProposalStale, DecidedReason: domain.ProposalStalePreHoldout}
+	_ = ms.CreateProposal(t.Context(), p)
+	res, err := s.Proposals(t.Context(), domain.ProposalStale, "")
+	if err != nil || len(res.Items) != 1 || res.Items[0].StaleReason == nil {
+		t.Fatalf("stale: %+v %v", res, err)
 	}
 }

@@ -233,7 +233,7 @@ func (s *Services) Configs(ctx context.Context) (*out.ConfigList, error) {
 	res := &out.ConfigList{Items: []out.ConfigVersion{}}
 	for i := range vs {
 		v := vs[i]
-		if i == 0 {
+		if res.Active == 0 && !v.Archived {
 			res.Active = v.Version
 		}
 		rs, _ := parseRules(&v)
@@ -246,7 +246,8 @@ func (s *Services) Configs(ctx context.Context) (*out.ConfigList, error) {
 			diff = json.RawMessage(`{"add":[],"remove":[]}`)
 		}
 		item := out.ConfigVersion{Version: v.Version, CreatedAt: v.CreatedAt, Author: author, Source: v.Source,
-			Description: v.Comment, ProposalID: v.ProposalID, Diff: diff, Effect: rawOrNull(v.Effect)}
+			Description: v.Comment, ProposalID: v.ProposalID, Diff: diff, Effect: rawOrNull(v.Effect),
+			CatalogVersion: v.CatalogVersion, Archived: v.Archived}
 		if rs != nil {
 			item.Aliases = len(rs.Aliases)
 		}

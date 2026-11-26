@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"math"
+	"runtime/debug"
 	"strings"
 	"time"
 	"unicode/utf8"
@@ -121,7 +122,7 @@ func (s *Services) SearchWith(ctx context.Context, requestID string, req in.Sear
 	var denseCh chan retrieval
 	if effective == domain.ConfigB2 {
 		denseCh = make(chan retrieval, 1)
-		go func() { denseCh <- s.dense(ctx, text, info) }()
+		go func() { denseCh <- s.denseSafe(ctx, text, info) }()
 	}
 	bm := s.lexical(ctx, effective, text)
 	if bm.err != nil {
@@ -264,6 +265,19 @@ func (s *Services) lexicalB3(ctx context.Context, text, expansions, minMatch str
 
 // dense — векторный источник: вектор запроса у сервиса моделей, затем kNN. Сбой не роняет поиск: шаг
 // помечается skipped с причиной, выдача остаётся на BM25.
+// denseSafe — dense в отдельной горутине: паника там не ловится recover Fiber и уронила бы весь API (ревью-2 n4),
+// поэтому она превращается в пропуск dense с записью в журнал.
+func (s *Services) denseSafe(ctx context.Context, normalized string, info *indexMeta, filters ...any) (r retrieval) {
+	defer func() {
+		if p := recover(); p != nil {
+			zap.L().Error("поиск: паника в dense — пропущен", zap.Any("panic", p), zap.ByteString("stack", debug.Stack()))
+			r = retrieval{step: domain.RetrievalStep{StepBase: domain.StepBase{Name: domain.StepDense, Skipped: true,
+				Reason: reasonKNNFailed}, Mode: "knn", Top: []domain.RankedHit{}}}
+		}
+	}()
+	return s.dense(ctx, normalized, info, filters...)
+}
+
 func (s *Services) dense(ctx context.Context, normalized string, info *indexMeta, filters ...any) retrieval {
 	t := time.Now()
 	r := retrieval{step: domain.RetrievalStep{StepBase: domain.StepBase{Name: domain.StepDense}, Mode: "knn", Top: []domain.RankedHit{}}}

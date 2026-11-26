@@ -4,7 +4,7 @@ import "time"
 
 // Effect — GET /api/effect (и поле effect в GET /api/analytics?role=head): вилка эффекта внедрения для
 // руководителя. Три сценария в заказах и рублях в месяц из измеренного (журналы поиска,
-// прогон оценки B0 vs B4 на test) и допущений с явными подписями. Непосчитанное — null.
+// реплей отложенной недели B0 → B3 → B4) и допущений с явными подписями. Непосчитанное — null.
 type Effect struct {
 	Days int       `json:"days"`
 	From time.Time `json:"from"`
@@ -35,23 +35,42 @@ type EffectInputs struct {
 	Orders          int `json:"orders"`
 	// SearchOrderRate — конверсия поиска в заказ (заказы / поиски).
 	SearchOrderRate *float64 `json:"search_order_rate"`
-	// Rescued — доля спасённых: среди запросов test, где B0 не дал релевантного в топ-10, — доля, где его дал B4.
+	// Rescued — доля спасённых: среди поисков отложенной недели, где B0 не дал релевантного в топ-10, — доля, где
+	// его дал B3 (и B4 — если вклад агента засчитан).
 	Rescued *EffectRescued `json:"rescued"`
 }
 
-// EffectRescued — доля спасённых запросов по прогону оценки.
+// EffectRescued — доля спасённых поисков по реплею отложенной недели (holdout_week).
 type EffectRescued struct {
-	Set      string `json:"set"`
+	Set     string `json:"set"` // holdout_week
+	SetHash string `json:"set_hash"`
+	// Source — откуда доля, по-русски: набор, прогоны, засчитан ли вклад агента.
+	Source   string `json:"source"`
 	Baseline string `json:"baseline"` // B0
-	Config   string `json:"config"`   // B4 (или B3, если B4 не прогонялся)
-	// RunBaseline, RunConfig — прогоны (evaluations.run_id), из которых взяты результаты.
-	RunBaseline  string  `json:"run_baseline"`
-	RunConfig    string  `json:"run_config"`
-	RulesVersion int     `json:"rules_version"`
-	Failed       int     `json:"failed"`  // запросов, где B0 не дал релевантного в топ-10
-	Rescued      int     `json:"rescued"` // из них B4 дал
-	Share        float64 `json:"share"`
-	// CILow, CIHigh — 95% интервал Уилсона: из него берутся консервативный и оптимистичный сценарии.
+	// Config — до какой конфигурации засчитано: B3 (только поиск) или B4 (поиск и честные правки агента).
+	Config string `json:"config"`
+	// RunBaseline, RunConfig, RunAgent — прогоны B0, B3, B4 (evaluations.run_id); RunAgent пусто — B4 не прогонялся.
+	RunBaseline       string `json:"run_baseline"`
+	RunConfig         string `json:"run_config"`
+	RunAgent          string `json:"run_agent"`
+	RulesVersion      int    `json:"rules_version"`
+	AgentRulesVersion int    `json:"agent_rules_version"`
+	// Weight — единица счёта: searches (запрос весит числом своих поисков за неделю).
+	Weight  string `json:"weight"`
+	Failed  int    `json:"failed"`  // поисков, где B0 не дал релевантного в топ-10
+	Rescued int    `json:"rescued"` // из них спасено (поиск + засчитанный вклад агента)
+	// FailedQueries, RescuedQueries — то же в различных запросах.
+	FailedQueries  int     `json:"failed_queries"`
+	RescuedQueries int     `json:"rescued_queries"`
+	Share          float64 `json:"share"`
+	// SearchShare — вклад поиска (B0 → B3); AgentShare — вклад агента (B3 → B4), 0, если не засчитан.
+	SearchShare float64 `json:"search_share"`
+	AgentShare  float64 `json:"agent_share"`
+	// AgentCounted — вклад агента засчитан: все принятые правки B4 — из запусков после разреза журнала.
+	AgentCounted bool   `json:"agent_counted"`
+	AgentNote    string `json:"agent_note"`
+	// CILow, CIHigh — 95% интервал Уилсона (n — различные запросы): из него берутся консервативный и
+	// оптимистичный сценарии.
 	CILow  float64 `json:"ci_low"`
 	CIHigh float64 `json:"ci_high"`
 }

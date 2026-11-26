@@ -7,6 +7,7 @@ import (
 	"strings"
 	"testing"
 
+	"kuznica/api/out"
 	"kuznica/api/services"
 
 	"github.com/gofiber/fiber/v2"
@@ -117,5 +118,44 @@ func TestBackofficeOpenWithoutToken(t *testing.T) {
 	}
 	if code, body, _ := doAuth(t, app, "POST", "/api/admin/llm-mode", ""); code == fiber.StatusUnauthorized {
 		t.Fatalf("мутация без токена в конфиге: %d %s", code, body)
+	}
+}
+
+// Ревью-2 n7: holdout_week без входа — без текстов и id запросов; с токеном или без токена в development — целиком.
+func TestEvaluationsHoldoutRedacted(t *testing.T) {
+	h := &Handler{token: hashToken(testBackofficeToken)}
+	app := fiber.New()
+	app.Get("/x", func(c *fiber.Ctx) error {
+		if h.backofficeAuthorized(c) {
+			return c.SendString("in")
+		}
+		return c.SendString("out")
+	})
+	for auth, want := range map[string]string{"": "out", "Bearer wrong": "out", "Bearer " + testBackofficeToken: "in",
+		basic("manager", testBackofficeToken): "in"} {
+		req := httptest.NewRequest("GET", "/x", nil)
+		if auth != "" {
+			req.Header.Set("Authorization", auth)
+		}
+		resp, _ := app.Test(req)
+		body, _ := io.ReadAll(resp.Body)
+		if string(body) != want {
+			t.Errorf("%q: %s, ждали %s", auth, body, want)
+		}
+	}
+	h.token = nil // development: вход выключен
+	if resp, _ := app.Test(httptest.NewRequest("GET", "/x", nil)); resp != nil {
+		if body, _ := io.ReadAll(resp.Body); string(body) != "in" {
+			t.Error("без токена (development) вход не нужен")
+		}
+	}
+	resp := &out.EvaluationsResponse{Set: "holdout_week", Configs: []out.EvaluationView{{
+		Regressions:  []out.EvalChange{{QueryID: "h-0001-client-a", Text: "1с для ооо ромашка"}},
+		Improvements: []out.EvalChange{{QueryID: "h-0002", Text: "зуп корп", NDCGDelta: 0.1}}}}}
+	redactEvalTexts(resp)
+	c := resp.Configs[0]
+	if len(c.Regressions) != 1 || c.Regressions[0].Text != "" || c.Regressions[0].QueryID != "" ||
+		c.Improvements[0].Text != "" || c.Improvements[0].NDCGDelta != 0.1 {
+		t.Fatalf("после скрытия: %+v", c)
 	}
 }

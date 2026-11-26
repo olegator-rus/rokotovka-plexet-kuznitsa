@@ -19,8 +19,9 @@ import (
 //
 // Нормализация запроса — как services.foldQuery: нижний регистр, ё → е, одиночные пробелы.
 
-// outcomesCTE — исход каждого поиска периода: o(request_id, created_at, results_count, source, sess, q,
-// clicked, carted, ordered, reformulated). Параметр @since.
+// outcomesCTE — исход каждого поиска периода [@since, @until): o(request_id, created_at, results_count, source,
+// sess, q, clicked, carted, ordered, product, reformulated). product — товар первого (по времени) действия с
+// товаром, отнесённого к поиску.
 const outcomesCTE = `
 WITH s AS (
 	SELECT request_id, created_at, results_count,
@@ -28,7 +29,7 @@ WITH s AS (
 		COALESCE(NULLIF(session_id, ''), 'req:' || request_id) AS sess,
 		btrim(regexp_replace(replace(lower(query), 'ё', 'е'), '\s+', ' ', 'g')) AS q
 	FROM search_events
-	WHERE created_at >= @since AND request_id NOT LIKE 'eval-%' AND source <> 'compare'
+	WHERE created_at >= @since AND created_at < @until AND request_id NOT LIKE 'eval-%' AND source <> 'compare'
 ),
 typed AS (
 	SELECT s.*, LEAD(q) OVER w AS next_q, LEAD(created_at) OVER w AS next_at
@@ -40,21 +41,22 @@ kept AS (
 		AND next_q <> q AND starts_with(next_q, q))
 ),
 b AS (
-	SELECT type, request_id, session_id, created_at FROM behavior_events
-	WHERE created_at >= @since AND type IN ('click', 'add_to_cart', 'order')
+	SELECT id, type, request_id, session_id, created_at, product_id FROM behavior_events
+	WHERE created_at >= @since AND created_at < @until AND type IN ('click', 'add_to_cart', 'order')
 ),
 by_req AS (
-	SELECT b.type, k.request_id AS rid FROM b JOIN kept k ON k.request_id = b.request_id
+	SELECT b.id, b.type, b.created_at, b.product_id, k.request_id AS rid FROM b JOIN kept k ON k.request_id = b.request_id
 ),
 unmatched AS (
-	SELECT b.type, b.session_id AS sess, b.created_at FROM b LEFT JOIN kept k ON k.request_id = b.request_id
+	SELECT b.id, b.type, b.session_id AS sess, b.created_at, b.product_id FROM b
+	LEFT JOIN kept k ON k.request_id = b.request_id
 	WHERE k.request_id IS NULL AND b.session_id IS NOT NULL
 ),
 stream AS (
-	SELECT sess, created_at, 0 AS kind, request_id, NULL::text AS type FROM kept
-	WHERE sess IN (SELECT sess FROM unmatched)
+	SELECT sess, created_at, 0 AS kind, request_id, NULL::text AS type, NULL::uuid AS id, NULL::text AS product_id
+	FROM kept WHERE sess IN (SELECT sess FROM unmatched)
 	UNION ALL
-	SELECT sess, created_at, 1, NULL, type FROM unmatched
+	SELECT sess, created_at, 1, NULL, type, id, product_id FROM unmatched
 ),
 grp AS (
 	SELECT stream.*, COUNT(request_id) OVER (PARTITION BY sess ORDER BY created_at, kind, request_id
@@ -62,15 +64,19 @@ grp AS (
 	FROM stream
 ),
 by_sess AS (
-	SELECT a.type, s.request_id AS rid FROM grp a JOIN grp s ON s.sess = a.sess AND s.g = a.g AND s.kind = 0
+	SELECT a.id, a.type, a.created_at, a.product_id, s.request_id AS rid
+	FROM grp a JOIN grp s ON s.sess = a.sess AND s.g = a.g AND s.kind = 0
 	WHERE a.kind = 1 AND a.g > 0 AND a.created_at - s.created_at <= interval '30 minutes'
 ),
 flags AS (
-	SELECT rid, bool_or(type IN ('add_to_cart', 'order')) AS carted, bool_or(type = 'order') AS ordered
-	FROM (SELECT type, rid FROM by_req UNION ALL SELECT type, rid FROM by_sess) x GROUP BY rid
+	SELECT rid, bool_or(type IN ('add_to_cart', 'order')) AS carted, bool_or(type = 'order') AS ordered,
+		(array_agg(product_id ORDER BY created_at, id) FILTER (WHERE product_id <> ''))[1] AS product
+	FROM (SELECT id, type, created_at, product_id, rid FROM by_req
+		UNION ALL SELECT id, type, created_at, product_id, rid FROM by_sess) x GROUP BY rid
 ),
 outc AS (
-	SELECT k.*, f.rid IS NOT NULL AS clicked, COALESCE(f.carted, false) AS carted, COALESCE(f.ordered, false) AS ordered
+	SELECT k.*, f.rid IS NOT NULL AS clicked, COALESCE(f.carted, false) AS carted, COALESCE(f.ordered, false) AS ordered,
+		f.product
 	FROM kept k LEFT JOIN flags f ON f.rid = k.request_id
 ),
 o AS (
@@ -78,6 +84,9 @@ o AS (
 		AND LEAD(created_at) OVER w - created_at <= interval '60 seconds' AND LEAD(q) OVER w <> q) AS reformulated
 	FROM outc WINDOW w AS (PARTITION BY sess ORDER BY created_at, request_id)
 )`
+
+// openEnd — верхняя граница периода «до сейчас» (@until без отсечки).
+var openEnd = time.Date(9999, 1, 1, 0, 0, 0, 0, time.UTC)
 
 // SearchTotals — суммы исходов поисков одного источника (source = "" — по всем источникам).
 type SearchTotals struct {
@@ -156,7 +165,7 @@ SELECT
 		GROUP BY q
 		HAVING COUNT(*) FILTER (WHERE results_count = 0 OR NOT clicked) > 0
 		ORDER BY n LIMIT @limit) y) AS problems`,
-		map[string]any{"since": since, "limit": limit}).Scan(&row).Error
+		map[string]any{"since": since, "until": openEnd, "limit": limit}).Scan(&row).Error
 	if err != nil {
 		return nil, nil, err
 	}

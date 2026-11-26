@@ -21,10 +21,13 @@ const emit = defineEmits<{
   close: []
   accepted: [p: Proposal, res: ApproveResponse]
   rejected: [p: Proposal]
+  /** 409 при «Принять»: правила сменились и перепроверка не прошла — в карточке появился evidence.recheck. */
+  conflict: [p: Proposal]
 }>()
 
 const busy = ref(false)
 const err = ref('')
+const conflict = ref(false)
 const reason = ref<ProposalRejectReason | ''>('')
 const comment = ref('')
 
@@ -33,6 +36,7 @@ watch(
   () => {
     busy.value = false
     err.value = ''
+    conflict.value = false
     reason.value = ''
     comment.value = ''
   },
@@ -66,6 +70,7 @@ async function accept() {
   if (!p) return
   busy.value = true
   err.value = ''
+  conflict.value = false
   try {
     const res = await approveProposal(p.id)
     busy.value = false
@@ -73,6 +78,8 @@ async function accept() {
   } catch (e) {
     busy.value = false
     err.value = message(e)
+    conflict.value = isApiError(e) && e.status === 409
+    if (conflict.value) emit('conflict', p)
   }
 }
 
@@ -105,16 +112,26 @@ async function reject() {
         <template v-if="nextVersion">Будет создана версия {{ nextVersion }}</template>
         <template v-else>Будет создана новая версия правил</template>, её можно откатить.
       </p>
-      <p v-if="err" class="decision__err" role="alert">
+      <p v-if="err && conflict" class="decision__err" role="alert">
+        <CircleAlert :size="16" aria-hidden="true" />
+        <span>{{ err }}. Результат перепроверки — в карточке предложения.</span>
+      </p>
+      <p v-else-if="err" class="decision__err" role="alert">
         <CircleAlert :size="16" aria-hidden="true" />
         Правка не применилась: {{ err }}. Статус предложения не изменился.
       </p>
     </div>
     <template #footer>
       <button type="button" class="btn btn--secondary" :disabled="busy" @click="emit('close')">
-        Отмена
+        {{ conflict ? 'Закрыть' : 'Отмена' }}
       </button>
-      <button type="button" class="btn btn--primary" :disabled="busy" @click="accept">
+      <button
+        v-if="!conflict"
+        type="button"
+        class="btn btn--primary"
+        :disabled="busy"
+        @click="accept"
+      >
         {{ busy ? 'Применяем…' : ticket ? 'Взять в работу' : 'Принять' }}
       </button>
     </template>

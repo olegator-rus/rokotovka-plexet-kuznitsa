@@ -302,6 +302,14 @@ export interface EvalMetrics {
   false_rescue_rate: number | null
   violation_rate: number | null
   violation_items: number
+  /** Набор holdout_week: исторические поиски окна (с весом частоты), из них размеченных. */
+  searches?: number
+  judged_searches?: number
+  /** Доля размеченных поисков с релевантным в топ-10, с весом частоты. */
+  relevant_top10_weighted?: number | null
+  /** Поиски, где у предыдущей конфигурации прогона релевантного в топ-10 не было, а у этой есть (и наоборот). */
+  rescued_searches?: number
+  lost_searches?: number
   /** Запросы, на которых поиск вернул ошибку (в метрики не входят). */
   errors: number
   latency: EvalLatency
@@ -657,7 +665,7 @@ export interface AgentRunRequest {
   trigger: 'manual' | 'schedule'
 }
 
-export type ProposalStatus = 'pending' | 'accepted' | 'rejected' | 'rolled_back'
+export type ProposalStatus = 'pending' | 'accepted' | 'rejected' | 'rolled_back' | 'stale'
 export type ProposalRole = 'ecom' | 'product' | 'content'
 export type Diagnosis =
   | 'ALIAS_GAP'
@@ -754,7 +762,20 @@ export interface ProposalEvidence {
   current_search?: CurrentSearch[] | null
   reformulations?: { from: string; to: string; count: number; clicked: number }[] | null
   substitutes?: { name: string; vendor: string; family_id: string }[] | null
+  /** Перепроверка при «Принять», если правила сменились после проверки агента. */
+  recheck?: ProposalRecheck | null
+  /** Прогон агента до перепроверки — когда перепроверка прошла и evaluation заменён новым. */
+  initial_evaluation?: ProposalEvaluation | null
   [key: string]: unknown
+}
+
+export interface ProposalRecheck {
+  from_version: number
+  to_version: number
+  passed: boolean
+  reasons?: string[] | null
+  evaluation?: ProposalEvaluation | null
+  checked_at?: string
 }
 
 /** Эффект принятой правки: проверка verify_applied_change на действующих правилах. */
@@ -792,6 +813,8 @@ export interface Proposal {
   effect?: AppliedEffect | null
   /** Запрос для «Проверить в поиске». */
   check_query?: string | null
+  /** Почему предложение устарело (status: stale): код или текст сервера. */
+  stale_reason?: string | null
 }
 
 export interface ProposalsResponse {

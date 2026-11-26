@@ -2,7 +2,9 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import {
+  MSG_AUTH,
   MSG_SERVER,
+  isAuthError,
   MSG_UNKNOWN,
   isApiError,
   networkError,
@@ -35,4 +37,20 @@ test('networkError и isApiError', () => {
   assert.equal(e.status, 0)
   assert.equal(isApiError(e), true)
   assert.equal(isApiError(new Error('x')), false)
+})
+
+test('parseApiError: 401 — понятное «нужен вход менеджера» вместо текста про токен', () => {
+  const e = parseApiError(401, {
+    error: {
+      code: 'UNAUTHORIZED',
+      message: 'Нужен вход в бэк-офис: … BACKOFFICE_TOKEN',
+      traceId: 't1',
+    },
+  })
+  assert.equal(e.message, MSG_AUTH)
+  assert.equal(e.code, 'UNAUTHORIZED')
+  assert.equal(e.traceId, 't1')
+  assert.ok(isAuthError(e))
+  assert.ok(isAuthError(parseApiError(401, '<html>')))
+  assert.ok(!isAuthError(parseApiError(403, null)))
 })

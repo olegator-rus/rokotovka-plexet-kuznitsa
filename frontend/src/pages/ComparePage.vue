@@ -1,6 +1,7 @@
 <script setup lang="ts">
 // «До / После». Вкладки — reka Tabs, выбранная вкладка и запрос сравнения живут в адресе:
-//   /compare?tab=metrics | one&q=…&left=B0&right=B3 | regressions&cfg=B3
+//   /compare?tab=metrics | one&q=…&left=B0&right=B3 | regressions&cfg=B3 | effect
+// «Эффект агента» — реплей отложенной недели (набор holdout_week), только чтение.
 // Прогон оценки — POST /api/evaluations/run, дальше опрос GET /api/evaluations, пока идёт; с экрана
 // можно уйти и вернуться. Непосчитанные метрики не показываются, чисел-заглушек нет.
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
@@ -11,6 +12,7 @@ import { LoaderCircle, Play, RotateCcw } from 'lucide-vue-next'
 import { getEvaluations, runEvaluation } from '@/api/evaluations'
 import type { ConfigId, EvalJob } from '@/api/types'
 import BlockError from '@/components/common/BlockError.vue'
+import AgentEffect from '@/components/compare/AgentEffect.vue'
 import JudgeAgreement from '@/components/compare/JudgeAgreement.vue'
 import MetricsTable from '@/components/compare/MetricsTable.vue'
 import OneQueryCompare from '@/components/compare/OneQueryCompare.vue'
@@ -25,7 +27,7 @@ import { useAppStore } from '@/stores/app'
 
 const POLL_MS = 2000
 const EVAL_SET = 'test'
-const TABS = ['metrics', 'one', 'regressions'] as const
+const TABS = ['metrics', 'one', 'regressions', 'effect'] as const
 type Tab = (typeof TABS)[number]
 
 const route = useRoute()
@@ -40,6 +42,7 @@ const repro = computed(() => reproducibility(columns.value))
 const regressionTotal = computed(() => regressionCount(columns.value))
 const latest = computed(() => latestRun(columns.value))
 const judge = computed(() => evals.data.value?.judge_agreement ?? null)
+const hasB4 = computed(() => columns.value.some((c) => c.config === 'B4'))
 
 // ── Адрес ──
 const str = (v: unknown) => (typeof v === 'string' ? v : '')
@@ -233,6 +236,7 @@ onBeforeUnmount(() => {
           Ухудшения
           <span v-if="columns.length" class="badge t-num">{{ regressionTotal }}</span>
         </TabsTrigger>
+        <TabsTrigger value="effect" class="tabs__trigger">Эффект агента</TabsTrigger>
       </TabsList>
 
       <TabsContent value="metrics" class="compare__panel">
@@ -252,8 +256,8 @@ onBeforeUnmount(() => {
         <template v-else>
           <p v-if="repro" class="t-sm">
             Набор <strong>{{ repro.set }}</strong>: {{ formatInt(repro.queryCount) }}
-            {{ plural(repro.queryCount, ['запрос', 'запроса', 'запросов']) }}, заморожен — на нём
-            ничего не настраивалось.
+            {{ plural(repro.queryCount, ['запрос', 'запроса', 'запросов']) }}, заморожен — поиск
+            B0–B3 на нём не настраивался.
             <span v-if="!repro.sameSet" class="t-muted">
               Внимание: столбцы посчитаны на разных версиях набора.
             </span>
@@ -274,6 +278,12 @@ onBeforeUnmount(() => {
             · <span class="t-mono">make eval</span> · последний прогон
             {{ latest ? formatDateTime(latest.created_at) : '—' }}
           </p>
+          <p v-if="hasB4 && repro?.set === 'test'" class="t-sm t-muted">
+            Столбец B4 на test — оценка обобщения правок агента на запросах, которых он не видит, а
+            не их эффект. Эффект — на вкладке
+            <button type="button" class="link" @click="tab = 'effect'">«Эффект агента»</button>
+            (реплей отложенной недели).
+          </p>
           <JudgeAgreement v-if="judge" :judge="judge" />
           <p
             v-if="evals.status.value === 'error' && evals.error.value"
@@ -290,6 +300,10 @@ onBeforeUnmount(() => {
 
       <TabsContent value="one" class="compare__panel">
         <OneQueryCompare :query="oneQuery" :left="left" :right="right" @change="onOneChange" />
+      </TabsContent>
+
+      <TabsContent value="effect" class="compare__panel">
+        <AgentEffect />
       </TabsContent>
 
       <TabsContent value="regressions" class="compare__panel">

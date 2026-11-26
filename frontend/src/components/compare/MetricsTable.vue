@@ -76,6 +76,9 @@ function toRegressions() {
           <th v-for="run in columns" :key="run.config" scope="col" class="metrics__col">
             <span class="metrics__cfg">{{ run.config }}</span>
             <span class="metrics__cfg-hint">{{ configHint(run.config) }}</span>
+            <span v-if="run.config === 'B4' && run.set === 'test'" class="metrics__cfg-note">
+              на test — оценка обобщения
+            </span>
           </th>
         </tr>
       </thead>
@@ -202,6 +205,16 @@ thead .metrics__name {
   max-width: 10rem;
   margin-left: auto;
   color: var(--text-3);
+  font-size: var(--fs-xs);
+  line-height: var(--lh-xs);
+  font-weight: var(--fw-regular);
+  white-space: normal;
+}
+.metrics__cfg-note {
+  display: block;
+  max-width: 10rem;
+  margin-left: auto;
+  color: var(--text-2);
   font-size: var(--fs-xs);
   line-height: var(--lh-xs);
   font-weight: var(--fw-regular);

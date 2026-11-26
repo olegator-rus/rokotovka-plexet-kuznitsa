@@ -50,6 +50,6 @@ func (r *Repos) BehaviorEventsSince(ctx context.Context, since time.Time) ([]dom
 		return nil, ErrNoDatabase
 	}
 	var rows []domain.BehaviorEvent
-	err := r.db.WithContext(ctx).Where("created_at >= ?", since).Order("created_at").Find(&rows).Error
+	err := r.db.WithContext(ctx).Where("created_at >= ?", since).Order("created_at, id").Find(&rows).Error
 	return rows, err
 }

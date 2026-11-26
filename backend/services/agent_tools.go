@@ -152,7 +152,7 @@ func (cr *clusterRun) dispatch(ctx context.Context, name, raw string) (any, stri
 	case "get_failed_queries":
 		return cr.toolFailedQueries(raw)
 	case "get_query_cluster":
-		return cr.toolQueryCluster(raw)
+		return cr.toolQueryCluster(ctx, raw)
 	case "search_catalog":
 		return cr.toolSearchCatalog(ctx, raw)
 	case "get_active_rules":
@@ -166,7 +166,7 @@ func (cr *clusterRun) dispatch(ctx context.Context, name, raw string) (any, stri
 	case "get_product_relations":
 		return cr.toolProductRelations(raw)
 	case "get_previous_decisions":
-		return cr.toolPreviousDecisions(raw)
+		return cr.toolPreviousDecisions(ctx, raw)
 	case "create_sandbox_patch":
 		return cr.toolCreatePatch(ctx, raw)
 	case "run_evaluation":
@@ -223,7 +223,7 @@ func (cr *clusterRun) toolFailedQueries(raw string) (any, string, error) {
 		fmt.Sprintf("%d запросов из %d неудачных", len(qs), len(cr.rc.failed)), nil
 }
 
-func (cr *clusterRun) toolQueryCluster(raw string) (any, string, error) {
+func (cr *clusterRun) toolQueryCluster(ctx context.Context, raw string) (any, string, error) {
 	var args struct {
 		ClusterID string `json:"cluster_id"`
 	}
@@ -234,7 +234,7 @@ func (cr *clusterRun) toolQueryCluster(raw string) (any, string, error) {
 	if c == nil {
 		return nil, "", terr("кластера %q в этом запуске нет", args.ClusterID)
 	}
-	return cr.rc.clusterBrief(c, nonNil(cr.rc.memoryFor(c.Key, c.Terms))), fmt.Sprintf("«%s», %d запросов", c.Label, len(c.Queries)), nil
+	return cr.rc.clusterBrief(c, nonNil(cr.rc.memoryFor(ctx, c.Key, c.Terms))), fmt.Sprintf("«%s», %d запросов", c.Label, len(c.Queries)), nil
 }
 
 func (cr *clusterRun) toolSearchCatalog(ctx context.Context, raw string) (any, string, error) {
@@ -465,7 +465,7 @@ func (cr *clusterRun) toolProductRelations(raw string) (any, string, error) {
 	return map[string]any{"family_id": f.ID, "relations": nonNil(rels)}, fmt.Sprintf("%s: связей %d", f.Name, len(rels)), nil
 }
 
-func (cr *clusterRun) toolPreviousDecisions(raw string) (any, string, error) {
+func (cr *clusterRun) toolPreviousDecisions(ctx context.Context, raw string) (any, string, error) {
 	var args struct {
 		ClusterID string `json:"cluster_id"`
 		Term      string `json:"term"`
@@ -480,7 +480,7 @@ func (cr *clusterRun) toolPreviousDecisions(raw string) (any, string, error) {
 	if t := foldText(strings.TrimSpace(args.Term)); t != "" {
 		key, terms = t, []string{t}
 	}
-	hits := cr.rc.memoryFor(key, terms)
+	hits := cr.rc.memoryFor(ctx, key, terms)
 	return map[string]any{"items": nonNil(hits)}, fmt.Sprintf("решений найдено: %d", len(hits)), nil
 }
 

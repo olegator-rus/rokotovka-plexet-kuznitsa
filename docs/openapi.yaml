@@ -14,6 +14,14 @@ info:
       `traceId` совпадает с заголовком `X-Request-Id` и строкой журнала сервера.
     - Изменяющие запросы (POST) принимаются только с заголовком `Origin`, равным `PUBLIC_ORIGIN` магазина
       (защита от CSRF); иначе 403.
+    - Вход в бэк-офис: при заданном `BACKOFFICE_TOKEN` всё, кроме витрины покупателя, требует
+      `Authorization: Bearer <токен>` (скрипты) или `Basic` с паролем = токен (браузер после basic_auth Caddy);
+      без входа — 401 с `WWW-Authenticate: Basic`. Без входа открыты только GET `/api/health`, `/api/meta`,
+      `/api/suggest`, `/api/evaluations` и POST `/api/search`, `/api/events` (`security: []` у операции).
+      В development токен пуст — вход выключен.
+    - Квота модели на адрес: разбор запроса моделью (маршрут D) не дороже `LLM_PER_IP_DAILY_RUB` ₽ в сутки с
+      одного адреса; сверх неё и сверх дневного бюджета разбор идёт по правилам (`fallback_reason` в трассе:
+      `ip_quota`, `budget_exceeded`), поиск не падает.
     - Лимит частоты — `RATE_LIMIT_PER_MIN` запросов в минуту с одного адреса (по умолчанию 600; `/api/health`
       и поток SSE не считаются). Сверх лимита — 429 и заголовки `X-Ratelimit-*`.
     - Срок обработки запроса — 25 с (кроме импорта каталога и потока SSE).
@@ -23,6 +31,9 @@ info:
 servers:
   - url: http://127.0.0.1:8088
     description: локальная разработка (make dev)
+security:
+  - backofficeBearer: []
+  - backofficeBasic: []
 tags:
   - name: Поиск
   - name: Аналитика
@@ -37,6 +48,7 @@ paths:
       tags: [Служебное]
       summary: Проверка живости (вне /api, для compose и мониторинга)
       operationId: healthRoot
+      security: []
       responses:
         "200": { $ref: "#/components/responses/Health" }
   /api/health:
@@ -45,6 +57,7 @@ paths:
       summary: Проверка живости
       description: Всегда 200, пока процесс отвечает; состояние базы, OpenSearch и эмбеддера — в полях.
       operationId: health
+      security: []
       responses:
         "200": { $ref: "#/components/responses/Health" }
   /api/meta:
@@ -53,6 +66,7 @@ paths:
       summary: Справочная информация для витрины
       description: Режим LLM и плашка режима, версия каталога и правил, конфигурации поиска, покупатели для переключателя.
       operationId: meta
+      security: []
       responses:
         "200":
           description: Метаданные
@@ -94,6 +108,7 @@ paths:
         лицензии и бизнес-слой. Модель вызывается только на маршруте D и только для разбора намерения; её ответ
         сверяется со справочниками. Поиск пишется в журнал (`search_events`), трасса — в `search_traces`.
       operationId: search
+      security: []
       requestBody:
         required: true
         content:
@@ -112,6 +127,7 @@ paths:
       tags: [Поиск]
       summary: Подсказки при наборе
       operationId: suggest
+      security: []
       parameters:
         - { name: q, in: query, required: true, schema: { type: string } }
         - { name: client_id, in: query, schema: { type: string } }
@@ -145,6 +161,7 @@ paths:
       summary: Событие поведения покупателя
       description: Клик, корзина, заказ и действия с выдачей. Событие `search` пишет сам `POST /api/search`.
       operationId: event
+      security: []
       requestBody:
         required: true
         content:
@@ -227,8 +244,10 @@ paths:
         Три сценария (консервативный, базовый, оптимистичный) в заказах и рублях в месяц:
         `заказы = поиски в месяц × доля проблемных × поправка на сессии × доля спасённых × вероятность заказа`,
         `рубли = заказы × средний чек`. Поиски, доля проблемных, поправка на сессии, вероятность заказа и средний
-        чек измеряются по журналам за период; доля спасённых — по прогону оценки B0 vs B4 на замороженном наборе
-        test, сценарии берут границы её 95% интервала Уилсона. Любое допущение можно задать параметром — тогда
+        чек измеряются по журналам за период; доля спасённых — по реплею отложенной недели (`holdout_week`,
+        поиски, которых агент не видел): вклад поиска B0 → B3 и вклад агента B3 → B4, если все принятые правки
+        B4 сделаны запусками после разреза журнала (иначе 0, причина — `agent_note`). Доля — по поискам, сценарии
+        берут границы её 95% интервала Уилсона (n — различные запросы). Любое допущение можно задать параметром — тогда
         `source: request`. Сценарная оценка на тестовых данных; фактический эффект измеряется A/B-тестом в пилоте.
       operationId: effect
       parameters:
@@ -290,9 +309,15 @@ paths:
     get:
       tags: [Оценка]
       summary: Последний прогон оценки каждой конфигурации на наборе
+      description: |
+        `holdout_week` — реплей отложенной недели журнала: поиски последних 7 дней журнала, которых агент не видел
+        (разрез AGENT_HOLDOUT_FROM), частота запроса — число его поисков за неделю. Набор собран из журнала
+        покупателей, поэтому без входа в бэк-офис `query_id` и `text` в `regressions`/`improvements` пустые —
+        остаются метрики и число изменений.
       operationId: evaluations
+      security: []
       parameters:
-        - { name: set, in: query, schema: { type: string, enum: [tune, test, regression, demo], default: test } }
+        - { name: set, in: query, schema: { type: string, enum: [tune, test, regression, demo, holdout_week], default: test } }
       responses:
         "200":
           description: Метрики B0–B4, ухудшения и улучшения, прогресс прогона, согласие LLM-судьи
@@ -310,7 +335,7 @@ paths:
             schema:
               type: object
               properties:
-                set: { type: string, enum: [tune, test, regression, demo] }
+                set: { type: string, enum: [tune, test, regression, demo, holdout_week] }
                 configs: { type: array, items: { type: string, enum: [B0, B1, B2, B3, B4] } }
       responses:
         "202":
@@ -437,7 +462,7 @@ paths:
       summary: Очередь предложений агента
       operationId: proposals
       parameters:
-        - { name: status, in: query, schema: { type: string, enum: [pending, accepted, rejected, rolled_back] } }
+        - { name: status, in: query, schema: { type: string, enum: [pending, accepted, rejected, rolled_back, stale] } }
         - { name: role, in: query, schema: { type: string, enum: [ecom, product, content] } }
       responses:
         "200":
@@ -531,11 +556,15 @@ paths:
                         created_at: { type: string, format: date-time }
                         author: { type: string, enum: [agent+human, human, system] }
                         source: { type: string, enum: [import, agent, rollback] }
-                        description: '{ type: string }'
+                        description: { type: string }
                         proposal_id: { type: [string, "null"] }
                         aliases: { type: integer }
                         diff: { $ref: "#/components/schemas/RulePatch" }
                         effect: { type: [object, "null"] }
+                        catalog_version: { type: string, description: "Каталог, для которого собраны правила" }
+                        archived:
+                          type: boolean
+                          description: "Версия прежнего каталога: после импорта другого каталога цепочка начинается заново, откат к ней — 409"
   /api/configs/rollback:
     post:
       tags: [Предложения и правила]
@@ -565,6 +594,15 @@ paths:
         "409": { $ref: "#/components/responses/Error" }
         "422": { $ref: "#/components/responses/Error" }
 components:
+  securitySchemes:
+    backofficeBearer:
+      type: http
+      scheme: bearer
+      description: "Токен бэк-офиса (BACKOFFICE_TOKEN) — скрипты и CLI"
+    backofficeBasic:
+      type: http
+      scheme: basic
+      description: "Basic: пользователь любой, пароль — токен бэк-офиса; браузер шлёт после входа на basic_auth Caddy"
   parameters:
     ID: { name: id, in: path, required: true, schema: { type: string, format: uuid } }
     ServerRub20k: { name: server_rub_20k, in: query, description: "Допущение: сервер при 20 тыс. запросов, ₽/мес (7500)", schema: { type: number, minimum: 0 } }
@@ -742,7 +780,11 @@ components:
         trace: { $ref: "#/components/schemas/Trace" }
     Trace:
       type: object
-      description: Трасса запроса. Пропущенный шаг — skipped:true с причиной; числа — замеры.
+      description: |
+        Трасса запроса. Пропущенный шаг — skipped:true с причиной; числа — замеры. Шаг разбора
+        намерения несёт `fallback_reason`, если разбор остался на правилах: llm_off | llm_not_configured |
+        llm_error | schema_error | catalog_not_loaded | budget_exceeded (дневной бюджет LLM) | ip_quota (квота
+        адреса покупателя на модель).
       properties:
         request_id: { type: string }
         route: { type: string, enum: [A, B, C, D] }
@@ -809,7 +851,7 @@ components:
               outcome_label: { type: string }
               diagnosis: { type: string }
               proposal_id: { type: [string, "null"], description: Предложение агента по кластеру этого запроса }
-              proposal_status: { type: [string, "null"], enum: [pending, accepted, rejected, rolled_back, null] }
+              proposal_status: { type: [string, "null"], enum: [pending, accepted, rejected, rolled_back, stale, null] }
               proposal_diagnosis: { oneOf: [{ $ref: "#/components/schemas/Diagnosis" }, { type: "null" }] }
         sources: { type: object, additionalProperties: { type: integer } }
         effect:
@@ -848,15 +890,26 @@ components:
             rescued:
               type: [object, "null"]
               properties:
-                set: { type: string }
-                baseline: { type: string }
-                config: { type: string }
+                set: { type: string, enum: [holdout_week] }
+                set_hash: { type: string }
+                source: { type: string, description: "Откуда доля: набор, прогоны, засчитан ли вклад агента" }
+                baseline: { type: string, enum: [B0] }
+                config: { type: string, enum: [B3, B4], description: "B4 — только если вклад агента засчитан" }
                 run_baseline: { type: string }
                 run_config: { type: string }
+                run_agent: { type: string, description: "Прогон B4; пусто — не прогонялся" }
                 rules_version: { type: integer }
-                failed: { type: integer }
+                agent_rules_version: { type: integer }
+                weight: { type: string, enum: [searches] }
+                failed: { type: integer, description: "Поисков, где B0 не дал релевантного в топ-10" }
                 rescued: { type: integer }
+                failed_queries: { type: integer }
+                rescued_queries: { type: integer }
                 share: { type: number }
+                search_share: { type: number, description: "Вклад поиска B0 → B3" }
+                agent_share: { type: number, description: "Вклад агента B3 → B4; 0, если не засчитан" }
+                agent_counted: { type: boolean }
+                agent_note: { type: string }
                 ci_low: { type: number }
                 ci_high: { type: number }
         assumptions: { type: array, items: { $ref: "#/components/schemas/EffectParam" } }
@@ -1130,11 +1183,21 @@ components:
         evidence: { type: [object, "null"], additionalProperties: true }
         hypotheses_tried: { type: integer }
         base_version: { type: integer }
-        status: { type: string, enum: [pending, accepted, rejected, rolled_back] }
+        status:
+          type: string
+          enum: [pending, accepted, rejected, rolled_back, stale]
+          description: "stale — принять нельзя: сменился каталог или предложение из запуска до разреза журнала"
         created_at: { type: string, format: date-time }
         decided_at: { type: [string, "null"], format: date-time }
         decided_reason: { type: [string, "null"] }
         decided_comment: { type: [string, "null"] }
+        stale_reason:
+          type: [string, "null"]
+          enum: [catalog_changed, pre_holdout, null]
+          description: |
+            Только у status = stale: catalog_changed — импорт другого каталога (правка проверялась на прежнем
+            словаре); pre_holdout — запуск агента до разреза журнала видел отложенную неделю и тексты test
+            (`go run . proposals stale --run <id> --reason "<текст>"`, текст — в decided_comment).
         config_version: { type: [integer, "null"] }
         effect: { type: [object, "null"], additionalProperties: true }
         check_query: { type: string }

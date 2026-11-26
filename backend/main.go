@@ -98,6 +98,10 @@ func main() {
 		runJudge(ctx, log, svc, os.Args[2:])
 		return
 	}
+	if len(os.Args) > 1 && os.Args[1] == "proposals" {
+		runProposals(ctx, log, svc, os.Args[2:])
+		return
+	}
 	if len(os.Args) > 1 && os.Args[1] == "warmup" {
 		runWarmup(ctx, log, svc, os.Args[2:])
 		return

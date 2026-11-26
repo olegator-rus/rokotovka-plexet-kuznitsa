@@ -92,7 +92,7 @@ func (rc *runCtx) investigate(ctx context.Context, c *failedCluster) clusterResu
 			}
 		}
 	}
-	cr.memory = rc.memoryFor(c.Key, c.Terms)
+	cr.memory = rc.memoryFor(ctx, c.Key, c.Terms)
 	a, rs := rc.a, rc.rs
 	id := c.ID
 	a.step(ctx, rs, &domain.AgentStep{Kind: domain.StepThought, ClusterID: &id, OK: true,

@@ -111,3 +111,23 @@ test('traceItemFor, rankLabel, rejectedLabel', () => {
   )
   assert.equal(rejectedLabel({ product_id: 'x', reason: 'odd' }), 'odd')
 })
+
+test('шаг intent: источник разбора и причина отката на правила', async () => {
+  const { intentFallback } = await import('../src/lib/trace.ts')
+  assert.equal(stepSummary(step({ name: 'intent', source: 'llm' })), 'LLM')
+  assert.equal(
+    stepSummary(step({ name: 'intent', source: 'rules', reason: 'budget_exceeded' })),
+    'правила · дневной бюджет LLM исчерпан',
+  )
+  assert.equal(
+    stepSummary(step({ name: 'intent', source: 'rules', reason: 'ip_quota' })),
+    'правила · суточная квота LLM для адреса исчерпана',
+  )
+  const trace = { steps: [step({ name: 'intent', source: 'rules', reason: 'ip_quota' })] }
+  assert.equal(intentFallback(trace), 'суточная квота LLM для адреса исчерпана')
+  assert.equal(
+    intentFallback({ steps: [step({ name: 'intent', skipped: true, reason: 'not_route_d' })] }),
+    null,
+  )
+  assert.equal(intentFallback(null), null)
+})

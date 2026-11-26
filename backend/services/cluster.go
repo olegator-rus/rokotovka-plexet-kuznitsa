@@ -10,6 +10,7 @@ import (
 
 	"kuznica/api/domain"
 	"kuznica/api/in"
+	"kuznica/api/repositories"
 )
 
 // Кластеризация неудачных запросов (ARCHITECTURE §3.1, шаги 2–3): исходы поисков из журналов
@@ -194,8 +195,16 @@ func computeQueryStats(searches []domain.SearchEvent, behavior []domain.Behavior
 		}
 	}
 	for _, q := range st.byText {
-		q.Failures = q.Empty + q.Reformulated + q.NoClick
 		q.FailSessions = len(q.failSess)
+	}
+	st.finish()
+	return st
+}
+
+// finish — число неудач и пять главных переформулировок каждого запроса.
+func (st *queryStats) finish() {
+	for _, q := range st.byText {
+		q.Failures = q.Empty + q.Reformulated + q.NoClick
 		sort.Slice(q.ReformulatedTo, func(i, j int) bool {
 			a, b := q.ReformulatedTo[i], q.ReformulatedTo[j]
 			if a.Count != b.Count {
@@ -207,6 +216,28 @@ func computeQueryStats(searches []domain.SearchEvent, behavior []domain.Behavior
 			q.ReformulatedTo = q.ReformulatedTo[:5]
 		}
 	}
+}
+
+// queryStatsFromSQL — те же исходы из SQL-агрегата (repositories.AgentQueryStatsBetween).
+func queryStatsFromSQL(a *repositories.AgentQueryStats) *queryStats {
+	st := &queryStats{byText: map[string]*clusterQuery{}, clickedProduct: map[string]map[string]int{}}
+	for _, r := range a.Queries {
+		st.byText[r.Query] = &clusterQuery{Text: r.Query, Freq: r.Freq, Empty: r.Empty, Reformulated: r.Reformulated,
+			NoClick: r.NoClick, Clicks: r.Clicks, Orders: r.Orders, FailSessions: r.FailSessions}
+	}
+	for _, r := range a.Reforms {
+		if q := st.byText[r.Query]; q != nil {
+			q.ReformulatedTo = append(q.ReformulatedTo, reformTarget{Text: r.Target, Count: r.Count, Clicked: r.Clicked,
+				ClickedOn: r.ClickedOn})
+		}
+	}
+	for _, r := range a.Clicks {
+		if st.clickedProduct[r.Query] == nil {
+			st.clickedProduct[r.Query] = map[string]int{}
+		}
+		st.clickedProduct[r.Query][r.ProductID] = r.N
+	}
+	st.finish()
 	return st
 }
 

@@ -60,7 +60,7 @@ test.describe('Жюри', () => {
       await expect(table.getByRole('columnheader', { name: new RegExp(`^${cfg}`) })).toBeVisible()
     }
     await expect(table.getByRole('rowheader', { name: /NDCG/ }).first()).toBeVisible()
-    await expect(page.getByText(/заморожен — на нём ничего не настраивалось/)).toBeVisible()
+    await expect(page.getByText(/заморожен — поиск B0–B3 на нём не настраивался/)).toBeVisible()
     await expect(page.getByText(/Воспроизводимость: хэш набора/)).toBeVisible()
 
     // Ячейка открывает «Как посчитано» — число не голое.

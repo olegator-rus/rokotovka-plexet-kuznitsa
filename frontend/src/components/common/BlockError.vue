@@ -2,14 +2,17 @@
 // Ошибка внутри блока раздела: что не загрузилось, текст сервера, номер для разбора и повтор.
 // Остальные блоки страницы продолжают работать («Состояния экранов»).
 import { computed } from 'vue'
-import { CircleAlert, RotateCcw } from 'lucide-vue-next'
-import type { ApiError } from '@/lib/apiError'
+import { CircleAlert, LogIn, RotateCcw } from 'lucide-vue-next'
+import { type ApiError, isAuthError } from '@/lib/apiError'
 
 const props = defineProps<{ error: ApiError; title: string }>()
 defineEmits<{ retry: [] }>()
 
 /** 404 — эндпоинт ещё не подключён на сервере: так и пишем, без «что-то пошло не так». */
 const notYet = computed(() => props.error.status === 404)
+/** 401 — экран менеджера без входа: перезагрузка страницы бэк-офиса вызывает окно входа браузера. */
+const needsLogin = computed(() => isAuthError(props.error))
+const login = () => window.location.reload()
 </script>
 
 <template>
@@ -26,7 +29,11 @@ const notYet = computed(() => props.error.status === 404)
         Номер для разбора: <span class="t-mono">{{ error.traceId }}</span>
       </p>
       <div>
-        <button type="button" class="btn btn--secondary btn--sm" @click="$emit('retry')">
+        <button v-if="needsLogin" type="button" class="btn btn--secondary btn--sm" @click="login">
+          <LogIn :size="14" aria-hidden="true" />
+          Войти
+        </button>
+        <button v-else type="button" class="btn btn--secondary btn--sm" @click="$emit('retry')">
           <RotateCcw :size="14" aria-hidden="true" />
           Повторить
         </button>

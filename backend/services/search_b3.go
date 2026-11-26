@@ -148,7 +148,7 @@ func (s *Services) searchB3(ctx context.Context, requestID string, req in.Search
 
 	denseCh := make(chan retrieval, 1)
 	filters := strictFilters(attrs, ent)
-	go func() { denseCh <- s.dense(ctx, denseText, info, filters...) }()
+	go func() { denseCh <- s.denseSafe(ctx, denseText, info, filters...) }()
 	bm := s.lexicalB3(ctx, text, expansions, b3MinMatch, filters)
 	if bm.err == nil && len(bm.step.Top) == 0 && strings.Contains(text, " ") {
 		// Все слова вместе не встретились ни в одной позиции — ослабляем до «любое слово».

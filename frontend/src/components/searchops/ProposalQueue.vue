@@ -54,15 +54,18 @@ function queryParam(key: string, allowed: { value: string }[], fallback: string)
 const status = queryParam('status', STATUS_OPTIONS, 'pending')
 const role = queryParam('role', ROLE_OPTIONS, ALL)
 
-const res = useResource((opts) =>
-  getProposals(
+// «Устарело» сервер может не принимать фильтром — тогда берём все и отбираем здесь.
+const res = useResource(async (opts) => {
+  const stale = status.value === 'stale'
+  const r = await getProposals(
     {
-      status: status.value === ALL ? undefined : status.value,
+      status: status.value === ALL || stale ? undefined : status.value,
       role: role.value === ALL ? undefined : role.value,
     },
     opts,
-  ),
-)
+  )
+  return stale ? { ...r, items: (r.items ?? []).filter((p) => p.status === 'stale') } : r
+})
 watch([status, role], () => void res.load(), { immediate: true })
 
 const items = computed(() => sortByLostDemand(res.data.value?.items ?? []))
@@ -107,6 +110,13 @@ function onAccepted(p: Proposal, r: ApproveResponse) {
     detail: 'Правило уже действует в поиске.',
     action: url ? { label: 'Проверить в поиске', run: () => void router.push(url) } : undefined,
   })
+}
+
+// 409: правка не прошла перепроверку на сменившихся правилах — перечитываем очередь, чтобы карточка
+// показала evidence.recheck; диалог остаётся открытым с причиной.
+function onConflict() {
+  void res.load({ quiet: true })
+  void app.loadMeta(true)
 }
 
 function onRejected(p: Proposal) {
@@ -185,6 +195,7 @@ function onRejected(p: Proposal) {
       @close="target = null"
       @accepted="onAccepted"
       @rejected="onRejected"
+      @conflict="onConflict"
     />
   </div>
 </template>

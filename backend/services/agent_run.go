@@ -34,9 +34,12 @@ type runCtx struct {
 	succ     []clusterQuery
 	succVecs [][]float32
 	succDone bool
-	episode  map[string]any
-	results  []map[string]any
-	skipped  []map[string]any
+	// memVecs — векторы терминов памяти (agent_memory.go); memVecOff — эмбеддер не ответил, векторы не берутся.
+	memVecs   map[string][]float32
+	memVecOff bool
+	episode   map[string]any
+	results   []map[string]any
+	skipped   []map[string]any
 }
 
 // execute — запуск целиком; любой исход записывается в статус запуска.
@@ -353,32 +356,24 @@ type memoryHit struct {
 	Comment    string    `json:"comment,omitempty"`
 	PatchKeys  []string  `json:"patch_keys,omitempty"`
 	At         time.Time `json:"at"`
+	// Match — как кластер совпал с записью: key | term | translit | layout | phonetic | vector (agent_memory.go).
+	Match string `json:"match"`
 }
 
-func (rc *runCtx) memoryFor(key string, terms []string) []memoryHit {
-	match := func(k string, ts []string) bool {
-		if k != "" && k == key {
-			return true
-		}
-		// Термин совпадает и в другой записи: «фигма» = «figma» после транслитерации.
-		for _, t := range ts {
-			for _, u := range terms {
-				if t == u || translit(t) == translit(u) {
-					return true
-				}
-			}
-		}
-		return false
+func (rc *runCtx) memoryFor(ctx context.Context, key string, terms []string) []memoryHit {
+	type entry struct {
+		key   string
+		terms []string
+		hit   memoryHit
 	}
-	var hits []memoryHit
+	var entries []entry
 	for _, d := range rc.decisions {
 		var ts, pk []string
 		_ = jsonUnmarshal(d.Terms, &ts)
 		_ = jsonUnmarshal(d.PatchKeys, &pk)
-		if match(d.ClusterKey, ts) {
-			hits = append(hits, memoryHit{Kind: "decision", ProposalID: d.ProposalID.String(), Label: d.ClusterLabel,
-				Diagnosis: d.Diagnosis, Status: d.Decision, Reason: d.Reason, Comment: d.Comment, PatchKeys: pk, At: d.CreatedAt})
-		}
+		entries = append(entries, entry{d.ClusterKey, ts, memoryHit{Kind: "decision", ProposalID: d.ProposalID.String(),
+			Label: d.ClusterLabel, Diagnosis: d.Diagnosis, Status: d.Decision, Reason: d.Reason, Comment: d.Comment,
+			PatchKeys: pk, At: d.CreatedAt}})
 	}
 	for _, p := range rc.proposals {
 		if p.Status != domain.ProposalPending {
@@ -386,9 +381,35 @@ func (rc *runCtx) memoryFor(key string, terms []string) []memoryHit {
 		}
 		var pk []string
 		_ = jsonUnmarshal(p.PatchKeys, &pk)
-		if match(p.ClusterKey, proposalTerms(&p)) {
-			hits = append(hits, memoryHit{Kind: "proposal", ProposalID: p.ID.String(), Label: p.ClusterLabel,
-				Diagnosis: p.Diagnosis, Status: p.Status, PatchKeys: pk, At: p.CreatedAt})
+		entries = append(entries, entry{p.ClusterKey, proposalTerms(&p), memoryHit{Kind: "proposal",
+			ProposalID: p.ID.String(), Label: p.ClusterLabel, Diagnosis: p.Diagnosis, Status: p.Status, PatchKeys: pk,
+			At: p.CreatedAt}})
+	}
+	var vecs map[string][]float32
+	var hits []memoryHit
+	for _, e := range entries {
+		m := ""
+		switch {
+		case e.key != "" && e.key == key:
+			m = "key"
+		default:
+			m = termsMatch(terms, e.terms)
+		}
+		if m == "" && len(terms) > 0 && len(e.terms) > 0 {
+			if vecs == nil {
+				all := append([]string(nil), terms...)
+				for _, x := range entries {
+					all = append(all, x.terms...)
+				}
+				vecs = rc.memoryVectors(ctx, all)
+			}
+			if vectorMatch(vecs, terms, e.terms) {
+				m = "vector"
+			}
+		}
+		if m != "" {
+			e.hit.Match = m
+			hits = append(hits, e.hit)
 		}
 	}
 	return hits
@@ -423,7 +444,7 @@ var rejectLabels = map[string]string{
 // ширины правки (тогда ту же проблему не предлагаем снова). Отказ «слишком широко» не закрывает кластер:
 // агент ищет правку уже, но отклонённую правку не повторит (код не пропустит).
 func (rc *runCtx) memorySkip(ctx context.Context, c *failedCluster) bool {
-	hits := rc.memoryFor(c.Key, c.Terms)
+	hits := rc.memoryFor(ctx, c.Key, c.Terms)
 	if len(hits) == 0 {
 		return false
 	}

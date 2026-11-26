@@ -39,16 +39,17 @@ func TestComputeEffect(t *testing.T) {
 	click.CreatedAt = at.Add(time.Minute)
 	mrr := 0.0
 	b0 := []out.EvalQueryResult{}
-	b4 := []out.EvalQueryResult{}
+	b3 := []out.EvalQueryResult{}
 	for i := 0; i < 20; i++ {
 		id := string(rune('a' + i))
-		b0 = append(b0, out.EvalQueryResult{ID: id, MRR10: &mrr, HasRelevant: false})
-		b4 = append(b4, out.EvalQueryResult{ID: id, MRR10: &mrr, HasRelevant: i < 15}) // спасено 15 из 20
+		b0 = append(b0, out.EvalQueryResult{ID: id, MRR10: &mrr, HasRelevant: false, Freq: 1})
+		b3 = append(b3, out.EvalQueryResult{ID: id, MRR10: &mrr, HasRelevant: i < 15, Freq: 1}) // спасено 15 из 20
 	}
 	b0 = append(b0, out.EvalQueryResult{ID: "noise", HasRelevant: false}) // без разметки — не считается
 	pq0, _ := json.Marshal(b0)
-	pq4, _ := json.Marshal(b4)
-	evals := []domain.Evaluation{{Config: "B0", RunID: "run0", PerQuery: pq0}, {Config: "B4", RunID: "run4", RulesVersion: 2, PerQuery: pq4}}
+	pq3, _ := json.Marshal(b3)
+	evals := []domain.Evaluation{{Config: "B0", RunID: "run0", SetHash: "h", PerQuery: pq0},
+		{Config: "B3", RunID: "run3", SetHash: "h", RulesVersion: 1, PerQuery: pq3}}
 	price := func(string) *float64 { v := 12990.0; return &v }
 
 	res := computeEffect(searches, []domain.BehaviorEvent{order, click}, evals, price, EffectRequest{Days: 30})
@@ -57,7 +58,8 @@ func TestComputeEffect(t *testing.T) {
 		t.Fatalf("замер: %+v", m)
 	}
 	if m.Rescued == nil || m.Rescued.Failed != 20 || m.Rescued.Rescued != 15 || m.Rescued.Share != 0.75 ||
-		!(m.Rescued.CILow < 0.75 && m.Rescued.CIHigh > 0.75) || m.Rescued.Config != "B4" {
+		!(m.Rescued.CILow < 0.75 && m.Rescued.CIHigh > 0.75) || m.Rescued.Config != "B3" || m.Rescued.Set != "holdout_week" ||
+		m.Rescued.RunBaseline != "run0" || m.Rescued.RunConfig != "run3" || m.Rescued.Source == "" {
 		t.Fatalf("спасённые: %+v", m.Rescued)
 	}
 	by := map[string]out.EffectParam{}
@@ -377,5 +379,57 @@ func TestPerUnitCoversMetric(t *testing.T) {
 	msgs := relaxedMessages(rc, kept)
 	if len(msgs) != 1 || msgs[0].Field != domain.FieldLicenseMetric || !strings.Contains(msgs[0].Message, "поштучно") {
 		t.Fatalf("relaxed: %+v", msgs)
+	}
+}
+
+// Ревью-2 N2: доля спасённых — реплей отложенной недели по поискам; вклад агента B3 → B4 — только если правки
+// из запусков после разреза, иначе 0; прогоны разных наборов не смешиваются.
+func TestMeasureRescuedHoldout(t *testing.T) {
+	mrr := 0.0
+	row := func(id string, freq int, rel bool) out.EvalQueryResult {
+		return out.EvalQueryResult{ID: id, Freq: freq, MRR10: &mrr, HasRelevant: rel}
+	}
+	pq := func(rows ...out.EvalQueryResult) domain.JSONB { b, _ := json.Marshal(rows); return b }
+	// a: 6 поисков, спасает поиск; b: 3 поиска, спасает только правка агента; c: 1 поиск, не спасён; d — B0 уже нашёл.
+	evals := []domain.Evaluation{
+		{Config: "B0", RunID: "r0", SetHash: "h", PerQuery: pq(row("a", 6, false), row("b", 3, false), row("c", 1, false), row("d", 5, true))},
+		{Config: "B3", RunID: "r3", SetHash: "h", RulesVersion: 1, PerQuery: pq(row("a", 6, true), row("b", 3, false), row("c", 1, false), row("d", 5, true))},
+		{Config: "B4", RunID: "r4", SetHash: "h", RulesVersion: 2, PerQuery: pq(row("a", 6, true), row("b", 3, true), row("c", 1, false), row("d", 5, true))},
+	}
+	r := measureRescued(evals, agentCredit{Note: "до разреза"})
+	if r == nil || r.Failed != 10 || r.FailedQueries != 3 || r.Rescued != 6 || r.Share != 0.6 || r.AgentShare != 0 ||
+		r.AgentCounted || r.Config != "B3" || r.RunAgent != "r4" || r.AgentNote != "до разреза" {
+		t.Fatalf("без вклада агента: %+v", r)
+	}
+	r = measureRescued(evals, agentCredit{Counted: true})
+	if r.Rescued != 9 || r.SearchShare != 0.6 || r.AgentShare != 0.3 || r.Share != 0.9 || r.Config != "B4" || r.RescuedQueries != 2 {
+		t.Fatalf("с вкладом агента: %+v", r)
+	}
+	evals[1].SetHash = "other"
+	if measureRescued(evals, agentCredit{}) != nil {
+		t.Fatal("B0 и B3 на разных наборах не сравниваются")
+	}
+}
+
+func TestAgentCredit(t *testing.T) {
+	s, ms := agentEnv(t, &scriptModel{})
+	evals := []domain.Evaluation{{Config: "B3", RulesVersion: 1}, {Config: "B4", RulesVersion: 2}}
+	if c := s.agentCredit(t.Context(), evals); c.Counted {
+		t.Fatalf("правок нет: %+v", c)
+	}
+	old := &domain.AgentRun{Status: "done", Episode: domain.JSONB(`{"holdout":{"enabled":false}}`)}
+	_ = ms.CreateAgentRun(t.Context(), old)
+	v := 2
+	p := &domain.Proposal{RunID: old.ID, Status: domain.ProposalAccepted, ConfigVersion: &v}
+	_ = ms.CreateProposal(t.Context(), p)
+	if c := s.agentCredit(t.Context(), evals); c.Counted || !strings.Contains(c.Note, old.ID.String()[:8]) {
+		t.Fatalf("правка до разреза: %+v", c)
+	}
+	honest := &domain.AgentRun{Status: "done", Episode: domain.JSONB(`{"holdout":{"enabled":true,"exclude_test":true}}`)}
+	_ = ms.CreateAgentRun(t.Context(), honest)
+	p.RunID = honest.ID
+	_ = ms.SaveProposal(t.Context(), p)
+	if c := s.agentCredit(t.Context(), evals); !c.Counted {
+		t.Fatalf("правка честного запуска: %+v", c)
 	}
 }

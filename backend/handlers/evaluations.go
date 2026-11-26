@@ -3,19 +3,37 @@ package handlers
 import (
 	"strconv"
 
+	"kuznica/api/domain"
 	"kuznica/api/in"
+	"kuznica/api/out"
 	"kuznica/api/pkg/errs"
 
 	"github.com/gofiber/fiber/v2"
 )
 
-// Evaluations — GET /api/evaluations?set=test: последний прогон каждой конфигурации на наборе.
+// Evaluations — GET /api/evaluations?set=test: последний прогон каждой конфигурации на наборе. Маршрут открыт
+// витрине («До / После»), но реплей отложенной недели собран из журнала поисков: без входа в бэк-офис его
+// запросы отдаются без текстов и id (в id — клиент), только агрегаты и число изменений (ревью-2 n7).
 func (h *Handler) Evaluations(c *fiber.Ctx) error {
 	resp, err := h.services.Evaluations(c.UserContext(), c.Query("set"))
 	if err != nil {
 		return err
 	}
+	if resp.Set == domain.EvalSetHoldoutWeek && !h.backofficeAuthorized(c) {
+		redactEvalTexts(resp)
+	}
 	return c.JSON(resp)
+}
+
+// redactEvalTexts — убрать тексты поисков и id запросов из изменений по запросам; метрики и счёт остаются.
+func redactEvalTexts(resp *out.EvaluationsResponse) {
+	for i := range resp.Configs {
+		for _, list := range [][]out.EvalChange{resp.Configs[i].Regressions, resp.Configs[i].Improvements} {
+			for j := range list {
+				list[j].QueryID, list[j].Text = "", ""
+			}
+		}
+	}
 }
 
 // RunEvaluation — POST /api/evaluations/run: прогон в фоне, 202 и задание. Пустое тело — test, B0–B3.

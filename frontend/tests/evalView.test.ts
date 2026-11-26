@@ -163,3 +163,82 @@ test('judgeView: порядок лестницы и пары, где судья 
   assert.deepEqual(v?.swapped, [['B2', 'B3']])
   assert.ok(Math.abs((v?.rows[3].diff ?? 0) + 0.084) < 1e-9)
 })
+
+test('holdoutView: B3 → B4 на отложенной неделе, спасённые и потерянные поиски, вывод', async () => {
+  const { holdoutView, holdoutVerdict } = await import('../src/lib/evalView.ts')
+  assert.equal(holdoutView(null), null)
+  const b3 = view('B3', {
+    set: 'holdout_week',
+    metrics: metrics({
+      queries: 389,
+      empty_rate_weighted: 0.0788,
+      ndcg10: 0.9215,
+      relevant_top10_weighted: 0.9702,
+      searches: 647,
+      judged_searches: 604,
+    }),
+  })
+  const b4 = view('B4', {
+    set: 'holdout_week',
+    against: 'B3',
+    metrics: metrics({
+      queries: 389,
+      empty_rate_weighted: 0.0788,
+      ndcg10: 0.9246,
+      relevant_top10_weighted: 0.9702,
+      searches: 647,
+      judged_searches: 604,
+      rescued_searches: 0,
+      lost_searches: 0,
+    }),
+    improvements: [
+      {
+        query_id: 'h-1',
+        text: 'зуп базовая',
+        type: 'alias_gap',
+        freq: 1,
+        against: 'B3',
+        ndcg_from: 0.5,
+        ndcg_to: 1,
+        ndcg_delta: 0.5,
+        reasons: ['ndcg'],
+      },
+      {
+        query_id: 'h-2',
+        text: 'зуп корп',
+        type: 'alias_gap',
+        freq: 1,
+        against: 'B3',
+        ndcg_from: 0.39,
+        ndcg_to: 1,
+        ndcg_delta: 0.61,
+        reasons: ['ndcg'],
+      },
+    ],
+  })
+  // Только B4 — сравнивать не с чем.
+  assert.equal(
+    holdoutView({ set: 'holdout_week', configs: [b4], running: null, last_job: null }),
+    null,
+  )
+  const v = holdoutView({ set: 'holdout_week', configs: [b4, b3], running: null, last_job: null })!
+  assert.equal(v.base.config, 'B3')
+  assert.deepEqual(
+    v.rows.map((r) => r.key),
+    ['empty_rate_weighted', 'relevant_top10_weighted', 'ndcg10'],
+  )
+  assert.equal(v.rows[0].delta?.verdict, 'same')
+  assert.equal(v.rows[2].delta?.verdict, 'better')
+  assert.equal(v.searches, 647)
+  assert.equal(v.judgedSearches, 604)
+  assert.equal(v.rescued, 0)
+  assert.equal(v.improvements[0].text, 'зуп корп')
+  assert.equal(
+    holdoutVerdict(v),
+    'Правки агента не спасли и не потеряли ни одного поиска; выдача лучше в 2 запросах, хуже — в 0.',
+  )
+  assert.equal(
+    holdoutVerdict({ ...v, rescued: 3, lost: 1 }),
+    'Правки агента спасли 3 поиска и потеряли 1.',
+  )
+})

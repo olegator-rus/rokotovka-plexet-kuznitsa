@@ -282,6 +282,8 @@ const STOP_REASONS: Record<string, string> = {
   timeout: 'истекло время запуска',
   llm_error: 'ошибка модели',
   no_failed_queries: 'неудачных запросов за период нет',
+  budget_limit: 'исчерпан дневной бюджет LLM',
+  error: 'внутренняя ошибка запуска',
 }
 
 export function stopReasonLabel(reason: string | null | undefined): string | null {

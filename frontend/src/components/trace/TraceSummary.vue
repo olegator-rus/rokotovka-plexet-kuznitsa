@@ -2,7 +2,7 @@
 // Сводка трассы одной строкой: маршрут, общее время, стоимость, источник разбора.
 import type { Trace } from '@/api/types'
 import { formatCost, formatMs } from '@/lib/format'
-import { parseSourceLabel } from '@/lib/trace'
+import { intentFallback, parseSourceLabel } from '@/lib/trace'
 import RouteBadge from './RouteBadge.vue'
 
 defineProps<{ trace: Trace }>()
@@ -27,6 +27,9 @@ defineProps<{ trace: Trace }>()
       <dd>
         {{ parseSourceLabel(trace.parse_source) }}
         <span class="t-mono t-muted">{{ trace.parse_source }}</span>
+        <span v-if="intentFallback(trace)" class="t-xs t-muted trace-summary__why">
+          {{ intentFallback(trace) }}
+        </span>
       </dd>
     </div>
   </dl>
@@ -41,6 +44,9 @@ defineProps<{ trace: Trace }>()
 </template>
 
 <style scoped>
+.trace-summary__why {
+  display: block;
+}
 .trace-summary {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));

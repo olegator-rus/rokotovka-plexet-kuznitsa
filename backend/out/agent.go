@@ -116,8 +116,11 @@ type Proposal struct {
 	DecidedAt       *time.Time      `json:"decided_at"`
 	DecidedReason   *string         `json:"decided_reason"`
 	DecidedComment  *string         `json:"decided_comment"`
-	ConfigVersion   *int            `json:"config_version"`
-	Effect          json.RawMessage `json:"effect"`
+	// StaleReason — почему предложение устарело (status = stale): catalog_changed — сменился каталог,
+	// pre_holdout — запуск до разреза журнала видел отложенную неделю и тексты test; пояснение — в decided_comment.
+	StaleReason   *string         `json:"stale_reason"`
+	ConfigVersion *int            `json:"config_version"`
+	Effect        json.RawMessage `json:"effect"`
 	// CheckQuery — запрос для кнопки «Проверить в поиске».
 	CheckQuery string `json:"check_query"`
 }
@@ -161,6 +164,10 @@ type ConfigVersion struct {
 	Aliases     int             `json:"aliases"`
 	Diff        json.RawMessage `json:"diff"`
 	Effect      json.RawMessage `json:"effect"`
+	// CatalogVersion — каталог, для которого собраны правила; Archived — версия прежнего каталога: после импорта
+	// другого каталога цепочка начинается заново, откат к архивной версии — 409.
+	CatalogVersion string `json:"catalog_version"`
+	Archived       bool   `json:"archived"`
 }
 
 // ConfigList — GET /api/configs.

@@ -10,6 +10,8 @@ import (
 	"time"
 
 	"kuznica/api/domain"
+	"kuznica/api/pkg/errs"
+	"kuznica/api/repositories"
 )
 
 // Честная оценка агента (ревью B1): агент учится на прошлом, эффект меряется на будущем.
@@ -82,10 +84,6 @@ func (h HoldoutOptions) days() int {
 // событию журнала (не live: живые поиски сегодняшнего дня окно не сдвигают), без таких — по последнему
 // любому, без событий — по текущему времени. Границы — полночь по Москве.
 func (s *Services) holdoutRange(h HoldoutOptions, searches []domain.SearchEvent) (time.Time, time.Time) {
-	days := time.Duration(h.days()) * 24 * time.Hour
-	if !h.From.IsZero() {
-		return h.From, h.From.Add(days)
-	}
 	var last, lastAny time.Time
 	for i := range searches {
 		at := searches[i].CreatedAt
@@ -95,6 +93,15 @@ func (s *Services) holdoutRange(h HoldoutOptions, searches []domain.SearchEvent)
 		if searches[i].Source != domain.EventSourceLive && at.After(last) {
 			last = at
 		}
+	}
+	return s.holdoutRangeAt(h, last, lastAny)
+}
+
+// holdoutRangeAt — отложенное окно по последнему историческому и последнему любому поиску (нулевые — нет).
+func (s *Services) holdoutRangeAt(h HoldoutOptions, last, lastAny time.Time) (time.Time, time.Time) {
+	days := time.Duration(h.days()) * 24 * time.Hour
+	if !h.From.IsZero() {
+		return h.From, h.From.Add(days)
 	}
 	if last.IsZero() {
 		last = lastAny
@@ -119,24 +126,32 @@ type holdoutInfo struct {
 	TestTexts    int       `json:"test_texts_excluded"`
 }
 
-// testTexts — нормализованные тексты набора test (пусто — наборов нет).
-func (s *Services) testTexts(ctx context.Context) map[string]bool {
+// testTexts — нормализованные тексты набора test (пусто — наборов нет: источник без разметки или без
+// queries.json). Разметка есть, но не читается — ошибка (ревью-2 n8): без неё тексты test не исключить, и агент
+// не стартует, а не молча учится на test.
+func (s *Services) testTexts(ctx context.Context) (map[string]bool, error) {
 	res := map[string]bool{}
 	loader, ok := s.source.(queryLoader)
 	if !ok {
-		return res
+		return res, nil
 	}
 	all, err := loader.LoadQueries(ctx)
+	if isNoFile(err) {
+		return res, nil
+	}
 	if err != nil {
-		return res
+		return nil, errs.NewUnavailableError(MsgAgentNoTestSet).WithCause(err)
 	}
 	for _, q := range all {
 		if q.Set == domain.EvalSetTest {
 			res[foldQuery(q.Text)] = true
 		}
 	}
-	return res
+	return res, nil
 }
+
+// MsgAgentNoTestSet — разметка не читается: исключить тексты test из входа агента нельзя.
+const MsgAgentNoTestSet = "Набор запросов разметки не читается — агент не запускается: без него тексты test не исключить из входа (AGENT_EXCLUDE_TEST=on)"
 
 // agentQueryStats — исходы поисков, которые агенту разрешено видеть: за days дней до отложенного окна,
 // без текстов test.
@@ -144,6 +159,13 @@ func (s *Services) agentQueryStats(ctx context.Context, days int, h HoldoutOptio
 	st := s.store()
 	since := s.now().Add(-time.Duration(days) * 24 * time.Hour)
 	info := holdoutInfo{Enabled: h.Enabled, SeenFrom: since.UTC(), SeenTo: s.now().UTC(), ExcludeTest: h.ExcludeTest}
+	if sq, ok := st.(agentStatsSQL); ok {
+		stats, err := s.agentQueryStatsSQL(ctx, sq, since, h, &info)
+		if err != nil {
+			return nil, info, err
+		}
+		return stats, info, nil
+	}
 	searches, err := st.SearchEventsSince(ctx, since)
 	if err != nil {
 		return nil, info, err
@@ -177,10 +199,71 @@ func (s *Services) agentQueryStats(ctx context.Context, days int, h HoldoutOptio
 	}
 	stats := computeQueryStats(searches, behavior)
 	if h.ExcludeTest {
-		tt := s.testTexts(ctx)
+		tt, err := s.testTexts(ctx)
+		if err != nil {
+			return nil, info, err
+		}
 		info.TestTexts = stats.exclude(tt)
 	}
 	return stats, info, nil
+}
+
+// agentStatsSQL — хранилище, которое считает вход агента в базе (repositories.Repos); хранилище в памяти тестов
+// его не реализует — тогда события читаются и считаются в Go (computeQueryStats, эталон).
+type agentStatsSQL interface {
+	SearchSpanSince(ctx context.Context, since time.Time) (repositories.SearchSpan, error)
+	CountSearchesSince(ctx context.Context, since time.Time) (int, error)
+	AgentQueryStatsBetween(ctx context.Context, since, until time.Time) (*repositories.AgentQueryStats, error)
+}
+
+// agentQueryStatsSQL — то же, что ветка в памяти agentQueryStats, но агрегаты считает база: граница отложенного
+// окна — по последнему поиску периода, исходы — за [since, начало окна).
+func (s *Services) agentQueryStatsSQL(ctx context.Context, sq agentStatsSQL, since time.Time, h HoldoutOptions,
+	info *holdoutInfo) (*queryStats, error) {
+	until := time.Date(9999, 1, 1, 0, 0, 0, 0, time.UTC)
+	if h.Enabled {
+		span, err := sq.SearchSpanSince(ctx, since)
+		if err != nil {
+			return nil, err
+		}
+		var lastHist, lastAny time.Time
+		if span.LastHistorical != nil {
+			lastHist = *span.LastHistorical
+		}
+		if span.LastAny != nil {
+			lastAny = *span.LastAny
+		}
+		from, to := s.holdoutRangeAt(h, lastHist, lastAny)
+		f, t := from.In(mskZone).Format("2006-01-02"), to.Add(-time.Second).In(mskZone).Format("2006-01-02")
+		info.HoldoutFrom, info.HoldoutTo, info.SeenTo = &f, &t, from.UTC()
+		// Окно может начинаться раньше периода (короткий days): скрыты поиски периода с начала окна.
+		hidden, err := sq.CountSearchesSince(ctx, maxTime(from, since))
+		if err != nil {
+			return nil, err
+		}
+		info.HiddenEvents = hidden
+		until = from
+	}
+	agg, err := sq.AgentQueryStatsBetween(ctx, since, until)
+	if err != nil {
+		return nil, err
+	}
+	stats := queryStatsFromSQL(agg)
+	if h.ExcludeTest {
+		tt, err := s.testTexts(ctx)
+		if err != nil {
+			return nil, err
+		}
+		info.TestTexts = stats.exclude(tt)
+	}
+	return stats, nil
+}
+
+func maxTime(a, b time.Time) time.Time {
+	if a.After(b) {
+		return a
+	}
+	return b
 }
 
 func filterSince(evs []domain.SearchEvent, since time.Time) []domain.SearchEvent {

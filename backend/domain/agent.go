@@ -69,6 +69,10 @@ const (
 // ProposalStaleReason — decided_reason предложений, устаревших при смене каталога.
 const ProposalStaleReason = "catalog_changed"
 
+// ProposalStalePreHoldout — decided_reason предложений из запусков до разреза журнала (ревью-2 N2): запуск видел
+// отложенную неделю и тексты test, правка подобрана под них. Ставит человек командой `proposals stale`.
+const ProposalStalePreHoldout = "pre_holdout"
+
 // Кому адресовано предложение.
 const (
 	RoleEcom    = "ecom"

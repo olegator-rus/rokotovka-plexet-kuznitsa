@@ -33,6 +33,8 @@ export const PROPOSAL_STATUSES: readonly { id: string; label: string; tone: stri
   { id: 'accepted', label: 'Принято', tone: 'status-accepted' },
   { id: 'rejected', label: 'Отклонено', tone: 'status-rejected' },
   { id: 'rolled_back', label: 'Откачено', tone: 'status-rolled-back' },
+  // Ждало решения, но проверка больше не годится (новый каталог, исправленная оценка) — принять нельзя.
+  { id: 'stale', label: 'Устарело', tone: 'status-rolled-back' },
 ]
 
 /** Решения в памяти агента могут прийти глаголом — сводим к статусу. */
@@ -67,9 +69,37 @@ export const REJECT_REASONS: readonly { id: ProposalRejectReason; label: string 
   { id: 'other', label: 'Другое' },
 ]
 
+/** decided_reason, которые ставит система, а не человек. */
+const SYSTEM_REASONS: Record<string, string> = {
+  catalog_changed: 'Сменился каталог',
+}
+
 export function rejectReasonLabel(id: string | null | undefined): string {
   if (!id) return ''
-  return REJECT_REASONS.find((r) => r.id === id)?.label ?? id
+  return REJECT_REASONS.find((r) => r.id === id)?.label ?? SYSTEM_REASONS[id] ?? id
+}
+
+const STALE_REASONS: Record<string, string> = {
+  catalog_changed: 'новый каталог: правка проверялась на прежнем словаре',
+}
+
+/**
+ * Почему предложение устарело: stale_reason сервера (код или текст), без него — decided_reason
+ * (catalog_changed). null — не устарело.
+ */
+export function staleReason(
+  p: Pick<Proposal, 'status' | 'decided_reason'> & { stale_reason?: string | null },
+): string | null {
+  if (p.status !== 'stale') return null
+  const code = (p.stale_reason ?? '').trim() || (p.decided_reason ?? '').trim()
+  if (!code) return null
+  return STALE_REASONS[code] ?? code
+}
+
+/** Потерянный спрос кластера — число различных сессий с неудачным поиском. */
+export function lostDemandLabel(n: number | null | undefined): string {
+  const v = n ?? 0
+  return `потерянный спрос: ${formatInt(v)} ${plural(v, ['сессия', 'сессии', 'сессий'])}`
 }
 
 /** Предложение не меняет правила поиска (задача по карточке или ассортименту) — «Взять в работу». */
@@ -201,6 +231,43 @@ export function evaluationLines(ev: ProposalEvaluation | null | undefined): Eval
   return { target, regression, extra, passed: !!ev.passed, regressionWorse: r.worse }
 }
 
+// ── Перепроверка при «Принять» (правила сменились после проверки агента) ──
+
+export interface RecheckView {
+  passed: boolean
+  /** «Правила сменились после проверки агента (v2 → v3): на действующих правилах правка …». */
+  title: string
+  reasons: string[]
+  /** Прогон на действующих правилах (не прошла) или первоначальный прогон агента (прошла). */
+  lines: EvaluationLines | null
+  linesTitle: string
+  checkedAt: string | null
+}
+
+export function recheckView(p: Pick<Proposal, 'evidence'>): RecheckView | null {
+  const r = p.evidence?.recheck
+  if (!r || typeof r !== 'object') return null
+  const versions = `v${r.from_version} → v${r.to_version}`
+  if (r.passed) {
+    return {
+      passed: true,
+      title: `Правила сменились после проверки агента (${versions}): правка перепроверена на действующих и прошла — результат выше пересчитан`,
+      reasons: [],
+      lines: evaluationLines(p.evidence?.initial_evaluation),
+      linesTitle: `Первоначальный прогон агента (правила v${r.from_version})`,
+      checkedAt: r.checked_at ?? null,
+    }
+  }
+  return {
+    passed: false,
+    title: `Правила сменились после проверки агента (${versions}): на действующих правилах правка не прошла прогон, предложение осталось в очереди`,
+    reasons: (r.reasons ?? []).filter((x): x is string => typeof x === 'string' && !!x),
+    lines: evaluationLines(r.evaluation),
+    linesTitle: `Прогон на действующих правилах v${r.to_version}`,
+    checkedAt: r.checked_at ?? null,
+  }
+}
+
 // ── Версии правил ──
 
 export const AUTHOR_LABELS: Record<string, string> = {
@@ -328,7 +395,13 @@ export function versionDescription(
 
 const normQuery = (q: string) => q.trim().toLowerCase().replace(/\s+/g, ' ')
 
-const STATUS_RANK: Record<string, number> = { pending: 0, accepted: 1, rolled_back: 2, rejected: 3 }
+const STATUS_RANK: Record<string, number> = {
+  pending: 0,
+  accepted: 1,
+  rolled_back: 2,
+  rejected: 3,
+  stale: 4,
+}
 
 /**
  * Запрос → предложение, в кластер которого он входит. Если запрос есть в нескольких предложениях,

@@ -182,3 +182,62 @@ test('proposalsByQuery: запрос кластера → предложение
   assert.equal(findProposalForQuery(idx, 'зуп')?.id, 'b')
   assert.equal(findProposalForQuery(idx, 'кис'), null)
 })
+
+test('stale, причина catalog_changed, потерянный спрос в сессиях', async () => {
+  const { proposalStatus, rejectReasonLabel, lostDemandLabel, staleReason } =
+    await import('../src/lib/proposals.ts')
+  assert.equal(proposalStatus('stale').label, 'Устарело')
+  assert.equal(
+    staleReason({ status: 'stale', decided_reason: 'catalog_changed' }),
+    'новый каталог: правка проверялась на прежнем словаре',
+  )
+  assert.equal(
+    staleReason({
+      status: 'stale',
+      decided_reason: 'catalog_changed',
+      stale_reason: 'проверка шла до исправления оценки',
+    }),
+    'проверка шла до исправления оценки',
+  )
+  assert.equal(staleReason({ status: 'pending', decided_reason: null }), null)
+  assert.equal(rejectReasonLabel('catalog_changed'), 'Сменился каталог')
+  assert.equal(lostDemandLabel(1), 'потерянный спрос: 1 сессия')
+  assert.equal(lostDemandLabel(12), 'потерянный спрос: 12 сессий')
+})
+
+test('recheckView: не прошла (409) и прошла с initial_evaluation', async () => {
+  const { recheckView } = await import('../src/lib/proposals.ts')
+  const ev = (found: number, passed: boolean) => ({
+    target: { before: { found: 0, total: 4 }, after: { found, total: 4 } },
+    regression: { worse: passed ? 0 : 1, better: 0, total: 120 },
+    exact_worse: 0,
+    constraint_violations_new: 0,
+    passed,
+  })
+  assert.equal(recheckView({ evidence: {} }), null)
+  const failed = recheckView({
+    evidence: {
+      recheck: {
+        from_version: 2,
+        to_version: 3,
+        passed: false,
+        reasons: ['ухудшился 1 запрос регрессии'],
+        evaluation: ev(4, false),
+      },
+    },
+  })!
+  assert.equal(failed.passed, false)
+  assert.match(failed.title, /v2 → v3.*не прошла/)
+  assert.deepEqual(failed.reasons, ['ухудшился 1 запрос регрессии'])
+  assert.equal(failed.linesTitle, 'Прогон на действующих правилах v3')
+  assert.match(failed.lines!.regression, /ухудшилось 1 запрос из 120/)
+  const ok = recheckView({
+    evidence: {
+      recheck: { from_version: 2, to_version: 3, passed: true, evaluation: ev(4, true) },
+      initial_evaluation: ev(3, true),
+    },
+  })!
+  assert.equal(ok.passed, true)
+  assert.equal(ok.linesTitle, 'Первоначальный прогон агента (правила v2)')
+  assert.match(ok.lines!.target, /стало 3 из 4/)
+})

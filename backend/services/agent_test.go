@@ -133,6 +133,23 @@ func (m *memStore) SaveProposal(_ context.Context, p *domain.Proposal) error {
 	m.proposals[p.ID] = *p
 	return nil
 }
+func (m *memStore) UpdateProposalCheck(_ context.Context, id uuid.UUID, status string, ch repositories.ProposalCheck) (bool, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	p, ok := m.proposals[id]
+	if !ok || p.Status != status {
+		return false, nil
+	}
+	p.Evidence = ch.Evidence
+	if ch.Evaluation != nil {
+		p.Evaluation = ch.Evaluation
+	}
+	if ch.BaseVersion != nil {
+		p.BaseVersion = *ch.BaseVersion
+	}
+	m.proposals[id] = p
+	return true, nil
+}
 func (m *memStore) GetProposal(_ context.Context, id uuid.UUID) (*domain.Proposal, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
@@ -761,4 +778,31 @@ func TestAgentContentGapNeedsEvidence(t *testing.T) {
 	if !refused {
 		t.Fatal("CONTENT_GAP без доказательства должен отклоняться")
 	}
+}
+
+// GET /api/configs отдаёт каталог версии и признак архива; действующая — новейшая неархивная.
+func TestConfigsArchivedCatalog(t *testing.T) {
+	s, ms := agentEnv(t, &scriptModel{})
+	ms.mu.Lock()
+	ms.versions[0].CatalogVersion, ms.versions[0].Archived = "mock-0", true
+	ms.versions = append(ms.versions, domain.ConfigVersion{Version: 2, Source: "import", Rules: ms.versions[0].Rules, CatalogVersion: "mock-1"})
+	ms.mu.Unlock()
+	cfgs, err := s.Configs(t.Context())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if cfgs.Active != 2 || len(cfgs.Items) != 2 {
+		t.Fatalf("версии: %+v", cfgs)
+	}
+	if it := cfgs.Items[0]; it.CatalogVersion != "mock-1" || it.Archived {
+		t.Fatalf("действующая: %+v", it)
+	}
+	if it := cfgs.Items[1]; it.CatalogVersion != "mock-0" || !it.Archived {
+		t.Fatalf("архивная: %+v", it)
+	}
+}
+
+func isUnavailable(err error) bool {
+	var e *errs.Error
+	return errors.As(err, &e) && e.HTTPStatus() == 503
 }
