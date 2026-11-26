@@ -78,8 +78,8 @@ func newAgentCatalog(snap *domain.CatalogSnapshot) *agentCatalog {
 	for _, k := range snap.Categories {
 		c.categories[k.ID] = k
 	}
+	large := len(snap.Products) > agentLargeCatalog
 	for _, p := range snap.Products {
-		c.products[p.ID] = p
 		f := c.families[p.FamilyID]
 		if f == nil {
 			f = &agentFamily{ID: p.FamilyID, Name: p.FamilyName, VendorID: p.VendorID, CategoryID: p.CategoryID, words: map[string]bool{}}
@@ -95,6 +95,12 @@ func newAgentCatalog(snap *domain.CatalogSnapshot) *agentCatalog {
 		if f.text == "" {
 			f.text = p.FamilyName + ". " + p.Description
 		}
+		if large {
+			// Фид заказчика (136 тыс. позиций): слова карточки уже в f.words, инструментам нужны название, лицензия,
+			// цена и начало описания — параметры и полное описание в памяти запуска не держим.
+			p.Attributes, p.Description = nil, truncateRunes(p.Description, 400)
+		}
+		c.products[p.ID] = p
 	}
 	for _, f := range c.families {
 		for _, w := range wordsOf(c.vendorName(f.VendorID) + " " + c.categories[f.CategoryID].Name) {
@@ -234,7 +240,15 @@ func (c *agentCatalog) search(ctx context.Context, s *Services, query string, ex
 			}
 		}
 	}
-	if expand {
+	if expand && len(c.order) > agentVecFamilies {
+		// Большой каталог (фид заказчика, 12,5 тыс. семейств): векторы семейств уже лежат в индексе поиска — kNN по
+		// нему вместо эмбеддинга всех семейств в каждом запуске (минуты на общем сервисе моделей).
+		for fid, cs := range c.knnFamilies(ctx, s, query) {
+			if cs >= 0.5 && c.families[fid] != nil {
+				add(fid, "смысл:"+jsonFloat(cs), cs)
+			}
+		}
+	} else if expand {
 		if vecs := c.familyVectors(ctx, s); vecs != nil {
 			if qv := s.embedTexts(ctx, []string{query}); len(qv) == 1 {
 				for i, fid := range c.order {
@@ -547,4 +561,58 @@ func containsWords(ws, sub []string) bool {
 		}
 	}
 	return true
+}
+
+// purchasable — позиций семейства, которые можно купить сейчас (цена есть, не «по запросу»).
+func (c *agentCatalog) purchasable(fid string) int {
+	f := c.families[fid]
+	if f == nil {
+		return 0
+	}
+	n := 0
+	for _, pid := range f.Products {
+		if p := c.products[pid]; !p.PriceOnRequest && p.PriceRub != nil && *p.PriceRub > 0 {
+			n++
+		}
+	}
+	return n
+}
+
+// agentLargeCatalog — больше стольких позиций каталог считается большим (фид): позиции хранятся без параметров.
+const agentLargeCatalog = 20000
+
+// agentVecFamilies — до стольких семейств векторы считаются в запуске (mock); больше — kNN по индексу поиска.
+const agentVecFamilies = 3000
+
+// knnFamilies — ближайшие семейства по вектору запроса из индекса поиска: семейство → косинус (лучшая позиция
+// семейства). Индекс без векторов или сервис моделей недоступен — пусто (расширенный поиск остаётся по словам).
+func (c *agentCatalog) knnFamilies(ctx context.Context, s *Services, query string) map[string]float64 {
+	res := map[string]float64{}
+	if s.search == nil || !s.search.Enabled() || !s.embedder.Enabled() || s.vectorsOff(ctx) {
+		return res
+	}
+	vec, err := s.queryVector(ctx, query)
+	if err != nil {
+		return res
+	}
+	hits, err := s.search.Search(ctx, s.alias, knnQuery(vec, 60))
+	if err != nil {
+		return res
+	}
+	top, docs, err := parseHits(hits)
+	if err != nil {
+		return res
+	}
+	for _, h := range top {
+		d, ok := docs[h.ProductID]
+		if !ok || d.FamilyID == "" {
+			continue
+		}
+		// lucene cosinesimil: score = (1 + cos) / 2.
+		cs := 2*h.Score - 1
+		if cs > res[d.FamilyID] {
+			res[d.FamilyID] = cs
+		}
+	}
+	return res
 }

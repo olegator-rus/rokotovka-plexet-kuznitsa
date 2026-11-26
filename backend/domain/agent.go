@@ -49,6 +49,9 @@ const (
 	DiagNonProduct         = "NON_PRODUCT"
 	DiagNoise              = "NOISE"
 	DiagUnknown            = "UNKNOWN"
+	// DiagOnRequestOnly — товар найден, но купить нельзя: у семейства нет позиций с ценой и наличием, все «по
+	// запросу» (контур фида, фид заказчика). Итог — задача каталогу (цена и наличие), а не правка поиска.
+	DiagOnRequestOnly = "ON_REQUEST_ONLY"
 )
 
 // Диагнозы контура коммерции: справочник связей, детерминированные, без данных о покупках.
@@ -60,7 +63,7 @@ const (
 // Diagnoses — все коды диагнозов.
 var Diagnoses = []string{DiagAliasGap, DiagTypo, DiagAssortmentGap, DiagSubstitute, DiagContentGap,
 	DiagRankingFailure, DiagConstraintConflict, DiagNonProduct, DiagNoise, DiagUnknown,
-	DiagBrokenRelation, DiagMissingRequired}
+	DiagBrokenRelation, DiagMissingRequired, DiagOnRequestOnly}
 
 // Режимы запуска агента (AgentRun.Mode): search — кластеры неудачных запросов (контур поиска), commerce — справочник
 // связей и правила лицензий (контур коммерции, «Коммерция»).

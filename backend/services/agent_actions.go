@@ -273,6 +273,23 @@ func (cr *clusterRun) toolTicket(ctx context.Context, raw string) (any, string, 
 		// Запрос не о товаре (счёт, доставка, активация): правкой поиска не решается — задача администратору поиска,
 		// который ведёт справочный индекс.
 		role = domain.RoleEcom
+	case domain.DiagOnRequestOnly:
+		// Контур фида: товар найден, но купить нельзя — у семейства нет ни одной позиции с ценой и наличием. Проверяет
+		// код по каталогу, а не модель: задача каталогу (цена и наличие), правка поиска тут не поможет.
+		fid := strings.TrimSpace(args.FamilyID)
+		fam := cat.families[fid]
+		if fam == nil {
+			return nil, "", terr("для ON_REQUEST_ONLY укажи family_id найденного семейства из каталога")
+		}
+		buy := cat.purchasable(fid)
+		if buy > 0 {
+			return nil, "", terr("у семейства %s есть позиции с ценой (%d из %d) — купить можно, это не ON_REQUEST_ONLY: "+
+				"смотри, почему покупатели не находят его (RANKING_FAILURE, ALIAS_GAP)", fid, buy, len(fam.Products))
+		}
+		role = domain.RoleContent
+		cr.evidence["family_id"] = fid
+		cr.evidence["offers"] = len(fam.Products)
+		cr.evidence["purchasable"] = 0
 	case domain.DiagRankingFailure:
 		fid := strings.TrimSpace(args.FamilyID)
 		if cat.families[fid] == nil {
@@ -287,7 +304,7 @@ func (cr *clusterRun) toolTicket(ctx context.Context, raw string) (any, string, 
 		cr.evidence["family_id"] = fid
 		cr.evidence["ranking_query"] = q
 	default:
-		return nil, "", terr("diagnosis — SUBSTITUTE_AVAILABLE, ASSORTMENT_GAP, CONTENT_GAP, RANKING_FAILURE или NON_PRODUCT")
+		return nil, "", terr("diagnosis — SUBSTITUTE_AVAILABLE, ASSORTMENT_GAP, ON_REQUEST_ONLY, CONTENT_GAP, RANKING_FAILURE или NON_PRODUCT")
 	}
 	// Память: такая же задача по кластеру уже отклонена человеком.
 	for _, h := range cr.memory {
@@ -328,7 +345,7 @@ var closeDiagnoses = []string{domain.DiagAliasGap, domain.DiagTypo, domain.DiagC
 // ticketDiagnoses — диагнозы, итог которых — задача владельцу (task_to_owner), а не правка и не закрытие кластера:
 // нет в каталоге, не хватает данных в карточке, стоит низко, запрос не о товаре (контур доводки и автономии).
 var ticketDiagnoses = []string{domain.DiagAssortmentGap, domain.DiagSubstitute, domain.DiagContentGap, domain.DiagRankingFailure,
-	domain.DiagNonProduct}
+	domain.DiagNonProduct, domain.DiagOnRequestOnly}
 
 func (cr *clusterRun) toolClose(ctx context.Context, raw string) (any, string, error) {
 	var args struct {

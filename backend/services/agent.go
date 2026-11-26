@@ -74,6 +74,8 @@ const (
 type AgentOptions struct {
 	MaxRegressionWorse int
 	RegressionSets     []string
+	// FeedRegressionSets — наборы «по цели» на фиде заказчика (agent_eval.go); пусто — feed_regression, feed_tune.
+	FeedRegressionSets []string
 	// Holdout — что агенту видно из журнала (agent_holdout.go); нулевое — весь журнал.
 	Holdout HoldoutOptions
 	// Контур автономии (agent_p5.go): режим «только чтение», пул, бюджет запуска, триггеры.
@@ -173,6 +175,9 @@ func (w *runWrites) wait(d time.Duration) bool {
 func newAgentService(s *Services, model ChatModel, opts AgentOptions) *agentService {
 	if len(opts.RegressionSets) == 0 {
 		opts.RegressionSets = []string{domain.EvalSetRegression, domain.EvalSetTune}
+	}
+	if len(opts.FeedRegressionSets) == 0 {
+		opts.FeedRegressionSets = []string{domain.TargetSetFeedRegression, domain.TargetSetFeedTune}
 	}
 	opts = opts.withDefaults()
 	a := &agentService{s: s, model: model, opts: opts, subs: map[uuid.UUID]map[chan agentEvent]struct{}{},

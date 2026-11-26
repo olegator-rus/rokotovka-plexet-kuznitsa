@@ -146,8 +146,9 @@ func (s *Services) checkSchedule(ctx context.Context, now time.Time) error {
 // windowStats — исходы поисков [since, until) по тем же правилам, что вход агента: в базе (SQL) или в Go.
 func (s *Services) windowStats(ctx context.Context, since, until time.Time) (*queryStats, error) {
 	st := s.store()
+	scope := s.agentLogScope(ctx)
 	if sq, ok := st.(agentStatsSQL); ok {
-		agg, err := sq.AgentQueryStatsBetween(ctx, since, until)
+		agg, err := sq.AgentQueryStatsScoped(ctx, since, until, scope)
 		if err != nil {
 			return nil, err
 		}
@@ -162,7 +163,7 @@ func (s *Services) windowStats(ctx context.Context, since, until time.Time) (*qu
 		return nil, err
 	}
 	var ss []domain.SearchEvent
-	for _, e := range filterSince(searches, since) {
+	for _, e := range filterSince(filterScope(scope, searches), since) {
 		if e.CreatedAt.Before(until) {
 			ss = append(ss, e)
 		}

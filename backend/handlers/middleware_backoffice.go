@@ -41,6 +41,8 @@ var publicRoutes = map[string]bool{
 	fiber.MethodGet + " /api/evaluations/commerce": true,
 	// Контур доводки: вклад компонентов (вкладка «Доказательства → Вклад компонентов»): свой набор запросов, без журнала.
 	fiber.MethodGet + " /api/evaluations/contribution": true,
+	// Контур эталонов: сводка «На данных заказчика» (S6) — числа прогонов на фиде, без текстов запросов.
+	fiber.MethodGet + " /api/evaluations/feed": true,
 	// Хвосты контура доводки: сводка стоимости для гостя («Доказательства → Стоимость») — без журнала вызовов.
 	fiber.MethodGet + " /api/costs/summary": true,
 	fiber.MethodPost + " /api/search":       true,

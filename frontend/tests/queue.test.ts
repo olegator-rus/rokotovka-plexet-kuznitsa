@@ -1,4 +1,4 @@
-// Очередь SearchOps (src/lib/queue.ts) и семь причин с владельцами (src/lib/causes.ts, контур доводки).
+// Очередь SearchOps (src/lib/queue.ts) и восемь причин с владельцами (src/lib/causes.ts, контур доводки; контур фида — «только по запросу»).
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import type { Proposal } from '../src/api/types.ts'
@@ -38,13 +38,16 @@ test('sortQueue: оценка приоритета по убыванию, зат
   )
 })
 
-test('причины: 7 штук, каждый код диагноза — ровно в одной, владельцы — четыре роли', () => {
-  assert.equal(CAUSES.length, 7)
+test('причины: 8 штук, каждый код диагноза — ровно в одной, владельцы — четыре роли', () => {
+  assert.equal(CAUSES.length, 8)
   const codes = CAUSES.flatMap((c) => c.codes)
   assert.equal(new Set(codes).size, codes.length)
   assert.equal(causeOfCode('ALIAS_GAP')?.owner, 'Администратор поиска')
   assert.equal(causeOfCode('ASSORTMENT_GAP')?.label, 'Товара нет в каталоге')
   assert.equal(causeOfCode('CONTENT_GAP')?.owner, 'Каталог')
+  // Контур фида: «найдено, но только по запросу» — задача каталогу, не правка поиска.
+  assert.equal(causeOfCode('ON_REQUEST_ONLY')?.label, 'Найдено, но только по запросу')
+  assert.equal(causeOfCode('ON_REQUEST_ONLY')?.kind, 'owner_task')
   assert.equal(causeOfCode('MARGIN_OPPORTUNITY'), null)
   // Четыре роли-владельца: владелец — роль сотрудника, а не отдельная должность.
   assert.equal(OWNER_OPTIONS.length, 4)

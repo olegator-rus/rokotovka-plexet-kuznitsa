@@ -79,7 +79,8 @@ func main() {
 
 		AgentModel: agentModel(cfg.LLM, cfg.Agent.Model),
 		Agent: services.AgentOptions{MaxRegressionWorse: cfg.Agent.MaxRegressionWorse, RegressionSets: cfg.Agent.RegressionSets,
-			Holdout: services.HoldoutFromEnv(), ReadOnly: cfg.Agent.ReadOnly, MaxParallel: cfg.Agent.MaxParallel,
+			FeedRegressionSets: cfg.Agent.FeedRegressionSets, Holdout: services.HoldoutFromEnv(), ReadOnly: cfg.Agent.ReadOnly,
+			MaxParallel: cfg.Agent.MaxParallel,
 			Budget: services.RunBudget{Steps: cfg.Agent.Budget.Steps, Tokens: cfg.Agent.Budget.Tokens,
 				CostRub: cfg.Agent.Budget.CostRub, Duration: cfg.Agent.Budget.Duration},
 			QueryDuration: cfg.Agent.QueryDuration,

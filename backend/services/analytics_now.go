@@ -70,7 +70,8 @@ func verdictFor(c *repositories.RunCluster) (out.AgentVerdict, bool) {
 		return withLabel(v), false
 	case c.Status == "skipped":
 		v.Code = verdictAnswers
-	case c.Status == "investigated" && (c.Diagnosis == "ASSORTMENT_GAP" || c.Diagnosis == "SUBSTITUTE_AVAILABLE"):
+	case c.Status == "investigated" && (c.Diagnosis == "ASSORTMENT_GAP" || c.Diagnosis == "SUBSTITUTE_AVAILABLE" ||
+		c.Diagnosis == domain.DiagOnRequestOnly):
 		v.Code = verdictNoOffer
 	case c.Status == "investigated" && c.Note == NoteAlreadySolved:
 		v.Code = verdictAnswers
@@ -177,6 +178,15 @@ func (s *Services) agentVerdicts(ctx context.Context, resp *out.AnalyticsRespons
 		if clusters, err = s.repos.RecentIssueClusters(ctx, verdictRuns); err != nil {
 			return err
 		}
+		// Разборы прежнего каталога (mock) к запросам фида не относятся.
+		since := s.agentLogScope(ctx).Since
+		kept := clusters[:0]
+		for _, c := range clusters {
+			if !c.RunStartedAt.Before(since) {
+				kept = append(kept, c)
+			}
+		}
+		clusters = kept
 	}
 	applyVerdicts(resp, clusters)
 	return nil
@@ -217,7 +227,8 @@ func (s *Services) ProblemsNow(ctx context.Context, days, limit int) (*out.Probl
 	if !s.repos.Enabled() {
 		return res, nil
 	}
-	_, problems, err := s.repos.SearchOutcomesSince(ctx, now.Add(-time.Duration(days)*24*time.Hour), limit)
+	_, problems, err := s.repos.SearchOutcomesScoped(ctx, now.Add(-time.Duration(days)*24*time.Hour), limit,
+		s.agentLogScope(ctx))
 	if err != nil {
 		return nil, err
 	}

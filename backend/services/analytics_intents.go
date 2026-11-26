@@ -60,7 +60,7 @@ func (s *Services) intentAnalytics(ctx context.Context, since time.Time) (*out.I
 	if !s.repos.Enabled() {
 		return nil, nil
 	}
-	sum, err := s.repos.IntentsSince(ctx, since)
+	sum, err := s.repos.IntentsScoped(ctx, since, s.agentLogScope(ctx))
 	if err != nil {
 		return nil, err
 	}

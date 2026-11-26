@@ -22,6 +22,7 @@ export const DIAGNOSIS_LABELS: Record<string, string> = {
   RANKING_FAILURE: 'Товар найден, но стоит низко',
   CONSTRAINT_CONFLICT: 'Такой лицензии не существует',
   NON_PRODUCT: 'Нетоварный запрос',
+  ON_REQUEST_ONLY: 'Найдено, но только по запросу',
   NOISE: 'Шум',
   UNKNOWN: 'Требует ручной проверки',
   ...P2_DIAGNOSIS_LABELS,
@@ -234,13 +235,22 @@ export interface EvaluationLines {
 
 const qWord = (n: number) => plural(n, ['запрос', 'запроса', 'запросов'])
 
+/** Наборы регрессии на фиде заказчика (контур фида): наборы «по цели» оценки. */
+const FEED_SET_LABELS: Record<string, string> = {
+  feed_regression: 'эталоны и ТЗ',
+  feed_tune: 'соседи эталонов и набор понимания',
+}
+
 export function evaluationLines(ev: ProposalEvaluation | null | undefined): EvaluationLines | null {
   if (!ev?.target) return null
   const b = ev.target.before
   const a = ev.target.after
   const target = `Целевой кластер: находилось ${formatInt(b.found)} из ${formatInt(b.total)}, стало ${formatInt(a.found)} из ${formatInt(a.total)}`
   const r = ev.regression ?? { worse: 0, better: 0, total: 0 }
-  let regression = `Регрессионный набор: ухудшилось ${formatInt(r.worse)} ${qWord(r.worse)}`
+  const feedSets = (r.sets ?? []).filter((x) => FEED_SET_LABELS[x]).map((x) => FEED_SET_LABELS[x])
+  let regression = feedSets.length
+    ? `Регрессия на наборах фида (${feedSets.join(', ')}): ухудшилось ${formatInt(r.worse)} ${qWord(r.worse)}`
+    : `Регрессионный набор: ухудшилось ${formatInt(r.worse)} ${qWord(r.worse)}`
   if (r.total) regression += ` из ${formatInt(r.total)}`
   if (r.better) regression += `, улучшилось ${formatInt(r.better)}`
   const extra: string[] = []

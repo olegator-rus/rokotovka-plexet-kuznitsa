@@ -31,6 +31,8 @@ import (
 //	go run . traffic --api http://127.0.0.1:8088 --duration 1h --spikes vpn-empty@20m
 //	go run . traffic --probe          # один поиск по каждой формулировке всплесков: выдача сейчас пустая?
 //	go run . traffic --dry-run        # план без запросов
+//	go run . traffic --flow ../data/softline/searchops_flow.jsonl --duration 15m --panel 0
+//	                                  # один проход тестового потока SearchOps на фиде (traffic_flow.go)
 //
 // Порог лимита: --max-rpm (HTTP-запросов в минуту на весь генератор) должен быть ниже RATE_LIMIT_PER_MIN API.
 
@@ -39,6 +41,7 @@ const trafficUserAgent = "kuznica-traffic/1"
 type trafficOpts struct {
 	api, origin          string
 	dataDir, spikesPath  string
+	flowPath             string
 	duration             time.Duration
 	sessionsPerMin       float64
 	maxRPM               int
@@ -58,6 +61,8 @@ func runTraffic(args []string) int {
 	fs.StringVar(&o.origin, "origin", envOr("PUBLIC_ORIGIN", "http://localhost:5177"),
 		"заголовок Origin изменяющих запросов (= PUBLIC_ORIGIN API)")
 	fs.StringVar(&o.dataDir, "data", envOr("DATA_DIR", "../data/mock"), "каталог mock-данных (events.jsonl)")
+	fs.StringVar(&o.flowPath, "flow", envOr("TRAFFIC_FLOW_FILE", ""),
+		"поток SearchOps (JSONL): один проход вместо журнала events.jsonl; --duration — окно, по которому разнесены сессии")
 	fs.StringVar(&o.spikesPath, "spikes-file", envOr("TRAFFIC_SPIKES_FILE", "../data/traffic/spikes.json"),
 		"описания всплесков")
 	fs.DurationVar(&o.duration, "duration", 0, "сколько работать (0 — до сигнала)")
@@ -78,6 +83,9 @@ func runTraffic(args []string) int {
 	if err := o.validate(); err != nil {
 		fmt.Fprintln(os.Stderr, "traffic:", err)
 		return 2
+	}
+	if o.flowPath != "" {
+		return runFlowTraffic(o)
 	}
 	model, err := services.LoadTrafficModel(o.dataDir, o.spikesPath)
 	if err != nil {
@@ -173,14 +181,20 @@ type trafficGen struct {
 	r    *mrand.Rand
 
 	st trafficStats
+	// flowLayer — строка потока → слой (сводка по слоям).
+	flowLayer map[string]string
 }
 
 type spikeCounters struct{ sessions, searches, empty atomic.Int64 }
+
+// flowCounters — исходы модельного покупателя потока по слою.
+type flowCounters struct{ sessions, found, onRequest, miss, reformulated, reformFound atomic.Int64 }
 
 type trafficStats struct {
 	sessions, spikeSessions, searches, empty, suggests, events, skippedActions atomic.Int64
 	errors, limited                                                            atomic.Int64
 	bySpike                                                                    sync.Map // id → *spikeCounters
+	byLayer                                                                    sync.Map // слой потока → *flowCounters
 }
 
 func newTrafficGen(o trafficOpts, m *services.TrafficModel) *trafficGen {
@@ -277,6 +291,7 @@ type searchHit struct {
 	intentID  string
 	top       string         // product_id первой позиции
 	positions map[string]int // product_id (представитель и варианты семейства) → позиция семейства, с 1
+	cards     []services.FlowCard
 }
 
 // session — сценарий одной сессии: сессия от сервера, затем шаги с паузами.
@@ -308,6 +323,10 @@ func (g *trafficGen) session(ctx context.Context, ses services.TrafficSession) {
 				continue
 			}
 			last = hit
+			if st.Flow {
+				g.flowAct(ctx, r, token, ses.Flow, st, hit)
+				continue
+			}
 			if sc != nil {
 				sc.searches.Add(1)
 				if total == 0 {
@@ -345,8 +364,11 @@ type searchResp struct {
 	RequestID string `json:"request_id"`
 	Total     int    `json:"total"`
 	Items     []struct {
-		ProductID string `json:"product_id"`
-		Variants  []struct {
+		ProductID      string `json:"product_id"`
+		FamilyID       string `json:"family_id"`
+		PriceOnRequest bool   `json:"price_on_request"`
+		PriceState     string `json:"price_state"`
+		Variants       []struct {
 			ProductID string `json:"product_id"`
 		} `json:"variants"`
 	} `json:"items"`
@@ -393,6 +415,8 @@ func (g *trafficGen) search(ctx context.Context, r *mrand.Rand, token, q string)
 		if _, ok := hit.positions[it.ProductID]; !ok && it.ProductID != "" {
 			hit.positions[it.ProductID] = i + 1
 		}
+		onReq := it.PriceState == "on_request" || it.PriceState == "" && it.PriceOnRequest
+		hit.cards = append(hit.cards, services.FlowCard{FamilyID: it.FamilyID, ProductID: it.ProductID, OnRequest: onReq})
 		for _, v := range it.Variants {
 			if _, ok := hit.positions[v.ProductID]; !ok && v.ProductID != "" {
 				hit.positions[v.ProductID] = i + 1
@@ -555,6 +579,9 @@ func (g *trafficGen) summary(started time.Time) {
 		return true
 	})
 	out["by_spike"] = spikes
+	if g.flowLayer != nil {
+		out["flow_by_layer"] = g.flowSummary()
+	}
 	enc := json.NewEncoder(os.Stdout)
 	enc.SetIndent("", "  ")
 	_ = enc.Encode(out)

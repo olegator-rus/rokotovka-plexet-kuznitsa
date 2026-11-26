@@ -224,10 +224,7 @@ test('смена демо-аккаунта из шапки и выход', async
   await dialog.getByRole('button', { name: /Войти как Илья Ветров/ }).click()
   await expect(dialog).toBeHidden()
   await expect(page).toHaveURL(/\/searchops$/)
-  await expect(page.getByRole('tab', { name: 'Запросы без ответа' })).toHaveAttribute(
-    'data-state',
-    'active',
-  )
+  await expect(page.getByRole('tab', { name: 'Отчёт' })).toHaveAttribute('data-state', 'active')
   await expect(header(page).getByRole('button', { name: /Аккаунт: Илья Ветров/ })).toBeVisible()
 
   await header(page)

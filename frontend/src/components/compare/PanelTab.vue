@@ -37,6 +37,7 @@ import {
 } from '@/lib/evalPanel'
 import { shortHash } from '@/lib/evalView'
 import { formatDateTime, formatInt, formatPercent, plural } from '@/lib/format'
+import { catalogLabel, runTail } from '@/lib/feedSummary'
 
 /** Значок исхода по коду сервера; незнакомый код — нейтральный кружок. */
 const OUTCOME_ICONS: Record<string, Component> = {
@@ -259,9 +260,9 @@ function sourcesLabel(src: Record<string, number> | undefined) {
         <p class="t-xs t-muted pt__repro">
           Воспроизводимость: хэш набора
           <span class="t-mono">{{ shortHash(run.set_hash) }}</span> · каталог
-          {{ run.catalog_version || '—' }} · коммит
+          {{ catalogLabel(run.catalog_version) }} · коммит
           <span class="t-mono">{{ shortHash(run.commit) }}</span> · прогон
-          {{ formatDateTime(run.started_at) }} · <span class="t-mono">make eval SET=panel</span>
+          {{ runTail(run.run_id) }} · <span class="t-mono">make eval SET=panel</span>
         </p>
       </template>
 

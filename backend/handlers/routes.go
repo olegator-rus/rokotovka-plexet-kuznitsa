@@ -33,6 +33,7 @@ func RegisterRoutes(app *fiber.App, h *Handler) {
 	api.Get("/costs/export", h.CostsExport)
 	api.Get("/traces/:request_id", h.Trace)
 	api.Get("/evaluations", h.Evaluations)
+	api.Get("/evaluations/feed", h.FeedSummary) // контур эталонов: сводка на фиде заказчика (S6)
 	api.Post("/evaluations/run", h.RunEvaluation)
 	api.Get("/analytics", h.Analytics)
 	api.Get("/analytics/current", h.AnalyticsCurrent)
@@ -46,6 +47,7 @@ func RegisterRoutes(app *fiber.App, h *Handler) {
 	api.Get("/agent/memory", h.AgentMemory)
 	api.Post("/agent/memory/suppress/:id/remove", h.RemoveSuppress)
 	api.Get("/agent/settings", h.AgentSettings)
+	api.Get("/agent/report", h.AgentReport) // контур фида: отчёт для маркетолога — первый экран SearchOps
 	api.Post("/agent/settings", h.SetAgentSettings)
 	api.Get("/proposals", h.Proposals)
 	api.Get("/proposals/:id", h.Proposal)

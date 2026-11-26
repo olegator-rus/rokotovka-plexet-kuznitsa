@@ -48,10 +48,11 @@ func TestProposalRole(t *testing.T) {
 	}
 }
 
-// Семь причин: каждый диагноз — ровно в одной, у каждой владелец из ролей сотрудников; неизвестное — ручной разбор.
+// Восемь причин (семь контура доводки и «только по запросу» контура фида): каждый диагноз — ровно в одной, у каждой владелец
+// из ролей сотрудников; неизвестное — ручной разбор.
 func TestCauses(t *testing.T) {
-	if len(Causes) != 7 {
-		t.Fatalf("причин %d, ждали 7", len(Causes))
+	if len(Causes) != 8 {
+		t.Fatalf("причин %d, ждали 8", len(Causes))
 	}
 	seen := map[string]string{}
 	for _, c := range Causes {
@@ -72,7 +73,7 @@ func TestCauses(t *testing.T) {
 	}
 	for d, want := range map[string]string{domain.DiagAliasGap: RoleEcom, domain.DiagRankingFailure: RoleEcom,
 		domain.DiagContentGap: RoleContent, domain.DiagAssortmentGap: RoleProduct, domain.DiagMissingRequired: RoleProduct,
-		domain.DiagNonProduct: RoleEcom, "MISSING_RELATION": RoleHead, "": RoleHead} {
+		domain.DiagNonProduct: RoleEcom, domain.DiagOnRequestOnly: RoleContent, "MISSING_RELATION": RoleHead, "": RoleHead} {
 		if got := OwnerOf(d); got != want {
 			t.Errorf("владелец %q: %q, ждали %q", d, got, want)
 		}

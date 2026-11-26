@@ -1,4 +1,4 @@
-// Семь причин неудачного поиска и их владельцы (контур доводки). Коды диагнозов агента
+// Причины неудачного поиска и их владельцы (контур доводки, контур фида — «только по запросу»). Коды диагнозов агента
 // остаются подпричинами внутри карточки. Сервер может прислать причину и владельца сам (cause, owner) — тогда они
 // главнее; без них причина выводится из кода по той же таблице. Без DOM: tests/causes.test.ts.
 
@@ -7,6 +7,7 @@ export type CauseId =
   | 'ranked_low'
   | 'content_gap'
   | 'not_in_catalog'
+  | 'on_request_only'
   | 'relation_rule'
   | 'non_product'
   | 'noise'
@@ -56,6 +57,15 @@ export const CAUSES: readonly Cause[] = [
     role: 'product',
     kind: 'owner_task',
     codes: ['ASSORTMENT_GAP', 'SUBSTITUTE_AVAILABLE'],
+  },
+  {
+    // Контур фида: товар найден, но купить нельзя — все позиции «по запросу». Задача каталогу, не правка поиска.
+    id: 'on_request_only',
+    label: 'Найдено, но только по запросу',
+    owner: 'Каталог',
+    role: 'content',
+    kind: 'owner_task',
+    codes: ['ON_REQUEST_ONLY'],
   },
   {
     id: 'relation_rule',

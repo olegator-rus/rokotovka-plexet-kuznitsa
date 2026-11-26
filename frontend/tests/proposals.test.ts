@@ -108,6 +108,19 @@ test('evaluationLines: две строки «находилось X из N, ст
     'Новых нарушений условий: 2',
   ])
   assert.equal(evaluationLines(null), null)
+
+  // Контур фида: на фиде регрессия — наборы «по цели» оценки, их названия видны в строке.
+  const feed = evaluationLines({
+    target: { before: { found: 0, total: 2 }, after: { found: 2, total: 2 } },
+    regression: { worse: 0, better: 1, total: 195, sets: ['feed_regression', 'feed_tune'] },
+    exact_worse: 0,
+    constraint_violations_new: 0,
+    passed: true,
+  })
+  assert.equal(
+    feed?.regression,
+    'Регрессия на наборах фида (эталоны и ТЗ, соседи эталонов и набор понимания): ухудшилось 0 запросов из 195, улучшилось 1',
+  )
 })
 
 test('очередь: по убыванию потерянного спроса, счётчик ждущих', () => {

@@ -114,7 +114,7 @@ test.describe("S5. Доказательства", () => {
   test("«До / После» по типам запросов, «Вклад компонентов» с B3-M, «Стоимость» по маршрутам", async ({
     page,
   }) => {
-    await page.goto("/proofs");
+    await page.goto("/proofs?tab=compare&view=metrics");
     const table = page.getByRole("region", { name: "Таблица метрик" });
     await expect(table).toBeVisible();
     // Разбивка по типам запросов — в «Как посчитано» у ячейки NDCG (отдельной таблицы классов витрины на экране нет).

@@ -296,6 +296,20 @@ type AgentSettings struct {
 	Budget         AgentBudgetLimits `json:"budget"`
 	QueryBudget    AgentBudgetLimits `json:"query_budget"`
 	Line           string            `json:"line"`
+	// Regression — наборы, на которых агент проверяет правку (контур фида): на фиде без своих наборов правка не допускается.
+	Regression AgentRegression `json:"regression"`
+}
+
+// AgentRegression — наборы регрессии агента на текущем каталоге.
+type AgentRegression struct {
+	Sets           []string       `json:"sets"`
+	BySet          map[string]int `json:"by_set"`
+	Queries        int            `json:"queries"`
+	MaxWorse       int            `json:"max_worse"`
+	Feed           bool           `json:"feed"`
+	CatalogVersion string         `json:"catalog_version,omitempty"`
+	Ready          bool           `json:"ready"`
+	Message        string         `json:"message"`
 }
 
 // AgentSchedule — расписание ночного разбора.

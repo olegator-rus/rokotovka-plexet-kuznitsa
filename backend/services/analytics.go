@@ -73,7 +73,8 @@ func (s *Services) Analytics(ctx context.Context, days int) (*out.AnalyticsRespo
 	sum, problems := &repositories.SearchSummary{}, []repositories.QueryOutcome(nil)
 	if s.repos.Enabled() {
 		var err error
-		if sum, problems, err = s.repos.SearchOutcomesSince(ctx, since, problemsLimit); err != nil {
+		// Контур фида: только журнал текущего каталога — на фиде mock-журнал в аналитику не попадает (agentLogScope).
+		if sum, problems, err = s.repos.SearchOutcomesScoped(ctx, since, problemsLimit, s.agentLogScope(ctx)); err != nil {
 			return nil, err
 		}
 	}
@@ -84,7 +85,15 @@ func (s *Services) Analytics(ctx context.Context, days int) (*out.AnalyticsRespo
 		if err != nil {
 			return nil, err
 		}
-		linkProposals(resp, ps)
+		// Предложения прежнего каталога (mock) к запросам фида не относятся.
+		since := s.agentLogScope(ctx).Since
+		kept := ps[:0:0]
+		for _, p := range ps {
+			if !p.CreatedAt.Before(since) {
+				kept = append(kept, p)
+			}
+		}
+		linkProposals(resp, kept)
 	}
 	if err := s.agentVerdicts(ctx, resp); err != nil {
 		return nil, err

@@ -34,7 +34,8 @@ const loadingMore = ref(false)
 const data = computed(() => res.data.value)
 const summary = computed(() => data.value?.summary ?? null)
 const pricing = computed(() => data.value?.pricing ?? null)
-const pricingVersion = computed(() => pricing.value?.version ?? 'не указан')
+/** Прайс без версии: в версии дата, а дат на экранах нет (версия — в llm_usage.pricing_version). */
+const pricingVersion = computed(() => (pricing.value ? 'Yandex AI Studio' : 'не указан'))
 /** Страница тарифов провайдера; сервер присылает её в pricing.source_url. */
 const PRICING_SOURCE_URL = 'https://aistudio.yandex.ru/ru/docs/ai-studio/pricing'
 /**
@@ -51,12 +52,6 @@ const usedPrices = computed(() =>
     .map((p) => ({ ...p, use: p.use || MODEL_USE[p.model] || '' }))
     .filter((p) => p.use),
 )
-/** 2026-05-26 → 26.05.2026 */
-const pricingDate = computed(() => {
-  const d = pricing.value?.date ?? ''
-  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(d)
-  return m ? `${m[3]}.${m[2]}.${m[1]}` : d || '—'
-})
 const calls = computed(() => [...(data.value?.calls?.items ?? []), ...extraCalls.value])
 const routes = computed<CostRouteRow[]>(() => data.value?.routes ?? [])
 
@@ -426,8 +421,7 @@ function explainRoute(r: CostRouteRow, field: 'share' | 'avg_ms' | 'avg_cost_rub
             </table>
           </div>
           <p class="t-xs t-muted">
-            Цены за 1 млн токенов на {{ pricingDate }}, прайс
-            <span class="t-mono">{{ pricingVersion }}</span>. По ним сервер считает стоимость
+            Цены за 1 млн токенов из прайса Yandex AI Studio. По ним сервер считает стоимость
             каждого вызова модели.
           </p>
         </section>

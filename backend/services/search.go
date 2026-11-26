@@ -19,7 +19,7 @@ import (
 	"go.uber.org/zap"
 )
 
-// Поиск: B0 — подстрока, B1 — BM25 по нормализованному запросу, B2 — BM25 + kNN + RRF (группировка по
+// Поиск: B0 — подстрока, BM25 — BM25 по запросу как набран (только оценка), B1 — BM25 по нормализованному запросу, B2 — BM25 + kNN + RRF (группировка по
 // семействам без атрибутов и порога); B3/B4 — ядро поиска целиком (search_b3.go). Ответ и трасса —
 
 const (
@@ -91,7 +91,8 @@ func (s *Services) SearchWith(ctx context.Context, requestID string, req in.Sear
 	t := time.Now()
 	normalized, changes := normalizeQuery(req.Query)
 	text := normalized
-	if effective != domain.ConfigB0 && st != nil && st.lex != nil {
+	// BM25 (оценка): запрос как набран — только регистр и пробелы, без раскладки, опечаток и словарей.
+	if effective != domain.ConfigB0 && effective != domain.ConfigBM25 && st != nil && st.lex != nil {
 		// B1/B2: нормализация и словари версии 1 (раскладка, опечатки, алиасы), без атрибутов и порога.
 		rules := s.rulesFor(ctx, domain.ConfigB1, st.lex, opts.Rules)
 		nr := normalizeFull(req.Query, st.lex, rules, req.AsTyped)
@@ -204,7 +205,7 @@ func validateSearch(req *in.SearchRequest) (string, int, error) {
 	case strings.ToUpper(domain.ConfigLive):
 		cfg = domain.ConfigLive
 	}
-	known := cfg == domain.ConfigLive
+	known := cfg == domain.ConfigLive || cfg == domain.ConfigBM25
 	for _, c := range domain.SearchConfigs {
 		known = known || c == cfg
 	}

@@ -1,8 +1,9 @@
 <script setup lang="ts">
-// «Доказательства» (S5; редизайн): один уровень навигации — восемь экранов в меню
-// слева, группы — только подписи. Раздел открыт гостю (жюри): действия бэк-офиса внутри видит только сотрудник.
-// Адреса прежние: /proofs?tab=compare&view=metrics|one|regressions|panel|commerce, tab=contribution|cost.
-// «Теоретические основы» — tab=theory, первым пунктом меню; по умолчанию раздел по-прежнему открывает «Метрики».
+// «Доказательства» (S5; редизайн): один уровень навигации — девять экранов в меню слева, группы —
+// только подписи. Раздел открыт гостю (жюри): действия бэк-офиса внутри видит только сотрудник.
+// Адреса прежние: /proofs?tab=compare&view=metrics|one|regressions|panel|commerce, tab=contribution|cost|theory.
+// Контур эталонов (): «На данных заказчика» — tab=feed, первым пунктом меню и экраном по умолчанию: эталоны,
+// закрытая часть, «≥4 товара» и стоимость запроса на фиде. Прежние экраны с mock-прогонами остаются и подписаны.
 import {
   type Component,
   type ComponentPublicInstance,
@@ -16,6 +17,7 @@ import {
 import { useRoute, useRouter } from 'vue-router'
 import { TabsContent, TabsList, TabsRoot, TabsTrigger } from 'reka-ui'
 import {
+  BadgeCheck,
   GraduationCap,
   ChartColumn,
   Columns2,
@@ -28,10 +30,19 @@ import {
 import CompareTab from '@/components/proofs/CompareTab.vue'
 import ContributionTab from '@/components/proofs/ContributionTab.vue'
 import CostTab from '@/components/proofs/CostTab.vue'
+import FeedSummaryTab from '@/components/proofs/FeedSummaryTab.vue'
 import TheoryTab from '@/components/proofs/TheoryTab.vue'
 
 type ViewId =
-  'theory' | 'metrics' | 'one' | 'regressions' | 'panel' | 'contribution' | 'cost' | 'commerce'
+  | 'feed'
+  | 'theory'
+  | 'metrics'
+  | 'one'
+  | 'regressions'
+  | 'panel'
+  | 'contribution'
+  | 'cost'
+  | 'commerce'
 
 interface View {
   id: ViewId
@@ -42,6 +53,19 @@ interface View {
 }
 
 const GROUPS: readonly { title: string; views: readonly View[] }[] = [
+  {
+    title: 'Итог',
+    views: [
+      {
+        id: 'feed',
+        label: 'На данных заказчика',
+        short: 'Главное одним экраном',
+        about:
+          'Эталоны заказчика, закрытая часть набора, доля ответов с четырьмя товарами и стоимость запроса — на фиде магазина, только из прогонов.',
+        icon: BadgeCheck,
+      },
+    ],
+  },
   {
     title: 'Основы',
     views: [
@@ -118,7 +142,7 @@ const GROUPS: readonly { title: string; views: readonly View[] }[] = [
 ]
 const VIEWS = GROUPS.flatMap((g) => g.views)
 /** Экраны со своим адресом tab=<id>; остальные — экраны сравнения tab=compare&view=<id>. */
-const STANDALONE: readonly ViewId[] = ['theory', 'contribution', 'cost']
+const STANDALONE: readonly ViewId[] = ['feed', 'theory', 'contribution', 'cost']
 
 const route = useRoute()
 const router = useRouter()
@@ -128,9 +152,9 @@ const current = computed<ViewId>({
     const tab = str(route.query.tab)
     if (STANDALONE.includes(tab as ViewId)) return tab as ViewId
     const view = str(route.query.view)
-    return VIEWS.some((v) => v.id === view && !STANDALONE.includes(v.id))
-      ? (view as ViewId)
-      : 'metrics'
+    if (VIEWS.some((v) => v.id === view && !STANDALONE.includes(v.id))) return view as ViewId
+    // Без адреса — сводка на данных заказчика; прежний адрес tab=compare без view — «Метрики».
+    return tab === 'compare' ? 'metrics' : 'feed'
   },
   set: (id) => {
     if (STANDALONE.includes(id)) void router.replace({ query: { tab: id } })
@@ -198,6 +222,7 @@ watch(current, () => void nextTick(revealActive))
           <p class="t-sm t-muted">{{ view.about }}</p>
         </header>
         <CompareTab v-if="compare" @regressions-total="regressions = $event" />
+        <FeedSummaryTab v-else-if="current === 'feed'" />
         <TheoryTab v-else-if="current === 'theory'" />
         <ContributionTab v-else-if="current === 'contribution'" />
         <CostTab v-else />

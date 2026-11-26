@@ -110,7 +110,13 @@ func (rc *runCtx) runQuery(ctx context.Context) error {
 		a.step(ctx, rs, &domain.AgentStep{Kind: domain.StepToolCall, ClusterID: clusterIDPtr(c), Tool: &tool, OK: true,
 			Title: shortText(st, 300), Args: toJSON(map[string]any{"query": query}), Result: toJSON(o),
 			Ms: int(time.Since(t).Milliseconds())})
-		if o.Solved {
+		if o.OnRequest && len(o.Top) > 0 {
+			// Контур фида: найдено, но купить нельзя — это не «поиск уже отвечает»: разбор идёт, итог — задача каталогу.
+			c.OnRequestFamily = o.Top[0].FamilyID
+			a.step(ctx, rs, &domain.AgentStep{Kind: domain.StepCheck, ClusterID: clusterIDPtr(c), OK: false,
+				Title: fmt.Sprintf("Поиск находит «%s» первым, но купить нельзя: только по запросу — разбираю, правка поиска тут не поможет", o.Top[0].Title)})
+		}
+		if o.Solved && !o.OnRequest {
 			a.step(ctx, rs, &domain.AgentStep{Kind: domain.StepCheck, ClusterID: clusterIDPtr(c), OK: true,
 				Title: fmt.Sprintf("Запрос решён действующим поиском: «%s» — точное совпадение первым. Разбирать нечего — возьмите запрос из «Запросов без ответа»", o.Top[0].Title)})
 			rs.mu.Lock()

@@ -56,8 +56,8 @@ func agentTools() []llm.Tool {
 			`{"type":"object","properties":{"patch_id":{"type":"string"}},"required":["patch_id"]}`),
 		def("submit_proposal", "Отправить прошедшую прогон правку человеку в очередь.",
 			`{"type":"object","properties":{"patch_id":{"type":"string"},"diagnosis_text":{"type":"string"}},"required":["patch_id","diagnosis_text"]}`),
-		def("create_assortment_ticket", "Задача владельцу причины: SUBSTITUTE_AVAILABLE (есть аналог), ASSORTMENT_GAP (спрос без предложения), CONTENT_GAP (правка карточки), RANKING_FAILURE (товар в выдаче, но не первым — администратору поиска), NON_PRODUCT (запрос не о товаре — администратору поиска, справочный индекс).",
-			`{"type":"object","properties":{"diagnosis":{"type":"string","enum":["SUBSTITUTE_AVAILABLE","ASSORTMENT_GAP","CONTENT_GAP","RANKING_FAILURE","NON_PRODUCT"]},"text":{"type":"string"},`+
+		def("create_assortment_ticket", "Задача владельцу причины: SUBSTITUTE_AVAILABLE (есть аналог), ASSORTMENT_GAP (спрос без предложения), ON_REQUEST_ONLY (товар найден, но все позиции семейства только «по запросу» — задача каталогу: цена и наличие, с family_id), CONTENT_GAP (правка карточки), RANKING_FAILURE (товар в выдаче, но не первым — администратору поиска), NON_PRODUCT (запрос не о товаре — администратору поиска, справочный индекс).",
+			`{"type":"object","properties":{"diagnosis":{"type":"string","enum":["SUBSTITUTE_AVAILABLE","ASSORTMENT_GAP","ON_REQUEST_ONLY","CONTENT_GAP","RANKING_FAILURE","NON_PRODUCT"]},"text":{"type":"string"},`+
 				`"substitute_family_ids":{"type":"array","items":{"type":"string"},"maxItems":5},"family_id":{"type":"string"}},"required":["diagnosis","text"]}`),
 		def("close_cluster", "Закрыть кластер без предложения и без задачи (NOISE, CONSTRAINT_CONFLICT, UNKNOWN или ALIAS_GAP/TYPO после трёх отклонённых гипотез). Спрос без предложения, аналог, карточка, ранжирование и запрос не о товаре — create_assortment_ticket.",
 			`{"type":"object","properties":{"diagnosis":{"type":"string","enum":["ALIAS_GAP","TYPO","CONSTRAINT_CONFLICT","NON_PRODUCT","NOISE","UNKNOWN"]},"reason":{"type":"string"}},"required":["diagnosis","reason"]}`),
@@ -365,8 +365,8 @@ func (cr *clusterRun) toolSearchTrace(ctx context.Context, raw string) (any, str
 	if err != nil {
 		return nil, "", err
 	}
-	resp, err := cr.rc.a.s.SearchWith(ctx, agentRequestID(), in.SearchRequest{Query: q, Config: domain.ConfigB4, Limit: 5, SessionID: "agent"},
-		SearchOptions{Rules: cr.rc.active.snapshot(), NoLog: true})
+	resp, err := cr.rc.a.s.SearchWith(ctx, agentRequestID(), in.SearchRequest{Query: q, Config: agentSearchConfig, Limit: 5, SessionID: "agent"},
+		agentSearchOpts(cr.rc.active.snapshot()))
 	if err != nil {
 		return nil, "", terr("поиск не ответил: %v", err)
 	}
@@ -378,8 +378,15 @@ func (cr *clusterRun) toolSearchTrace(ctx context.Context, raw string) (any, str
 		res["empty"] = resp.Empty.Message
 	}
 	var items []map[string]any
+	if onRequestOnly(q, resp) {
+		res["on_request_only"] = true // точная выдача есть, купить нельзя: ON_REQUEST_ONLY
+	}
 	for i, it := range resp.Items {
-		items = append(items, map[string]any{"family_id": it.FamilyID, "title": it.Title, "vendor": it.Vendor, "group": it.Group})
+		item := map[string]any{"family_id": it.FamilyID, "title": it.Title, "vendor": it.Vendor, "group": it.Group}
+		if it.MatchType != "" {
+			item["match_type"], item["price_state"] = it.MatchType, it.PriceState
+		}
+		items = append(items, item)
 		if i > 0 && it.FamilyID != resp.Items[0].FamilyID {
 			cr.noteNotFirst(it.FamilyID, q)
 		}
@@ -409,6 +416,9 @@ func (cr *clusterRun) toolSearchTrace(ctx context.Context, raw string) (any, str
 		title += ", «нет в каталоге»"
 	} else if len(resp.Items) > 0 {
 		title += fmt.Sprintf(", первым — %s (%s)", resp.Items[0].Title, resp.Items[0].Group)
+		if res["on_request_only"] == true {
+			title += ", купить нельзя: только по запросу"
+		}
 	}
 	return res, title, nil
 }
@@ -581,6 +591,11 @@ func (cr *clusterRun) toolCreatePatch(ctx context.Context, raw string) (any, str
 	if args.Diagnosis != domain.DiagAliasGap && args.Diagnosis != domain.DiagTypo {
 		return nil, "", terr("правка словаря — только для ALIAS_GAP или TYPO; для аналогов и пробелов ассортимента — create_assortment_ticket")
 	}
+	if f := cr.c.OnRequestFamily; f != "" {
+		// Контур фида: поиск уже находит семейство точно, но купить его нельзя — правка словаря тут ничего не даст.
+		return nil, "", terr("действующий поиск находит семейство %s точно, но все его позиции «по запросу» — правка поиска "+
+			"не поможет: create_assortment_ticket с diagnosis=ON_REQUEST_ONLY и family_id=%s (задача каталогу)", f, f)
+	}
 	hyp, err := checkText("hypothesis", args.Hypothesis, 300)
 	if err != nil {
 		return nil, "", err
@@ -721,6 +736,7 @@ var diagnosisLabels = map[string]string{
 	domain.DiagRankingFailure:     "товар найден, но стоит низко",
 	domain.DiagConstraintConflict: "такой лицензии не существует",
 	domain.DiagNonProduct:         "запрос не о товаре",
+	domain.DiagOnRequestOnly:      "товар найден, но только по запросу — купить нельзя",
 	domain.DiagNoise:              "мусор",
 	domain.DiagUnknown:            "недостаточно доказательств",
 }

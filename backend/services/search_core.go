@@ -68,6 +68,9 @@ type SearchOptions struct {
 	Rules *domain.RulesSnapshot
 	// NoLog — не писать событие и трассу в журнал (прогон оценки).
 	NoLog bool
+	// Storefront — с NoLog: ответ как у витрины, с «Можно купить сейчас» и «Популярным в наличии» (оценка «по цели»
+	// на фиде считает ровно то, что видит покупатель; eval_target.go).
+	Storefront bool
 	// Margin — политика маржи поверх действующей (C3, симуляция; margin.go); nil — действующая, только на live.
 	Margin *MarginOverride
 	// MarginProbe — снимок выдачи до политики маржи (симуляция): заполняется, порядок не меняется.

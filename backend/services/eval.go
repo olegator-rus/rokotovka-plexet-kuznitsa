@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"regexp"
 	"runtime/debug"
 	"slices"
 	"sort"
@@ -75,7 +76,7 @@ var errNoHoldoutLog = errs.NewValidationError(MsgEvalNoHoldout)
 
 // validEvalSet — набор из queries.json или реплей отложенной недели.
 func validEvalSet(set string) bool {
-	return slices.Contains(domain.EvalSets, set) || set == domain.EvalSetHoldoutWeek
+	return slices.Contains(domain.EvalSets, set) || set == domain.EvalSetHoldoutWeek || domain.IsTargetSet(set)
 }
 
 // queryLoader — источник, который умеет отдать наборы запросов (MockJSON).
@@ -405,8 +406,19 @@ func reproLine(set, hash string, n int, cfgs []out.EvalConfigResult, commit stri
 	if override {
 		r += " (снимок песочницы)"
 	}
-	return r + fmt.Sprintf(" · каталог %s · коммит %s", catalog, commit)
+	return r + fmt.Sprintf(" · каталог %s · коммит %s", catalogLabel(catalog), commit)
 }
+
+// catalogLabel — каталог в строке воспроизводимости: версия, а для фида заказчика
+// (softline-…) — «фид заказчика»: дат на экранах нет, сама версия хранится в evaluations.catalog_version.
+func catalogLabel(version string) string {
+	if datedVersion.MatchString(version) {
+		return "фид заказчика"
+	}
+	return version
+}
+
+var datedVersion = regexp.MustCompile(`^softline-`)
 
 // evaluationRows — строки evaluations из прогона.
 func evaluationRows(run *EvalResult) []domain.Evaluation {

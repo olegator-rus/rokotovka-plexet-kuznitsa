@@ -2,8 +2,8 @@ package services
 
 import "kuznica/api/domain"
 
-// Семь причин неудачного поиска с владельцами (контур доводки). Коды
-// диагнозов агента остаются подпричинами внутри причины. Владелец — роль сотрудника, которая решает предложения
+// Причины неудачного поиска с владельцами (контур доводки «Причины и владельцы»; контур фида —
+// «найдено, но только по запросу»). Коды диагнозов агента остаются подпричинами внутри причины. Владелец — роль сотрудника, которая решает предложения
 // этой причины (services/access.go): правки поиска — администратор поиска (ecom), ассортимент, связи и правила —
 // категорийный и лицензионный менеджер (product), данные карточки — каталог (content). «Запрос не о товаре»
 // ведёт справочный индекс поиска — тоже администратор поиска; шум и неразобранное — ручной разбор руководителя.
@@ -14,6 +14,7 @@ const (
 	CauseRankedLow     = "ranked_low"
 	CauseContentGap    = "content_gap"
 	CauseNotInCatalog  = "not_in_catalog"
+	CauseOnRequestOnly = "on_request_only"
 	CauseRelationRule  = "relation_rule"
 	CauseNonProduct    = "non_product"
 	CauseNoise         = "noise"
@@ -39,6 +40,10 @@ var Causes = []Cause{
 		Diagnoses: []string{domain.DiagContentGap}, Owner: RoleContent},
 	{Code: CauseNotInCatalog, Label: "Товара нет в каталоге",
 		Diagnoses: []string{domain.DiagAssortmentGap, domain.DiagSubstitute}, Owner: RoleProduct},
+	// Контур фида: на фиде две трети каталога — «по запросу». Товар находится, но купить нельзя — задача каталогу
+	// (цена и наличие), поиск тут не виноват.
+	{Code: CauseOnRequestOnly, Label: "Найдено, но только по запросу",
+		Diagnoses: []string{domain.DiagOnRequestOnly}, Owner: RoleContent},
 	{Code: CauseRelationRule, Label: "Ошибка в связи или лицензионном правиле",
 		Diagnoses: []string{domain.DiagBrokenRelation, domain.DiagMissingRequired, domain.DiagConstraintConflict}, Owner: RoleProduct},
 	{Code: CauseNonProduct, Label: "Запрос не о товаре",

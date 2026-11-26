@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"strings"
 	"time"
 )
 
@@ -56,31 +57,77 @@ type SearchSpan struct {
 // searchFilter — те же поиски, что SearchEventsSince: без прогонов оценки и вкладки «Один запрос».
 const searchFilter = `request_id NOT LIKE 'eval-%' AND source <> 'compare'`
 
+// LogScope — какие поиски журнала относятся к текущему каталогу (вход агента на фиде, контур фида): живые и поиски
+// генератора трафика — только той версии каталога, на которой они сделаны (Catalog; пусто — любой; поиск без версии
+// — неизвестно, на каком каталоге, не отсекается); исторический
+// журнал (mock_log, версии каталога у него нет) — только если он есть у текущего источника (Historical). Весь
+// журнал без отбора — Unscoped.
+type LogScope struct {
+	Catalog    string
+	Historical bool
+	All        bool
+	// Since — с какого момента действует текущий каталог (первая версия правил с его catalog_version). У событий
+	// поведения версии каталога нет: живые и трафик до этого момента — о прежнем каталоге. Нулевое — без границы.
+	Since time.Time
+}
+
+// Unscoped — весь журнал: прежний вход агента и тесты.
+var Unscoped = LogScope{All: true}
+
+// scopeSQL — условие отбора поисков по LogScope (параметры @catalog, @historical, @all).
+const scopeSQL = `(@all OR CASE WHEN COALESCE(NULLIF(source, ''), 'live') IN ('live', 'traffic')
+	THEN (@catalog = '' OR COALESCE(catalog_version, '') IN ('', @catalog)) ELSE @historical END)`
+
+// behaviorScopeSQL — тот же отбор для событий поведения (behavior_events): живые и трафик — с начала текущего
+// каталога, исторические — только у источника с журналом (параметры @catalog_since, @historical, @all).
+const behaviorScopeSQL = `(@all OR CASE WHEN COALESCE(NULLIF(source, ''), 'live') IN ('live', 'traffic')
+	THEN created_at >= @catalog_since ELSE @historical END)`
+
+func (sc LogScope) args(m map[string]any) map[string]any {
+	m["catalog"], m["historical"], m["all"], m["catalog_since"] = sc.Catalog, sc.Historical, sc.All, sc.Since
+	return m
+}
+
+// agentOutcomesCTE — outcomesCTE аналитики с отбором поисков по LogScope в первом шаге (s).
+var agentOutcomesCTE = func() string {
+	const anchor = "AND source <> 'compare'\n),"
+	if !strings.Contains(outcomesCTE, anchor) {
+		panic("agent_stats_sql: в outcomesCTE нет места для отбора по версии каталога")
+	}
+	return strings.Replace(outcomesCTE, anchor, "AND source <> 'compare' AND "+scopeSQL+"\n),", 1)
+}()
+
 // SearchSpanSince — последние поиски с момента since (для границы отложенной недели агента).
-func (r *Repos) SearchSpanSince(ctx context.Context, since time.Time) (SearchSpan, error) {
+func (r *Repos) SearchSpanSince(ctx context.Context, since time.Time, sc LogScope) (SearchSpan, error) {
 	var res SearchSpan
 	if !r.Enabled() {
 		return res, ErrNoDatabase
 	}
 	err := r.db.WithContext(ctx).Raw(`SELECT MAX(created_at) FILTER (WHERE source NOT IN ('live', 'traffic', '')) AS last_historical,
-	MAX(created_at) AS last_any FROM search_events WHERE created_at >= ? AND `+searchFilter, since).Scan(&res).Error
+	MAX(created_at) AS last_any FROM search_events WHERE created_at >= @since AND `+searchFilter+` AND `+scopeSQL,
+		sc.args(map[string]any{"since": since})).Scan(&res).Error
 	return res, err
 }
 
 // CountSearchesSince — число поисков с момента since (скрытые от агента поиски отложенной недели).
-func (r *Repos) CountSearchesSince(ctx context.Context, since time.Time) (int, error) {
+func (r *Repos) CountSearchesSince(ctx context.Context, since time.Time, sc LogScope) (int, error) {
 	if !r.Enabled() {
 		return 0, ErrNoDatabase
 	}
 	var n int64
-	err := r.db.WithContext(ctx).Raw(`SELECT COUNT(*) FROM search_events WHERE created_at >= ? AND `+searchFilter, since).
-		Scan(&n).Error
+	err := r.db.WithContext(ctx).Raw(`SELECT COUNT(*) FROM search_events WHERE created_at >= @since AND `+searchFilter+
+		` AND `+scopeSQL, sc.args(map[string]any{"since": since})).Scan(&n).Error
 	return int(n), err
 }
 
-// AgentQueryStatsBetween — исходы поисков периода [since, until) по нормализованному тексту: один проход по
-// событиям, три выборки из CTE собираются в JSON. Пустой текст запроса не считается.
+// AgentQueryStatsBetween — исходы всех поисков периода (без отбора по каталогу): эталон для тестов.
 func (r *Repos) AgentQueryStatsBetween(ctx context.Context, since, until time.Time) (*AgentQueryStats, error) {
+	return r.AgentQueryStatsScoped(ctx, since, until, Unscoped)
+}
+
+// AgentQueryStatsScoped — исходы поисков периода [since, until) по нормализованному тексту, только поиски из sc: один
+// проход по событиям, три выборки из CTE собираются в JSON. Пустой текст запроса не считается.
+func (r *Repos) AgentQueryStatsScoped(ctx context.Context, since, until time.Time, sc LogScope) (*AgentQueryStats, error) {
 	if !r.Enabled() {
 		return nil, ErrNoDatabase
 	}
@@ -89,7 +136,7 @@ func (r *Repos) AgentQueryStatsBetween(ctx context.Context, since, until time.Ti
 		Reforms []byte
 		Clicks  []byte
 	}
-	err := r.db.WithContext(ctx).Raw(outcomesCTE+`,
+	err := r.db.WithContext(ctx).Raw(agentOutcomesCTE+`,
 n AS (
 	SELECT o.*, LEAD(q) OVER w AS nq, LEAD(created_at) OVER w AS nat, LEAD(clicked) OVER w AS nclicked,
 		LEAD(product) OVER w AS nproduct
@@ -118,7 +165,7 @@ SELECT
 	(SELECT COALESCE(json_agg(x), '[]') FROM (
 		SELECT q, product AS product_id, COUNT(*) AS n
 		FROM r WHERE clicked AND product IS NOT NULL GROUP BY q, product) x) AS clicks`,
-		map[string]any{"since": since, "until": until}).Scan(&row).Error
+		sc.args(map[string]any{"since": since, "until": until})).Scan(&row).Error
 	if err != nil {
 		return nil, err
 	}

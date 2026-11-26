@@ -128,8 +128,11 @@ func (p *intentService) parseMasked(ctx context.Context, normalized string, rule
 		return rules, nil
 	}
 	key := intentCacheKey(normalized, clientSegment, rulesGuess, dict.version, p.s.rulesVersion(), p.prompt.Version, modelName)
-	if hit, ok := p.cacheGet(ctx, key); ok {
-		return hit, nil
+	noCache := parseCacheOff(ctx) // холодный прогон оценки: мимо кэша в обе стороны
+	if !noCache {
+		if hit, ok := p.cacheGet(ctx, key); ok {
+			return hit, nil
+		}
 	}
 	// Режим и бюджет проверяются на каждом разборе: LLM_MODE переключается без перезапуска.
 	switch {
@@ -156,7 +159,9 @@ func (p *intentService) parseMasked(ctx context.Context, normalized string, rule
 		}
 		res := explicitOrigin(mergeIntent(rulesGuess, dict.validate(*parsed, normalized)), normalized)
 		res.Source = domain.ParseLLM
-		p.cachePut(key, normalized, clientSegment, dict.version, modelName, res)
+		if !noCache {
+			p.cachePut(key, normalized, clientSegment, dict.version, modelName, res)
+		}
 		return &intentFlight{parsed: &res, info: info}, nil
 	})
 	f := v.(*intentFlight)

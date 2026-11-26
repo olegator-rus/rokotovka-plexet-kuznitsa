@@ -23,7 +23,8 @@ import { useToast } from '@/components/ui/useToast'
 import { useResource } from '@/composables/useResource'
 import { type ApiError, isApiError, MSG_UNKNOWN } from '@/lib/apiError'
 import { evalColumns, latestRun, regressionCount, reproducibility, shortHash } from '@/lib/evalView'
-import { formatDateTime, formatInt, formatMs, plural } from '@/lib/format'
+import { formatInt, formatMs, plural } from '@/lib/format'
+import { MOCK_RUN_LABEL, catalogLabel, isMockCatalog } from '@/lib/feedSummary'
 import { isConfigId } from '@/lib/searchState'
 import { useAppStore } from '@/stores/app'
 import { useAuthStore } from '@/stores/auth'
@@ -48,6 +49,10 @@ const columns = computed(() => evalColumns(evals.data.value))
 const repro = computed(() => reproducibility(columns.value))
 const regressionTotal = computed(() => regressionCount(columns.value))
 const latest = computed(() => latestRun(columns.value))
+/** Все столбцы посчитаны на mock-каталоге — до данных заказчика (подпись над таблицей). */
+const mockOnly = computed(
+  () => columns.value.length > 0 && columns.value.every((c) => isMockCatalog(c.catalog_version)),
+)
 const judge = computed(() => evals.data.value?.judge_agreement ?? null)
 const hasB4 = computed(() => columns.value.some((c) => c.config === 'B4'))
 // Правки B4 из запусков агента до разреза журнала: на test B4 — не независимая оценка (GET /api/evaluations).
@@ -211,9 +216,7 @@ onBeforeUnmount(() => {
 
     <BlockError v-if="runError" :error="runError" title="Прогон не запустился" @retry="startRun" />
     <div v-if="job?.status === 'failed' && latest" class="panel compare__failed" role="alert">
-      Новый прогон не выполнен{{ job.error ? `: ${job.error}` : '' }}. Ниже — последний удачный ({{
-        formatDateTime(latest.created_at)
-      }}).
+      Новый прогон не выполнен{{ job.error ? `: ${job.error}` : '' }}. Ниже — последний удачный.
     </div>
 
     <!-- Загрузка -->
@@ -252,6 +255,10 @@ onBeforeUnmount(() => {
           </div>
         </div>
         <template v-else>
+          <p v-if="mockOnly" class="panel t-sm compare__mock">
+            Прогон на каталоге «{{ MOCK_RUN_LABEL }}». Числа на фиде магазина —
+            <RouterLink :to="{ query: { tab: 'feed' } }">«На данных заказчика»</RouterLink>.
+          </p>
           <p v-if="repro" class="t-sm">
             Набор <strong>{{ repro.set }}</strong>: {{ formatInt(repro.queryCount) }}
             {{ plural(repro.queryCount, ['запрос', 'запроса', 'запросов']) }}, заморожен — поиск
@@ -270,12 +277,11 @@ onBeforeUnmount(() => {
             Воспроизводимость: хэш набора
             <span class="t-mono" :title="repro.setHash">{{ shortHash(repro.setHash) }}</span>
             · правила {{ repro.rulesVersions.map((v) => `v${v}`).join(', ') }} · каталог
-            {{ repro.catalogVersions.join(', ') || '—' }} · коммит
+            {{ repro.catalogVersions.map(catalogLabel).join(', ') || '—' }} · коммит
             <span class="t-mono">{{
               repro.commits.map((c) => shortHash(c)).join(', ') || '—'
             }}</span>
-            · <span class="t-mono">make eval</span> · последний прогон
-            {{ latest ? formatDateTime(latest.created_at) : '—' }}
+            · <span class="t-mono">make eval</span>
           </p>
           <p v-if="hasB4 && b4PreHoldout" class="t-sm">
             Столбец B4 — не независимая оценка: действующая правка агента предложена запуском до
@@ -384,6 +390,10 @@ onBeforeUnmount(() => {
   flex-direction: column;
   gap: var(--space-2);
   padding: var(--space-5);
+  color: var(--text-2);
+}
+.compare__mock {
+  padding: var(--space-3) var(--space-4);
   color: var(--text-2);
 }
 .compare__repro {

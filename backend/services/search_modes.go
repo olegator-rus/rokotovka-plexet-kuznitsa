@@ -114,6 +114,9 @@ type searchModes struct {
 	// noModelCache — эмбеддер и реранкер без кэша (search_modelcache.go): строки таблицы вклада меряют время
 	// моделей одинаково холодным, иначе строка после B2 получала бы векторы из кэша.
 	noModelCache bool
+	// noParseCache — холодный прогон оценки (eval_target.go): кэш разборов модели не читается и не пишется — каждый
+	// запрос маршрута D идёт в модель, а кэш витрины прогон не меняет.
+	noParseCache bool
 }
 
 type searchModesKey struct{}
@@ -145,3 +148,6 @@ func llmOffBy(ctx context.Context) bool { return modesFrom(ctx).noLLM }
 
 // modelCacheOff — кэш векторов и оценок реранкера выключен для этого поиска.
 func modelCacheOff(ctx context.Context) bool { return modesFrom(ctx).noModelCache }
+
+// parseCacheOff — кэш разборов модели выключен для этого поиска (холодный прогон оценки).
+func parseCacheOff(ctx context.Context) bool { return modesFrom(ctx).noParseCache }

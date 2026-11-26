@@ -33,7 +33,7 @@ const WarmupRequestPrefix = "warmup-"
 
 // RouteCosts — живые поиски (source = live) по маршрутам и стоимость вызовов модели, привязанных к ним по
 // request_id. Импортированные исторические логи (mock_log) и прогоны оценки (eval-…) не считаются.
-func (r *Repos) RouteCosts(ctx context.Context) ([]RouteCostRow, error) {
+func (r *Repos) RouteCosts(ctx context.Context, catalog string) ([]RouteCostRow, error) {
 	if !r.Enabled() {
 		return nil, ErrNoDatabase
 	}
@@ -46,8 +46,8 @@ SELECT e.route AS route, count(*) AS count, coalesce(avg(e.total_ms), 0) AS avg_
 FROM search_events e
 LEFT JOIN (SELECT request_id, sum(calculated_cost) AS cost FROM llm_usage
            WHERE request_id IS NOT NULL GROUP BY request_id) u ON u.request_id = e.request_id
-WHERE e.source = 'live' AND e.route <> ''
-GROUP BY e.route ORDER BY e.route`).Scan(&rows).Error
+WHERE e.source = 'live' AND e.route <> '' AND (@catalog = '' OR e.catalog_version = @catalog)
+GROUP BY e.route ORDER BY e.route`, map[string]any{"catalog": catalog}).Scan(&rows).Error
 	return rows, err
 }
 
@@ -114,4 +114,65 @@ func (r *Repos) LLMCostSince(ctx context.Context, since time.Time) (float64, err
 	var v float64
 	err := r.db.WithContext(ctx).Raw(`SELECT coalesce(sum(calculated_cost), 0) FROM llm_usage WHERE created_at >= ?`, since).Scan(&v).Error
 	return v, err
+}
+
+// LLMPrefixTotals — расход модели по request_id с одним префиксом (прогон оценки одной конфигурации).
+type LLMPrefixTotals struct {
+	Calls        int64
+	InputTokens  int64
+	OutputTokens int64
+	CostRub      float64
+}
+
+// LLMUsageByPrefix — итоги llm_usage по request_id, начинающимся с prefix (без знаков % и _).
+func (r *Repos) LLMUsageByPrefix(ctx context.Context, prefix string) (LLMPrefixTotals, error) {
+	var t LLMPrefixTotals
+	if !r.Enabled() {
+		return t, ErrNoDatabase
+	}
+	err := r.db.WithContext(ctx).Raw(`
+SELECT count(*) AS calls, coalesce(sum(input_tokens), 0) AS input_tokens,
+       coalesce(sum(output_tokens), 0) AS output_tokens, coalesce(sum(calculated_cost), 0) AS cost_rub
+FROM llm_usage WHERE request_id LIKE ?`, prefix+"%").Scan(&t).Error
+	return t, err
+}
+
+// CatalogRouteTotals — поиски витрины и трафика одного каталога: маршрут D по метке и по разбору моделью, расход.
+type CatalogRouteTotals struct {
+	Searches     int64
+	RouteD       int64
+	DNoModel     int64 // метка D без вызова модели и без кэша (zero_results)
+	LLM          int64 // поисков с разбором моделью
+	Cache        int64 // поисков с разбором из кэша
+	Calls        int64 // строк llm_usage этих поисков
+	InputTokens  int64
+	OutputTokens int64
+	CostRub      float64
+	P50Ms        float64
+	P95Ms        float64
+}
+
+// CatalogRouteCosts — журнал поисков (source = live | traffic) каталога version и llm_usage по их request_id: доля
+// маршрута D по реальным вызовам модели, кэш, токены и рубли.
+func (r *Repos) CatalogRouteCosts(ctx context.Context, version string) (CatalogRouteTotals, error) {
+	var t CatalogRouteTotals
+	if !r.Enabled() {
+		return t, ErrNoDatabase
+	}
+	err := r.db.WithContext(ctx).Raw(`
+SELECT count(*) AS searches,
+       count(*) FILTER (WHERE e.route = 'D') AS route_d,
+       count(*) FILTER (WHERE e.route = 'D' AND e.parse_source NOT IN ('llm', 'cache') AND u.request_id IS NULL) AS d_no_model,
+       count(*) FILTER (WHERE e.parse_source = 'llm' OR u.request_id IS NOT NULL) AS llm,
+       count(*) FILTER (WHERE e.parse_source = 'cache' AND u.request_id IS NULL) AS cache,
+       coalesce(sum(u.calls), 0) AS calls, coalesce(sum(u.inp), 0) AS input_tokens,
+       coalesce(sum(u.outp), 0) AS output_tokens, coalesce(sum(u.cost), 0) AS cost_rub,
+       coalesce(percentile_disc(0.5) WITHIN GROUP (ORDER BY e.total_ms), 0) AS p50_ms,
+       coalesce(percentile_disc(0.95) WITHIN GROUP (ORDER BY e.total_ms), 0) AS p95_ms
+FROM search_events e
+LEFT JOIN (SELECT request_id, count(*) AS calls, sum(input_tokens) AS inp, sum(output_tokens) AS outp,
+                  sum(calculated_cost) AS cost
+           FROM llm_usage WHERE request_id IS NOT NULL GROUP BY request_id) u ON u.request_id = e.request_id
+WHERE e.catalog_version = ? AND e.source IN ('live', 'traffic') AND e.route <> ''`, version).Scan(&t).Error
+	return t, err
 }

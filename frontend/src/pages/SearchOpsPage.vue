@@ -1,7 +1,7 @@
 <script setup lang="ts">
-// SearchOps («Навигация»; контур автономии — «Память»): вкладки «Запросы без ответа», «Запуски»,
-// «Очередь», «Память», «Изменения», «Политика ранжирования» (reka Tabs, вкладка в адресе:
-// /searchops?tab=failed|runs|queue|memory|changes|policy). «Запустить разбор» → POST /api/agent/runs по периоду →
+// SearchOps («Навигация»; контур автономии — «Память»; контур фида — первый экран «Отчёт» для маркетолога):
+// вкладки «Отчёт», «Запросы без ответа», «Запуски», «Очередь», «Память», «Изменения», «Политика ранжирования» (reka
+// Tabs, вкладка в адресе: /searchops?tab=report|failed|runs|queue|memory|changes|policy; без вкладки — «Отчёт»). «Запустить разбор» → POST /api/agent/runs по периоду →
 // лента запуска. «Разобрать» в строке запроса — запуск на одном запросе (useAnalyseQuery); старый адрес
 // ?tab=runs&q=<запрос> показывает плашку с той же кнопкой.
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
@@ -12,6 +12,7 @@ import { Play } from 'lucide-vue-next'
 import { getAgentSettings, getRuns, startRun } from '@/api/agent'
 import ChangesPanel from '@/components/searchops/ChangesPanel.vue'
 import FailedQueries from '@/components/searchops/FailedQueries.vue'
+import MarketerReport from '@/components/searchops/MarketerReport.vue'
 import MemoryPanel from '@/components/searchops/MemoryPanel.vue'
 import PolicyPanel from '@/components/searchops/PolicyPanel.vue'
 import ProposalQueue from '@/components/searchops/ProposalQueue.vue'
@@ -23,7 +24,7 @@ import { isApiError } from '@/lib/apiError'
 import { isRunActive } from '@/lib/agentFeed'
 import { useAppStore } from '@/stores/app'
 
-const TABS = ['failed', 'runs', 'queue', 'memory', 'changes', 'policy'] as const
+const TABS = ['report', 'failed', 'runs', 'queue', 'memory', 'changes', 'policy'] as const
 type Tab = (typeof TABS)[number]
 
 const route = useRoute()
@@ -34,12 +35,12 @@ const { pendingProposals } = storeToRefs(useAppStore())
 const tab = computed<Tab>({
   get: () => {
     const t = typeof route.query.tab === 'string' ? route.query.tab : ''
-    return (TABS as readonly string[]).includes(t) ? (t as Tab) : 'failed'
+    return (TABS as readonly string[]).includes(t) ? (t as Tab) : 'report'
   },
   set: (t) => void router.replace({ query: { tab: t } }),
 })
 
-// 360 px: вкладок шесть, видно три — строка прокручивается; край с продолжением гаснет (намёк на прокрутку),
+// 360 px: вкладок семь, видно три — строка прокручивается; край с продолжением гаснет (намёк на прокрутку),
 // выбранная вкладка прокручивается в видимую часть (QA r2 №17).
 const tabList = ref<{ $el: HTMLElement } | null>(null)
 const tabEdge = ref({ left: false, right: false })
@@ -159,6 +160,7 @@ async function onStart() {
         ]"
         aria-label="Разделы SearchOps"
       >
+        <TabsTrigger value="report" class="tabs__trigger">Отчёт</TabsTrigger>
         <TabsTrigger value="failed" class="tabs__trigger">Запросы без ответа</TabsTrigger>
         <TabsTrigger value="runs" class="tabs__trigger">Запуски</TabsTrigger>
         <TabsTrigger value="queue" class="tabs__trigger">
@@ -172,6 +174,9 @@ async function onStart() {
         <TabsTrigger value="policy" class="tabs__trigger">Политика ранжирования</TabsTrigger>
       </TabsList>
 
+      <TabsContent value="report" class="sops__panel">
+        <MarketerReport @start="onStart" />
+      </TabsContent>
       <TabsContent value="failed" class="sops__panel">
         <FailedQueries />
       </TabsContent>

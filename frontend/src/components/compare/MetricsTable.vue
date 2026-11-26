@@ -7,7 +7,8 @@ import DeltaMark from '@/components/common/DeltaMark.vue'
 import ExplainDialog, { type Explanation } from '@/components/common/ExplainDialog.vue'
 import { configHint } from '@/lib/configs'
 import { type MetricCell, metricByType, metricRows, queryTypeLabel } from '@/lib/evalView'
-import { formatDateTime, formatInt, formatPercent } from '@/lib/format'
+import { formatInt, formatPercent } from '@/lib/format'
+import { catalogLabel, runTail } from '@/lib/feedSummary'
 import { formatMetric, metricDef } from '@/lib/metrics'
 
 const props = defineProps<{
@@ -53,7 +54,8 @@ function explain(key: string, cell: MetricCell, idx: number) {
   }
   if (run.metrics.errors > 0)
     rows.push({ label: 'Запросов с ошибкой (не вошли)', value: formatInt(run.metrics.errors) })
-  rows.push({ label: 'Прогон', value: formatDateTime(run.created_at) || run.run_id })
+  rows.push({ label: 'Прогон', value: runTail(run.run_id) })
+  rows.push({ label: 'Каталог', value: catalogLabel(run.catalog_version) })
   explanation.value = {
     title: `${def.label} · ${cell.config}`,
     value: formatMetric(cell.value, def.format),

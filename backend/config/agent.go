@@ -18,6 +18,9 @@ type AgentConfig struct {
 	MaxRegressionWorse int
 	// RegressionSets — наборы для проверки регрессии (AGENT_REGRESSION_SETS, regression,tune); test не трогается.
 	RegressionSets []string
+	// FeedRegressionSets — то же на фиде заказчика (контур фида): наборы «по цели» оценки (AGENT_FEED_REGRESSION_SETS,
+	// feed_regression,feed_tune — эталоны и ТЗ, соседи и набор понимания); закрытый набор агенту недоступен.
+	FeedRegressionSets []string
 
 	// Контур автономии (автономность). ScheduleAt — время ночного разбора по Москве (AGENT_SCHEDULE_AT, «03:00»);
 	// пусто — расписание по интервалу, как раньше. ScheduleDays — за сколько суток ночной разбор (AGENT_SCHEDULE_DAYS, 1).
@@ -61,10 +64,11 @@ type BudgetConfig struct {
 // loadAgent — настройки агента; модель дополняется каталогом как у LLM.
 func loadAgent(l LLMConfig) (AgentConfig, error) {
 	a := AgentConfig{
-		Model:          l.modelURI(env("AGENT_MODEL", defaultLLMModel)),
-		Interval:       24 * time.Hour,
-		RegressionSets: []string{"regression", "tune"},
-		ScheduleDays:   1,
+		Model:              l.modelURI(env("AGENT_MODEL", defaultLLMModel)),
+		Interval:           24 * time.Hour,
+		RegressionSets:     []string{"regression", "tune"},
+		FeedRegressionSets: []string{"feed_regression", "feed_tune"},
+		ScheduleDays:       1,
 		Spike: SpikeConfig{Window: time.Hour, MinSearches: 60, EmptyShare: 0.25, ReformShare: 0.12, QueryFreq: 8,
 			Cooldown: 3 * time.Hour},
 		TriggerCheck:  time.Minute,
@@ -100,8 +104,23 @@ func loadAgent(l LLMConfig) (AgentConfig, error) {
 			if s == "test" {
 				return a, fmt.Errorf("AGENT_REGRESSION_SETS: набор test замороженный, на нём агент не проверяет правки")
 			}
+			if s == "closed" {
+				return a, fmt.Errorf("AGENT_REGRESSION_SETS: закрытый набор на фиде прогоняется один раз при заморозке, агенту он недоступен")
+			}
 			if s != "" {
 				a.RegressionSets = append(a.RegressionSets, s)
+			}
+		}
+	}
+	if v := env("AGENT_FEED_REGRESSION_SETS", ""); v != "" {
+		a.FeedRegressionSets = nil
+		for _, s := range strings.Split(v, ",") {
+			s = strings.TrimSpace(strings.ToLower(s))
+			if s == "closed" || s == "test" {
+				return a, fmt.Errorf("AGENT_FEED_REGRESSION_SETS: набор %s закрытый, агенту он недоступен", s)
+			}
+			if s != "" {
+				a.FeedRegressionSets = append(a.FeedRegressionSets, s)
 			}
 		}
 	}

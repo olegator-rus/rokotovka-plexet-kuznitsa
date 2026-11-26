@@ -18,17 +18,38 @@ import (
 // прогон набора через сервис поиска, таблица в stdout, запись в evaluations и JSON в --out.
 func runEval(ctx context.Context, log *zap.Logger, svc *services.Services, args []string) {
 	fs := flag.NewFlagSet("eval", flag.ExitOnError)
-	set := fs.String("set", "test", "набор: tune | test | regression | demo | holdout_week (реплей отложенной недели журнала) | panel (префиксы панели) | showcase (прогон витрины)")
+	set := fs.String("set", "test", "набор: tune | test | regression | demo | holdout_week (реплей отложенной недели журнала) | panel (префиксы панели) | showcase (прогон витрины); «по цели» на фиде — etalon, tz, neighbors, understanding, feed_tune, feed_regression, closed (через запятую — несколько)")
 	configs := fs.String("configs", strings.Join(services.DefaultEvalConfigs, ","), "конфигурации через запятую")
 	outDir := fs.String("out", "../data/eval", "куда записать JSON прогона; пусто — не записывать")
 	noPersist := fs.Bool("no-persist", false, "не записывать результат в базу")
 	proposal := fs.String("with-proposal", "", "id ждущего предложения: эффект его правки в песочнице (B3, B4, B4+правка; в базу не пишется)")
 	contribSet := fs.String("contrib-set", "test", "набор таблицы вклада компонентов при --set contribution: test | tune | regression")
 	commerce := fs.Bool("commerce", true, "набор p2: коммерческая лестница C0–C3 и прогоны с одним изменением (false — обычная лестница B)")
+	file := fs.String("file", "", "наборы «по цели»: явный путь JSONL (закрытый набор: --set closed --file …)")
+	cold := fs.Bool("cold", false, "наборы «по цели»: холодный прогон — кэш разборов модели, векторов и реранкера не читается")
+	report := fs.String("report", "", "наборы «по цели»: каталог Markdown-отчётов (target-<набор>-<режим>.md)")
+	summary := fs.String("summary", "", "сводка «На данных заказчика» (S6) в Markdown по последним прогонам — путь файла")
+	var header multiFlag
+	fs.Var(&header, "header", "строка шапки сводки (--summary); можно несколько раз")
 	_ = fs.Parse(args)
+	cfgSet := false
+	fs.Visit(func(f *flag.Flag) { cfgSet = cfgSet || f.Name == "configs" })
 
 	svc.LoadCatalogState(ctx)
 	defer svc.Wait()
+	if *summary != "" {
+		runFeedSummary(ctx, log, svc, *summary, header)
+		return
+	}
+	if sets := targetSetsArg(*set); len(sets) > 0 {
+		var cfgs []string
+		if cfgSet {
+			cfgs = strings.Split(*configs, ",")
+		}
+		runTargetEval(ctx, log, svc, targetEvalArgs{sets: sets, file: *file, configs: cfgs, cold: *cold, outDir: *outDir,
+			reportDir: *report, persist: !*noPersist, command: "go run . eval " + strings.Join(args, " ")})
+		return
+	}
 	if *set == "panel" {
 		runPanelEval(ctx, log, svc, *outDir, !*noPersist)
 		return

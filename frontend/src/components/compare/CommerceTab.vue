@@ -24,7 +24,8 @@ import {
   sortLadder,
 } from '@/lib/commerce'
 import { shortHash } from '@/lib/evalView'
-import { formatDateTime, formatDecimal, formatInt, formatPercent, plural } from '@/lib/format'
+import { formatDecimal, formatInt, formatPercent, plural } from '@/lib/format'
+import { runTail } from '@/lib/feedSummary'
 import { compatibilityLabel } from '@/lib/relations'
 
 const res = useResource((opts) => getCommerceEval(opts))
@@ -195,8 +196,8 @@ function explainMetric(key: CommerceMetricKey) {
           ><template v-if="data.commit">
             · коммит <span class="t-mono">{{ shortHash(data.commit) }}</span></template
           ></template
-        ><template v-if="data.started_at"> · прогон {{ formatDateTime(data.started_at) }}</template>
-        · <span class="t-mono">make eval SET=p2</span>
+        ><template v-if="data.run_id"> · прогон {{ runTail(data.run_id) }}</template> ·
+        <span class="t-mono">make eval SET=p2</span>
       </p>
 
       <section v-if="singles.length" class="com__singles" aria-labelledby="sc-title">

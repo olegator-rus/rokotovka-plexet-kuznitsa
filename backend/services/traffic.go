@@ -49,12 +49,18 @@ type TrafficStep struct {
 	Gap       time.Duration `json:"gap_ns"`
 	// ClickTop — кликнуть первую позицию текущей выдачи (переформулировка всплеска нашла товар).
 	ClickTop bool `json:"click_top,omitempty"`
+	// Поток SearchOps на фиде (traffic_flow.go): Flow — шаг потока, действие решает модельный покупатель по
+	// выдаче (FlowChoose); Expect — семейства ожидания строки; Fix — правильное название для переформулировки.
+	Flow   bool     `json:"flow,omitempty"`
+	Expect []string `json:"expect,omitempty"`
+	Fix    string   `json:"fix,omitempty"`
 }
 
 // TrafficSession — сценарий одной сессии.
 type TrafficSession struct {
 	Steps []TrafficStep `json:"steps"`
 	Spike string        `json:"spike,omitempty"` // id всплеска; пусто — фон
+	Flow  string        `json:"flow,omitempty"`  // id строки потока SearchOps; пусто — не поток
 }
 
 // TrafficSpike — заранее заданный всплеск: кластер неудачных формулировок и (для reform) удачная переформулировка.

@@ -50,7 +50,12 @@ func (s *Services) Costs(ctx context.Context, req CostsRequest) (*out.Costs, err
 	if !s.repos.Enabled() {
 		return nil, errs.NewUnavailableError("Журнал стоимости недоступен: сервис запущен без базы данных")
 	}
-	routes, err := s.repos.RouteCosts(ctx)
+	// Контур фида: маршруты — живые поиски текущего каталога (на фиде mock-поиски не считаются).
+	catalog := ""
+	if cs := s.catalog.Load(); cs != nil {
+		catalog = cs.version
+	}
+	routes, err := s.repos.RouteCosts(ctx, catalog)
 	if err != nil {
 		return nil, err
 	}

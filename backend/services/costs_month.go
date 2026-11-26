@@ -75,12 +75,12 @@ func costParam(key, label, unit, hint string, measured *float64, assumed float64
 }
 
 // computeMonthly — сценарии из сводки «Экономики», маршрутов и завершённых запусков агента.
-func computeMonthly(sum out.CostsSummary, routes []out.CostsRoute, runs []domain.AgentRun, p MonthlyParams) out.CostsMonthly {
+func computeMonthly(sum out.CostsSummary, _ []out.CostsRoute, runs []domain.AgentRun, p MonthlyParams) out.CostsMonthly {
+	// Доля D — по реальным разборам моделью (вызов или кэш), а не по метке маршрута: метку D ставит и «ничего не
+	// нашлось по тексту» (zero_results) без вызова модели, и доля по метке завышена.
 	var routeD *float64
-	for _, r := range routes {
-		if r.Route == domain.RouteIntent && sum.Searches > 0 {
-			routeD = r.Share
-		}
+	if sum.Searches > 0 {
+		routeD = costsRatio(float64(sum.LLMParses+sum.CacheHits), float64(sum.Searches), 4)
 	}
 	var parseCost *float64
 	if sum.LLMParses > 0 {
@@ -98,8 +98,9 @@ func computeMonthly(sum out.CostsSummary, routes []out.CostsRoute, runs []domain
 		runCost = costsRatio(total, float64(n), 2)
 	}
 	params := []out.CostsParam{
-		costParam("route_d_share", "Доля маршрута D (сложные запросы)", "доля",
-			"Замер — живые поиски по маршрутам (search_events, source = live)", routeD, assumedRouteDShare, nil),
+		costParam("route_d_share", "Доля поисков с разбором моделью (маршрут D)", "доля",
+			"Замер — живые поиски с вызовом модели или разбором из кэша (search_events, source = live); метка D без вызова "+
+				"модели («ничего не нашлось по тексту») не считается", routeD, assumedRouteDShare, nil),
 		costParam("cache_hit_share", "Доля попаданий в кэш разборов", "доля",
 			"Замер — cache / (cache + llm) среди разборов маршрута D", sum.CacheHitShare, assumedCacheHitShare, nil),
 		costParam("llm_parse_cost_rub", "Стоимость одного разбора моделью", "₽",

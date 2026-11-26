@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"kuznica/api/in"
+	"kuznica/api/pkg/errs"
 	"kuznica/api/services"
 
 	"github.com/gofiber/fiber/v2"
@@ -206,4 +207,22 @@ func (h *Handler) AgentRunStream(c *fiber.Ctx) error {
 		}
 	})
 	return nil
+}
+
+// AgentReport — GET /api/agent/report?days=: первый экран SearchOps, отчёт для маркетолога (контур фида).
+func (h *Handler) AgentReport(c *fiber.Ctx) error {
+	days := 0
+	if v := c.Query("days"); v != "" {
+		n, err := strconv.Atoi(v)
+		if err != nil {
+			return errs.NewValidationError(errs.MsgInvalidFields).WithDetails(
+				errs.FieldError{Field: "days", Code: errs.CodeInvalidFormat, Message: "Период — число дней"})
+		}
+		days = n
+	}
+	res, err := h.services.SearchOpsReport(c.UserContext(), days)
+	if err != nil {
+		return err
+	}
+	return c.JSON(res)
 }

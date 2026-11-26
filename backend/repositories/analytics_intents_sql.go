@@ -39,6 +39,11 @@ type IntentSummary struct {
 
 // IntentsSince — агрегаты намерений с момента since.
 func (r *Repos) IntentsSince(ctx context.Context, since time.Time) (*IntentSummary, error) {
+	return r.IntentsScoped(ctx, since, Unscoped)
+}
+
+// IntentsScoped — агрегаты намерений только по событиям текущего каталога (LogScope, контур фида).
+func (r *Repos) IntentsScoped(ctx context.Context, since time.Time, sc LogScope) (*IntentSummary, error) {
 	if !r.Enabled() {
 		return nil, ErrNoDatabase
 	}
@@ -47,7 +52,7 @@ func (r *Repos) IntentsSince(ctx context.Context, since time.Time) (*IntentSumma
 	err := db.Raw(`
 WITH e AS (
 	SELECT intent_id, type, created_at, id, payload, COALESCE(NULLIF(source, ''), 'live') AS source FROM behavior_events
-	WHERE created_at >= @since AND intent_id IS NOT NULL AND intent_id <> ''
+	WHERE created_at >= @since AND intent_id IS NOT NULL AND intent_id <> '' AND `+behaviorScopeSQL+`
 ),
 first_out AS (
 	SELECT DISTINCT ON (intent_id) intent_id,
@@ -68,7 +73,7 @@ per AS (
 )
 SELECT COALESCE(f.type, '') AS outcome_event, p.source, p.acted, p.panel_product, COUNT(*) AS n
 FROM per p LEFT JOIN first_out f USING (intent_id)
-GROUP BY 1, 2, 3, 4 ORDER BY 1, 2, 3, 4`, map[string]any{"since": since}).Scan(&sum.Groups).Error
+GROUP BY 1, 2, 3, 4 ORDER BY 1, 2, 3, 4`, sc.args(map[string]any{"since": since})).Scan(&sum.Groups).Error
 	if err != nil {
 		return nil, err
 	}
@@ -78,8 +83,8 @@ SELECT COUNT(*) FILTER (WHERE n = 0) AS num, COUNT(n) AS den FROM (
 		THEN (b.payload->>'results_count')::numeric::int END, s.results_count,
 		(SELECT si.results_count FROM search_events si WHERE b.intent_id IS NOT NULL AND si.intent_id = b.intent_id
 			ORDER BY si.created_at, si.request_id LIMIT 1)) AS n
-	FROM behavior_events b LEFT JOIN search_events s ON s.request_id = b.request_id
-	WHERE b.created_at >= ? AND b.type = 'search_commit') x`, since).Scan(&sum.EmptyResults).Error
+	FROM (SELECT * FROM behavior_events WHERE `+behaviorScopeSQL+`) b LEFT JOIN search_events s ON s.request_id = b.request_id
+	WHERE b.created_at >= @since AND b.type = 'search_commit') x`, sc.args(map[string]any{"since": since})).Scan(&sum.EmptyResults).Error
 	if err != nil {
 		return nil, err
 	}
@@ -87,7 +92,7 @@ SELECT COUNT(*) FILTER (WHERE n = 0) AS num, COUNT(n) AS den FROM (
 SELECT COUNT(*) FILTER (WHERE items = 0) AS num, COUNT(items) AS den FROM (
 	SELECT CASE WHEN jsonb_typeof(payload->'items') = 'number' THEN (payload->>'items')::numeric END AS items,
 		CASE WHEN jsonb_typeof(payload->'prefix_len') = 'number' THEN (payload->>'prefix_len')::numeric END AS plen
-	FROM behavior_events WHERE created_at >= ? AND type = 'suggest_impression') x
-WHERE plen IS NULL OR plen >= 2`, since).Scan(&sum.EmptySuggestions).Error
+	FROM behavior_events WHERE created_at >= @since AND type = 'suggest_impression' AND `+behaviorScopeSQL+`) x
+WHERE plen IS NULL OR plen >= 2`, sc.args(map[string]any{"since": since})).Scan(&sum.EmptySuggestions).Error
 	return sum, err
 }

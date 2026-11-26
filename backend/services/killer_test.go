@@ -24,9 +24,11 @@ func isStatus(err error, code int) bool {
 
 // Месячные сценарии: замеры из журнала, допущения из запроса, «на запрос» = итого / запросы.
 func TestComputeMonthly(t *testing.T) {
-	share, cache := 0.25, 0.8
-	sum := out.CostsSummary{Searches: 100, LLMParses: 5, SearchLLMCostRub: 0.6, CacheHitShare: &cache}
-	routes := []out.CostsRoute{{Route: "A", Share: evalPtr(0.75)}, {Route: "D", Share: &share}}
+	// Метка D у 40% поисков, но разобраны моделью только 25 (5 вызовов + 20 из кэша): остальные 15 — «ничего не
+	// нашлось по тексту» без вызова модели. Доля D в расчёте — по разборам, 0,25.
+	share, cache := 0.4, 0.8
+	sum := out.CostsSummary{Searches: 100, LLMParses: 5, CacheHits: 20, SearchLLMCostRub: 0.6, CacheHitShare: &cache}
+	routes := []out.CostsRoute{{Route: "A", Share: evalPtr(0.6)}, {Route: "D", Share: &share}}
 	runs := []domain.AgentRun{{Status: domain.RunDone, CostRub: 30}, {Status: domain.RunDone, CostRub: 32}, {Status: domain.RunFailed, CostRub: 5}}
 	server := 10000.0
 	m := computeMonthly(sum, routes, runs, MonthlyParams{ServerRub20k: &server})

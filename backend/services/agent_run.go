@@ -194,6 +194,11 @@ func (rc *runCtx) prepare(ctx context.Context) error {
 	if rc.sb, err = s.newSandbox(ctx, "agent-"+rs.run.ID.String()[:8], rc.active, rc.a.opts); err != nil {
 		return err
 	}
+	// Наборы проверки правок — в ленту: на фиде без своих наборов агент разбирает, но правку не допускает.
+	reg := rc.sb.regStatus
+	rc.a.step(ctx, rs, &domain.AgentStep{Kind: domain.StepCheck, OK: reg.Ready, Title: "Наборы регрессии: " + reg.Message,
+		Result: toJSON(reg)})
+	rc.episode["regression"] = reg
 	return rc.loadMemory(ctx)
 }
 
@@ -757,8 +762,13 @@ func (rc *runCtx) alreadySolved(ctx context.Context, c *failedCluster) bool {
 		}
 		// Все слова кластера поиску известны и выдача непустая — это вопрос ранжирования, а не словаря:
 		// старый поиск магазина в логах падал, действующий отвечает. Такие кластеры агент не берёт.
-		if !o.Solved && len(c.Terms) == 0 && !o.Empty && len(o.Top) > 0 {
+		if !o.Solved && len(c.Terms) == 0 && !o.Empty && len(o.Top) > 0 && !o.OnRequest {
 			o.Solved = true
+		}
+		// Контур фида: поиск находит товар точно, но купить его нельзя — «отвечает» не значит «решено»: агент берёт
+		// кластер, итог — задача каталогу.
+		if o.OnRequest {
+			o.Solved = false
 		}
 		outs = append(outs, o)
 		if o.Solved {
@@ -767,6 +777,14 @@ func (rc *runCtx) alreadySolved(ctx context.Context, c *failedCluster) bool {
 	}
 	if row := rc.rows[c.ID]; row != nil {
 		row.Current = toJSON(outs)
+	}
+	c.OnRequestFamily = ""
+	for i, o := range outs {
+		if !o.OnRequest || len(o.Top) == 0 || i > 0 && o.Top[0].FamilyID != c.OnRequestFamily {
+			c.OnRequestFamily = ""
+			break
+		}
+		c.OnRequestFamily = o.Top[0].FamilyID
 	}
 	if solved < len(outs) || len(outs) == 0 {
 		return false

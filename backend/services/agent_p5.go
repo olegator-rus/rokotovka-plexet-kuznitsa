@@ -278,6 +278,7 @@ func (s *Services) AgentSettings(ctx context.Context) *out.AgentSettings {
 		parts = append(parts, "изменение каталога — проверка подсказок, связей и правил")
 	}
 	res.Line = strings.Join(parts, " · ")
+	res.Regression = s.RegressionStatus(ctx)
 	return res
 }
 

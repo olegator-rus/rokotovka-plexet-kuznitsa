@@ -1,5 +1,5 @@
 // Контур доводки («Переделанные экраны»): три раздела — «Поиск», «SearchOps», «Доказательства»;
-// SearchOps — шесть вкладок (контур автономии вернул «Память»), «Запросы без ответа» с фильтрами по причине и владельцу и кнопкой «Разобрать»;
+// SearchOps — семь вкладок (контур автономии вернул «Память», контур фида добавил первым «Отчёт»), «Запросы без ответа» с фильтрами по причине и владельцу и кнопкой «Разобрать»;
 // «Доказательства» — три вкладки, «Вклад компонентов» пока пуст. Старые адреса ведут на новые места.
 // Демо-состояние не меняется. E2E_SCREENS=1 — снимки разделов 1440/360 в artifacts/screens/p4/.
 import type { Page } from '@playwright/test'
@@ -16,13 +16,14 @@ async function noOverflow(page: Page, name: string) {
 }
 
 test.describe('Контур доводки: три раздела', () => {
-  test('сотрудник: в навигации ровно три раздела; SearchOps — шесть вкладок по порядку (контур автономии вернул «Память»)', async ({
+  test('сотрудник: в навигации ровно три раздела; SearchOps — семь вкладок по порядку (контур фида: первым «Отчёт»)', async ({
     page,
   }) => {
     await page.goto('/searchops')
     const nav = page.getByRole('navigation', { name: 'Разделы' })
     await expect(nav.getByRole('link')).toHaveText(['Поиск', /^SearchOps/, 'Доказательства'])
     await expect(page.getByRole('tablist', { name: 'Разделы SearchOps' }).getByRole('tab')).toHaveText([
+      'Отчёт',
       'Запросы без ответа',
       'Запуски',
       /Очередь/,
@@ -30,10 +31,7 @@ test.describe('Контур доводки: три раздела', () => {
       'Изменения',
       'Политика ранжирования',
     ])
-    await expect(page.getByRole('tab', { name: 'Запросы без ответа' })).toHaveAttribute(
-      'data-state',
-      'active',
-    )
+    await expect(page.getByRole('tab', { name: 'Отчёт' })).toHaveAttribute('data-state', 'active')
     // Удалённого нет: «Аналитика», «Экономика», «Маржа», «Эффект».
     for (const name of ['Аналитика', 'Экономика', 'Маржа', 'Изменения', 'До / После'])
       await expect(nav.getByRole('link', { name })).toHaveCount(0)
@@ -77,15 +75,17 @@ test.describe('Контур доводки: три раздела', () => {
     expect(owners.every((o) => o.trim() === 'Администратор поиска')).toBe(true)
   })
 
-  test('«Доказательства»: одно меню, «Вклад компонентов» — «Прогон не запускался» и кнопка', async ({
+  test('«Доказательства»: одно меню, первым — «На данных заказчика»; «Вклад компонентов» — «Прогон не запускался» или таблица', async ({
     page,
   }) => {
     await page.goto('/proofs')
-    // Один уровень меню: восемь экранов, вложенных вкладок нет.
+    // Один уровень меню: девять экранов, вложенных вкладок нет; без адреса открыта сводка на фиде (S6).
     const menu = page.getByRole('tablist', { name: 'Разделы доказательств' })
-    await expect(menu.getByRole('tab')).toHaveCount(8)
+    await expect(menu.getByRole('tab')).toHaveCount(9)
     await expect(page.getByRole('tablist')).toHaveCount(1)
-    for (const name of ['Теоретические основы', 'Метрики', 'Один запрос', 'Ухудшения', 'Подсказки', 'Вклад компонентов', 'Стоимость', 'Коммерция'])
+    await expect(menu.getByRole('tab').first()).toHaveAccessibleName(/^На данных заказчика/)
+    await expect(menu.getByRole('tab', { name: /^На данных заказчика/ })).toHaveAttribute('data-state', 'active')
+    for (const name of ['На данных заказчика', 'Теоретические основы', 'Метрики', 'Один запрос', 'Ухудшения', 'Подсказки', 'Вклад компонентов', 'Стоимость', 'Коммерция'])
       await expect(menu.getByRole('tab', { name: new RegExp(`^${name}`) })).toBeVisible()
     await expect(page.getByRole('tab', { name: 'Эффект агента' })).toHaveCount(0)
     await page.getByRole('tab', { name: 'Вклад компонентов' }).click()

@@ -731,14 +731,37 @@ paths:
         остаются метрики и число изменений.
       operationId: evaluations
       security: []
+        Наборы «по цели» на фиде (контур эталонов): `etalon`, `tz`, `neighbors`, `understanding`, `feed_tune`,
+        `feed_regression`, `closed`; их метрики — в `metrics.target`, конфигурации — BM25, B1, B2, live. Тексты
+        закрытого набора без входа в бэк-офис не отдаются.
       parameters:
-        - { name: set, in: query, schema: { type: string, enum: [tune, test, regression, demo, holdout_week], default: test } }
+        - { name: set, in: query, schema: { type: string, enum: [tune, test, regression, demo, holdout_week, etalon, tz, neighbors, understanding, feed_tune, feed_regression, closed], default: test } }
       responses:
         "200":
           description: Метрики B0–B4, ухудшения и улучшения, прогресс прогона, согласие LLM-судьи
           content:
             application/json:
               schema: { $ref: "#/components/schemas/Evaluations" }
+  /api/evaluations/feed:
+    get:
+      tags: [Оценка]
+      summary: Сводка «На данных заказчика» ()
+      description: |
+        Из последних прогонов наборов «по цели» (`go run . eval --set etalon,tz,neighbors`, закрытый — `--set closed
+        --file …`) и llm_usage: эталоны заказчика у полного продукта (`etalon`), Success@1 закрытой части у BM25,
+        гибрида и полного продукта (`closed`, пустой — прогон не запускался), доля ответов с ≥4 семействами и SKU
+        (`four`), стоимость запроса по формуле `C = p × (1 − h) × c_llm + (инфраструктура + агент + сопровождение) / N`
+        при N = 15 000 для холодного и тёплого прогона (`cost`), таблица «набор × конфигурация» (`table`), каталог
+        (`catalog`: источник и число офферов, без версии — в ней дата). p — доля поисков с разбором моделью (вызов или
+        кэш): метка маршрута D без вызова модели (zero_results) в p не входит. Текстов запросов нет.
+      operationId: feedSummary
+      security: []
+      responses:
+        "200":
+          description: Сводка; чего не прогоняли — null или пустой список
+          content:
+            application/json:
+              schema: { type: object, additionalProperties: true }
   /api/evaluations/run:
     post:
       tags: [Оценка]
@@ -982,6 +1005,26 @@ paths:
             application/json:
               schema: { $ref: "#/components/schemas/AgentSettings" }
         "403": { $ref: "#/components/responses/Error" }
+  /api/agent/report:
+    get:
+      tags: [Агент]
+      summary: Отчёт SearchOps для маркетолога — первый экран (контур фида)
+      description: >-
+        Неудачные запросы журнала текущего каталога (тестовый поток и живые поиски; mock-журнал не входит) по четырём
+        разделам — no_offer, not_found, unknown_words, service — и pending (причина не доказана). Раздел — по
+        доказательству: вывод агента, ответ действующего поиска, переформулировка покупателей. Частоты модельные;
+        рублей и дат нет. Строка с agent.run_id и agent.cluster_id раскрывается в ленту шагов запуска.
+      operationId: agentReport
+      parameters:
+        - { name: days, in: query, schema: { type: integer, minimum: 1, maximum: 90, default: 7 } }
+      responses:
+        "200":
+          description: Отчёт
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SearchOpsReport" }
+        "400": { $ref: "#/components/responses/Error" }
+        "401": { $ref: "#/components/responses/Error" }
   /api/proposals:
     get:
       tags: [Предложения и правила]
@@ -2642,6 +2685,89 @@ components:
         budget: { type: object, additionalProperties: true }
         query_budget: { type: object, additionalProperties: true }
         line: { type: string }
+        regression:
+          type: object
+          description: >-
+            Контур фида: наборы, на которых агент проверяет правку. На фиде — наборы «по цели» (feed_regression,
+            feed_tune); нет наборов — ready=false, message «Наборы регрессии на фиде не заданы», правка не допускается.
+          properties:
+            sets: { type: array, items: { type: string } }
+            by_set: { type: object, additionalProperties: { type: integer } }
+            queries: { type: integer }
+            max_worse: { type: integer }
+            feed: { type: boolean }
+            catalog_version: { type: string }
+            ready: { type: boolean }
+            message: { type: string }
+    SearchOpsReport:
+      type: object
+      description: Контур фида — backend/out/agent_report.go
+      properties:
+        catalog_version: { type: string }
+        rules_version: { type: integer }
+        days: { type: integer }
+        stream:
+          type: object
+          properties:
+            label: { type: string, description: "тестовый поток: запросы заказчика, прогоны сайта, синтетика из каталога" }
+            freq_label: { type: string }
+            layers:
+              type: array
+              items:
+                type: object
+                properties:
+                  code: { type: string, enum: [customer, site, synthetic, live] }
+                  label: { type: string }
+                  queries: { type: integer }
+                  searches: { type: integer }
+        totals:
+          type: object
+          properties:
+            searches: { type: integer }
+            failed_searches: { type: integer }
+            queries: { type: integer }
+            failed_queries: { type: integer }
+        sections:
+          type: array
+          items:
+            type: object
+            properties:
+              code: { type: string, enum: [no_offer, not_found, unknown_words, service] }
+              title: { type: string }
+              hint: { type: string }
+              searches: { type: integer }
+              failures: { type: integer }
+              rows: { type: array, items: { $ref: "#/components/schemas/ReportRow" } }
+        pending: { type: array, items: { $ref: "#/components/schemas/ReportRow" } }
+        checked_at: { type: string, format: date-time }
+        truncated: { type: boolean }
+    ReportRow:
+      type: object
+      properties:
+        query: { type: string }
+        freq: { type: integer, description: модельная частота }
+        failures: { type: integer }
+        empty: { type: integer }
+        no_click: { type: integer }
+        reformulated: { type: integer }
+        layers: { type: array, items: { type: string } }
+        origin: { type: string }
+        kind: { type: string }
+        kind_label: { type: string }
+        evidence: { type: string }
+        found: { type: object, additionalProperties: true }
+        words: { type: array, items: { type: string } }
+        examples: { type: array, items: { type: string } }
+        agent: { type: object, additionalProperties: true, description: "AgentVerdict: code, label, note, diagnosis, run_id, cluster_id" }
+        proposal:
+          type: object
+          properties:
+            id: { type: string }
+            status: { type: string }
+            action: { type: string }
+            diagnosis: { type: string }
+            run_id: { type: string }
+            cluster_id: { type: string }
     AgentStep:
       type: object
       properties:

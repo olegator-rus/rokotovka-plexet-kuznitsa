@@ -85,6 +85,15 @@ type sandbox struct {
 	once       sync.Once
 	baseline   map[string]out.EvalQueryResult
 	baseErr    error
+	// regStatus — наборы регрессии на текущем каталоге (контур фида): на фиде без своих наборов правка не допускается.
+	regStatus out.AgentRegression
+	// Контур фида, фид заказчика: регрессия — наборы «по цели» оценки (feed_regression, feed_tune), вердикт — цель
+	// ответа (Success@1, первые 4, жёсткие условия), сравнение до/после — TargetChanges. feed — песочница на фиде.
+	feed       bool
+	targetQs   []domain.TargetQuery
+	targetOnce sync.Once
+	targetBase map[string]out.EvalQueryResult
+	targetErr  error
 }
 
 // newSandbox — песочница запуска; без наборов запросов регрессия пуста (и правка не проходит).
@@ -113,12 +122,95 @@ func (s *Services) newSandbox(ctx context.Context, runID string, active *ruleSet
 		}
 	}
 	sort.Slice(sb.regression, func(i, j int) bool { return sb.regression[i].ID < sb.regression[j].ID })
+	scope := s.agentLogScope(ctx)
+	bySet := map[string]int{}
+	for _, q := range sb.regression {
+		bySet[q.Set]++
+	}
+	if d, ok := s.source.(targetSetsDirer); ok && d.TargetSetsDir() != "" || !scope.All && !scope.Historical {
+		// Фид заказчика: наборы mock здесь не читаются, регрессия — наборы «по цели» оценки.
+		sb.feed, sb.sets, sb.regression, bySet = true, opts.FeedRegressionSets, nil, map[string]int{}
+		seen := map[string]bool{}
+		for _, name := range sb.sets {
+			qs, err := s.TargetSetQueries(ctx, name)
+			if err != nil {
+				continue // набора нет — это и будет «наборы регрессии на фиде не заданы»
+			}
+			for _, q := range qs {
+				if !seen[q.ID] {
+					seen[q.ID] = true
+					sb.targetQs = append(sb.targetQs, q)
+					bySet[name]++
+				}
+			}
+		}
+	}
+	sb.regStatus = regressionStatus(sb.sets, bySet, sb.feed, scope.Catalog, sb.maxWors)
 	return sb, nil
 }
 
-// searchOne — запрос через поиск B4 со снимком правил (nil — действующие правила), без журнала.
+// Наборы проверки правок агента (договорённость с оценкой, контур фида). На mock — наборы AGENT_REGRESSION_SETS
+// (regression, tune; test — никогда) из LoadQueries источника (data/mock/queries.json), вердикт — разметка позиций.
+// На фиде заказчика (у источника есть target_sets или нет исторического журнала) наборы mock не читаются: регрессия —
+// наборы «по цели» AGENT_FEED_REGRESSION_SETS (feed_regression = эталоны и ТЗ, feed_tune = соседи и набор понимания;
+// оценка — services/eval_target.go: TargetSetQueries, EvalTargetQuery, TargetChanges), закрытый набор агенту
+// недоступен. Нет файлов наборов — агент честно пишет «наборы регрессии на фиде не заданы» и правку не допускает;
+// появились — берутся со следующего запуска без перезапуска API.
+
+// MsgFeedNoRegression — на фиде нет наборов, на которых агент проверяет правку.
+const MsgFeedNoRegression = "Наборы регрессии на фиде не заданы"
+
+// regressionStatus — наборы регрессии песочницы: сколько запросов каждого набора, можно ли допускать правку.
+func regressionStatus(sets []string, bySet map[string]int, feed bool, catalog string, maxWorse int) out.AgentRegression {
+	st := out.AgentRegression{Sets: append([]string{}, sets...), BySet: map[string]int{}, MaxWorse: maxWorse,
+		Feed: feed, CatalogVersion: catalog}
+	var parts []string
+	for _, name := range sets {
+		st.BySet[name] = bySet[name]
+		st.Queries += bySet[name]
+		parts = append(parts, fmt.Sprintf("%s — %d", name, bySet[name]))
+	}
+	switch {
+	case st.Queries > 0:
+		st.Ready = true
+		st.Message = fmt.Sprintf("Правка допускается, если на наборах %s ухудшилось не больше %d запросов",
+			strings.Join(parts, ", "), maxWorse)
+	case st.Feed:
+		st.Message = fmt.Sprintf("%s (%s): правки агента не допускаются", MsgFeedNoRegression, strings.Join(sets, ", "))
+	default:
+		st.Message = "Регрессионный набор пуст — правку не на чем проверить"
+	}
+	return st
+}
+
+// RegressionStatus — наборы регрессии агента на текущем каталоге (GET /api/agent/settings, лента запуска).
+func (s *Services) RegressionStatus(ctx context.Context) out.AgentRegression {
+	o := s.agent.opts
+	scope := s.agentLogScope(ctx)
+	bySet := map[string]int{}
+	if d, ok := s.source.(targetSetsDirer); ok && d.TargetSetsDir() != "" || !scope.All && !scope.Historical {
+		for _, name := range o.FeedRegressionSets {
+			if qs, err := s.TargetSetQueries(ctx, name); err == nil {
+				bySet[name] = len(qs)
+			}
+		}
+		return regressionStatus(o.FeedRegressionSets, bySet, true, scope.Catalog, o.MaxRegressionWorse)
+	}
+	if loader, ok := s.source.(queryLoader); ok {
+		if all, err := loader.LoadQueries(ctx); err == nil {
+			for _, q := range all {
+				if q.Set != domain.EvalSetTest && slices.Contains(o.RegressionSets, q.Set) {
+					bySet[q.Set]++
+				}
+			}
+		}
+	}
+	return regressionStatus(o.RegressionSets, bySet, false, scope.Catalog, o.MaxRegressionWorse)
+}
+
+// searchOne — запрос через поиск витрины (agentSearchConfig) со снимком правил (nil — действующие правила), без журнала.
 func (sb *sandbox) searchOne(ctx context.Context, q domain.EvalQuery, rules *domain.RulesSnapshot) out.EvalQueryResult {
-	o := sb.s.evalSearch(ctx, sb.runID, domain.ConfigB4, q, rules)
+	o := sb.s.evalSearch(ctx, sb.runID, agentSearchConfig, q, rules)
 	r := evalScoreQuery(q, o.evalOutcome, sb.cat)
 	return r
 }
@@ -269,6 +361,14 @@ func (sb *sandbox) evaluate(ctx context.Context, cluster *failedCluster, patch R
 		ev.Target.Queries = append(ev.Target.Queries, t)
 	}
 
+	if sb.feed {
+		if err := sb.regressionTargets(ctx, cluster, after, ev); err != nil {
+			return nil, err
+		}
+		ev.Passed, ev.Reasons = sb.admit(ev)
+		ev.Ms = time.Since(started).Milliseconds()
+		return ev, nil
+	}
 	// Регрессия: набор без запросов целевого кластера.
 	base, err := sb.baselineFor(ctx)
 	if err != nil {
@@ -289,7 +389,7 @@ func (sb *sandbox) evaluate(ctx context.Context, cluster *failedCluster, patch R
 	for _, q := range rq {
 		prev = append(prev, base[q.ID])
 	}
-	regs, imps := evalCompare(prev, cres, domain.ConfigB4)
+	regs, imps := evalCompare(prev, cres, agentSearchConfig)
 	ev.Regression.Total, ev.Regression.Worse, ev.Regression.Better = len(rq), len(regs), len(imps)
 	ev.Regression.Sets = sb.sets
 	ev.Regression.WorseQueries = []out.EvalChange{}
@@ -346,7 +446,11 @@ func (sb *sandbox) admit(ev *patchEval) (bool, []string) {
 		reasons = append(reasons, fmt.Sprintf("ложное «нашлось» для отсутствующего товара: %d", ev.FalseRescueNew))
 	}
 	if ev.Regression.Total == 0 {
-		reasons = append(reasons, "регрессионный набор пуст — правку не на чем проверить")
+		msg := "регрессионный набор пуст — правку не на чем проверить"
+		if !sb.regStatus.Ready && sb.regStatus.Feed {
+			msg = "наборы регрессии на фиде не заданы — правку не на чем проверить"
+		}
+		reasons = append(reasons, msg)
 	}
 	return len(reasons) == 0, reasons
 }
@@ -374,4 +478,108 @@ func (sb *sandbox) topRelevant(q domain.EvalQuery, r out.EvalQueryResult) bool {
 // topExpected — первым стоит ожидаемое правкой семейство.
 func topExpected(top []string, expected map[string]bool) bool {
 	return len(top) > 0 && expected[top[0]]
+}
+
+// targetBaseline — выдача наборов «по цели» на действующих правилах (один раз за запуск, 4 потока).
+func (sb *sandbox) targetBaseline(ctx context.Context) (map[string]out.EvalQueryResult, error) {
+	sb.targetOnce.Do(func() {
+		rs := sb.searchTargets(ctx, sb.targetQs, sb.active.snapshot())
+		if err := ctx.Err(); err != nil {
+			sb.targetErr = err
+			return
+		}
+		sb.targetBase = map[string]out.EvalQueryResult{}
+		for _, r := range rs {
+			sb.targetBase[r.ID] = r
+		}
+	})
+	return sb.targetBase, sb.targetErr
+}
+
+// searchTargets — запросы набора «по цели» через поиск витрины со снимком правил, параллельно (4 потока).
+func (sb *sandbox) searchTargets(ctx context.Context, qs []domain.TargetQuery, rules *domain.RulesSnapshot) []out.EvalQueryResult {
+	res := make([]out.EvalQueryResult, len(qs))
+	var wg sync.WaitGroup
+	ch := make(chan int)
+	for w := 0; w < 4; w++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			for i := range ch {
+				res[i] = sb.searchTargetSafe(ctx, qs[i], rules)
+			}
+		}()
+	}
+	for i := range qs {
+		if ctx.Err() != nil {
+			break
+		}
+		ch <- i
+	}
+	close(ch)
+	wg.Wait()
+	return res
+}
+
+func (sb *sandbox) searchTargetSafe(ctx context.Context, q domain.TargetQuery, rules *domain.RulesSnapshot) (r out.EvalQueryResult) {
+	defer func() {
+		if p := recover(); p != nil {
+			zap.L().Error("песочница: паника поиска", zap.String("query_id", q.ID), zap.Any("panic", p))
+			r = out.EvalQueryResult{ID: q.ID, Text: q.Text, Top: []string{}, Grades: []int{}, Error: fmt.Sprint("паника поиска: ", p)}
+		}
+	}()
+	r, err := sb.s.EvalTargetQuery(ctx, sb.runID, agentSearchConfig, q, rules)
+	if err != nil {
+		r = out.EvalQueryResult{ID: q.ID, Text: q.Text, Top: []string{}, Grades: []int{}, Error: err.Error()}
+	}
+	return r
+}
+
+// regressionTargets — регрессия на фиде: наборы «по цели» без запросов целевого кластера, до (базовая линия
+// действующих правил) и после правки; ухудшение — потеря цели, первых 4, условия строки или новое нарушение жёстких
+// условий (TargetChanges).
+func (sb *sandbox) regressionTargets(ctx context.Context, cluster *failedCluster, after *domain.RulesSnapshot, ev *patchEval) error {
+	ev.Regression.Sets = sb.sets
+	ev.Regression.WorseQueries = []out.EvalChange{}
+	if len(sb.targetQs) == 0 {
+		return nil // admit: «наборы регрессии на фиде не заданы»
+	}
+	base, err := sb.targetBaseline(ctx)
+	if err != nil {
+		return err
+	}
+	inCluster := map[string]bool{}
+	for _, q := range cluster.Queries {
+		inCluster[foldQuery(q.Text)] = true
+	}
+	var rq []domain.TargetQuery
+	for _, q := range sb.targetQs {
+		if !inCluster[foldQuery(q.Text)] {
+			rq = append(rq, q)
+		}
+	}
+	cur := sb.searchTargets(ctx, rq, after)
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+	prev := make([]out.EvalQueryResult, 0, len(rq))
+	for _, q := range rq {
+		prev = append(prev, base[q.ID])
+	}
+	worse, better := TargetChanges(prev, cur, agentSearchConfig)
+	ev.Regression.Total, ev.Regression.Worse, ev.Regression.Better = len(rq), len(worse), len(better)
+	for i, r := range better {
+		if i < 5 {
+			ev.Regression.BetterQueries = append(ev.Regression.BetterQueries, r)
+		}
+	}
+	for i, r := range worse {
+		if slices.Contains(r.Reasons, "new_violation") {
+			ev.ConstraintViolationsNew++
+		}
+		if i < 5 {
+			ev.Regression.WorseQueries = append(ev.Regression.WorseQueries, r)
+		}
+	}
+	return nil
 }

@@ -286,6 +286,11 @@ export interface SearchResponse {
   clarifications?: Refinement[] | null
   /** (): строка сравнения цены за место пары редакций; нет — сравнивать нечего. */
   comparison?: Comparison | null
+  /**
+   * Контур подбора (SPEC §1): режим строки по решению сервера — search (обычная выдача), offer (выдача и «Помочь выбрать»),
+   * guide (сразу подбор). Нет поля — фронт решает сам по цели и запросу (lib/guide.ts, guideMode).
+   */
+  guide?: { mode: 'search' | 'offer' | 'guide' | string } | null
   trace: Trace
 }
 
@@ -922,6 +927,7 @@ export type Diagnosis =
   | 'NON_PRODUCT'
   | 'NOISE'
   | 'UNKNOWN'
+  | 'ON_REQUEST_ONLY'
 
 export interface RulePatchItem {
   kind: string

@@ -134,6 +134,12 @@ const totalsSQL = `'searches', COUNT(*),
 // переформулировка, нет клика) по убыванию неудач, затем частоты, затем по тексту. Один проход по событиям:
 // CTE o считается один раз, три выборки из него собираются в JSON. limit = 0 — только суммы.
 func (r *Repos) SearchOutcomesSince(ctx context.Context, since time.Time, limit int) (*SearchSummary, []QueryOutcome, error) {
+	return r.SearchOutcomesScoped(ctx, since, limit, Unscoped)
+}
+
+// SearchOutcomesScoped — то же, только поиски текущего каталога (LogScope, контур фида): на фиде mock-журнал в
+// аналитику не попадает.
+func (r *Repos) SearchOutcomesScoped(ctx context.Context, since time.Time, limit int, sc LogScope) (*SearchSummary, []QueryOutcome, error) {
 	if !r.Enabled() {
 		return nil, nil, ErrNoDatabase
 	}
@@ -142,7 +148,7 @@ func (r *Repos) SearchOutcomesSince(ctx context.Context, since time.Time, limit 
 		BySource []byte
 		Problems []byte
 	}
-	err := r.db.WithContext(ctx).Raw(outcomesCTE+`
+	err := r.db.WithContext(ctx).Raw(agentOutcomesCTE+`
 SELECT
 	(SELECT json_build_object('source', '', `+totalsSQL+`) FROM o) AS total,
 	(SELECT COALESCE(json_agg(t ORDER BY t->>'source'), '[]') FROM (
@@ -160,7 +166,7 @@ SELECT
 		GROUP BY q
 		HAVING COUNT(*) FILTER (WHERE results_count = 0 OR NOT clicked) > 0
 		ORDER BY n LIMIT @limit) y) AS problems`,
-		map[string]any{"since": since, "until": openEnd, "limit": limit}).Scan(&row).Error
+		sc.args(map[string]any{"since": since, "until": openEnd, "limit": limit})).Scan(&row).Error
 	if err != nil {
 		return nil, nil, err
 	}

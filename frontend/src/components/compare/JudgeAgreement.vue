@@ -4,14 +4,7 @@
 import { computed } from 'vue'
 import type { JudgeAgreement } from '@/api/types'
 import { judgeView } from '@/lib/evalView'
-import {
-  formatCost,
-  formatDateTime,
-  formatDecimal,
-  formatInt,
-  formatPercent,
-  formatSigned,
-} from '@/lib/format'
+import { formatCost, formatDecimal, formatInt, formatPercent, formatSigned } from '@/lib/format'
 
 const props = defineProps<{ judge: JudgeAgreement }>()
 
@@ -39,8 +32,7 @@ const agreedOrder = computed(() => {
       <h2 id="judge-title" class="t-h2">Проверка LLM-судьёй</h2>
       <p class="t-xs t-muted">
         {{ judge.model }} — другое семейство, чем модель разбора; оценивал вслепую, без конфигурации
-        и позиции · {{ formatInt(judge.judged) }} пар из топ-{{ judge.depth }} ·
-        {{ formatDateTime(judge.created_at) }}
+        и позиции · {{ formatInt(judge.judged) }} пар из топ-{{ judge.depth }}
       </p>
     </header>
 

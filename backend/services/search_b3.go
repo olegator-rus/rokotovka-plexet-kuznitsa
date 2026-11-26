@@ -603,7 +603,7 @@ func (s *Services) searchB3(ctx context.Context, requestID string, req in.Search
 	procStep := s.procurementStage(st.lex, req.Query, nr.tokens, attrs, ent, fams, resp) // контур доводки: purchase_stage.go
 	// Контур фида: цель ответа, лестница «минимум 4 товара», поля карточки и счётчики (search_ladder.go).
 	ansStep := answerStage(answerInput{rc: rc, words: queryWords(nr.tokens, attrs.consumed), fams: foundFams,
-		exactDoc: exactDocMatcher(nr.tokens, hw), category: ent.category, limit: limit, storefront: !opts.NoLog,
+		exactDoc: exactDocMatcher(nr.tokens, hw), category: ent.category, limit: limit, storefront: !opts.NoLog || opts.Storefront,
 		fallbackOff: s.noFallbackBlock, serviceLike: ent.noise || ent.nonProduct, filterCategory: filterCategoryOf(req)}, resp, trace)
 	// допродажа и акции на фиде — после цели ответа (upsell_feed.go); на mock шага нет.
 	var upsellStep *UpsellStep

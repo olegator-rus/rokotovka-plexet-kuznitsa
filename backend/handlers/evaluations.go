@@ -26,7 +26,8 @@ func (h *Handler) Evaluations(c *fiber.Ctx) error {
 	if err != nil {
 		return err
 	}
-	if resp.Set == domain.EvalSetHoldoutWeek && !h.backofficeAuthorized(c) {
+	// Тексты отложенной недели и закрытого набора — только сотруднику; метрики открыты.
+	if (resp.Set == domain.EvalSetHoldoutWeek || resp.Set == domain.TargetSetClosed) && !h.backofficeAuthorized(c) {
 		redactEvalTexts(resp)
 	}
 	return c.JSON(resp)
@@ -90,4 +91,14 @@ func (h *Handler) AnalyticsCurrent(c *fiber.Ctx) error {
 		return err
 	}
 	return c.JSON(resp)
+}
+
+// FeedSummary — GET /api/evaluations/feed: сводка «На данных заказчика» () — эталоны, закрытая часть,
+// доля ответов с ≥4 товарами, стоимость запроса. Только числа прогонов, без текстов запросов.
+func (h *Handler) FeedSummary(c *fiber.Ctx) error {
+	res, err := h.services.FeedSummary(c.UserContext())
+	if err != nil {
+		return err
+	}
+	return c.JSON(res)
 }

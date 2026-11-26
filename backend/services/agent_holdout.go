@@ -7,6 +7,7 @@ import (
 	"os"
 	"sort"
 	"strings"
+	"sync"
 	"time"
 
 	"kuznica/api/domain"
@@ -127,6 +128,11 @@ type holdoutInfo struct {
 	HiddenEvents int       `json:"hidden_searches"`
 	ExcludeTest  bool      `json:"exclude_test"`
 	TestTexts    int       `json:"test_texts_excluded"`
+	// Контур фида: вход агента — только поиски текущего каталога (agentLogScope). CatalogVersion — версия каталога;
+	// NoHistory — у источника нет исторического журнала (фид заказчика): отложенной недели нет, агент видит тестовый
+	// поток и живые поиски этой версии каталога.
+	CatalogVersion string `json:"catalog_version,omitempty"`
+	NoHistory      bool   `json:"no_history,omitempty"`
 }
 
 // testTexts — нормализованные тексты набора test (пусто — наборов нет: источник без разметки или без
@@ -167,9 +173,16 @@ func (s *Services) agentQueryStats(ctx context.Context, days int, h HoldoutOptio
 // holdout_week. Окно, начатое раньше недели (разбор за 30 дней), — как раньше: до начала недели.
 func (s *Services) agentQueryStatsSince(ctx context.Context, since time.Time, h HoldoutOptions) (*queryStats, holdoutInfo, error) {
 	st := s.store()
-	info := holdoutInfo{Enabled: h.Enabled, SeenFrom: since.UTC(), SeenTo: s.now().UTC(), ExcludeTest: h.ExcludeTest}
+	scope := s.agentLogScope(ctx)
+	if !scope.Historical && !scope.All {
+		// Исторического журнала у источника нет: откладывать нечего, а отложенная неделя по живым поискам спрятала бы
+		// весь тестовый поток.
+		h.Enabled = false
+	}
+	info := holdoutInfo{Enabled: h.Enabled, SeenFrom: since.UTC(), SeenTo: s.now().UTC(), ExcludeTest: h.ExcludeTest,
+		CatalogVersion: scope.Catalog, NoHistory: !scope.Historical && !scope.All}
 	if sq, ok := st.(agentStatsSQL); ok {
-		stats, err := s.agentQueryStatsSQL(ctx, sq, since, h, &info)
+		stats, err := s.agentQueryStatsSQL(ctx, sq, since, h, scope, &info)
 		if err != nil {
 			return nil, info, err
 		}
@@ -185,6 +198,7 @@ func (s *Services) agentQueryStatsSince(ctx context.Context, since time.Time, h 
 	if err != nil {
 		return nil, info, err
 	}
+	all = filterScope(scope, all)
 	searches := filterSince(all, since)
 	behavior = filterBehaviorSince(behavior, since)
 	if h.Enabled {
@@ -230,18 +244,18 @@ func (s *Services) agentQueryStatsSince(ctx context.Context, since time.Time, h 
 // agentStatsSQL — хранилище, которое считает вход агента в базе (repositories.Repos); хранилище в памяти тестов
 // его не реализует — тогда события читаются и считаются в Go (computeQueryStats, эталон).
 type agentStatsSQL interface {
-	SearchSpanSince(ctx context.Context, since time.Time) (repositories.SearchSpan, error)
-	CountSearchesSince(ctx context.Context, since time.Time) (int, error)
-	AgentQueryStatsBetween(ctx context.Context, since, until time.Time) (*repositories.AgentQueryStats, error)
+	SearchSpanSince(ctx context.Context, since time.Time, sc repositories.LogScope) (repositories.SearchSpan, error)
+	CountSearchesSince(ctx context.Context, since time.Time, sc repositories.LogScope) (int, error)
+	AgentQueryStatsScoped(ctx context.Context, since, until time.Time, sc repositories.LogScope) (*repositories.AgentQueryStats, error)
 }
 
 // agentQueryStatsSQL — то же, что ветка в памяти agentQueryStats, но агрегаты считает база: граница отложенного
 // окна — по последнему поиску периода, исходы — за [since, начало окна).
 func (s *Services) agentQueryStatsSQL(ctx context.Context, sq agentStatsSQL, since time.Time, h HoldoutOptions,
-	info *holdoutInfo) (*queryStats, error) {
+	scope repositories.LogScope, info *holdoutInfo) (*queryStats, error) {
 	until := time.Date(9999, 1, 1, 0, 0, 0, 0, time.UTC)
 	if h.Enabled {
-		span, err := sq.SearchSpanSince(ctx, since.Add(-holdoutSpanLookback))
+		span, err := sq.SearchSpanSince(ctx, since.Add(-holdoutSpanLookback), scope)
 		if err != nil {
 			return nil, err
 		}
@@ -260,7 +274,7 @@ func (s *Services) agentQueryStatsSQL(ctx context.Context, sq agentStatsSQL, sin
 			// живом журнале стенда): видно только то, что после недели, — эти поиски не входят в реплей holdout_week.
 			since = maxTime(since, to)
 			info.SeenFrom, info.SeenTo = since.UTC(), s.now().UTC()
-			agg, err := sq.AgentQueryStatsBetween(ctx, since, until)
+			agg, err := sq.AgentQueryStatsScoped(ctx, since, until, scope)
 			if err != nil {
 				return nil, err
 			}
@@ -275,14 +289,14 @@ func (s *Services) agentQueryStatsSQL(ctx context.Context, sq agentStatsSQL, sin
 			return stats, nil
 		}
 		// Окно может начинаться раньше периода (короткий days): скрыты поиски периода с начала окна.
-		hidden, err := sq.CountSearchesSince(ctx, maxTime(from, since))
+		hidden, err := sq.CountSearchesSince(ctx, maxTime(from, since), scope)
 		if err != nil {
 			return nil, err
 		}
 		info.HiddenEvents = hidden
 		until = from
 	}
-	agg, err := sq.AgentQueryStatsBetween(ctx, since, until)
+	agg, err := sq.AgentQueryStatsScoped(ctx, since, until, scope)
 	if err != nil {
 		return nil, err
 	}
@@ -440,4 +454,62 @@ func derefStr(p *string) string {
 		return ""
 	}
 	return *p
+}
+
+// agentLogScope — поиски журнала, которые относятся к текущему каталогу (контур фида): живые и трафик — только версии
+// каталога, на которой сделаны; исторический журнал (mock_log) — только если он есть у текущего источника (mock).
+// У фида заказчика журнала нет: старый mock-журнал в базе остаётся, но во вход агента и отчёт не попадает. Без
+// загруженного каталога — весь журнал.
+func (s *Services) agentLogScope(ctx context.Context) repositories.LogScope {
+	cs := s.catalog.Load()
+	if cs == nil || cs.version == "" {
+		return repositories.Unscoped
+	}
+	sc := repositories.LogScope{Catalog: cs.version}
+	if s.repos.Enabled() {
+		// Начало текущего каталога — граница событий поведения (у них нет версии каталога).
+		sc.Since, _ = s.catalogSince(ctx, cs.version)
+	}
+	if v, ok := logScopeHist.Load(cs.version); ok {
+		sc.Historical = v.(bool)
+		return sc
+	}
+	// Журнала нет только у источника, который сам об этом говорит (ErrNoFile: фид заказчика); источник без чтения
+	// журнала (фикстуры) и с журналом (mock) — исторические поиски его.
+	sc.Historical = true
+	if l, ok := s.source.(logLoader); ok {
+		if _, err := l.LoadEvents(ctx); isNoFile(err) {
+			sc.Historical = false
+		}
+	}
+	logScopeHist.Store(cs.version, sc.Historical)
+	return sc
+}
+
+// logScopeHist — есть ли у источника версии каталога исторический журнал (читается один раз на версию).
+var logScopeHist sync.Map
+
+// scopeKeep — поиск входит в отбор (ветка в памяти, тот же смысл, что repositories.scopeSQL).
+func scopeKeep(sc repositories.LogScope, e *domain.SearchEvent) bool {
+	if sc.All {
+		return true
+	}
+	if domain.IsLiveSource(e.Source) {
+		return sc.Catalog == "" || e.CatalogVersion == "" || e.CatalogVersion == sc.Catalog
+	}
+	return sc.Historical
+}
+
+// filterScope — поиски, входящие в отбор.
+func filterScope(sc repositories.LogScope, evs []domain.SearchEvent) []domain.SearchEvent {
+	if sc.All {
+		return evs
+	}
+	res := evs[:0:0]
+	for i := range evs {
+		if scopeKeep(sc, &evs[i]) {
+			res = append(res, evs[i])
+		}
+	}
+	return res
 }

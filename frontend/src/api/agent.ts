@@ -12,6 +12,7 @@ import type {
   RollbackResponse,
 } from './types'
 import type { AgentSettings, MemoryLayerId, MemoryLayerResponse } from './typesAgent'
+import type { SearchOpsReport } from './typesReport'
 
 /** GET /api/agent/runs — прошлые запуски. */
 export const getRuns = (opts?: RequestOptions) => http.get<AgentRunsResponse>('/agent/runs', opts)
@@ -89,3 +90,7 @@ export const getMemoryLayer = (layer: MemoryLayerId, opts?: RequestOptions) =>
 /** POST /api/agent/memory/suppress/{id}/remove {"reason"} — человек снимает «не предлагать»; это тоже решение. */
 export const removeSuppress = (id: string, reason: string) =>
   http.post<unknown>(`/agent/memory/suppress/${encodeURIComponent(id)}/remove`, { reason })
+
+/** GET /api/agent/report?days= — первый экран SearchOps: отчёт для маркетолога (контур фида). */
+export const getReport = (days: number, opts?: RequestOptions) =>
+  http.get<SearchOpsReport>(`/agent/report?days=${encodeURIComponent(String(days))}`, opts)

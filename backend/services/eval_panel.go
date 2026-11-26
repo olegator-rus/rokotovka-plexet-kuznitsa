@@ -91,7 +91,7 @@ func (s *Services) RunPanelEvaluation(ctx context.Context, persist bool) (*out.P
 	}
 	run.DurationMs = time.Since(started).Milliseconds()
 	run.Repro = fmt.Sprintf("набор panel (%d префиксов) sha256:%s · каталог %s · commit %s", run.Prefixes, run.SetHash,
-		run.CatalogVersion, run.Commit)
+		catalogLabel(run.CatalogVersion), run.Commit)
 	zap.L().Info("оценка панели: прогон завершён", zap.String("run_id", run.RunID), zap.Int("prefixes", len(prefixes)),
 		zap.Int64("ms", run.DurationMs))
 	if persist && s.repos.Enabled() {
@@ -381,7 +381,7 @@ func panelRunFromRows(rows []domain.Evaluation) (*out.PanelEvalRun, error) {
 		}
 	}
 	run.Repro = fmt.Sprintf("набор panel (%d префиксов) sha256:%s · каталог %s · commit %s", run.Prefixes, run.SetHash,
-		run.CatalogVersion, run.Commit)
+		catalogLabel(run.CatalogVersion), run.Commit)
 	return run, nil
 }
 

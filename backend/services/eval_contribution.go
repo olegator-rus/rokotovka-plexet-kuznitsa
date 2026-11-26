@@ -162,7 +162,7 @@ func (s *Services) RunContribution(ctx context.Context, set string, persist bool
 		"Строка «без LLM» — строгая нижняя граница: кэш разборов не читается. Режим стенда LLM_MODE=off кэш читает.")
 	run.DurationMs = time.Since(started).Milliseconds()
 	run.Repro = fmt.Sprintf("набор %s (%d запр.) sha256:%s · правила v%d · каталог %s · коммит %s · make eval SET=contribution CONTRIB_SET=%s",
-		set, run.Queries, run.SetHash, run.RulesVersion, run.CatalogVersion, run.Commit, set)
+		set, run.Queries, run.SetHash, run.RulesVersion, catalogLabel(run.CatalogVersion), run.Commit, set)
 	zap.L().Info("вклад компонентов: прогон завершён", zap.String("run_id", run.RunID), zap.String("set", set),
 		zap.Int("queries", len(queries)), zap.Int64("ms", run.DurationMs))
 	if persist && s.repos.Enabled() {

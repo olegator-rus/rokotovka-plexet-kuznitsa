@@ -10,6 +10,7 @@ import (
 
 	"kuznica/api/domain"
 	"kuznica/api/in"
+	"kuznica/api/out"
 	"kuznica/api/repositories"
 )
 
@@ -74,6 +75,9 @@ type failedCluster struct {
 	Failures int
 	// LostDemand — различные сессии с неудачным поиском по запросам кластера.
 	LostDemand float64
+	// OnRequestFamily — контур фида: действующий поиск находит это семейство точно по главным запросам кластера, но купить
+	// его нельзя (все точные карточки «по запросу»): итог — задача каталогу, правка поиска не допускается.
+	OnRequestFamily string
 }
 
 // computeQueryStats — исходы поисков по тем же правилам, что аналитика (analytics.go): набор до Enter
@@ -466,18 +470,33 @@ type currentOutcome struct {
 	Empty  bool         `json:"empty"`
 	Top    []currentTop `json:"top"`
 	Solved bool         `json:"solved"`
+	// OnRequest — контур фида: точная выдача есть, но ни одну точную карточку нельзя купить — все «по запросу»
+	// (ON_REQUEST_ONLY: задача каталогу, а не правка поиска).
+	OnRequest bool `json:"on_request,omitempty"`
 }
 
 type currentTop struct {
-	FamilyID string `json:"family_id"`
-	Title    string `json:"title"`
-	Group    string `json:"group"`
+	FamilyID   string `json:"family_id"`
+	Title      string `json:"title"`
+	Group      string `json:"group"`
+	MatchType  string `json:"match_type,omitempty"`
+	PriceState string `json:"price_state,omitempty"`
 }
 
-// currentSearch — запрос через действующий поиск B4 (или со снимком правил), без журнала.
+// agentSearchConfig — агент смотрит ту же выдачу, что покупатель: витрина (live — конвейер B3 на действующих правилах,
+// с принятыми правками это B4) с блоками витрины («Можно купить сейчас», «Популярное в наличии») и политикой маржи.
+// Песочница подставляет снимок правил с правкой; в журнал такие поиски не пишутся.
+const agentSearchConfig = domain.ConfigLive
+
+// agentSearchOpts — поиск агента: без журнала, как у витрины; rules — снимок правил (nil — действующие).
+func agentSearchOpts(rules *domain.RulesSnapshot) SearchOptions {
+	return SearchOptions{Rules: rules, NoLog: true, Storefront: true}
+}
+
+// currentSearch — запрос через действующий поиск витрины (или со снимком правил), без журнала.
 func (s *Services) currentSearch(ctx context.Context, q string, rules *domain.RulesSnapshot) (currentOutcome, error) {
-	resp, err := s.SearchWith(ctx, agentRequestID(), in.SearchRequest{Query: q, Config: domain.ConfigB4, Limit: 10, SessionID: "agent"},
-		SearchOptions{Rules: rules, NoLog: true})
+	resp, err := s.SearchWith(ctx, agentRequestID(), in.SearchRequest{Query: q, Config: agentSearchConfig, Limit: 10, SessionID: "agent"},
+		agentSearchOpts(rules))
 	if err != nil {
 		return currentOutcome{Query: q}, err
 	}
@@ -489,9 +508,67 @@ func (s *Services) currentSearch(ctx context.Context, q string, rules *domain.Ru
 		if i >= 3 {
 			break
 		}
-		o.Top = append(o.Top, currentTop{FamilyID: it.FamilyID, Title: it.Title, Group: it.Group})
+		o.Top = append(o.Top, currentTop{FamilyID: it.FamilyID, Title: it.Title, Group: it.Group, MatchType: it.MatchType,
+			PriceState: it.PriceState})
 	}
-	// «Решено» — честная точная выдача: первый результат в группе exact и нет «нет в каталоге».
-	o.Solved = !o.Empty && len(o.Top) > 0 && o.Top[0].Group == "exact"
+	// «Решено» — честная точная выдача: первый результат точный (ступень exact на фиде, группа exact без лестницы)
+	// и нет «нет в каталоге».
+	o.Solved = !o.Empty && len(o.Top) > 0 && (o.Top[0].MatchType == out.MatchExact || o.Top[0].MatchType == "" && o.Top[0].Group == "exact")
+	o.OnRequest = onRequestOnly(q, resp)
 	return o, nil
+}
+
+// onRequestOnly — первая карточка точная и это то, что искали (searchedFor), но купить её нельзя: «по запросу»
+// (контур фида). Точная — ступень лестницы exact (фид); без лестницы (mock) — группа exact. Остальные карточки не важны:
+// покупатель искал первую, а «Можно купить сейчас» ниже — другой товар.
+func onRequestOnly(q string, resp *out.SearchResponse) bool {
+	if resp == nil || len(resp.Items) == 0 {
+		return false
+	}
+	it := resp.Items[0]
+	exact := it.MatchType == out.MatchExact || it.MatchType == "" && it.Group == "exact"
+	if !exact || !(it.PriceState == out.PriceOnRequest || it.PriceState == "" && it.PriceOnRequest) {
+		return false
+	}
+	texts := []string{it.Title, it.Vendor}
+	if resp.Target != nil {
+		texts = append(texts, resp.Target.Title)
+	}
+	return searchedFor(q, texts...)
+}
+
+// searchedFor — все значимые слова запроса есть в текстах карточки: слово целиком, общее начало от 5 букв (падеж:
+// «астры» — нет, «касперского» — «касперский») или транслит. «Найдено» по слову, которое поиск сам заменил
+// («ворд» → Word Menu, «икс спайдер» → ИКС Стандарт), — не доказательство: такие запросы разбирает агент.
+func searchedFor(q string, texts ...string) bool {
+	have := map[string]bool{}
+	for _, t := range texts {
+		for _, w := range wordsOf(t) {
+			have[w] = true
+		}
+	}
+	n := 0
+	for _, w := range wordsOf(q) {
+		if lexStopWords[w] || allDigits(w) || utf8.RuneCountInString(w) < 2 {
+			continue
+		}
+		n++
+		if have[w] || have[translit(w)] {
+			continue
+		}
+		ok := false
+		if rs := []rune(w); len(rs) >= 5 {
+			pre := string(rs[:5])
+			for h := range have {
+				if strings.HasPrefix(h, pre) {
+					ok = true
+					break
+				}
+			}
+		}
+		if !ok {
+			return false
+		}
+	}
+	return n > 0
 }

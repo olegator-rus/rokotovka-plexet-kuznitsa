@@ -14,7 +14,8 @@ import {
 import BlockError from '@/components/common/BlockError.vue'
 import { useResource } from '@/composables/useResource'
 import { isApiError } from '@/lib/apiError'
-import { formatDateTime, formatDecimal, formatInt, formatPercent, plural } from '@/lib/format'
+import { formatDecimal, formatInt, formatPercent, plural } from '@/lib/format'
+import { MOCK_RUN_LABEL, isMockCatalog, runTail } from '@/lib/feedSummary'
 import { useAppStore } from '@/stores/app'
 import { useAuthStore } from '@/stores/auth'
 
@@ -154,8 +155,12 @@ const verdictText = { keep: 'оставить', remove: 'прироста нет
 
     <template v-else-if="run">
       <p v-if="res.status.value === 'error'" class="t-sm ctb__err" role="alert">
-        Не обновилось: {{ res.error.value?.message }}. Показан прогон от
-        {{ formatDateTime(run.started_at) }}.
+        Не обновилось: {{ res.error.value?.message }}. Показан последний прогон
+        {{ runTail(run.run_id) }}.
+      </p>
+      <p v-if="isMockCatalog(run.catalog_version)" class="t-sm ctb__mock">
+        Прогон на каталоге «{{ MOCK_RUN_LABEL }}». Числа на фиде магазина — в разделе «На данных
+        заказчика».
       </p>
       <p class="t-sm ctb__lead">
         Набор <strong>{{ run.set }}</strong>: {{ formatInt(run.queries) }}
@@ -274,7 +279,7 @@ const verdictText = { keep: 'оставить', remove: 'прироста нет
         <li v-for="n in run.notes" :key="n">{{ n }}</li>
       </ul>
       <p class="t-xs t-mono t-muted ctb__repro">
-        {{ run.run_id }} · {{ formatDateTime(run.started_at) }} · {{ run.repro }}
+        прогон {{ runTail(run.run_id) }} · {{ run.repro }}
       </p>
     </template>
   </div>
