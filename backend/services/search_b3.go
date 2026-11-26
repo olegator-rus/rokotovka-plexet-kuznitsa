@@ -190,6 +190,20 @@ func (s *Services) searchB3(ctx context.Context, requestID string, req in.Search
 	}
 	s.exactRetrieve(ctx, hw, filters)
 	dn := <-denseCh
+	// Продление, а отдельной позиции продления у названного нет («продлить 1с итс», «продление veeam»): новый срок
+	// — это та же лицензия; показывается она с пояснением, а не «товара нет».
+	renewalRelaxed := false
+	if bm.err == nil && attrs.renewal && len(bm.step.Top) == 0 && len(dn.step.Top) == 0 && !hw.active() &&
+		(len(ent.families) > 0 || len(ent.vendors) > 0) {
+		attrs.renewal, renewalRelaxed = false, true
+		filters = strictFilters(attrs, ent)
+		dn = s.denseSafe(ctx, denseText, info, filters...)
+		bm = s.lexicalB3(ctx, text, expansions, b3MinMatch, filters)
+		if bm.err == nil && len(bm.step.Top) == 0 && strings.Contains(text, " ") {
+			bm = s.lexicalB3(ctx, text, expansions, "1", filters)
+			bm.step.Mode = "multi_match_any"
+		}
+	}
 	if bm.err != nil {
 		if opensearch.IsNotFound(bm.err) {
 			s.index.Store(nil)
@@ -433,6 +447,10 @@ func (s *Services) searchB3(ctx context.Context, requestID string, req in.Search
 	resp.Relaxed = relaxedMessages(rc, fams)
 	if m := metricRelaxedMessage(metricRelaxed, rc.attrs.quantity, fams); m != nil {
 		resp.Relaxed = append(resp.Relaxed, *m)
+	}
+	if renewalRelaxed && len(fams) > 0 {
+		resp.Relaxed = append(resp.Relaxed, out.Relaxed{Field: domain.FieldRenewal,
+			Message: "Отдельной позиции продления нет — новый срок оформляется этой же лицензией"})
 	}
 	if len(resp.Relaxed) > 0 {
 		ladder = append(ladder, ladderRelax)

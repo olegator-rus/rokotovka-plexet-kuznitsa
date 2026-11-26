@@ -179,3 +179,38 @@ for text, want in [
     ("Право использования СУБД отечественного производства", ["postgres-pro"]),
 ]:
     q(O, text, want)
+
+# --- свои, вторая пачка: железо по характеристикам, бюджет, английский, сравнения, образование, комплекты ---
+O2 = "own2"
+for text, want in [
+    ("сервер 64 гб ddr4", ["cat:server-systems"]), ("сервер на 2 процессора xeon gold", ["cat:server-systems"]),
+    ("ssd nvme 3.84 тб", ["hpe-server-drives"]), ("диск sas 2.4 тб 10k", ["dell-server-drives", "hpe-server-drives"]),
+    ("память 64гб ddr4 3200", ["dell-rdimm-ddr4", "samsung-rdimm", "hpe-smart-memory-ddr4"]),
+    ("монитор 4к", ["dell-u2724d", "cat:monitors"]), ("монитор для офиса 24 дюйма", ["cat:monitors"]),
+    ("ноутбук 14 дюймов", ["cat:laptops"]), ("ноутбук 16 гб озу 512 ssd", ["cat:laptops"]),
+    ("ибп на 1500 ва", ["cat:ups"]), ("ибп в стойку", ["cat:ups"]), ("коммутатор 48 портов", ["cat:switches"]),
+    ("управляемый коммутатор l3", ["cat:switches"]),
+    ("антивирус до 5000 рублей", ["cat:antivirus-home", "cat:antivirus-business"]),
+    ("недорогой офисный пакет", ["cat:office-suite"]), ("бесплатный антивирус", ["cat:antivirus-home", "cat:antivirus-business"]),
+    ("windows server standard 2025 license", ["windows-server-2025"]), ("office home and business 2024", ["office-2024"]),
+    ("kaspersky small office security 10 pc", ["kaspersky-small-office-security"]), ("autocad license 1 year", ["autodesk-autocad"]),
+    ("kes или dr web", ["kaspersky-endpoint-security", "drweb-enterprise-security-suite"]),
+    ("veeam или кибер бэкап", ["veeam-backup", "cyber-backup"]), ("мойофис или р7", ["myoffice-standard", "r7-office-professional"]),
+    ("office для школы", ["cat:office-suite"]), ("антивирус для учебного заведения", ["cat:antivirus-business"]),
+    ("1с для нко", ["cat:1c-configs", "cat:1c-licenses"]), ("компас для студентов", ["kompas-3d"]),
+    ("windows server и 25 cal", ["windows-server-2025", "windows-server-2022", "windows-server-cal-2025", "windows-server-cal"]),
+    ("рабочее место бухгалтера", ["1c-accounting", "cat:laptops", "cat:office-suite"]),
+    ("всё для удалённой работы на 10 человек", ["cat:remote-access", "cat:videoconf", "cat:laptops"]),
+    ("защита от утечек информации", ["infowatch-traffic-monitor"]), ("межсетевой экран для веб приложений", ["pt-application-firewall"]),
+    ("шифрование и электронная подпись", ["cryptopro-csp"]), ("антивирус с сертификатом фстэк", ["kaspersky-endpoint-security", "drweb-enterprise-security-suite", "cat:antivirus-business"]),
+    ("продлить 1с итс", ["1c-its"]), ("подписка adobe на год", ["adobe-creative-cloud", "adobe-photoshop", "adobe-illustrator", "adobe-acrobat"]),
+    ("продление veeam", ["veeam-backup"]), ("перейти с kis на kes", ["kaspersky-endpoint-security"]),
+    ("Office 365", ["microsoft-365-business", "microsoft-365-home"]), ("Win 11 Pro OEM", ["windows-11-pro"]),
+    ("MS Office 2021 Professional Plus", ["office-2021"]), ("SQL Server 2022 Enterprise 2 core", ["sql-server-2022"]),
+    ("Kaspersky Endpoint Security для бизнеса Расширенный 50 узлов 1 год", ["kaspersky-endpoint-security"]),
+    ("Dr.Web Enterprise Security Suite комплексная защита 25", ["drweb-enterprise-security-suite"]),
+    ("Astra Linux Special Edition 1.8 Смоленск бессрочная", ["astra-linux-se"]),
+    ("Модуль памяти HPE 32GB DDR4", ["hpe-smart-memory-ddr4"]), ("SSD Samsung PM893 960GB", ["samsung-pm893"]),
+    ("Seagate Exos 8TB", ["seagate-exos"]), ("Eltex MES2324", ["eltex-mes2300"]), ("ThinkPad E14 Gen 5", ["lenovo-thinkpad-e14-gen5"]),
+]:
+    q(O2, text, want)

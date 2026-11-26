@@ -233,7 +233,8 @@ func (p *hwPlan) filters() []any {
 		case "not":
 			not = append(not, rangeQ(field, map[string]any{"gte": c.Value, "lte": c.Value}))
 		default:
-			f = append(f, rangeQ(field, map[string]any{"gte": c.Value, "lte": c.Value}))
+			tol := approxTolerance[c.Key]
+			f = append(f, rangeQ(field, map[string]any{"gte": c.Value - tol, "lte": c.Value + tol}))
 		}
 	}
 	price := map[string]any{}
@@ -494,8 +495,13 @@ func numOK(c hwCond, v float64) bool {
 	case "not":
 		return v < c.Value-eps || v > c.Value+eps
 	}
-	return v > c.Value-eps && v < c.Value+eps
+	tol := approxTolerance[c.Key] + eps
+	return v > c.Value-tol && v < c.Value+tol
 }
+
+// approxTolerance — допуск равенства у характеристик, которые называют округлённо: «монитор 24 дюйма» — это
+// 23,8″, «ноутбук 16 дюймов» — и 15,6″.
+var approxTolerance = map[string]float64{"screen_inch": 0.5}
 
 // decorate — совместимость позиций с целью запроса, фасеты категории, честная пустая выдача по условиям.
 func (p *hwPlan) decorate(resp *out.SearchResponse) {
