@@ -1205,11 +1205,6 @@ const popularCache = vueRef<Sugg[] | null>(null)
           <ArrowRight :size="16" aria-hidden="true" class="sp__all-arrow" />
         </div>
       </div>
-      <p v-if="desktop" class="sp__keys t-xs" aria-hidden="true">
-        <span><kbd>↑</kbd><kbd>↓</kbd> выбрать</span>
-        <span><kbd>Enter</kbd> открыть</span>
-        <span><kbd>Esc</kbd> закрыть</span>
-      </p>
     </div>
   </div>
 </template>
@@ -1754,26 +1749,6 @@ const popularCache = vueRef<Sugg[] | null>(null)
 .sp__all.is-active {
   outline: var(--focus-w) solid var(--focus-ring);
   outline-offset: 1px;
-}
-.sp__keys {
-  display: flex;
-  gap: var(--space-4);
-  margin: 0;
-  padding: var(--space-2) var(--space-4);
-  border-top: var(--border-w) solid var(--border);
-  background: var(--surface-2);
-  color: var(--text-3);
-}
-.sp__keys kbd {
-  display: inline-block;
-  min-width: 1.25rem;
-  margin-right: var(--space-1);
-  padding: 0 var(--space-1);
-  border: var(--border-w) solid var(--border);
-  border-radius: var(--radius-sm);
-  background: var(--surface);
-  font: inherit;
-  text-align: center;
 }
 .sp__clear-all {
   border: 0;

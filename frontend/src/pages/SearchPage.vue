@@ -29,6 +29,7 @@ import ResultCard, { type ItemAction } from '@/components/search/ResultCard.vue'
 import ResultSkeleton from '@/components/search/ResultSkeleton.vue'
 import SearchPanel, { type PanelSubmit } from '@/components/panel/SearchPanel.vue'
 import SearchError from '@/components/search/SearchError.vue'
+import SearchStart from '@/components/search/SearchStart.vue'
 import UnderstandingBar from '@/components/search/UnderstandingBar.vue'
 import TracePanel from '@/components/trace/TracePanel.vue'
 import ComplementsBlock from '@/components/search/ComplementsBlock.vue'
@@ -78,14 +79,6 @@ import { usableFacet, withFilter } from '@/lib/facets'
 import { helpAnswerShown, helpHintShown, specPurchase, supplyShown } from '@/lib/procurement'
 import { type SpecLine, lineFromCompanion, lineFromItem, quantityForItem } from '@/lib/spec'
 import type { SlotChoice } from '@/lib/solution'
-
-const EXAMPLES = [
-  'аналог фотошопа на 20 пользователей',
-  'касперкий',
-  'винда 11 про',
-  'отечественный офис на 30 компов, бессрочка',
-  'продлить антивирус',
-]
 
 const route = useRoute()
 const router = useRouter()
@@ -1097,21 +1090,7 @@ async function onSupply() {
           </div>
         </template>
 
-        <section v-else class="search-page__idle" aria-labelledby="idle-title">
-          <h2 id="idle-title" class="t-h2">Что ищем?</h2>
-          <p class="t-muted">
-            Название продукта, задача своими словами («аналог фотошопа на 20 пользователей») или
-            артикул. Опечатки, раскладку и сленг поиск исправит сам; как он понял запрос — видно в
-            трассе.
-          </p>
-          <ul class="search-page__chips" aria-label="Примеры запросов">
-            <li v-for="q in EXAMPLES" :key="q">
-              <button type="button" class="btn btn--secondary btn--sm" @click="submit(q)">
-                {{ q }}
-              </button>
-            </li>
-          </ul>
-        </section>
+        <SearchStart v-else @search="submit" />
       </div>
 
       <aside v-if="state.trace && isDesktop" class="search-page__trace" aria-label="Трасса запроса">
@@ -1331,12 +1310,6 @@ async function onSupply() {
 .search-page__chips .btn {
   white-space: normal;
   text-align: left;
-}
-.search-page__idle {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-3);
-  padding: var(--space-6) 0;
 }
 .search-page__trace {
   position: sticky;
