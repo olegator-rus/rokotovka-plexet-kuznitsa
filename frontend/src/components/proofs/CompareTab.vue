@@ -9,7 +9,6 @@
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { storeToRefs } from 'pinia'
-import { TabsContent, TabsList, TabsRoot, TabsTrigger } from 'reka-ui'
 import { LoaderCircle, Play, RotateCcw } from 'lucide-vue-next'
 import { getEvaluations, runEvaluation } from '@/api/evaluations'
 import type { ConfigId, EvalJob } from '@/api/types'
@@ -34,6 +33,8 @@ const EVAL_SET = 'test'
 const TABS = ['metrics', 'one', 'regressions', 'commerce', 'panel'] as const
 type Tab = (typeof TABS)[number]
 
+const emit = defineEmits<{ regressionsTotal: [total: number | null] }>()
+
 const route = useRoute()
 const router = useRouter()
 const app = useAppStore()
@@ -54,12 +55,10 @@ const b4PreHoldout = computed(() => evals.data.value?.agent_credit?.pre_holdout 
 
 // ── Адрес ──
 const str = (v: unknown) => (typeof v === 'string' ? v : '')
-const tab = computed<Tab>({
-  get: () => {
-    const t = str(route.query.view)
-    return (TABS as readonly string[]).includes(t) ? (t as Tab) : 'metrics'
-  },
-  set: (t) => void router.replace({ query: { ...route.query, view: t } }),
+/** Экран выбирает меню раздела (ProofsPage); здесь — только показ выбранного. */
+const tab = computed<Tab>(() => {
+  const t = str(route.query.view)
+  return (TABS as readonly string[]).includes(t) ? (t as Tab) : 'metrics'
 })
 const oneQuery = computed(() => str(route.query.q))
 const left = computed<ConfigId>(() => {
@@ -86,6 +85,12 @@ function onCompare(q: string, l: string, r: string) {
 function onRegressions(config: string) {
   void router.push({ query: { tab: 'compare', view: 'regressions', cfg: config } })
 }
+
+watch(
+  () => (columns.value.length ? regressionTotal.value : null),
+  (total) => emit('regressionsTotal', total),
+  { immediate: true },
+)
 
 // ── Прогон ──
 // Идущий прогон, а без него — последний завершённый (удачный или с ошибкой).
@@ -167,14 +172,9 @@ onBeforeUnmount(() => {
 
 <template>
   <section class="compare" aria-labelledby="compare-title">
-    <header class="compare__head">
-      <div>
-        <h2 id="compare-title" class="sr-only">До / После</h2>
-        <p class="t-sm t-muted">
-          Лестница конфигураций на замороженном наборе: от реконструкции исходного поиска (B0) до
-          полной архитектуры.
-        </p>
-      </div>
+    <h2 id="compare-title" class="sr-only">До / После</h2>
+    <!-- Прогон оценки нужен там, где показываются его числа. -->
+    <header v-if="auth.staff && (tab === 'metrics' || tab === 'regressions')" class="compare__head">
       <div v-if="auth.staff" class="compare__run">
         <button
           type="button"
@@ -236,19 +236,8 @@ onBeforeUnmount(() => {
       @retry="evals.load()"
     />
 
-    <TabsRoot v-else v-model="tab" class="compare__tabs">
-      <TabsList class="tabs" aria-label="Виды сравнения">
-        <TabsTrigger value="metrics" class="tabs__trigger">Метрики</TabsTrigger>
-        <TabsTrigger value="one" class="tabs__trigger">Один запрос</TabsTrigger>
-        <TabsTrigger value="regressions" class="tabs__trigger">
-          Ухудшения
-          <span v-if="columns.length" class="badge t-num">{{ regressionTotal }}</span>
-        </TabsTrigger>
-        <TabsTrigger value="commerce" class="tabs__trigger">Коммерция</TabsTrigger>
-        <TabsTrigger value="panel" class="tabs__trigger">Панель</TabsTrigger>
-      </TabsList>
-
-      <TabsContent value="metrics" class="compare__panel">
+    <div v-else class="compare__tabs">
+      <div v-if="tab === 'metrics'" class="compare__panel">
         <div v-if="!columns.length" class="panel compare__empty">
           <p class="t-h2">Прогон ещё не запускался</p>
           <p class="t-muted">
@@ -308,21 +297,21 @@ onBeforeUnmount(() => {
             </button>
           </p>
         </template>
-      </TabsContent>
+      </div>
 
-      <TabsContent value="one" class="compare__panel">
+      <div v-else-if="tab === 'one'" class="compare__panel">
         <OneQueryCompare :query="oneQuery" :left="left" :right="right" @change="onOneChange" />
-      </TabsContent>
+      </div>
 
-      <TabsContent value="commerce" class="compare__panel">
+      <div v-else-if="tab === 'commerce'" class="compare__panel">
         <CommerceTab />
-      </TabsContent>
+      </div>
 
-      <TabsContent value="panel" class="compare__panel">
+      <div v-else-if="tab === 'panel'" class="compare__panel">
         <PanelTab />
-      </TabsContent>
+      </div>
 
-      <TabsContent value="regressions" class="compare__panel">
+      <div v-else-if="tab === 'regressions'" class="compare__panel">
         <p v-if="!columns.length" class="panel compare__empty">
           Прогон ещё не запускался — ухудшения считаются по его результатам.
         </p>
@@ -332,8 +321,8 @@ onBeforeUnmount(() => {
           :columns="columns"
           @compare="onCompare"
         />
-      </TabsContent>
-    </TabsRoot>
+      </div>
+    </div>
   </section>
 </template>
 
@@ -347,14 +336,8 @@ onBeforeUnmount(() => {
   display: flex;
   flex-wrap: wrap;
   align-items: flex-start;
-  justify-content: space-between;
+  justify-content: flex-end;
   gap: var(--space-3);
-}
-.compare__head > div:first-child {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-1);
-  max-width: 40rem;
 }
 .compare__run {
   display: flex;

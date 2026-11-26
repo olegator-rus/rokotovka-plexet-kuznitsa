@@ -12,11 +12,13 @@ import SearchError from '@/components/search/SearchError.vue'
 import UiSelect from '@/components/ui/UiSelect.vue'
 import { type ApiError, isApiError, MSG_UNKNOWN } from '@/lib/apiError'
 import { compareColumn, compareSummary, shiftLabel } from '@/lib/compare'
-import { configHint } from '@/lib/configs'
+import { configHint, configName } from '@/lib/configs'
 import { formatFound, formatScore } from '@/lib/format'
 import { priceLabel } from '@/lib/license'
 import { buildSearchRequest, emptyState, isConfigId } from '@/lib/searchState'
 import { useAppStore } from '@/stores/app'
+
+const EXAMPLES = ['касперкий на 10 пк', 'аналог фотошопа на 20 пользователей', 'винда 11 про']
 
 /** Метрики считаются по первым 10 позициям — сравниваем их же. */
 const COMPARE_LIMIT = 10
@@ -27,7 +29,7 @@ const emit = defineEmits<{ change: [query: string, left: ConfigId, right: Config
 const app = useAppStore()
 const { configs } = storeToRefs(app)
 const options = computed(() =>
-  configs.value.map((c) => ({ value: c, label: c, hint: configHint(c) })),
+  configs.value.map((c) => ({ value: c, label: `${configName(c)} (${c})`, hint: configHint(c) })),
 )
 
 const text = ref(props.query)
@@ -89,6 +91,10 @@ watch(() => [props.query, props.left, props.right, app.clientId], run, { immedia
 function submit() {
   emit('change', text.value.trim(), props.left, props.right)
 }
+function tryExample(q: string) {
+  text.value = q
+  submit()
+}
 function setConfig(which: 'left' | 'right', v: string) {
   if (!isConfigId(v)) return
   emit(
@@ -124,29 +130,31 @@ const columns = computed(() => [
 
 <template>
   <div class="oneq">
-    <form class="oneq__form" role="search" @submit.prevent="submit">
-      <label for="compare-q" class="sr-only">Запрос для сравнения</label>
-      <input
-        id="compare-q"
-        v-model="text"
-        class="oneq__input"
-        type="search"
-        autocomplete="off"
-        placeholder="Запрос, например: касперкий на 10 пк"
-      />
-      <button type="submit" class="btn btn--primary" :disabled="!text.trim()">
-        <Search :size="16" aria-hidden="true" />
-        Сравнить
-      </button>
-    </form>
+    <div class="oneq__ask">
+      <form class="oneq__form" role="search" @submit.prevent="submit">
+        <label for="compare-q" class="sr-only">Запрос для сравнения</label>
+        <Search :size="18" aria-hidden="true" class="oneq__glass" />
+        <input
+          id="compare-q"
+          v-model="text"
+          class="oneq__input"
+          type="search"
+          autocomplete="off"
+          placeholder="Запрос, например: касперкий на 10 пк"
+        />
+        <button type="submit" class="btn btn--primary" :disabled="!text.trim()">Сравнить</button>
+      </form>
+      <p class="oneq__examples t-sm">
+        <span class="t-muted">Попробуйте:</span>
+        <button v-for="q in EXAMPLES" :key="q" type="button" @click="tryExample(q)">
+          {{ q }}
+        </button>
+      </p>
+    </div>
 
-    <p v-if="summary" class="t-sm t-muted oneq__summary">
+    <p v-if="summary" class="t-sm oneq__summary" role="status">
       Общих позиций {{ summary.common }} · только в {{ left }}: {{ summary.onlyLeft }} · только в
       {{ right }}: {{ summary.onlyRight }}
-    </p>
-    <p v-else-if="!query" class="panel oneq__empty">
-      Введите запрос — выдачи двух конфигураций появятся рядом. Конфигурации выбираются над
-      колонками.
     </p>
 
     <div class="oneq__cols">
@@ -161,13 +169,16 @@ const columns = computed(() => [
             :model-value="col.config"
             :options="options"
             :label="`Конфигурация ${col.key === 'left' ? 'слева' : 'справа'}`"
-            prefix="Конфигурация"
+            prefix="Версия"
             @update:model-value="(v: string) => setConfig(col.key, v)"
           />
           <span class="t-xs t-muted oneq__hint">{{ configHint(col.config) }}</span>
         </header>
 
-        <template v-if="sides[col.key].status === 'loading'">
+        <p v-if="sides[col.key].status === 'idle'" class="oneq__wait t-sm t-muted">
+          Здесь появится выдача этой версии — введите запрос или выберите пример.
+        </p>
+        <template v-else-if="sides[col.key].status === 'loading'">
           <div v-for="i in 5" :key="i" class="panel oneq__row" aria-hidden="true">
             <span class="skeleton" :style="{ width: `${70 - i * 6}%` }" />
           </div>
@@ -247,22 +258,70 @@ const columns = computed(() => [
 .oneq__summary {
   overflow-wrap: anywhere;
 }
+.oneq__ask {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
 .oneq__form {
   display: flex;
+  align-items: center;
   gap: var(--space-2);
+  padding: var(--space-1) var(--space-1) var(--space-1) var(--space-4);
+  border: var(--border-w) solid var(--border-control);
+  border-radius: var(--radius-pill);
+  background: var(--surface);
+}
+.oneq__form:focus-within {
+  border-color: var(--focus-ring);
+  box-shadow: inset 0 0 0 1px var(--focus-ring);
+}
+.oneq__glass {
+  flex: none;
+  color: var(--text-3);
 }
 .oneq__input {
   box-sizing: border-box;
   flex: 1;
   min-width: 0;
-  min-height: var(--control-h);
-  padding: 0 var(--space-3);
-  border: var(--border-w) solid var(--border-control);
-  border-radius: var(--radius-control);
-  background: var(--surface);
+  min-height: var(--touch-min);
+  border: 0;
+  background: transparent;
   color: var(--text);
   font: inherit;
   font-size: var(--fs-input);
+  outline: none;
+}
+.oneq__form .btn {
+  min-height: var(--touch-min);
+  padding-inline: var(--space-5);
+}
+.oneq__examples {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  margin: 0;
+}
+.oneq__examples button {
+  min-height: var(--control-h-sm);
+  padding: 0 var(--space-3);
+  border: var(--border-w) solid var(--border);
+  border-radius: var(--radius-pill);
+  background: var(--surface);
+  font-size: var(--fs-sm);
+  cursor: pointer;
+}
+.oneq__examples button:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+.oneq__wait {
+  margin: 0;
+  padding: var(--space-8) var(--space-4);
+  border: var(--border-w) dashed var(--border-control);
+  border-radius: var(--radius-control);
+  text-align: center;
 }
 .oneq__empty {
   padding: var(--space-4);
@@ -274,11 +333,23 @@ const columns = computed(() => [
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: var(--space-4);
 }
+/* Две колонки-карточки: правая (обычно более полная версия) выделена. */
 .oneq__col {
   display: flex;
   flex-direction: column;
   gap: var(--space-2);
   min-width: 0;
+  padding: var(--space-3);
+  border: var(--border-w) solid var(--border);
+  border-radius: var(--radius-card);
+  background: var(--surface-2);
+}
+.oneq__col + .oneq__col {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+.oneq__col-head :deep(.ui-select) {
+  background: var(--surface);
 }
 .oneq__col-head {
   display: flex;

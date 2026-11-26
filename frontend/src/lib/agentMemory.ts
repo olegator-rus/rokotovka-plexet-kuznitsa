@@ -44,7 +44,7 @@ export function episodeOutcome(e: Pick<MemoryEpisode, 'outcome' | 'cause_label'>
   return e.cause_label && !o.includes(e.cause_label) ? `${o} · ${e.cause_label}` : o
 }
 
-/** Текущее значение условия возврата: «неудачных поисков 3 из 6 нужных · проверено 27.05, 03:00». */
+/** Текущее значение условия возврата: «неудачных поисков 3 из 6 нужных · проверено, 03:00». */
 export function conditionNow(s: MemorySuppress): string {
   if (s.status === 'removed') {
     return `снято${s.removed_reason ? `: «${s.removed_reason}»` : ''}${s.removed_at ? ` · ${formatDateTime(s.removed_at)}` : ''}`

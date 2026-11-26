@@ -21,6 +21,20 @@ export function withDefaultConfig(
   return configs.includes(def) ? configs : [def, ...configs]
 }
 
+/** Короткое человеческое название версии поиска; код (B0–B4) показывается рядом. */
+export const CONFIG_NAMES: Record<ConfigId, string> = {
+  live: 'Как у покупателя',
+  B0: 'Только точное совпадение',
+  B1: '+ словари и исправления',
+  B2: '+ поиск по смыслу',
+  B3: '+ понимание условий',
+  B4: '+ правки агента',
+}
+
+export function configName(id: ConfigId): string {
+  return CONFIG_NAMES[id] ?? id
+}
+
 export function configHint(id: ConfigId): string {
   return CONFIG_HINTS[id] ?? id
 }

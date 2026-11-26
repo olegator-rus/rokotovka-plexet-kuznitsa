@@ -25,6 +25,7 @@ import {
 import type { Persona } from '@/api/auth'
 import { type MyQuote, getMyQuotes } from '@/api/quotes'
 import PersonaList from '@/components/auth/PersonaList.vue'
+import UserAvatar from '@/components/common/UserAvatar.vue'
 import UiDialog from '@/components/ui/UiDialog.vue'
 import { useToast } from '@/components/ui/useToast'
 import { isApiError, MSG_UNKNOWN } from '@/lib/apiError'
@@ -118,7 +119,7 @@ async function logout() {
       class="btn btn--ghost account__trigger"
       :aria-label="`Аккаунт: ${viewer.name}, ${viewer.role_label}`"
     >
-      <span class="account__avatar" aria-hidden="true">{{ initials }}</span>
+      <UserAvatar :persona="viewer.persona" :initials="initials" class="account__avatar" />
       <span class="account__who">
         <span class="account__name">{{ viewer.name }}</span>
         <span class="account__role t-xs">{{ viewer.role_label }}</span>
@@ -209,16 +210,8 @@ async function logout() {
   color: var(--text);
 }
 .account__avatar {
-  display: grid;
-  flex: none;
-  place-items: center;
   width: 1.75rem;
   height: 1.75rem;
-  border-radius: 50%;
-  background: var(--surface-3);
-  color: var(--text);
-  font-size: var(--fs-xs);
-  font-weight: var(--fw-semibold);
 }
 .account__who {
   display: flex;

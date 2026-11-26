@@ -23,7 +23,6 @@ import type { Companion, SearchFilter, Upgrade } from '@/api/typesP2'
 import CompanionsBlock from '@/components/search/CompanionsBlock.vue'
 import FacetsPanel from '@/components/search/FacetsPanel.vue'
 import RequiredLine from '@/components/search/RequiredLine.vue'
-import ConfigSwitch from '@/components/search/ConfigSwitch.vue'
 import ManagerDialog from '@/components/search/ManagerDialog.vue'
 import ResultCard, { type ItemAction } from '@/components/search/ResultCard.vue'
 import ResultSkeleton from '@/components/search/ResultSkeleton.vue'
@@ -72,7 +71,6 @@ import {
   type SearchState,
 } from '@/lib/searchState'
 import { useAppStore } from '@/stores/app'
-import { useAuthStore } from '@/stores/auth'
 import { useSpecStore } from '@/stores/spec'
 import {
   blockItems,
@@ -90,8 +88,7 @@ const route = useRoute()
 const router = useRouter()
 const app = useAppStore()
 // Контур доводки: переключатель конфигураций B0–B4 — только сотруднику; гость и покупатель ищут на действующей.
-const auth = useAuthStore()
-const { clientId, configs, defaultConfig } = storeToRefs(app)
+const { clientId, defaultConfig } = storeToRefs(app)
 const toast = useToast()
 const isDesktop = useMediaQuery(DESKTOP_QUERY)
 
@@ -590,10 +587,6 @@ function onClarify(attribute: string, option: ClarifyOption) {
   void go(withClarify(state.value, attribute, option.value))
 }
 
-function onConfig(config: ConfigId) {
-  if (config !== effectiveConfig.value) void go({ ...state.value, config })
-}
-
 function setTrace(open: boolean) {
   if (open !== state.value.trace) void go({ ...state.value, trace: open }, 'replace')
 }
@@ -741,13 +734,6 @@ async function onSupply() {
 
     <div :class="['search-page__cols', { 'search-page__cols--trace': state.trace && isDesktop }]">
       <div class="search-page__main">
-        <div v-if="auth.staff" class="search-page__controls">
-          <ConfigSwitch
-            :configs="configs"
-            :model-value="effectiveConfig"
-            @update:model-value="onConfig"
-          />
-        </div>
         <Teleport defer to="#footer-tools">
           <UiSwitch label="Трасса" :model-value="state.trace" @update:model-value="setTrace" />
         </Teleport>
@@ -1263,13 +1249,6 @@ async function onSupply() {
 }
 .search-page__cols--trace .search-page__main {
   max-width: none;
-}
-.search-page__controls {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-2) var(--space-4);
 }
 .search-page__found {
   min-height: var(--lh-sm);

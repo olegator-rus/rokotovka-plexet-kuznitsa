@@ -48,7 +48,7 @@ test.describe('Контур доводки: три раздела', () => {
     await expect(table.or(empty).first()).toBeVisible({ timeout: 20_000 })
     test.skip(await empty.isVisible(), 'в демо-базе нет неудачных запросов за период')
     for (const h of ['Запрос', 'Частота', 'Исход', 'Причина', 'Владелец', 'Статус'])
-      await expect(table.getByRole('columnheader', { name: h })).toBeVisible()
+      await expect(table.getByRole('columnheader', { name: h, exact: h === 'Запрос' })).toBeVisible()
     await expect(page.getByRole('combobox', { name: 'Причина' })).toBeVisible()
     await expect(page.getByRole('combobox', { name: 'Владелец' })).toBeVisible()
 
@@ -77,15 +77,16 @@ test.describe('Контур доводки: три раздела', () => {
     expect(owners.every((o) => o.trim() === 'Администратор поиска')).toBe(true)
   })
 
-  test('«Доказательства»: три вкладки, «Вклад компонентов» — «Прогон не запускался» и кнопка', async ({
+  test('«Доказательства»: одно меню, «Вклад компонентов» — «Прогон не запускался» и кнопка', async ({
     page,
   }) => {
     await page.goto('/proofs')
-    await expect(page.getByRole('tablist', { name: 'Разделы доказательств' }).getByRole('tab')).toHaveText([
-      'До / После',
-      'Вклад компонентов',
-      'Стоимость',
-    ])
+    // Один уровень меню: семь экранов, вложенных вкладок нет.
+    const menu = page.getByRole('tablist', { name: 'Разделы доказательств' })
+    await expect(menu.getByRole('tab')).toHaveCount(7)
+    await expect(page.getByRole('tablist')).toHaveCount(1)
+    for (const name of ['Метрики', 'Один запрос', 'Ухудшения', 'Подсказки', 'Вклад компонентов', 'Стоимость', 'Коммерция'])
+      await expect(menu.getByRole('tab', { name: new RegExp(`^${name}`) })).toBeVisible()
     await expect(page.getByRole('tab', { name: 'Эффект агента' })).toHaveCount(0)
     await page.getByRole('tab', { name: 'Вклад компонентов' }).click()
     await expect(page).toHaveURL(/tab=contribution/)
@@ -122,7 +123,7 @@ test.describe('Контур доводки: снимки разделов', () =
     ['/searchops?tab=queue', 'searchops-queue', 'Очередь'],
     ['/searchops?tab=changes', 'searchops-changes', 'Изменения'],
     ['/searchops?tab=policy', 'searchops-policy', 'Политика ранжирования'],
-    ['/proofs?tab=compare', 'proofs-compare', 'До / После'],
+    ['/proofs?tab=compare', 'proofs-compare', 'Метрики'],
     ['/proofs?tab=contribution', 'proofs-contribution', 'Вклад компонентов'],
     ['/proofs?tab=cost', 'proofs-cost', 'Стоимость'],
   ]

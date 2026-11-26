@@ -3,17 +3,25 @@
 // задержки, блокирующие проверки, ухудшения рядом с улучшениями, две конверсии по событиям стенда.
 // Числа — GET /api/evaluations?set=panel; непосчитанное не показывается. Грузится при открытии вкладки.
 import { computed, ref } from 'vue'
+import type { Component } from 'vue'
 import {
+  Building2,
+  Circle,
   CircleAlert,
   CircleCheck,
   CircleX,
+  Folder,
+  ListChecks,
+  Package,
   RotateCcw,
+  Search,
   TrendingDown,
   TrendingUp,
 } from 'lucide-vue-next'
 import { getPanelEvaluation } from '@/api/evalPanel'
 import type { IntentRate } from '@/api/typesEvalPanel'
 import BlockError from '@/components/common/BlockError.vue'
+import PanelChanges from '@/components/compare/PanelChanges.vue'
 import ExplainDialog, { type Explanation } from '@/components/common/ExplainDialog.vue'
 import StatTile from '@/components/common/StatTile.vue'
 import { useResource } from '@/composables/useResource'
@@ -24,15 +32,24 @@ import {
   panelDelta,
   panelMode,
   panelValue,
-  PREFIX_TYPE_LABELS,
-  rankLabel,
   rateSub,
   rateValue,
-  SECTION_LABELS,
-  splitChanges,
 } from '@/lib/evalPanel'
 import { shortHash } from '@/lib/evalView'
-import { formatDateTime, formatInt, plural } from '@/lib/format'
+import { formatDateTime, formatInt, formatPercent, plural } from '@/lib/format'
+
+/** Значок исхода по коду сервера; незнакомый код — нейтральный кружок. */
+const OUTCOME_ICONS: Record<string, Component> = {
+  commit: Search,
+  suggestion: ListChecks,
+  product: Package,
+  category: Folder,
+  vendor: Building2,
+  abandon: CircleX,
+}
+/** Длина полоски: какая часть случаев с этим исходом дошла до товара (оба числа — с сервера). */
+const doneWidth = (converted: number, count: number) =>
+  `${count > 0 ? Math.min(100, (converted / count) * 100) : 0}%`
 
 const res = useResource((opts) => getPanelEvaluation(opts))
 void res.load()
@@ -45,9 +62,7 @@ const modes = computed(() => [oldMode.value, newMode.value].filter((m) => m !== 
 const checks = computed(() =>
   newMode.value?.available ? blockingChecks(newMode.value.metrics) : [],
 )
-const changes = computed(() => splitChanges(run.value?.changes ?? []))
 const intents = computed(() => data.value?.intents ?? null)
-const SHOWN = 12
 
 const explain = ref<Explanation | null>(null)
 const explainOpen = computed({
@@ -177,21 +192,27 @@ function sourcesLabel(src: Record<string, number> | undefined) {
                 <td v-for="m in modes" :key="m.mode" class="num">
                   <template v-if="!m.available">—</template>
                   <template v-else>
-                    {{ panelValue(def, m.metrics) ?? '—' }}
-                    <template v-if="m.mode === 'new'">
-                      <TrendingUp
-                        v-if="panelDelta(def, oldMode?.metrics, m.metrics) === 'better'"
-                        :size="12"
-                        class="pt__up"
-                        aria-label="лучше прежнего"
-                      />
-                      <TrendingDown
-                        v-else-if="panelDelta(def, oldMode?.metrics, m.metrics) === 'worse'"
-                        :size="12"
-                        class="pt__down"
-                        aria-label="хуже прежнего"
-                      />
-                    </template>
+                    <span class="pt__cell">
+                      <span
+                        v-if="
+                          m.mode === 'new' &&
+                          panelDelta(def, oldMode?.metrics, m.metrics) === 'better'
+                        "
+                        class="pt__delta pt__delta--better"
+                      >
+                        <TrendingUp :size="14" aria-hidden="true" /> лучше
+                      </span>
+                      <span
+                        v-else-if="
+                          m.mode === 'new' &&
+                          panelDelta(def, oldMode?.metrics, m.metrics) === 'worse'
+                        "
+                        class="pt__delta pt__delta--worse"
+                      >
+                        <TrendingDown :size="14" aria-hidden="true" /> хуже
+                      </span>
+                      <span>{{ panelValue(def, m.metrics) ?? '—' }}</span>
+                    </span>
                   </template>
                 </td>
               </tr>
@@ -208,10 +229,14 @@ function sourcesLabel(src: Record<string, number> | undefined) {
             <li v-for="c in checks" :key="c.key" class="panel pt__check">
               <CircleCheck v-if="c.ok" :size="16" class="pt__up" aria-hidden="true" />
               <CircleX v-else :size="16" class="pt__down" aria-hidden="true" />
-              <span>
-                <span class="pt__check-label">{{ c.label }}: {{ c.ok ? 'да' : 'нет' }}</span>
+              <span class="pt__check-body">
+                <span class="pt__check-label">{{ c.label }}</span>
                 <span class="t-xs t-muted">{{ c.detail }}</span>
               </span>
+              <!-- Статус отдельной меткой справа: подпись не переносит «да» на новую строку -->
+              <span class="pt__check-status" :class="c.ok ? 'pt__up' : 'pt__down'">{{
+                c.ok ? 'да' : 'нет'
+              }}</span>
             </li>
           </ul>
           <p v-if="newMode?.metrics.to_empty_examples.length" class="t-xs t-muted">
@@ -225,28 +250,7 @@ function sourcesLabel(src: Record<string, number> | undefined) {
             Место цели не изменилось ни на одном префиксе
             <template v-if="!newMode?.available"> — панель контура выдачи не прогнана</template>.
           </p>
-          <div v-else class="pt__cols">
-            <div v-for="col in ['worse', 'better'] as const" :key="col" class="panel pt__col">
-              <p class="pt__col-title" :class="col === 'worse' ? 'pt__down' : 'pt__up'">
-                <TrendingDown v-if="col === 'worse'" :size="14" aria-hidden="true" />
-                <TrendingUp v-else :size="14" aria-hidden="true" />
-                {{ col === 'worse' ? 'Хуже' : 'Лучше' }}: {{ formatInt(changes[col].length) }}
-              </p>
-              <ul class="pt__list">
-                <li v-for="c in changes[col].slice(0, SHOWN)" :key="c.id + c.section" class="t-sm">
-                  <span class="t-mono">«{{ c.prefix }}»</span> → {{ c.target }}
-                  <span class="t-xs t-muted">
-                    · {{ SECTION_LABELS[c.section] ?? c.section }} ·
-                    {{ PREFIX_TYPE_LABELS[c.type] ?? c.type }} · {{ rankLabel(c.old_rank) }} →
-                    {{ rankLabel(c.new_rank) }}
-                  </span>
-                </li>
-              </ul>
-              <p v-if="changes[col].length > SHOWN" class="t-xs t-muted">
-                и ещё {{ formatInt(changes[col].length - SHOWN) }} — в JSON прогона (data/eval)
-              </p>
-            </div>
-          </div>
+          <PanelChanges v-else :changes="run.changes" />
         </section>
 
         <ul v-if="run.warnings.length" class="pt__notes t-xs t-muted">
@@ -326,12 +330,47 @@ function sourcesLabel(src: Record<string, number> | undefined) {
             "
           />
         </div>
-        <ul v-if="intents && intents.intents" class="pt__outcomes t-sm">
-          <li v-for="o in intents.outcomes" :key="o.outcome">
-            {{ o.label }}: {{ formatInt(o.count) }}
-            <span class="t-muted">(с действием {{ formatInt(o.converted) }})</span>
-          </li>
-        </ul>
+        <div v-if="intents && intents.intents" class="pt__flow">
+          <header class="pt__flow-head">
+            <h3 class="pt__flow-title">Чем заканчивается поиск</h3>
+            <p class="t-xs t-muted">
+              Всего {{ formatInt(intents.intents) }}
+              {{ plural(intents.intents, ['намерение', 'намерения', 'намерений']) }}. «Дошли до
+              товара» — после исхода был клик, корзина, заказ или запрос цены.
+            </p>
+          </header>
+          <p class="pt__flow-cols t-xs" aria-hidden="true">
+            <span>Исход</span>
+            <span>Сколько раз</span>
+            <span>Дошли до товара</span>
+          </p>
+          <ul class="pt__outcomes">
+            <li v-for="o in intents.outcomes" :key="o.outcome" class="pt__outcome">
+              <span class="pt__outcome-name">
+                <span class="pt__outcome-icon" aria-hidden="true">
+                  <component :is="OUTCOME_ICONS[o.outcome] ?? Circle" :size="16" />
+                </span>
+                {{ o.label }}
+              </span>
+              <span class="pt__outcome-count t-num">
+                <strong>{{ formatInt(o.count) }}</strong>
+                <span v-if="o.share !== null" class="t-xs t-muted">
+                  {{ formatPercent(o.share) }} всех
+                </span>
+              </span>
+              <span class="pt__outcome-done">
+                <span class="t-sm t-num">
+                  <span class="sr-only">дошли до товара: </span>
+                  <strong>{{ formatInt(o.converted) }}</strong>
+                  <span class="t-muted"> из {{ formatInt(o.count) }}</span>
+                </span>
+                <span class="pt__bar" aria-hidden="true">
+                  <span :style="{ width: doneWidth(o.converted, o.count) }" />
+                </span>
+              </span>
+            </li>
+          </ul>
+        </div>
       </section>
 
       <p v-if="res.status.value === 'error'" class="t-xs pt__stale" role="alert">
@@ -366,9 +405,32 @@ function sourcesLabel(src: Record<string, number> | undefined) {
 .pt__table th[scope='row'] {
   white-space: nowrap;
 }
-.pt__table td svg {
+.pt__table td {
   vertical-align: middle;
-  margin-left: 2px;
+}
+.pt__cell {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--space-2);
+}
+.pt__delta {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: 2px var(--space-2);
+  border-radius: var(--radius-pill);
+  font-size: var(--fs-xs);
+  line-height: var(--lh-xs);
+  font-weight: var(--fw-semibold);
+}
+.pt__delta--better {
+  background: var(--status-accepted-bg);
+  color: var(--delta-up);
+}
+.pt__delta--worse {
+  background: var(--danger-bg);
+  color: var(--delta-down);
 }
 .pt__section {
   display: flex;
@@ -377,7 +439,8 @@ function sourcesLabel(src: Record<string, number> | undefined) {
 }
 .pt__checks {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 15rem), 1fr));
+  /* Четыре проверки: 2×2 на обычной ширине, в один ряд на очень широкой, столбиком на узкой */
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 19rem), 1fr));
   gap: var(--space-2);
   margin: 0;
   padding: 0;
@@ -393,53 +456,135 @@ function sourcesLabel(src: Record<string, number> | undefined) {
   flex: none;
   margin-top: 2px;
 }
-.pt__check > span {
+.pt__check-body {
   display: flex;
+  flex: 1;
+  min-width: 0;
   flex-direction: column;
   gap: 2px;
 }
+.pt__check-status {
+  flex: none;
+  font-size: var(--fs-sm);
+  font-weight: 600;
+}
 .pt__check-label {
   font-size: var(--fs-sm);
-}
-.pt__cols {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 20rem), 1fr));
-  gap: var(--space-3);
-}
-.pt__col {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-2);
-  padding: var(--space-3) var(--space-4);
-  min-width: 0;
-}
-.pt__col-title {
-  display: flex;
-  align-items: center;
-  gap: var(--space-1);
-  font-weight: var(--fw-medium);
-}
-.pt__list {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-1);
-  margin: 0;
-  padding: 0;
-  list-style: none;
-  overflow-wrap: anywhere;
 }
 .pt__tiles {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(min(100%, 11rem), 1fr));
   gap: var(--space-3);
 }
-.pt__outcomes {
+/* «Чем заканчивается поиск»: исход — сколько раз — сколько дошли до товара */
+.pt__flow {
+  container-type: inline-size;
+  overflow: hidden;
+  border: var(--border-w) solid var(--border);
+  border-radius: var(--radius-card);
+  background: var(--surface);
+}
+.pt__flow-head {
   display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-1) var(--space-4);
+  flex-direction: column;
+  gap: var(--space-1);
+  padding: var(--space-4);
+}
+.pt__flow-head p {
+  margin: 0;
+}
+.pt__flow-title {
+  margin: 0;
+  font-size: var(--fs-h2);
+  line-height: var(--lh-h2);
+  font-weight: var(--fw-bold);
+}
+.pt__flow-cols,
+.pt__outcome {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) 7rem minmax(0, 1.6fr);
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-4);
+}
+.pt__flow-cols {
+  margin: 0;
+  border-top: var(--border-w) solid var(--border);
+  background: var(--surface-2);
+  color: var(--text-2);
+  font-weight: var(--fw-semibold);
+}
+.pt__outcomes {
   margin: 0;
   padding: 0;
   list-style: none;
+}
+.pt__outcome {
+  min-height: 3.5rem;
+  border-top: var(--border-w) solid var(--border);
+}
+.pt__outcome-name {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-width: 0;
+  font-weight: var(--fw-semibold);
+}
+.pt__outcome-name::first-letter {
+  text-transform: uppercase;
+}
+.pt__outcome-icon {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: var(--radius-pill);
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+.pt__outcome-count {
+  display: flex;
+  flex-direction: column;
+}
+.pt__outcome-count strong {
+  font-size: var(--fs-h2);
+  line-height: var(--lh-h2);
+  font-weight: var(--fw-bold);
+}
+.pt__outcome-done {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  min-width: 0;
+}
+.pt__bar {
+  display: block;
+  height: 6px;
+  overflow: hidden;
+  border-radius: var(--radius-pill);
+  background: var(--surface-3);
+}
+.pt__bar span {
+  display: block;
+  height: 100%;
+  border-radius: var(--radius-pill);
+  background: var(--accent);
+}
+@container (max-width: 32rem) {
+  .pt__flow-cols {
+    display: none;
+  }
+  .pt__outcome {
+    grid-template-columns: minmax(0, 1fr) auto;
+    padding-block: var(--space-3);
+  }
+  .pt__outcome-count {
+    align-items: flex-end;
+  }
+  .pt__outcome-done {
+    grid-column: 1 / -1;
+  }
 }
 .pt__notes {
   display: flex;

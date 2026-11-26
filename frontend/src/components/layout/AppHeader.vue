@@ -125,6 +125,10 @@ onBeforeUnmount(() => observer?.disconnect())
     display: none;
   }
 }
+/* Воздух между логотипом и переключателем разделов. */
+.app-header__nav {
+  margin-left: var(--space-4);
+}
 @media (max-width: 1023px) {
   .app-header__nav {
     display: none;

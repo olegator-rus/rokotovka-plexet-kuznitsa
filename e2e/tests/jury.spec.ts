@@ -52,7 +52,6 @@ test.describe('Жюри', () => {
   test('F7: «До / После» — таблица метрик B0–B4 и строка воспроизводимости', async ({ page }) => {
     await page.goto('/proofs')
     await expect(page.getByRole('heading', { level: 1, name: 'Доказательства' })).toBeVisible()
-    await expect(page.getByRole('tab', { name: 'До / После' })).toHaveAttribute('aria-selected', 'true')
     await expect(page.getByRole('tab', { name: 'Метрики' })).toHaveAttribute('aria-selected', 'true')
 
     const table = page.getByRole('region', { name: 'Таблица метрик' })

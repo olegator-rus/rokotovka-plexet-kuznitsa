@@ -243,7 +243,6 @@ function explainRoute(r: CostRouteRow, field: 'share' | 'avg_ms' | 'avg_cost_rub
   <section class="costs" aria-labelledby="costs-title">
     <header class="costs__head">
       <h2 id="costs-title" class="sr-only">Стоимость</h2>
-      <p class="t-sm t-muted">Сколько стоит поиск и откуда берётся каждая цифра</p>
     </header>
 
     <div class="costs">

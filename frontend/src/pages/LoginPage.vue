@@ -249,11 +249,6 @@ async function demo(p: Persona) {
         <p v-else class="t-sm t-muted">Демо-аккаунты на этом стенде выключены.</p>
       </section>
     </main>
-
-    <footer class="login__foot t-xs">
-      Концепт для хакатона. Компании, люди, покупки и показатели магазина — вымышленные
-      (mock-данные); совпадения случайны.
-    </footer>
   </div>
 </template>
 
@@ -433,15 +428,6 @@ async function demo(p: Persona) {
 }
 .login__skel .skeleton {
   height: 3.5rem;
-}
-.login__foot {
-  box-sizing: border-box;
-  width: 100%;
-  max-width: 48rem;
-  margin: 0 auto;
-  padding: var(--space-6) var(--gutter) var(--space-6);
-  color: var(--text-3);
-  text-align: center;
 }
 @media (min-width: 1024px) {
   .login__layout {

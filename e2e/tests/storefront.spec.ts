@@ -47,7 +47,7 @@ test.describe('гость', () => {
     await expect(page.getByText(/LLM включена|Режим без LLM/)).toHaveCount(0)
     await nav.getByRole('link', { name: 'Доказательства' }).click()
     await expect(page.getByRole('heading', { name: 'Доказательства', level: 1 })).toBeVisible()
-    await expect(page.getByRole('tab', { name: 'До / После' })).toHaveAttribute(
+    await expect(page.getByRole('tab', { name: 'Метрики' })).toHaveAttribute(
       'data-state',
       'active',
     )

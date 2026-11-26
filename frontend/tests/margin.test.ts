@@ -136,4 +136,8 @@ test('пример политики: обмен двух соседей в пе�
   assert.equal(swapExample([shuffle, swap])?.query, 'офис')
   assert.equal(swapExample([shuffle])?.query, 'антивирус')
   assert.equal(swapExample([]), null)
+  // Первая тройка не изменилась — не пример: иначе экран писал бы о перестановке, которой нет.
+  const still = { query: 'sql', before: ['a', 'b', 'c', 'd'], after: ['a', 'b', 'c', 'e'] }
+  assert.equal(swapExample([still]), null)
+  assert.equal(swapExample([still, swap])?.query, 'офис')
 })

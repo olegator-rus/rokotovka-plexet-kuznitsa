@@ -2,6 +2,7 @@
 // Демо-аккаунты одной кнопкой: покупатели и сотрудники отдельными группами, в строке — инициалы, имя,
 // роль, что покажет вход; у сотрудника — сколько предложений ждёт его решения (число с сервера). Общая для экрана
 // входа и смены аккаунта из шапки.
+import UserAvatar from '@/components/common/UserAvatar.vue'
 import { computed } from 'vue'
 import { ArrowRight, Check, LoaderCircle } from 'lucide-vue-next'
 import type { Persona } from '@/api/auth'
@@ -60,7 +61,7 @@ function pendingLine(p: Persona): string | null {
             :aria-current="current === p.id || undefined"
             @click="!locked && current !== p.id && $emit('pick', p)"
           >
-            <span class="persona__avatar" aria-hidden="true">{{ p.initials }}</span>
+            <UserAvatar :persona="p.id" :initials="p.initials" class="persona__avatar" />
             <span class="persona__text">
               <span class="persona__name">{{ p.name }}</span>
               <span class="persona__role t-sm">{{ roleLine(p) }}</span>
@@ -151,17 +152,8 @@ function pendingLine(p: Persona): string | null {
   background: var(--surface-3);
 }
 .persona__avatar {
-  display: grid;
-  flex: none;
-  place-items: center;
-  width: 2.5rem;
-  height: 2.5rem;
-  border-radius: 50%;
-  background: var(--surface-3);
-  color: var(--text);
-  font-size: var(--fs-xs);
-  font-weight: var(--fw-semibold);
-  letter-spacing: 0.02em;
+  width: 3rem;
+  height: 3rem;
 }
 .persona__text {
   display: flex;

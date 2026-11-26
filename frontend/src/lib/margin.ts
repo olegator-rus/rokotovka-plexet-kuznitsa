@@ -215,21 +215,27 @@ const movedTop3 = (a: MarginAffected) =>
     .after.slice(0, 3)
     .filter((r) => r.move !== 'same').length
 
+/** true — в первой тройке поменялись местами ровно два соседних товара. */
+export function isNeighbourSwap(a: MarginAffected): boolean {
+  const moved = rankColumns(a)
+    .after.slice(0, 3)
+    .filter((r) => r.move !== 'same')
+  return (
+    moved.length === 2 &&
+    moved.every((r) => r.otherPos !== null && Math.abs(r.otherPos - r.pos) === 1)
+  )
+}
+
 /**
  * Один пример для экрана: запрос, где в первой тройке поменялись местами ровно два близких товара (обмен соседей),
- * иначе — запрос с наименьшим числом перестановок; пусто — null. Точные запросы среди затронутых не бывает: их
- * защищает сервер.
+ * иначе — запрос с наименьшим числом перестановок. Запросы, где первая тройка не изменилась, примером не бывают:
+ * показывать нечего. Нет подходящих — null. Точные запросы среди затронутых не бывает: их защищает сервер.
  */
 export function swapExample(items: MarginAffected[]): MarginAffected | null {
-  if (!items.length) return null
-  const swap = items.find((a) => {
-    const after = rankColumns(a).after.slice(0, 3)
-    const moved = after.filter((r) => r.move !== 'same')
-    return (
-      moved.length === 2 &&
-      moved.every((r) => r.otherPos !== null && Math.abs(r.otherPos - r.pos) === 1)
-    )
-  })
-  if (swap) return swap
-  return [...items].sort((a, b) => (movedTop3(a) || 99) - (movedTop3(b) || 99))[0] ?? null
+  const changed = items.filter((a) => movedTop3(a) > 0)
+  return (
+    changed.find(isNeighbourSwap) ??
+    [...changed].sort((a, b) => movedTop3(a) - movedTop3(b))[0] ??
+    null
+  )
 }

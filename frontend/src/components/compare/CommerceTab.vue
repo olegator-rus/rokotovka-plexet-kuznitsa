@@ -3,7 +3,7 @@
 // одним изменённым компонентом (улучшения рядом с ухудшениями), запросы, где основная выдача ухудшилась.
 // Числа — GET /api/evaluations/commerce; непосчитанное не показывается. Грузится при открытии вкладки.
 import { computed, ref } from 'vue'
-import { CircleAlert, RotateCcw, TrendingDown, TrendingUp } from 'lucide-vue-next'
+import { CircleAlert, RotateCcw } from 'lucide-vue-next'
 import { getCommerceEval } from '@/api/relations'
 import type { CommerceMetricKey } from '@/api/typesCommerce'
 import BlockError from '@/components/common/BlockError.vue'
@@ -12,6 +12,7 @@ import StatTile from '@/components/common/StatTile.vue'
 import SyntheticBadge from '@/components/common/SyntheticBadge.vue'
 import { useResource } from '@/composables/useResource'
 import {
+  COMMERCE_METRICS,
   configLabel,
   ladderColumns,
   ladderReady,
@@ -50,6 +51,19 @@ const top = computed(
 const singles = computed(() =>
   (data.value?.single_changes ?? []).map((c) => ({ c, d: singleChangeDeltas(c, ladder.value) })),
 )
+// Таблица «Один компонент за раз»: строки — метрики, которые хоть где-то изменились,
+// столбцы — прогоны с одним изменением. Пустая ячейка — метрика в этом прогоне не сдвинулась.
+const singleRows = computed(() =>
+  COMMERCE_METRICS.filter((def) =>
+    singles.value.some(({ d }) => [...d.better, ...d.worse].some((x) => x.def.key === def.key)),
+  ).map((def) => ({
+    def,
+    cells: singles.value.map(
+      ({ d }) => [...d.better, ...d.worse, ...d.same].find((x) => x.def.key === def.key) ?? null,
+    ),
+  })),
+)
+const singlesHaveQueries = computed(() => singles.value.some(({ c }) => c.regressions?.length))
 const worse = computed(() => ladderRegressions(ladder.value))
 const pairs = computed(() => top.value?.block?.violations ?? [])
 const notes = computed(() => (data.value?.notes ?? []).filter(Boolean))
@@ -188,41 +202,55 @@ function explainMetric(key: CommerceMetricKey) {
       <section v-if="singles.length" class="com__singles" aria-labelledby="sc-title">
         <h2 id="sc-title" class="t-h2">Один компонент за раз</h2>
         <p class="t-sm t-muted">
-          Прогон с одним изменённым компонентом: что он улучшил и что ухудшил — рядом.
+          Прогон с одним изменённым компонентом против своей базы: значение метрики и сдвиг. Прочерк
+          — метрика не изменилась.
         </p>
-        <ul class="com__sc-list">
-          <li v-for="{ c, d } in singles" :key="c.config" class="panel com__sc">
-            <p class="com__sc-title">
-              {{ singleChangeLabel(c) }}
-              <span class="t-xs t-muted">к {{ configLabel(c.against ?? c.base ?? '') }}</span>
-            </p>
-            <div class="com__sc-cols">
-              <div>
-                <p class="t-xs t-muted">Улучшилось</p>
-                <ul v-if="d.better.length" class="com__sc-ul">
-                  <li v-for="x in d.better" :key="x.def.key" class="com__up">
-                    <TrendingUp :size="12" aria-hidden="true" />
-                    {{ x.def.label }}: {{ x.value }} ({{ x.delta.text }})
-                  </li>
-                </ul>
-                <p v-else class="t-sm t-muted">ничего</p>
-              </div>
-              <div>
-                <p class="t-xs t-muted">Ухудшилось</p>
-                <ul v-if="d.worse.length || c.regressions?.length" class="com__sc-ul">
-                  <li v-for="x in d.worse" :key="x.def.key" class="com__down">
-                    <TrendingDown :size="12" aria-hidden="true" />
-                    {{ x.def.label }}: {{ x.value }} ({{ x.delta.text }})
-                  </li>
-                  <li v-for="q in c.regressions ?? []" :key="q.text" class="t-sm">
-                    «{{ q.text }}»
-                  </li>
-                </ul>
-                <p v-else class="t-sm t-muted">ничего</p>
-              </div>
-            </div>
-          </li>
-        </ul>
+        <div class="data-scroll">
+          <table class="data-table com__sc-table">
+            <caption class="sr-only">
+              Изменения метрик в прогонах с одним изменённым компонентом
+            </caption>
+            <thead>
+              <tr>
+                <th scope="col">Метрика</th>
+                <th v-for="{ c } in singles" :key="c.config" scope="col" class="num">
+                  <span class="com__sc-name">{{ singleChangeLabel(c) }}</span>
+                  <span class="com__sc-base">к {{ configLabel(c.against ?? c.base ?? '') }}</span>
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="row in singleRows" :key="row.def.key">
+                <th scope="row">{{ row.def.label }}</th>
+                <td v-for="(x, i) in row.cells" :key="i" class="num">
+                  <template v-if="x && x.delta.tone !== 'same'">
+                    <span class="com__sc-value">{{ x.value }}</span>
+                    <span
+                      class="com__delta"
+                      :class="x.delta.tone === 'better' ? 'com__delta--up' : 'com__delta--down'"
+                      >{{ x.delta.text }}</span
+                    >
+                  </template>
+                  <span v-else class="com__sc-same" title="Не изменилось">—</span>
+                </td>
+              </tr>
+              <tr v-if="!singleRows.length">
+                <td :colspan="singles.length + 1" class="t-muted">
+                  Ни один прогон не сдвинул метрики.
+                </td>
+              </tr>
+              <tr v-if="singlesHaveQueries">
+                <th scope="row">Запросы хуже</th>
+                <td v-for="{ c } in singles" :key="c.config" class="num com__sc-queries">
+                  <template v-if="c.regressions?.length">
+                    {{ c.regressions.map((q) => `«${q.text}»`).join(', ') }}
+                  </template>
+                  <span v-else class="com__sc-same">—</span>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
       </section>
 
       <section class="com__worse" aria-labelledby="cw-title">
@@ -337,45 +365,58 @@ function explainMetric(key: CommerceMetricKey) {
   flex-direction: column;
   gap: var(--space-2);
 }
-.com__sc-list {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 20rem), 1fr));
-  gap: var(--space-3);
-  margin: 0;
-  padding: 0;
-  list-style: none;
+.com__sc-table th[scope='col'] {
+  vertical-align: bottom;
+  white-space: normal;
 }
-.com__sc {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-2);
-  padding: var(--space-3) var(--space-4);
+.com__sc-name {
+  display: block;
+  color: var(--text);
+  font-weight: var(--fw-semibold);
+  white-space: nowrap;
 }
-.com__sc-title {
+.com__sc-base {
+  display: block;
+  color: var(--text-3);
+  font-size: var(--fs-xs);
+  font-weight: var(--fw-regular);
+}
+.com__sc-table tbody th {
+  color: var(--text-2);
+  font-weight: var(--fw-regular);
+  white-space: nowrap;
+}
+.com__sc-value {
   font-weight: var(--fw-medium);
 }
-.com__sc-cols {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: var(--space-3);
+.com__sc-same {
+  color: var(--text-3);
 }
-.com__sc-ul {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-  font-size: var(--fs-sm);
+.com__sc-queries {
+  min-width: 10rem;
+  white-space: normal;
+  color: var(--text-2);
 }
-.com__sc-ul li {
-  display: flex;
-  align-items: baseline;
-  gap: var(--space-1);
+/* Изменение — цветная плашка; остальная строка нейтральная */
+.com__delta {
+  display: inline-block;
+  min-width: 4.5rem;
+  margin-left: var(--space-2);
+  padding: 0 0.375rem;
+  border-radius: var(--radius-sm);
+  font-size: var(--fs-xs);
+  font-weight: var(--fw-medium);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  white-space: nowrap;
 }
-.com__sc-ul li > svg {
-  flex: none;
-  align-self: center;
+.com__delta--up {
+  background: color-mix(in srgb, var(--delta-up) 10%, transparent);
+  color: var(--delta-up);
+}
+.com__delta--down {
+  background: color-mix(in srgb, var(--delta-down) 10%, transparent);
+  color: var(--delta-down);
 }
 .com__up {
   color: var(--delta-up);
@@ -406,10 +447,5 @@ function explainMetric(key: CommerceMetricKey) {
   margin: 0;
   padding: 0;
   list-style: none;
-}
-@media (max-width: 479px) {
-  .com__sc-cols {
-    grid-template-columns: 1fr;
-  }
 }
 </style>

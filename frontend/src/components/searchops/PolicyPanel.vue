@@ -5,7 +5,18 @@
 // «Применить» создаёт версию политики, откат — во «Изменениях» (?tab=changes&view=policy). Адрес: ?tab=policy&w=0.08.
 import { computed, onBeforeUnmount, ref, watch } from 'vue'
 import { RouterLink, useRoute, useRouter } from 'vue-router'
-import { CircleAlert, LoaderCircle, Lock, RotateCcw, ShieldCheck } from 'lucide-vue-next'
+import {
+  ArrowDown,
+  ArrowRight,
+  ArrowUp,
+  CircleAlert,
+  Equal,
+  LoaderCircle,
+  Lock,
+  RotateCcw,
+  Search,
+  ShieldCheck,
+} from 'lucide-vue-next'
 import { postEvent } from '@/api/events'
 import { applyMarginPolicy, getMarginPolicy, getSimulateStatus, simulateMargin } from '@/api/margin'
 import type { MarginSimulateResponse } from '@/api/typesCommerce'
@@ -31,6 +42,7 @@ import {
   queriesLabel,
   rankColumns,
   swapExample,
+  isNeighbourSwap,
   weightLabel,
 } from '@/lib/margin'
 import { useAppStore } from '@/stores/app'
@@ -320,50 +332,71 @@ async function confirmApply() {
         class="panel policy__example"
         aria-labelledby="policy-example-title"
       >
-        <h3 id="policy-example-title" class="t-h2">Пример: было / стало</h3>
-        <p class="t-sm">
-          <ShieldCheck :size="14" aria-hidden="true" class="policy__inline-icon" />
-          Запрос по артикулу не двигается: точные запросы рычаг не трогает.
-        </p>
-        <template v-if="example && exampleCols">
-          <p class="t-sm">
-            Запрос «<strong>{{ example.query }}</strong
-            >» при весе {{ weightLabel(selected) }}: близкие по соответствию товары меняются
-            местами.
+        <header class="pex__head">
+          <h3 id="policy-example-title" class="t-h2">Пример: было / стало</h3>
+          <p class="pex__guard t-xs">
+            <ShieldCheck :size="14" aria-hidden="true" />
+            Запрос по артикулу не двигается: точные запросы рычаг не трогает.
           </p>
-          <div class="policy__cols">
-            <div>
-              <p class="t-xs t-muted">Было (вес {{ weightLabel(baseWeight) }})</p>
-              <ol class="policy__rank">
-                <li v-for="r in exampleCols.before" :key="r.id">
-                  <span class="t-num t-muted">{{ r.pos }}</span>
-                  <span>{{ r.title }}</span>
+        </header>
+        <template v-if="example && exampleCols">
+          <div class="pex__query">
+            <p class="pex__search">
+              <Search :size="16" aria-hidden="true" />
+              <strong>{{ example.query }}</strong>
+            </p>
+            <p class="t-sm t-muted">
+              При весе {{ weightLabel(selected) }}
+              {{
+                isNeighbourSwap(example)
+                  ? 'близкие по соответствию товары меняются местами.'
+                  : 'меняется первая тройка выдачи.'
+              }}
+            </p>
+          </div>
+          <div class="pex__cols">
+            <div class="pex__col">
+              <p class="pex__label">Было (вес {{ weightLabel(baseWeight) }})</p>
+              <ol class="pex__list">
+                <li v-for="r in exampleCols.before" :key="r.id" class="pex__row">
+                  <span class="pex__pos t-num">{{ r.pos }}</span>
+                  <span class="pex__title">{{ r.title }}</span>
                 </li>
               </ol>
             </div>
-            <div>
-              <p class="t-xs t-muted">Стало</p>
-              <ol class="policy__rank">
+            <span class="pex__arrow" aria-hidden="true"><ArrowRight :size="18" /></span>
+            <div class="pex__col pex__col--after">
+              <p class="pex__label">Стало (вес {{ weightLabel(selected) }})</p>
+              <ol class="pex__list">
                 <li
                   v-for="r in exampleCols.after"
                   :key="r.id"
-                  :class="{ policy__moved: r.move !== 'same' }"
+                  :class="['pex__row', { 'pex__row--moved': r.move !== 'same' }]"
                 >
-                  <span class="t-num t-muted">{{ r.pos }}</span>
-                  <span>{{ r.title }}</span>
-                  <span v-if="r.move !== 'same' && r.otherPos" class="t-xs t-muted">
-                    с {{ r.otherPos }}
+                  <span class="pex__pos t-num">{{ r.pos }}</span>
+                  <span class="pex__title">{{ r.title }}</span>
+                  <span v-if="r.move !== 'same' && r.otherPos" class="pex__move t-xs">
+                    <component
+                      :is="r.move === 'up' ? ArrowUp : ArrowDown"
+                      :size="12"
+                      aria-hidden="true"
+                    />
+                    <span class="t-num">с {{ r.otherPos }}</span>
                   </span>
+                  <span v-else-if="r.move === 'new'" class="pex__move t-xs">новая</span>
                 </li>
               </ol>
             </div>
           </div>
         </template>
-        <p v-else class="t-sm t-muted">
-          На этом положении ни один запрос набора не меняет первую тройку — выдача как при весе
-          {{ weightLabel(baseWeight) }}.
+        <p v-else class="pex__none t-sm">
+          <Equal :size="18" aria-hidden="true" />
+          <span>
+            На этом положении ни один запрос набора не меняет первую тройку — выдача как при весе
+            {{ weightLabel(baseWeight) }}.
+          </span>
         </p>
-        <p class="t-xs t-muted">
+        <p class="t-xs t-muted pex__note">
           {{ estimateNote(queries, simData.set) }}
           <template v-if="simData.ran_at"> Прогон {{ formatDateTime(simData.ran_at) }}.</template>
         </p>
@@ -467,30 +500,170 @@ async function confirmApply() {
   display: inline;
   vertical-align: -2px;
 }
-.policy__cols {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
-  gap: var(--space-3);
+/* Пример «было / стало»: две колонки со стрелкой, переставленные позиции выделены и подписаны. */
+.policy__example {
+  container-type: inline-size;
 }
-.policy__rank {
+.pex__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2) var(--space-4);
+}
+.pex__head h3,
+.policy__example p {
+  margin: 0;
+}
+.pex__guard {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-1) var(--space-3);
+  border-radius: var(--radius-pill);
+  background: var(--status-accepted-bg);
+  color: var(--status-accepted);
+  font-weight: var(--fw-semibold);
+}
+.pex__guard svg {
+  flex: none;
+}
+.pex__query {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2) var(--space-3);
+}
+.pex__search {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: var(--control-h);
+  padding: 0 var(--space-4);
+  border: var(--border-w) solid var(--border-control);
+  border-radius: var(--radius-pill);
+  overflow-wrap: anywhere;
+}
+.pex__search svg {
+  flex: none;
+  color: var(--text-3);
+}
+.pex__cols {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-items: stretch;
+  gap: var(--space-2);
+}
+.pex__arrow {
+  display: grid;
+  place-items: center;
+  align-self: center;
+  justify-self: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: var(--radius-pill);
+  background: var(--accent);
+  color: var(--on-accent);
+  transform: rotate(90deg);
+}
+@container (min-width: 48rem) {
+  .pex__cols {
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+    gap: var(--space-3);
+  }
+  .pex__arrow {
+    transform: none;
+  }
+}
+.pex__col {
   display: flex;
   flex-direction: column;
-  gap: var(--space-1);
-  margin: var(--space-1) 0 0;
+  gap: var(--space-2);
+  min-width: 0;
+  padding: var(--space-3);
+  border: var(--border-w) solid var(--border);
+  border-radius: var(--radius-card);
+  background: var(--surface-2);
+}
+.pex__col--after {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+.pex__label {
+  padding: 0 var(--space-1);
+  color: var(--text-2);
+  font-size: var(--fs-sm);
+  font-weight: var(--fw-bold);
+}
+.pex__col--after .pex__label {
+  color: var(--accent);
+}
+.pex__list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin: 0;
   padding: 0;
   list-style: none;
 }
-.policy__rank li {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  gap: var(--space-2);
-  padding: var(--space-1) var(--space-2);
+.pex__row {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--space-3);
+  min-height: 3.5rem;
+  padding: var(--space-2) var(--space-3);
+  border: var(--border-w) solid var(--border);
   border-radius: var(--radius-control);
+  background: var(--surface);
+}
+.pex__row--moved {
+  border: var(--focus-w) solid var(--accent);
+}
+.pex__pos {
+  display: grid;
+  place-items: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  border-radius: var(--radius-pill);
+  background: var(--surface-3);
+  font-weight: var(--fw-bold);
+}
+.pex__row--moved .pex__pos {
+  background: var(--accent);
+  color: var(--on-accent);
+}
+.pex__title {
+  font-size: var(--fs-sm);
+  line-height: var(--lh-sm);
   overflow-wrap: anywhere;
 }
-.policy__moved {
+.pex__move {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 2px var(--space-2);
+  border-radius: var(--radius-pill);
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-weight: var(--fw-bold);
+  white-space: nowrap;
+}
+.pex__none {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  border-radius: var(--radius-card);
   background: var(--surface-2);
+}
+.pex__none svg {
+  flex: none;
+  color: var(--text-3);
+}
+.pex__note {
+  padding-top: var(--space-3);
+  border-top: var(--border-w) solid var(--border);
 }
 .policy__dialog {
   display: flex;

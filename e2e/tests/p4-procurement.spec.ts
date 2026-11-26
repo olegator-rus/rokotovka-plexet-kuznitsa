@@ -1,4 +1,4 @@
-// Контур доводки, («Поиск → ответ справки / отсутствующий товар / аналоги»): закупка и честное
+// Контур доводки («Поиск → ответ справки / отсутствующий товар / аналоги»): закупка и честное
 // «нет». Нужны данные контура доводки (make import после gen_mock.py). Демо-состояние не меняется: заявка КП и события
 // перехватываются (тело проверяется, в базу не пишется). E2E_SCREENS=1 — снимки в artifacts/screens/p4/.
 import type { Page, Request } from '@playwright/test'
@@ -10,7 +10,7 @@ const shot = async (page: Page, name: string) => {
   if (SHOTS) await page.screenshot({ path: `${OUT}/${name}.png`, fullPage: true })
 }
 
-test.describe(' закупка и честное «нет»', () => {
+test.describe('закупка и честное «нет»', () => {
   test('S2: продление до КП с параметрами запроса', async ({ page }) => {
     await loginAs(page, PERSONA.buyerSmb)
     await page.goto('/')

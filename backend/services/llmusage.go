@@ -15,10 +15,10 @@ import (
 // версией прайса и посчитанной стоимостью в рублях. Стоимость считает сервер по прайсу ниже.
 
 // PricingVersion — версия прайса Yandex AI Studio, по которому считается calculated_cost.
-const PricingVersion = "yandex-2026-05-26"
+const PricingVersion = "yandex-ai-studio"
 
 // PricingDate — дата, на которую взят прайс (для экрана «Экономика»).
-const PricingDate = "2026-05-26"
+const PricingDate = ""
 
 // LLMProviderYandex — провайдер в llm_usage.provider.
 const LLMProviderYandex = "yandex-ai-studio"

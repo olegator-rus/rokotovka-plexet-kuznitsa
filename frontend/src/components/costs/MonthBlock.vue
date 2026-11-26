@@ -123,12 +123,12 @@ function explainTotal(i: number) {
 </script>
 
 <template>
-  <section class="panel month" aria-labelledby="month-title">
+  <section class="month" aria-labelledby="month-title">
     <div class="month__head">
       <h2 id="month-title" class="t-h2">Месяц</h2>
       <span class="t-xs t-muted">поля с пометкой «допущение» можно править</span>
     </div>
-    <div class="data-scroll month__scroll">
+    <div class="data-scroll">
       <table class="data-table">
         <thead>
           <tr>
@@ -254,11 +254,12 @@ function explainTotal(i: number) {
 </template>
 
 <style scoped>
+/* Секция без своей рамки, как «По маршрутам»: рамку даёт только таблица,
+   иначе таблица выглядела вложенной в ещё одну карточку. */
 .month {
   display: flex;
   flex-direction: column;
-  gap: var(--space-3);
-  padding: var(--space-4);
+  gap: var(--space-2);
 }
 .month__head {
   display: flex;
@@ -266,9 +267,6 @@ function explainTotal(i: number) {
   align-items: baseline;
   justify-content: space-between;
   gap: var(--space-2);
-}
-.month__scroll {
-  border-radius: var(--radius-control);
 }
 .month th[scope='row'] {
   font-weight: var(--fw-regular);
