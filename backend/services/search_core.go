@@ -3,6 +3,7 @@ package services
 import (
 	"context"
 	"regexp"
+	"slices"
 	"strconv"
 	"strings"
 	"sync"
@@ -252,6 +253,65 @@ func findEntities(nr normResult, attrs queryAttrs, lx *searchLexicon, rules *sea
 	return e
 }
 
+// dropPlatform — названное после «для» — платформа, а не товар: «антивирус для астры», «ms sql server для 1с».
+// Если до «для» назван товар (категория по словам или семейство) другого раздела, вендоры и семейства,
+// названные только после «для», фильтром не становятся; их слова остаются в текстовом поиске (в описании
+// Kaspersky Endpoint Security — «Astra Linux»). Оборудование не трогается: там «для» — цель совместимости.
+func (e *queryEntities) dropPlatform(lx *searchLexicon, rules *searchRules) {
+	at := slices.Index(e.textTokens, "для")
+	if at <= 0 || at == len(e.textTokens)-1 {
+		return
+	}
+	clean := func(ts []string) []string {
+		var out []string
+		for _, t := range ts {
+			if !lexStopWords[t] {
+				out = append(out, t)
+			}
+		}
+		return out
+	}
+	before, after := clean(e.textTokens[:at]), clean(e.textTokens[at+1:])
+	roots := map[string]bool{}
+	if c, _ := lx.categoryOf(before); c != "" {
+		roots[lx.categoryRoot[c]] = true
+	}
+	famBefore := lx.matchFamilies(before)
+	for _, f := range famBefore {
+		roots[lx.categoryRoot[lx.familyCat[f]]] = true
+	}
+	if len(roots) == 0 {
+		return
+	}
+	inRoots := func(v string) bool {
+		for _, f := range lx.familyOrder {
+			if lx.familyVendor[f] == v && roots[lx.categoryRoot[lx.familyCat[f]]] {
+				return true
+			}
+		}
+		return false
+	}
+	vBefore, vAfter := lx.matchVendors(before, rules), lx.matchVendors(after, rules)
+	var vs []string
+	for _, v := range e.vendors {
+		if slices.Contains(vAfter, v) && !slices.Contains(vBefore, v) && !inRoots(v) {
+			continue
+		}
+		vs = append(vs, v)
+	}
+	e.vendors = vs
+	keep := func(fs []string) []string {
+		var out []string
+		for _, f := range fs {
+			if slices.Contains(famBefore, f) || roots[lx.categoryRoot[lx.familyCat[f]]] {
+				out = append(out, f)
+			}
+		}
+		return out
+	}
+	e.families, e.named = keep(e.families), keep(e.named)
+}
+
 // applyRemovedEntities — снятые покупателем чипы вендора, аналога и категории.
 func (e *queryEntities) applyRemoved(removed map[string]map[string]bool) {
 	filter := func(xs []string, field string) []string {
@@ -400,7 +460,10 @@ func mergeParsed(in domain.Intent, attrs *queryAttrs, ent *queryEntities, lx *se
 	}
 	// «Не о товаре» от модели не принимается, если слова запроса называют категорию каталога, а слов вопроса
 	// (счёт, доставка, документы) нет: «сертификат фстэк» — это СЗИ, а не вопрос менеджеру (витрина №19).
-	if in.Kind == domain.IntentNonProduct && (ent.category == "" || ent.nonProduct) {
+	// Так же и с названным вендором или продуктом: «какую оперативную память использует Dell для своих
+	// серверов?» — вопрос, но о товаре; показываются товары, а не «поможет менеджер» (реальные запросы с форумов).
+	if in.Kind == domain.IntentNonProduct && (ent.nonProduct ||
+		ent.category == "" && len(ent.vendors) == 0 && len(ent.named) == 0 && in.VendorID == "" && in.ReferenceFamily == "") {
 		ent.nonProduct = true
 	}
 	if f := in.ReferenceFamily; f != "" && lx.families[f] != nil {
@@ -420,7 +483,9 @@ func mergeParsed(in domain.Intent, attrs *queryAttrs, ent *queryEntities, lx *se
 	if c := in.CategoryID; c != "" && lx.categoryName[c] != "" && ent.category == "" {
 		ent.category = c
 	}
-	if in.Origin == "ru" {
+	// «x64 RUS» в названии из прайса модель читает как «российское»; при названном вендоре происхождение задаёт
+	// он сам, а строгий фильтр «отечественное» к Microsoft даёт пустую выдачу.
+	if in.Origin == "ru" && len(ent.vendors) == 0 {
 		attrs.origin = "ru"
 	}
 	// Мягкие условия (домыслены моделью, а не названы покупателем): метрика — только предпочтение при выборе
@@ -436,6 +501,9 @@ func mergeParsed(in domain.Intent, attrs *queryAttrs, ent *queryEntities, lx *se
 		}
 	}
 	for _, c := range in.Constraints {
+		if c.Field == domain.FieldOrigin && len(ent.vendors) > 0 {
+			continue // происхождение задаёт названный вендор (см. выше)
+		}
 		mergeConstraint(c, attrs)
 	}
 }

@@ -61,7 +61,8 @@ var metricStems = []struct{ stem, metric string }{
 	{"узл", domain.MetricDevice}, {"узел", domain.MetricDevice}, {"ноутбук", domain.MetricDevice},
 	{"машин", domain.MetricDevice}, {"pc", domain.MetricDevice}, {"device", domain.MetricDevice},
 	{"пользовател", domain.MetricUser}, {"юзер", domain.MetricUser}, {"сотрудник", domain.MetricUser},
-	{"человек", domain.MetricUser}, {"user", domain.MetricUser}, {"подключени", domain.MetricUser},
+	{"человек", domain.MetricUser}, {"чел", domain.MetricUser}, {"людей", domain.MetricUser},
+	{"user", domain.MetricUser}, {"подключени", domain.MetricUser},
 	{"ядр", domain.MetricCore}, {"ядер", domain.MetricCore}, {"core", domain.MetricCore},
 	{"сервер", domain.MetricServer},
 	{"мест", ""}, {"лиценз", ""}, {"рабоч", ""}, {"шт", ""}, {"копи", ""},
@@ -149,7 +150,9 @@ func extractAttrs(tokens []string) queryAttrs {
 			a.duration = 12
 			a.consumed[i] = true
 			a.consume(tokens, i-1, "на")
-		case strings.HasPrefix(t, "продл"):
+		case strings.HasPrefix(t, "продл") && !isSupportWord(at(i+1)) && !isSupportWord(at(i+2)):
+			// «продление поддержки hpe», «продлить гарантию»: это покупка пакета сервиса, а не продление
+			// лицензии; слово остаётся в тексте поиска.
 			a.renewal = true
 			a.consumed[i] = true
 		case strings.HasPrefix(t, "бессрочн") || t == "навсегда":
@@ -179,6 +182,16 @@ func extractAttrs(tokens []string) queryAttrs {
 	}
 	extractPurchase(tokens, &a)
 	return a
+}
+
+// isSupportWord — гарантия и сервисная поддержка оборудования: их «продление» — новый пакет сервиса.
+func isSupportWord(w string) bool {
+	for _, p := range []string{"поддерж", "гарант", "сервис", "обслуж", "support", "warranty"} {
+		if strings.HasPrefix(w, p) {
+			return true
+		}
+	}
+	return false
 }
 
 // consume — служебное слово перед атрибутом («на 10 пк», «в реестре»): уходит в атрибут, только если это оно.

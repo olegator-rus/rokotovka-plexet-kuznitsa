@@ -131,9 +131,12 @@ func normalizeFull(q string, lx *searchLexicon, rules *searchRules, asTyped bool
 	tokens := strings.Fields(clean)
 	// Хвостовые знаки вопроса и восклицания — не часть слова.
 	for i, t := range tokens {
-		tokens[i] = strings.TrimRight(t, "?!")
+		tokens[i] = strings.Trim(strings.TrimRight(t, "?!"), "\"«»“”")
 	}
 	tokens = splitGlued(dropEmpty(tokens))
+	if lx != nil && !asTyped {
+		tokens = splitKnownWordNumber(tokens, lx, rules)
+	}
 	original := append([]string(nil), tokens...)
 	conf := ""
 	if lx != nil && !asTyped {
@@ -258,6 +261,12 @@ func fixHomoglyphs(tokens []string, res *normResult) []string {
 		back[l] = c
 	}
 	for i, t := range tokens {
+		if n := digitsWithO(t); n != "" {
+			// «2о21», «2o19»: буква «о» вместо нуля в номере версии.
+			res.changes = append(res.changes, domain.Change{Kind: changeTypo, From: t, To: n})
+			tokens[i] = n
+			continue
+		}
 		lat, cyr := 0, 0
 		for _, r := range t {
 			switch {
@@ -546,6 +555,49 @@ func splitGlued(tokens []string) []string {
 	return out
 }
 
+// splitKnownWordNumber — «челов2», «кес50», «офис2021»: делится, только если слово известно (каталогу, словарю
+// или это слово количества и срока). Название с числом («битрикс24») остаётся целым: его нет в каталоге, и
+// «24» не должно превращаться в условие.
+func splitKnownWordNumber(tokens []string, lx *searchLexicon, rules *searchRules) []string {
+	out := make([]string, 0, len(tokens))
+	for _, t := range tokens {
+		parts := splitWordNumber(t)
+		if len(parts) == 2 {
+			w := parts[0]
+			_, unit := metricOf(w)
+			if unit || durationUnit(w) > 0 || lexServiceWords[w] || knownWord(w, lx, rules) {
+				out = append(out, parts...)
+				continue
+			}
+		}
+		out = append(out, t)
+	}
+	return out
+}
+
+// splitWordNumber — кириллическое слово, слитое с числом: «челов2», «кес50», «офис2021», «1с8.3» — два слова.
+// Латиница не делится: в ней артикулы и модели («win11pro», «PER740»); одна буква перед цифрой — тоже
+// («р7», «х8617» внутри парт-номера).
+func splitWordNumber(t string) []string {
+	rs := []rune(t)
+	if len(rs) > 2 && rs[0] == '1' && rs[1] == 'с' && unicode.IsDigit(rs[2]) {
+		return []string{"1с", string(rs[2:])}
+	}
+	i := 0
+	for i < len(rs) && (rs[i] >= 'а' && rs[i] <= 'я' || rs[i] == 'ё') {
+		i++
+	}
+	if i < 2 || i == len(rs) || !unicode.IsDigit(rs[i]) {
+		return []string{t}
+	}
+	for _, r := range rs[i:] {
+		if !unicode.IsDigit(r) && r != '.' {
+			return []string{t}
+		}
+	}
+	return []string{string(rs[:i]), string(rs[i:])}
+}
+
 func splitSeparators(t string) []string {
 	if !strings.ContainsAny(t, ",/;|") {
 		return []string{t}
@@ -597,4 +649,26 @@ func splitNumberUnit(t string) []string {
 		return []string{t[:i], unit}
 	}
 	return []string{t}
+}
+
+// digitsWithO — число, в котором ноль набран буквой «о» (кириллической или латинской): «2о21» → «2021».
+// Не число (цифр меньше двух, другие буквы) — "".
+func digitsWithO(t string) string {
+	digits, os := 0, 0
+	out := []rune(t)
+	for i, r := range out {
+		switch {
+		case r >= '0' && r <= '9':
+			digits++
+		case r == 'о' || r == 'o':
+			os++
+			out[i] = '0'
+		default:
+			return ""
+		}
+	}
+	if digits < 2 || os == 0 {
+		return ""
+	}
+	return string(out)
 }

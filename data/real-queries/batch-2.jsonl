@@ -1,0 +1,50 @@
+{"query":"купить лицензию Windows Server","source":"suggest","intent":"product","expected":"лицензию Windows Server"}
+{"query":"windows server 2022 лицензия","source":"suggest","intent":"product","expected":"лицензию Windows Server 2022"}
+{"query":"Windows Server CAL","source":"marketplace","intent":"product","expected":"лицензии доступа Windows Server CAL"}
+{"query":"Windows Server Standard","source":"marketplace","intent":"product","expected":"лицензию Windows Server Standard"}
+{"query":"Windows Server Datacenter","source":"marketplace","intent":"product","expected":"лицензию Windows Server Datacenter"}
+{"query":"Windows Server 2025 50 Devices CAL WW LTU","source":"marketplace","intent":"sku","expected":"пакет из 50 Device CAL Windows Server 2025"}
+{"query":"Windows Server 2025 10 Users CAL WW LTU","source":"marketplace","intent":"sku","expected":"пакет из 10 User CAL Windows Server 2025"}
+{"query":"Win Rmt Dsktp Svcs CAL 2019 English MLP AE Device CAL","source":"marketplace","intent":"product","expected":"лицензию RDS Device CAL 2019"}
+{"query":"Win Rmt Dsktp Svcs CAL 2019 English MLP AE User CAL","source":"marketplace","intent":"product","expected":"лицензию RDS User CAL 2019"}
+{"query":"6VC-03790","source":"marketplace","intent":"sku","expected":"RDS Device CAL 2019 по артикулу"}
+{"query":"6VC-03791","source":"marketplace","intent":"sku","expected":"RDS User CAL 2019 по артикулу"}
+{"query":"Windows Server CAL 2019 English MLP 5 User CAL","source":"marketplace","intent":"product","expected":"пакет из пяти User CAL Windows Server 2019"}
+{"query":"R18-05657","source":"marketplace","intent":"sku","expected":"Windows Server CAL 2019 по артикулу"}
+{"query":"OS1001Х8617BOX000SR01-PR12","source":"marketplace","intent":"sku","expected":"лицензию Astra Linux Special Edition для сервера"}
+{"query":"Astra Linux Special Edition для сервера без ограничения срока","source":"marketplace","intent":"product","expected":"бессрочную серверную лицензию Astra Linux"}
+{"query":"Astra Linux Special Edition уровень защищенности Базовый Орел ФСТЭК","source":"marketplace","intent":"regulatory","expected":"сертифицированную серверную Astra Linux"}
+{"query":"что нужно к windows server чтобы 20 человек подключались","source":"other","intent":"compat","expected":"Windows Server CAL и RDS CAL для 20 пользователей"}
+{"query":"cal к sql","source":"other","intent":"compat","expected":"лицензии доступа к SQL Server"}
+{"query":"виндовс сервер","source":"other","intent":"product","expected":"Windows Server"}
+{"query":"кспрский","source":"other","intent":"product","expected":"антивирус Kaspersky"}
+{"query":"цштвщцы","source":"other","intent":"product","expected":"Windows"}
+{"query":"офис 2о21","source":"other","intent":"product","expected":"Microsoft Office 2021"}
+{"query":"винда","source":"other","intent":"product","expected":"операционная система Windows"}
+{"query":"вин серв","source":"other","intent":"product","expected":"Windows Server"}
+{"query":"каспер","source":"other","intent":"product","expected":"антивирус Kaspersky"}
+{"query":"кис","source":"other","intent":"product","expected":"Kaspersky Internet Security"}
+{"query":"кес","source":"other","intent":"product","expected":"Kaspersky Endpoint Security"}
+{"query":"офис 365","source":"other","intent":"product","expected":"подписку Microsoft 365"}
+{"query":"эмэс скуль","source":"other","intent":"product","expected":"Microsoft SQL Server"}
+{"query":"астра смоленск","source":"other","intent":"product","expected":"дистрибутив Astra Linux"}
+{"query":"рдп кал","source":"other","intent":"product","expected":"лицензии RDS CAL"}
+{"query":"антивирус для офиса на 20 компов","source":"other","intent":"task","expected":"корпоративный антивирус для 20 компьютеров"}
+{"query":"чем заменить vmware","source":"other","intent":"substitute","expected":"замену VMware для виртуализации"}
+{"query":"ПО для удалённого доступа к рабочим компам","source":"other","intent":"task","expected":"программу удалённого доступа"}
+{"query":"сервер для 1с на 30 пользователей","source":"other","intent":"task","expected":"сервер для 1С на 30 пользователей"}
+{"query":"кис 10 челов 2 года","source":"other","intent":"renewal","expected":"лицензию Kaspersky на 10 пользователей на два года"}
+{"query":"на 50 юзеров","source":"other","intent":"product","expected":"лицензию на 50 пользователей"}
+{"query":"на 3 пк на год","source":"other","intent":"product","expected":"лицензию на три компьютера на год"}
+{"query":"25 устройств","source":"other","intent":"product","expected":"лицензию на 25 устройств"}
+{"query":"5пк","source":"other","intent":"product","expected":"лицензию на пять компьютеров"}
+{"query":"память для r740","source":"other","intent":"compat","expected":"оперативную память для Dell PowerEdge R740"}
+{"query":"диски для proliant dl380 gen10","source":"other","intent":"compat","expected":"диски для HPE ProLiant DL380 Gen10"}
+{"query":"дешёвый антивирус для бизнеса","source":"other","intent":"price","expected":"недорогой корпоративный антивирус"}
+{"query":"до 50 тыс","source":"other","intent":"price","expected":"товар или лицензия в бюджете 50 тысяч рублей"}
+{"query":"прайс","source":"other","intent":"price","expected":"прайс на ИТ-продукты или лицензии"}
+{"query":"лицензия","source":"other","intent":"junk","expected":"неясно"}
+{"query":"PER740-","source":"other","intent":"sku","expected":"сервер Dell PowerEdge R740 по партномеру"}
+{"query":"P50751-B21","source":"other","intent":"sku","expected":"оборудование HPE по партномеру"}
+{"query":"KL4863RA","source":"other","intent":"sku","expected":"продукт Kaspersky по партномеру"}
+{"query":"DG7GMGF0D7","source":"other","intent":"sku","expected":"лицензия Microsoft по идентификатору"}

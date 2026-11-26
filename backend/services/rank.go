@@ -536,7 +536,11 @@ func (rc rankCtx) dropTail(fams []*familyHit, rejected *[]domain.RejectedHit) []
 		if rc.lx.categoryRoot[c] == rc.lx.categoryRoot[cat] {
 			ratio = tailRatioSameRoot // соседняя категория того же раздела — только явно слабое
 		}
-		keep := fh.group == domain.GroupAnalog || c == cat || rc.lx.familyVendor[fh.id] == vendor ||
+		// Категория названа в запросе: её позиции — не хвост, даже если первой встала позиция другого раздела
+		// («операционная система … для 30 АРМ» → первым Р7-Офис по «30 рабочих мест», ОС не отсеиваются).
+		root := rc.lx.categoryRoot[rc.ent.category]
+		named := rc.ent.category != "" && rc.lx.categoryRoot[cat] != root && rc.lx.categoryRoot[c] == root
+		keep := fh.group == domain.GroupAnalog || c == cat || rc.lx.familyVendor[fh.id] == vendor || named ||
 			contains(rc.ent.families, fh.id) || contains(rc.ent.vendors, rc.lx.familyVendor[fh.id])
 		if !keep && fh.final < ratio*top.final {
 			addRejected(rejected, fh.head.ProductID, rejectTail,

@@ -67,6 +67,9 @@ func (s *Services) searchB3(ctx context.Context, requestID string, req in.Search
 	rp := s.newResultsPlan(ctx, req)                              // страница результатов контура выдачи (results.go); флаг выключен — nil
 	hw := s.hardwareParse(ctx, st, nr, &attrs, rp.hwRequest(req)) // оборудование (hardware*.go); флаг выключен — nil
 	ent := findEntities(nr, attrs, lx, rules)
+	if !hw.active() {
+		ent.dropPlatform(lx, rules)
+	}
 	ent.applyRemoved(removedSet(req.RemovedChips))
 	hw.applyEntities(&ent)
 	chips, found := attrs.chips(ent, lx)
@@ -230,6 +233,11 @@ func (s *Services) searchB3(ctx context.Context, requestID string, req in.Search
 	if ent.abbrev {
 		minDense = abbrevDenseMin
 	}
+	// Запрос — один незнакомый артикул («OS1001X8617BOX000SR01-PR12»): у кода нет смысла, ближайшие по
+	// векторам позиции случайны. Только текст или точный артикул; иначе честное «нет в каталоге».
+	if len(ent.textTokens) == 1 && looksLikeSKU(ent.textTokens[0]) {
+		minDense = math.Inf(1)
+	}
 	noLetters := ent.noise
 	ladder := []string{}
 	if len(nr.aliasHits) > 0 {
@@ -338,12 +346,14 @@ func (s *Services) searchB3(ctx context.Context, requestID string, req in.Search
 	}
 	// Метрика не та у всего названного («касперский на 50 пользователей», а Kaspersky — на устройства): честнее
 	// показать названный продукт с пояснением, чем «нет в каталоге» (прогон витрины №22).
+	// Так же, если названного нет, а прошло что-то постороннее («kaspersky internet security на 10 человек» →
+	// Кибер Бэкап на 10 пользователей): названный продукт важнее метрики.
 	metricRelaxed := ""
-	if len(fams) == 0 && rc.attrs.metric != "" && !rc.attrs.analog && !noLetters && !ent.nonProduct && !absent &&
+	if !namedAmong(fams, ent, lx) && rc.attrs.metric != "" && !rc.attrs.analog && !noLetters && !ent.nonProduct && !absent &&
 		(len(ent.vendors) > 0 || len(ent.families) > 0) {
 		metricRelaxed = rc.attrs.metric
 		rc.attrs.metricPref, rc.attrs.metric = rc.attrs.metric, ""
-		seen = map[string]bool{}
+		seen, fams = map[string]bool{}, nil
 		for _, f := range lx.familyOrder {
 			if rel, ok := byFamily[f]; ok && rel >= relThreshold {
 				addFamily(f, rel, "")
@@ -647,6 +657,24 @@ func dropShown(rejected []domain.RejectedHit, shown []domain.TraceItem) []domain
 		}
 	}
 	return out
+}
+
+// namedAmong — в выдаче осталось названное: семейство из запроса или любой продукт его вендора («windows server
+// 2025 на 50 пользователей» → CAL того же вендора — выдача контура поиска, метрика не снимается).
+func namedAmong(fams []*familyHit, ent queryEntities, lx *searchLexicon) bool {
+	vendors := map[string]bool{}
+	for _, v := range ent.vendors {
+		vendors[v] = true
+	}
+	for _, f := range ent.families {
+		vendors[lx.familyVendor[f]] = true
+	}
+	for _, fh := range fams {
+		if contains(ent.families, fh.id) || vendors[lx.familyVendor[fh.id]] {
+			return true
+		}
+	}
+	return false
 }
 
 // strictFilters — обязательные условия, которые проверяются уже при отборе кандидатов: продление, отечественное

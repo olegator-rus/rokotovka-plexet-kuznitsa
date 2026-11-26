@@ -453,5 +453,250 @@
     "kind": "alias",
     "target": "term",
     "target_id": null
+  },
+  {
+    "alias": "вин серв",
+    "canonical": "windows server",
+    "kind": "slang",
+    "target": "term",
+    "target_id": null
+  },
+  {
+    "alias": "винсервер",
+    "canonical": "windows server",
+    "kind": "slang",
+    "target": "term",
+    "target_id": null
+  },
+  {
+    "alias": "ws",
+    "canonical": "windows server",
+    "kind": "slang",
+    "target": "term",
+    "target_id": null
+  },
+  {
+    "alias": "dc",
+    "canonical": "datacenter",
+    "kind": "slang",
+    "target": "term",
+    "target_id": null
+  },
+  {
+    "alias": "std",
+    "canonical": "standard",
+    "kind": "slang",
+    "target": "term",
+    "target_id": null
+  },
+  {
+    "alias": "рдп",
+    "canonical": "remote desktop services",
+    "kind": "slang",
+    "target": "term",
+    "target_id": null
+  },
+  {
+    "alias": "rdp",
+    "canonical": "remote desktop services",
+    "kind": "slang",
+    "target": "term",
+    "target_id": null
+  },
+  {
+    "alias": "терминальные",
+    "canonical": "remote desktop services",
+    "kind": "slang",
+    "target": "term",
+    "target_id": null
+  },
+  {
+    "alias": "терминальных",
+    "canonical": "remote desktop services",
+    "kind": "slang",
+    "target": "term",
+    "target_id": null
+  },
+  {
+    "alias": "терминальный",
+    "canonical": "remote desktop services",
+    "kind": "slang",
+    "target": "term",
+    "target_id": null
+  },
+  {
+    "alias": "терминальном",
+    "canonical": "remote desktop services",
+    "kind": "slang",
+    "target": "term",
+    "target_id": null
+  },
+  {
+    "alias": "терминального",
+    "canonical": "remote desktop services",
+    "kind": "slang",
+    "target": "term",
+    "target_id": null
+  },
+  {
+    "alias": "терминальная",
+    "canonical": "remote desktop services",
+    "kind": "slang",
+    "target": "term",
+    "target_id": null
+  },
+  {
+    "alias": "терминалка",
+    "canonical": "remote desktop services",
+    "kind": "slang",
+    "target": "term",
+    "target_id": null
+  },
+  {
+    "alias": "удаленный рабочий стол",
+    "canonical": "remote desktop services",
+    "kind": "slang",
+    "target": "term",
+    "target_id": null
+  },
+  {
+    "alias": "удаленного рабочего стола",
+    "canonical": "remote desktop services",
+    "kind": "slang",
+    "target": "term",
+    "target_id": null
+  },
+  {
+    "alias": "удаленному рабочему столу",
+    "canonical": "remote desktop services",
+    "kind": "slang",
+    "target": "term",
+    "target_id": null
+  },
+  {
+    "alias": "rmt",
+    "canonical": "remote",
+    "kind": "slang",
+    "target": "term",
+    "target_id": null
+  },
+  {
+    "alias": "dsktp",
+    "canonical": "desktop",
+    "kind": "slang",
+    "target": "term",
+    "target_id": null
+  },
+  {
+    "alias": "svcs",
+    "canonical": "services",
+    "kind": "slang",
+    "target": "term",
+    "target_id": null
+  },
+  {
+    "alias": "гипервизор",
+    "canonical": "виртуализация",
+    "kind": "slang",
+    "target": "category",
+    "target_id": "virtualization"
+  },
+  {
+    "alias": "гипервизоры",
+    "canonical": "виртуализация",
+    "kind": "slang",
+    "target": "category",
+    "target_id": "virtualization"
+  },
+  {
+    "alias": "гипервизора",
+    "canonical": "виртуализация",
+    "kind": "slang",
+    "target": "category",
+    "target_id": "virtualization"
+  },
+  {
+    "alias": "гипервизоров",
+    "canonical": "виртуализация",
+    "kind": "slang",
+    "target": "category",
+    "target_id": "virtualization"
+  },
+  {
+    "alias": "redos",
+    "canonical": "РЕД ОС",
+    "kind": "transliteration",
+    "target": "family",
+    "target_id": "red-os"
+  },
+  {
+    "alias": "waf",
+    "canonical": "PT Application Firewall",
+    "kind": "alias",
+    "target": "family",
+    "target_id": "pt-application-firewall"
+  },
+  {
+    "alias": "кес",
+    "canonical": "Kaspersky Endpoint Security",
+    "kind": "slang",
+    "target": "family",
+    "target_id": "kaspersky-endpoint-security"
+  },
+  {
+    "alias": "kes",
+    "canonical": "Kaspersky Endpoint Security",
+    "kind": "alias",
+    "target": "family",
+    "target_id": "kaspersky-endpoint-security"
+  },
+  {
+    "alias": "ms",
+    "canonical": "microsoft",
+    "kind": "slang",
+    "target": "vendor",
+    "target_id": "microsoft"
+  },
+  {
+    "alias": "эмэс",
+    "canonical": "microsoft",
+    "kind": "slang",
+    "target": "vendor",
+    "target_id": "microsoft"
+  },
+  {
+    "alias": "мс",
+    "canonical": "microsoft",
+    "kind": "slang",
+    "target": "vendor",
+    "target_id": "microsoft"
+  },
+  {
+    "alias": "сетевое оборудование",
+    "canonical": "коммутаторы",
+    "kind": "slang",
+    "target": "category",
+    "target_id": "switches"
+  },
+  {
+    "alias": "ms server",
+    "canonical": "windows server",
+    "kind": "slang",
+    "target": "term",
+    "target_id": null
+  },
+  {
+    "alias": "мс сервер",
+    "canonical": "windows server",
+    "kind": "slang",
+    "target": "term",
+    "target_id": null
+  },
+  {
+    "alias": "vdi",
+    "canonical": "remote desktop services",
+    "kind": "slang",
+    "target": "term",
+    "target_id": null
   }
 ]
