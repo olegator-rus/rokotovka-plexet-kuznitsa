@@ -10,9 +10,12 @@ import {
   ChevronRight,
   CircleCheck,
   CircleX,
+  Lock,
   Search,
 } from 'lucide-vue-next'
 import type { Proposal } from '@/api/types'
+import { denyMessage } from '@/lib/auth'
+import { useAuthStore } from '@/stores/auth'
 import { formatDateTime, formatInt, plural } from '@/lib/format'
 import {
   clusterQueries,
@@ -51,6 +54,10 @@ defineEmits<{ accept: []; reject: [] }>()
 
 const QUERIES_SHOWN = 6
 const p = computed(() => props.proposal)
+// Право решения — по роли предложения: чужое — кнопки неактивны с той же фразой, что 403 сервера.
+const auth = useAuthStore()
+const deny = computed(() => (auth.can(p.value.role) ? '' : denyMessage(p.value.role)))
+const denyId = computed(() => `deny-${p.value.id}`)
 const status = computed(() => proposalStatus(p.value.status))
 const queries = computed(() => clusterQueries(p.value))
 const shown = computed(() => queries.value.slice(0, QUERIES_SHOWN))
@@ -315,19 +322,46 @@ const runLink = computed(() =>
       </RouterLink>
 
       <div v-if="p.status === 'pending' && marginLink" class="pcard__actions">
-        <button type="button" class="btn btn--secondary" :disabled="busy" @click="$emit('reject')">
+        <button
+          type="button"
+          class="btn btn--secondary"
+          :disabled="busy || !!deny"
+          :title="deny || undefined"
+          :aria-describedby="deny ? denyId : undefined"
+          @click="$emit('reject')"
+        >
           Отклонить
         </button>
         <RouterLink :to="marginLink" class="btn btn--primary">Открыть в песочнице</RouterLink>
+        <p v-if="deny" :id="denyId" class="pcard__deny t-xs">
+          <Lock :size="12" aria-hidden="true" /> {{ deny }}
+        </p>
       </div>
 
       <div v-else-if="p.status === 'pending'" class="pcard__actions">
-        <button type="button" class="btn btn--secondary" :disabled="busy" @click="$emit('reject')">
+        <button
+          type="button"
+          class="btn btn--secondary"
+          :disabled="busy || !!deny"
+          :title="deny || undefined"
+          :aria-describedby="deny ? denyId : undefined"
+          @click="$emit('reject')"
+        >
           Отклонить
         </button>
-        <button type="button" class="btn btn--primary" :disabled="busy" @click="$emit('accept')">
+        <button
+          type="button"
+          class="btn btn--primary"
+          :disabled="busy || !!deny"
+          :title="deny || undefined"
+          :aria-describedby="deny ? denyId : undefined"
+          @click="$emit('accept')"
+        >
           {{ workItem ? 'Взять в работу' : 'Принять' }}
         </button>
+        <p v-if="deny" :id="denyId" class="pcard__deny t-xs">
+          <Lock :size="12" aria-hidden="true" /> {{ deny }}
+        </p>
       </div>
 
       <div v-else class="pcard__decided t-sm">
@@ -553,5 +587,14 @@ const runLink = computed(() =>
   flex-wrap: wrap;
   align-items: center;
   gap: var(--space-2);
+}
+.pcard__deny {
+  display: flex;
+  flex-basis: 100%;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--space-1);
+  margin: 0;
+  color: var(--text-2);
 }
 </style>

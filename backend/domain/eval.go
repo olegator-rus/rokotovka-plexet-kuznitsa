@@ -70,6 +70,9 @@ type LogEvent struct {
 	OrderID   string `json:"order_id,omitempty"`
 	AccountID string `json:"account_id,omitempty"`
 	Quantity  int    `json:"quantity,omitempty"`
+	// Контур выдачи: id поискового намерения и поля события; нет — пусто.
+	IntentID string          `json:"intent_id,omitempty"`
+	Payload  json.RawMessage `json:"payload,omitempty"`
 }
 
 // Источники записей журналов (SearchEvent.Source, BehaviorEvent.Source).

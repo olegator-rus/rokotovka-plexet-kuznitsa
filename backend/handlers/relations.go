@@ -4,6 +4,7 @@ import (
 	"strings"
 
 	"kuznica/api/in"
+	"kuznica/api/services"
 
 	"github.com/gofiber/fiber/v2"
 )
@@ -32,6 +33,9 @@ func (h *Handler) RelationVersions(c *fiber.Ctx) error {
 
 // RollbackRelations — POST /api/relations/rollback {"to_version","comment"} → новая версия = копия выбранной.
 func (h *Handler) RollbackRelations(c *fiber.Ctx) error {
+	if err := requireDecision(c, services.AreaRelations); err != nil {
+		return err
+	}
 	var req in.RollbackRequest
 	if err := bindBody(c, &req); err != nil {
 		return err

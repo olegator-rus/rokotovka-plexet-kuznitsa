@@ -15,6 +15,16 @@ import type {
   Upgrade,
 } from './typesP2'
 import type { AnalyticsCommerce } from './typesKiller'
+import type { P3EventType } from './typesPanel'
+import type {
+  ItemAttrs,
+  Refinement,
+  ResultCounts,
+  ResultsEventType,
+  ResultsGroup,
+  ResultsSort,
+  ResultSortInfo,
+} from './typesResults'
 
 /** live — витрина: B3 на действующей (последней принятой) версии правил; лестница оценки — B0–B4. */
 export type ConfigId = 'live' | 'B0' | 'B1' | 'B2' | 'B3' | 'B4'
@@ -65,6 +75,11 @@ export interface SearchRequest {
   source?: 'live' | 'compare'
   /** Контур коммерции: фасеты оборудования; пустые не отправляются. */
   filters?: SearchFilter[]
+  /** Контур выдачи (§11.1): намерение, из которого отправлен запрос. */
+  intent_id?: string
+  /** Контур выдачи (§11.5): сортировка и группировка; по умолчанию не отправляются. */
+  sort?: ResultsSort
+  group?: ResultsGroup
 }
 
 export interface Correction {
@@ -117,6 +132,9 @@ export interface SearchItemBase {
   price_mode?: PriceMode | string
   compatibility?: ItemCompatibility | null
   required?: Companion[]
+  /** Контур выдачи (§11.5): цена «от» по семейству и атрибуты карточки. */
+  price_from_rub?: number | null
+  attrs?: ItemAttrs | null
 }
 
 export interface SearchItem extends SearchItemBase {
@@ -156,6 +174,11 @@ export interface SearchResponse {
   /** «Старшая редакция» к первой позиции (null — связи upgrade нет). */
   upgrade?: Upgrade | null
   facets?: Facet[]
+  /** Контур выдачи (§11.5, FEATURE_RESULTS_V3): «N продуктов · M вариантов», уточнения, сортировка, группировка. */
+  counts?: ResultCounts
+  refinements?: Refinement[]
+  sort?: ResultSortInfo
+  group?: ResultsGroup | string
   trace: Trace
 }
 
@@ -306,6 +329,8 @@ export type EventType =
   | 'chip_remove'
   | 'clarify_answer'
   | P2EventType
+  | P3EventType
+  | ResultsEventType
 
 export interface SearchEvent {
   type: EventType
@@ -315,6 +340,8 @@ export interface SearchEvent {
   product_id: string | null
   position: number | null
   payload: Record<string, unknown>
+  /** Контур выдачи (§11.1): поисковое намерение — от фокуса в строке до исхода. */
+  intent_id?: string | null
 }
 
 // ── «До / После»: GET /api/evaluations, POST /api/evaluations/run (backend/out/eval.go) ──

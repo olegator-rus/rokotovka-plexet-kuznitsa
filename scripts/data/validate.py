@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Проверка mock-данных по формату данных и (контур коммерции).
+"""Проверка mock-данных по формату данных (контур коммерции) и §11 (контур выдачи).
 
     python3.13 scripts/data/validate.py                  # проверить data/mock
     python3.13 scripts/data/validate.py --stats          # + таблицы для data/README.md
@@ -25,12 +25,25 @@ FILES = ["catalog.json", "vendors.json", "categories.json", "relations.json", "a
          "queries.json", "events.jsonl"]
 P2_FILES = ["license_rules.json", "compatibility_rules.json", "attribute_definitions.json", "solution_templates.json",
             "companion_pairs.json"]
-DIGEST_FILES = FILES + P2_FILES + ["PLANTED.md"]
+P3_FILES = ["prefixes.json"]
+DIGEST_FILES = FILES + P2_FILES + ["PLANTED.md"] + P3_FILES
 # Заморозка контура поиска: хэш списка (id, text, set, judgments) запросов вне p2 и первых строк events.jsonl.
 P1_QUERIES_SHA = "36ad647ff56c61c3088d3fe17ea05ea464a1d095d67e2f35a5e8b093ef07de13"
 P1_EVENTS_SHA = "f2608dff36743b08848ac1a917e1c3c1fdd0ef8b38127e1e63d74f57487e7b7a"
 P1_EVENTS_LINES = 5121
 P2_SESSION = "s2-"
+# Контур выдачи (§11.1, §11.6): события намерений — третьим блоком в конце журнала; строки контуров поиска и коммерции заморожены.
+P12_EVENTS_SHA = "3081fd9db1e671fa5dd8d81b1c4100d70f64ed300f0fee2033ca0a1f05a64344"
+P12_EVENTS_LINES = 6403
+P3_SESSION = "s3-"
+P3_EVENT_TYPES = {"search_opened", "suggest_impression", "suggestion_select", "instant_product_click", "category_select",
+                  "vendor_select", "refinement_apply", "refinement_remove", "search_commit", "search_abandon",
+                  "variant_expand", "filter_apply", "filter_remove", "filters_reset", "sort_change", "group_change",
+                  "recs_impression", "recs_click", "recs_add", "personalization_toggle", "history_clear"}
+P3_OUTCOMES = {"search_commit": "commit", "suggestion_select": "suggestion", "instant_product_click": "product",
+               "category_select": "category", "vendor_select": "vendor", "search_abandon": "abandon"}
+PREFIX_TYPES = {"broad", "family", "sku", "layout", "typo", "no_results", "license_dupes"}
+PREFIX_MIN = {"broad": 20, "family": 40, "sku": 30, "layout": 10, "typo": 10, "no_results": 10, "license_dupes": 10}
 P2_QUERY_TYPES = {"p2_license": 20, "p2_mpn": 20, "p2_specs": 20, "p2_compat": 25, "p2_bundle": 15, "p2_negative": 20}
 PAIR_CLASSES = ["required", "compatible", "conditional", "incompatible", "unknown", "complement", "upgrade",
                 "irrelevant"]
@@ -75,7 +88,7 @@ class Report:
 
 def load(d, r):
     data = {}
-    for name in FILES + P2_FILES:
+    for name in FILES + P2_FILES + P3_FILES:
         path = d / name
         if not r.check(path.exists(), f"нет файла {name}"):
             continue
@@ -291,13 +304,16 @@ def check_events(data, queries, by_id, clients, r):
     events = data["events.jsonl"]
     r.check(3000 <= len(events) <= 9000, f"events: {len(events)} вне 3–9 тыс.")
     end = LOG_START + timedelta(days=LOG_DAYS)
-    prev_ts, days, in_p2 = "", set(), False
+    prev_ts, days, block = "", set(), 1
     for i, e in enumerate(events):
         where = f"event #{i + 1}"
-        p2 = str(e.get("session_id", "")).startswith(P2_SESSION)
-        r.check(p2 == (i >= P1_EVENTS_LINES), f"{where}: событие {'коммерции' if p2 else 'поиска'} не в своём блоке")
-        if p2 and not in_p2:
-            in_p2, prev_ts = True, ""  # блок контура коммерции дописан в конец и отсортирован отдельно
+        sid = str(e.get("session_id", ""))
+        pkg = 3 if sid.startswith(P3_SESSION) else 2 if sid.startswith(P2_SESSION) else 1
+        want = 1 if i < P1_EVENTS_LINES else 2 if i < P12_EVENTS_LINES else 3
+        r.check(pkg == want, f"{where}: событие пакета {pkg} не в своём блоке")
+        p2 = pkg == 2
+        if pkg != block:
+            block, prev_ts = pkg, ""  # блоки контуров коммерции и 3 дописаны в конец и отсортированы отдельно
         try:
             ts = datetime.strptime(e.get("ts", ""), "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=timezone.utc)
         except ValueError:
@@ -307,7 +323,8 @@ def check_events(data, queries, by_id, clients, r):
         r.check(e["ts"] >= prev_ts, f"{where}: события не отсортированы по времени")
         prev_ts = e["ts"]
         days.add(ts.date())
-        r.check(e.get("type") in EVENT_TYPES, f"{where}: type {e.get('type')}")
+        allowed = EVENT_TYPES - {"search"} | P3_EVENT_TYPES if pkg == 3 else EVENT_TYPES
+        r.check(e.get("type") in allowed, f"{where}: type {e.get('type')}")
         r.check(isinstance(e.get("session_id"), str) and e["session_id"], f"{where}: session_id")
         r.check(e.get("client_id") is None or e["client_id"] in clients, f"{where}: client_id")
         if e["type"] in ("search", "manager_request"):
@@ -362,7 +379,8 @@ def check_events(data, queries, by_id, clients, r):
 def check_popularity(all_products, all_events, r):
     for part in (False, True):
         products = [p for p in all_products if ("kind" in p) == part]
-        events = [e for e in all_events if e["session_id"].startswith(P2_SESSION) == part]
+        events = [e for e in all_events if e["session_id"].startswith(P2_SESSION) == part
+                  and not e["session_id"].startswith(P3_SESSION)]  # намерения контура выдачи popularity не меняют
         _check_popularity(products, events, r)
 
 
@@ -633,6 +651,69 @@ def check_p2(d, data, by_id, fams, cats, vendors, queries, events, r):
                 p2_queries=len(p2q))
 
 
+# ------------------------------------------------------------------ контур выдачи (§11.1, §11.6)
+def check_p3(d, data, by_id, queries, events, r):
+    sys.path.insert(0, str(Path(__file__).parent))
+    import gen_mock_p3 as g3
+    raw = (d / "events.jsonl").read_bytes().split(b"\n")
+    r.check(hashlib.sha256(b"\n".join(raw[:P12_EVENTS_LINES]) + b"\n").hexdigest() == P12_EVENTS_SHA,
+            "events: строки контуров поиска и коммерции изменились")
+    old = events[:P12_EVENTS_LINES]
+    start, end = g3.holdout_window(old)
+    hits, _, empty = g3.late_targets(old, start, end)
+
+    # набор префиксов
+    px = data["prefixes.json"]
+    ids = [x.get("id") for x in px]
+    r.check(all(ids) and len(ids) == len(set(ids)), "prefixes: id пустые или повторяются")
+    fams = {p["family_id"] for p in by_id.values()}
+    for x in px:
+        w = f"prefix {x.get('id')}"
+        r.check(x.get("type") in PREFIX_TYPES and x.get("set") == "panel", f"{w}: type/set")
+        r.check(isinstance(x.get("prefix"), str) and x["prefix"].strip() != "", f"{w}: пустой prefix")
+        r.check(isinstance(x.get("target_query"), str) and x["target_query"], f"{w}: target_query")
+        fam, pid = x.get("target_family"), x.get("target_product")
+        r.check(fam is None or fam in fams, f"{w}: target_family {fam}")
+        r.check(pid is None or (pid in by_id and by_id[pid]["family_id"] == fam), f"{w}: target_product {pid}")
+        if x.get("type") == "no_results":
+            r.check(fam is None and pid is None, f"{w}: у no_results есть цель-товар")
+        if x.get("source") == "log_late":
+            r.check(hits[g3.fold(x["target_query"])] > 0, f"{w}: цель не из успешных поисков позднего периода")
+        if x.get("source") == "log_empty":
+            r.check(empty[g3.fold(x["target_query"])] > 0, f"{w}: цель не из пустых выдач позднего периода")
+    types = Counter(x.get("type") for x in px)
+    for t, n in PREFIX_MIN.items():
+        r.check(types[t] >= n, f"prefixes: {t} — {types[t]} < {n}")
+
+    # события намерений
+    ev3 = events[P12_EVENTS_LINES:]
+    intents = defaultdict(list)
+    for e in ev3:
+        r.check(isinstance(e.get("intent_id"), str) and e["intent_id"].startswith(g3.INTENT_PREFIX),
+                f"event {e.get('ts')}: нет intent_id")
+        r.check(e["type"] != "search", "events контура выдачи: поиск в блоке намерений (журнал поисков не меняется)")
+        r.check(e.get("payload") is None or isinstance(e["payload"], dict), "events контура выдачи: payload не объект")
+        if e["type"] in ("instant_product_click",):
+            r.check(e.get("product_id") in by_id, f"event {e['ts']}: instant_product_click без товара")
+        if e["type"] == "search_commit":
+            p = e.get("payload") or {}
+            r.check(isinstance(p.get("results_count"), int) and p.get("source") in ("enter", "suggestion"),
+                    f"event {e['ts']}: search_commit без results_count/source")
+        intents[e.get("intent_id")].append(e)
+    outcomes = Counter()
+    for iid, evs in intents.items():
+        r.check(len({e["session_id"] for e in evs}) == 1, f"intent {iid}: в разных сессиях")
+        r.check(evs[0]["type"] == "search_opened", f"intent {iid}: начинается не с search_opened")
+        first = next((P3_OUTCOMES[e["type"]] for e in evs if e["type"] in P3_OUTCOMES), None)
+        r.check(first is not None, f"intent {iid}: нет исхода")
+        outcomes[first] += 1
+    r.check(set(outcomes) == set(P3_OUTCOMES.values()), f"events контура выдачи: исходы {dict(outcomes)} — не все виды")
+    r.check(any(e["type"] == "suggest_impression" and (e.get("payload") or {}).get("items") == 0 for e in ev3),
+            "events контура выдачи: нет пустых подсказок")
+    return dict(prefixes=len(px), intents=len(intents), types=types, outcomes=outcomes,
+                window=(start.isoformat(), end.isoformat()))
+
+
 def digest(d):
     return {name: hashlib.sha256((d / name).read_bytes()).hexdigest() for name in DIGEST_FILES}
 
@@ -771,6 +852,7 @@ def main():
     r.check(50 <= len(p1_fams) <= 70, f"catalog: семейств контура поиска {len(p1_fams)} вне 50–70")
     r.check(180 <= len(p1) <= 300, f"catalog: позиций контура поиска {len(p1)} вне 180–300")
     check_p2(d, data, by_id, fams, cats, vendors, queries, events, r)
+    p3 = check_p3(d, data, by_id, queries, events, r)
     if args.determinism:
         check_determinism(d, r)
     for w in r.warnings:
@@ -780,7 +862,7 @@ def main():
     if len(r.errors) > 50:
         print(f"... и ещё {len(r.errors) - 50} ошибок")
     print(f"{d}: файлов {len(data)}, семейств {len(fams)}, позиций {len(by_id)}, запросов {len(queries)}, "
-          f"событий {len(events)}; ошибок {len(r.errors)}, предупреждений {len(r.warnings)}"
+          f"событий {len(events)}, префиксов {p3['prefixes']}, намерений {p3['intents']}; ошибок {len(r.errors)}, предупреждений {len(r.warnings)}"
           + ("; детерминизм проверен" if args.determinism else ""))
     if args.stats:
         print_stats(data, queries, events, reform, fams)

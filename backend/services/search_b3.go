@@ -63,7 +63,8 @@ func (s *Services) searchB3(ctx context.Context, requestID string, req in.Search
 	t = time.Now()
 	attrs := extractAttrs(nr.tokens)
 	attrs.applyRequest(req)
-	hw := s.hardwareParse(ctx, st, nr, &attrs, req) // оборудование (hardware*.go); флаг выключен — nil
+	rp := s.newResultsPlan(ctx, req)                              // страница результатов контура выдачи (results.go); флаг выключен — nil
+	hw := s.hardwareParse(ctx, st, nr, &attrs, rp.hwRequest(req)) // оборудование (hardware*.go); флаг выключен — nil
 	ent := findEntities(nr, attrs, lx, rules)
 	ent.applyRemoved(removedSet(req.RemovedChips))
 	hw.applyEntities(&ent)
@@ -424,7 +425,13 @@ func (s *Services) searchB3(ctx context.Context, requestID string, req in.Search
 		ladder = append(ladder, ladderEmpty)
 	}
 
-	fams, marginStep := s.marginStage(ctx, cfg, rc, trace.Route, fams, opts)
+	rp.setExact(trace.Route, routeStep.Signals, hw)
+	fams = rp.apply(rc, fams, resp.Chips, req.Query, &trace.Rejected)
+	var marginStep *domain.MarginStep
+	if rp.marginAllowed() {
+		fams, marginStep = s.marginStage(ctx, cfg, rc, trace.Route, fams, opts)
+	}
+	rp.keep(fams)
 
 	resp.Total = len(fams)
 	if len(fams) > limit {
@@ -465,6 +472,7 @@ func (s *Services) searchB3(ctx context.Context, requestID string, req in.Search
 
 	trace.Steps = []any{normStep, attrStep, routeStep, intentStep, bm.step, dn.step, fusionStep, rerankStep, businessStep, relaxStep}
 	hw.decorate(resp)
+	rp.decorate(rc, resp, limit, exactDocMatcher(nr.tokens, hw))
 	if hwStep := hw.step(); hwStep != nil {
 		trace.Steps = append(trace.Steps, hwStep)
 	}

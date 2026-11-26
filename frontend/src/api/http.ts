@@ -2,6 +2,14 @@
 // /api проксирует Vite в dev и Caddy в проде. Любой отказ приходит вызывающему как ApiError
 // (lib/apiError.ts), никогда как сырой Response или TypeError.
 import { networkError, parseApiError } from '@/lib/apiError'
+import { retryAfterSeconds } from '@/lib/auth'
+
+/** 401 посреди работы (сессия истекла или вышли в другой вкладке): стор входа узнаёт и ведёт на /login. */
+type UnauthorizedHandler = (path: string) => void
+let unauthorized: UnauthorizedHandler | null = null
+export function onUnauthorized(fn: UnauthorizedHandler) {
+  unauthorized = fn
+}
 
 const BASE = '/api'
 
@@ -43,7 +51,16 @@ async function request<T>(
       data = undefined
     }
   }
-  if (!resp.ok) throw parseApiError(resp.status, data)
+  if (!resp.ok) {
+    const authCall = path.startsWith('/auth/')
+    if (resp.status === 401 && !authCall) unauthorized?.(path)
+    throw parseApiError(
+      resp.status,
+      data,
+      retryAfterSeconds(resp.headers.get('Retry-After')),
+      authCall,
+    )
+  }
   return data as T
 }
 

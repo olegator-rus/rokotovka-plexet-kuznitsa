@@ -127,6 +127,23 @@ func (s *Services) Quotes(ctx context.Context) (*out.QuoteList, error) {
 	if err != nil {
 		return nil, err
 	}
+	return s.quoteList(rows), nil
+}
+
+// ClientQuotes — GET /api/quotes/mine: запросы КП покупателя (клиент — из сессии входа).
+func (s *Services) ClientQuotes(ctx context.Context, clientID string) (*out.QuoteList, error) {
+	if !s.repos.Enabled() || clientID == "" {
+		return &out.QuoteList{Items: []out.Quote{}}, nil
+	}
+	rows, err := s.repos.ListClientQuotes(ctx, clientID, quoteListLimit)
+	if err != nil {
+		return nil, err
+	}
+	return s.quoteList(rows), nil
+}
+
+// quoteList — строки запросов КП с названиями и ценами позиций по текущему каталогу.
+func (s *Services) quoteList(rows []domain.QuoteRequest) *out.QuoteList {
 	var products map[string]*domain.Product
 	if st := s.catalog.Load(); st != nil && st.commerce != nil {
 		products = st.commerce.products
@@ -149,5 +166,5 @@ func (s *Services) Quotes(ctx context.Context) (*out.QuoteList, error) {
 		}
 		res.Items = append(res.Items, item)
 	}
-	return res, nil
+	return res
 }

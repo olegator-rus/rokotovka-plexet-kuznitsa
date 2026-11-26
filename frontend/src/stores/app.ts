@@ -1,4 +1,6 @@
-// Общее состояние оболочки: /api/meta, выбранный клиент, роль бэк-офиса, номер сессии вкладки.
+// Общее состояние оболочки: /api/meta, клиент витрины, «Смотреть как» руководителя, номер сессии вкладки.
+// Клиент витрины: у покупателя — свой из сессии входа, у гостя — «Гость», выбирать клиента («Смотреть глазами
+// клиента») может только сотрудник. Роль «Аналитики» — из сессии; другую выбирает только руководитель.
 import { defineStore } from 'pinia'
 import { computed, ref } from 'vue'
 import { getProposals } from '@/api/agent'
@@ -11,6 +13,7 @@ import { isSessionToken } from '@/lib/events'
 import { pendingCount } from '@/lib/proposals'
 import { type RoleId, isRoleId } from '@/lib/roles'
 import { GUEST_CLIENT_ID } from '@/lib/searchState'
+import { useAuthStore } from './auth'
 
 const SESSION_KEY = 'plexet.session'
 const ROLE_KEY = 'plexet.role'
@@ -42,12 +45,25 @@ function initialSession(): string {
 }
 
 export const useAppStore = defineStore('app', () => {
+  const auth = useAuthStore()
   const meta = ref<Meta | null>(null)
   const metaStatus = ref<'idle' | 'loading' | 'ready' | 'error'>('idle')
   const metaError = ref<ApiError | null>(null)
-  const clientId = ref<string>(readStorage(CLIENT_KEY) || GUEST_CLIENT_ID)
+  /** Клиент, выбранный сотрудником («Смотреть глазами клиента»). */
+  const pickedClient = ref<string>(readStorage(CLIENT_KEY) || GUEST_CLIENT_ID)
+  /** Может ли смотрящий выбирать клиента витрины. */
+  const canPickClient = computed(() => auth.staff)
+  /** Клиент витрины: покупатель — свой из сессии, гость — «Гость», сотрудник — выбранный. */
+  const clientId = computed<string>(() => {
+    if (auth.buyer) return auth.viewer.client_id || GUEST_CLIENT_ID
+    if (!auth.staff) return GUEST_CLIENT_ID
+    return pickedClient.value
+  })
   const savedRole = readStorage(ROLE_KEY)
-  const role = ref<RoleId>(isRoleId(savedRole) ? savedRole : 'ecom')
+  /** «Смотреть как» руководителя; null — своя роль. */
+  const viewAs = ref<RoleId | null>(isRoleId(savedRole) ? savedRole : null)
+  /** Роль блоков «Аналитики»: своя из сессии; руководитель (и служебный доступ) — выбранная. */
+  const role = computed<RoleId>(() => (auth.viewAs ? (viewAs.value ?? auth.ownView) : auth.ownView))
   /** Токен сессии от сервера (GET /api/meta): до ответа meta — сохранённый или пустой. */
   const sessionId = ref<string>(initialSession())
 
@@ -77,7 +93,7 @@ export const useAppStore = defineStore('app', () => {
           writeStorage(SESSION_KEY, m.session)
         }
         metaStatus.value = 'ready'
-        if (!clients.value.some((c) => c.id === clientId.value)) setClient(GUEST_CLIENT_ID)
+        if (!clients.value.some((c) => c.id === pickedClient.value)) setClient(GUEST_CLIENT_ID)
       })
       .catch((e: unknown) => {
         metaStatus.value = 'error'
@@ -103,14 +119,31 @@ export const useAppStore = defineStore('app', () => {
       })
   }
 
+  /** Выбрать клиента витрины — только сотруднику; у покупателя и гостя клиент задан входом. */
   function setClient(id: string) {
-    clientId.value = id || GUEST_CLIENT_ID
-    writeStorage(CLIENT_KEY, clientId.value)
+    if (!canPickClient.value) return
+    pickedClient.value = id || GUEST_CLIENT_ID
+    writeStorage(CLIENT_KEY, pickedClient.value)
   }
 
+  /** «Смотреть как» — только руководителю. */
   function setRole(id: RoleId) {
-    role.value = id
+    if (!auth.viewAs) return
+    viewAs.value = id
     writeStorage(ROLE_KEY, id)
+  }
+
+  /** Смена входа: выбор клиента и «Смотреть как» прежнего пользователя не переносятся. */
+  function resetForViewer() {
+    pickedClient.value = GUEST_CLIENT_ID
+    viewAs.value = null
+    pendingProposals.value = null
+    writeStorage(CLIENT_KEY, GUEST_CLIENT_ID)
+    try {
+      window.sessionStorage.removeItem(ROLE_KEY)
+    } catch {
+      // Хранилище недоступно — выбор и так живёт до перезагрузки.
+    }
   }
 
   return {
@@ -118,6 +151,7 @@ export const useAppStore = defineStore('app', () => {
     metaStatus,
     metaError,
     clientId,
+    canPickClient,
     role,
     sessionId,
     clients,
@@ -128,5 +162,6 @@ export const useAppStore = defineStore('app', () => {
     loadPending,
     setClient,
     setRole,
+    resetForViewer,
   }
 })

@@ -2,17 +2,21 @@
 // Ошибка внутри блока раздела: что не загрузилось, текст сервера, номер для разбора и повтор.
 // Остальные блоки страницы продолжают работать («Состояния экранов»).
 import { computed } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import { CircleAlert, LogIn, RotateCcw } from 'lucide-vue-next'
 import { type ApiError, isAuthError } from '@/lib/apiError'
+import { LOGIN_PATH } from '@/lib/auth'
 
 const props = defineProps<{ error: ApiError; title: string }>()
 defineEmits<{ retry: [] }>()
 
 /** 404 — эндпоинт ещё не подключён на сервере: так и пишем, без «что-то пошло не так». */
 const notYet = computed(() => props.error.status === 404)
-/** 401 — экран менеджера без входа: перезагрузка страницы бэк-офиса вызывает окно входа браузера. */
+/** 401 — экран бэк-офиса без входа сотрудника: на страницу входа с возвратом сюда. */
 const needsLogin = computed(() => isAuthError(props.error))
-const login = () => window.location.reload()
+const route = useRoute()
+const router = useRouter()
+const login = () => void router.push({ path: LOGIN_PATH, query: { returnTo: route.fullPath } })
 </script>
 
 <template>

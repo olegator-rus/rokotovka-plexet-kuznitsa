@@ -15,6 +15,8 @@ func (h *Handler) Search(c *fiber.Ctx) error {
 	}
 	// Сессия — только выданная сервером (session.go); самодельная пишется как «без сессии».
 	req.SessionID = h.requestSession(c, req.SessionID)
+	// Клиент витрины: у покупателя — из сессии, у гостя — guest, у сотрудника — выбранный.
+	req.ClientID = h.storefrontClient(c, req.ClientID)
 	// Адрес покупателя — для суточной квоты разборов LLM (c.IP(): за Caddy — X-Real-IP от доверенного прокси).
 	resp, err := h.services.Search(services.WithClientIP(c.UserContext(), c.IP()), TraceID(c), req)
 	if err != nil {
@@ -32,6 +34,7 @@ func (h *Handler) Meta(c *fiber.Ctx) error {
 	if h.verifySession(m.Session) == "" {
 		m.Session = h.issueSession()
 	}
+	m.Viewer = h.viewerOut(c)
 	return c.JSON(m)
 }
 
@@ -42,6 +45,7 @@ func (h *Handler) Events(c *fiber.Ctx) error {
 		return err
 	}
 	req.SessionID = h.requestSession(c, req.SessionID)
+	req.ClientID = h.storefrontClient(c, req.ClientID)
 	if err := h.services.RecordEvent(c.UserContext(), req); err != nil {
 		return err
 	}

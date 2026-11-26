@@ -7,6 +7,7 @@ import (
 	"kuznica/api/in"
 	"kuznica/api/out"
 	"kuznica/api/pkg/errs"
+	"kuznica/api/services"
 
 	"github.com/gofiber/fiber/v2"
 )
@@ -15,6 +16,13 @@ import (
 // витрине («До / После»), но реплей отложенной недели собран из журнала поисков: без входа в бэк-офис его
 // запросы отдаются без текстов и id (в id — клиент), только агрегаты и число изменений (ревью-2 n7).
 func (h *Handler) Evaluations(c *fiber.Ctx) error {
+	if c.Query("set") == domain.EvalSetPanel { // прогон панели по префиксам
+		resp, err := h.services.PanelEvaluations(c.UserContext())
+		if err != nil {
+			return err
+		}
+		return c.JSON(resp)
+	}
 	resp, err := h.services.Evaluations(c.UserContext(), c.Query("set"))
 	if err != nil {
 		return err
@@ -62,7 +70,8 @@ func (h *Handler) Analytics(c *fiber.Ctx) error {
 		}
 		days = n
 	}
-	resp, err := h.services.Analytics(c.UserContext(), days, c.Query("role"))
+	// Роль блоков — из сессии; «Смотреть как» (любая роль) — только руководителю и скриптам.
+	resp, err := h.services.Analytics(c.UserContext(), days, services.ViewRole(actorRole(c), c.Query("role")))
 	if err != nil {
 		return err
 	}

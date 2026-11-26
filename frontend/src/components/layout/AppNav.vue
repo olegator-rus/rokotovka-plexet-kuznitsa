@@ -3,10 +3,15 @@
 import { RouterLink, useRoute } from 'vue-router'
 import { storeToRefs } from 'pinia'
 import { plural } from '@/lib/format'
+import { computed } from 'vue'
 import { useAppStore } from '@/stores/app'
+import { useAuthStore } from '@/stores/auth'
 import { SECTIONS } from './sections'
 
 const { pendingProposals } = storeToRefs(useAppStore())
+const auth = useAuthStore()
+/** Бэк-офис — только сотрудникам; гостю и покупателю — витрина. */
+const sections = computed(() => SECTIONS.filter((s) => !s.backoffice || auth.staff))
 const route = useRoute()
 /** Вложенные страницы раздела (/searchops/runs/:id) подсвечивают свой раздел. */
 const inSection = (path: string) => route.path === path || route.path.startsWith(`${path}/`)
@@ -17,7 +22,7 @@ defineEmits<{ navigate: [] }>()
 <template>
   <nav aria-label="Разделы">
     <ul class="app-nav">
-      <li v-for="s in SECTIONS" :key="s.path">
+      <li v-for="s in sections" :key="s.path">
         <RouterLink
           :to="s.path"
           :class="['app-nav__link', { 'app-nav__link--active': inSection(s.path) }]"

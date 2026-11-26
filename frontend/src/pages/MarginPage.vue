@@ -13,6 +13,7 @@ import {
   CircleAlert,
   CircleCheck,
   LoaderCircle,
+  Lock,
   RotateCcw,
   ShieldCheck,
 } from 'lucide-vue-next'
@@ -57,12 +58,17 @@ import {
 } from '@/lib/margin'
 import { indexLabel4, marginProposalView, proposalMatch } from '@/lib/killer'
 import { useAppStore } from '@/stores/app'
+import { useAuthStore } from '@/stores/auth'
+import { AREA, denyMessage } from '@/lib/auth'
 
 const LAST_SIM_BASE = 'plexet.margin.lastSim'
 
 const route = useRoute()
 const router = useRouter()
 const app = useAppStore()
+// Применение политики маржи — зона менеджера e-com (и руководителя)
+const auth = useAuthStore()
+const applyDeny = computed(() => (auth.can(AREA.margin) ? '' : denyMessage(AREA.margin)))
 const toast = useToast()
 
 const qs = (k: string) => (typeof route.query[k] === 'string' ? (route.query[k] as string) : '')
@@ -498,11 +504,15 @@ async function onChanged(
             <button
               type="button"
               class="btn btn--primary"
-              :disabled="!changed || !point || noMargin"
+              :disabled="!changed || !point || noMargin || !!applyDeny"
+              :title="applyDeny || undefined"
               @click="askApply"
             >
               Применить вес {{ weightLabel(selected) }}
             </button>
+            <span v-if="applyDeny" class="t-xs t-muted margin__deny">
+              <Lock :size="12" aria-hidden="true" /> {{ applyDeny }}
+            </span>
             <span class="t-xs t-muted">
               Действует политика v{{ policy.data.value.version }}, вес {{ weightLabel(active) }}
             </span>
@@ -750,6 +760,11 @@ async function onChanged(
   flex-wrap: wrap;
   align-items: center;
   gap: var(--space-2) var(--space-3);
+}
+.margin__deny {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
 }
 .margin__running {
   display: flex;

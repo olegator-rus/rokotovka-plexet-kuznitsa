@@ -127,7 +127,7 @@ func TestBackofficeOpenWithoutToken(t *testing.T) {
 func TestEvaluationsHoldoutRedacted(t *testing.T) {
 	h := &Handler{token: hashToken(testBackofficeToken)}
 	app := fiber.New()
-	app.Get("/x", func(c *fiber.Ctx) error {
+	app.Get("/x", h.Identify, func(c *fiber.Ctx) error {
 		if h.backofficeAuthorized(c) {
 			return c.SendString("in")
 		}

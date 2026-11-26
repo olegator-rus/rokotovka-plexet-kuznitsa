@@ -432,7 +432,7 @@ func (s *Services) saveSearch(req in.SearchRequest, normalized string, resp *out
 		RequestID: tr.RequestID, Query: req.Query, Normalized: normalized, Route: tr.Route, ParseSource: tr.ParseSource,
 		Config: tr.Config, ResultsCount: resp.Total, RulesVersion: tr.RulesVersion, CatalogVersion: tr.CatalogVersion,
 		ClientID: optional(req.ClientID), SessionID: optional(req.SessionID), TotalMs: int(math.Round(tr.TotalMs)),
-		Source: domain.EventSourceLive,
+		Source: domain.EventSourceLive, IntentID: intentForLog(req.IntentID),
 	}
 	if req.Source == domain.EventSourceCompare {
 		ev.Source = domain.EventSourceCompare

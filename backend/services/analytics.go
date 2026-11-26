@@ -1,6 +1,7 @@
 package services
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
@@ -106,6 +107,11 @@ func (s *Services) Analytics(ctx context.Context, days int, role string) (*out.A
 		resp.Effect = eff
 	}
 	resp.Commerce = s.analyticsCommerce(ctx, role, days, since, sum.Total.Searches)
+	intents, err := s.intentAnalytics(ctx, since)
+	if err != nil {
+		return nil, err
+	}
+	resp.Intents = intents
 	return resp, nil
 }
 
@@ -488,6 +494,10 @@ func logRows(evs []domain.LogEvent) ([]domain.SearchEvent, []domain.BehaviorEven
 		case slices.Contains(domain.BehaviorEventTypes, e.Type):
 			ev := domain.BehaviorEvent{
 				Type: e.Type, SessionID: &session, ClientID: e.ClientID, Position: e.Position, Source: domain.EventSourceMockLog,
+				IntentID: optional(e.IntentID),
+			}
+			if p := bytes.TrimSpace(e.Payload); len(p) > 0 && !bytes.Equal(p, []byte("null")) {
+				ev.Payload = domain.JSONB(p)
 			}
 			if e.ProductID != "" {
 				pid := e.ProductID

@@ -31,9 +31,14 @@ type SearchResponse struct {
 	Companions *CompanionBlock `json:"companions"`
 	Solution   *Solution       `json:"solution"`
 	// Upgrade — «Старшая редакция» рядом с выдачей; null — связи upgrade нет или флаг решений выключен.
-	Upgrade *Upgrade      `json:"upgrade"`
-	Facets  []Facet       `json:"facets"`
-	Trace   *domain.Trace `json:"trace"`
+	Upgrade *Upgrade `json:"upgrade"`
+	Facets  []Facet  `json:"facets"`
+	// Контур выдачи, страница результатов (§11.5, results.go): только при FEATURE_RESULTS_V3, иначе полей нет.
+	Counts      *ResultCounts `json:"counts,omitempty"`
+	Refinements []Refinement  `json:"refinements,omitempty"`
+	Sort        *ResultSort   `json:"sort,omitempty"`
+	Group       string        `json:"group,omitempty"` // family | none
+	Trace       *domain.Trace `json:"trace"`
 }
 
 // Complement — сопутствующий товар: самая популярная позиция связанного семейства.
@@ -104,6 +109,9 @@ type SearchItem struct {
 	Compatibility *ItemCompatibility `json:"compatibility"`
 	Required      []Companion        `json:"required"`
 	Variants      []SearchItem       `json:"variants,omitempty"`
+	// Контур выдачи (§11.5): цена «от» по семейству (минимум по допустимым вариантам с ценой) и атрибуты карточки.
+	PriceFromRub *float64   `json:"price_from_rub,omitempty"`
+	Attrs        *ItemAttrs `json:"attrs,omitempty"`
 }
 
 // ItemCompatibility — совместимость позиции с моделью из запроса.
@@ -209,6 +217,8 @@ type Facet struct {
 type FacetValue struct {
 	Value any `json:"value"`
 	Count int `json:"count"`
+	// Label — подпись значения (лицензионные фасеты §11.5: «Продление», «12 мес»); "" — подпись = значение.
+	Label string `json:"label,omitempty"`
 }
 
 // Relaxed — ослабленное условие и объяснение покупателю.
@@ -240,6 +250,8 @@ type Meta struct {
 	// Session — подписанный сервером токен сессии покупателя (handlers/session.go): фронт шлёт его в session_id
 	// поиска и событий; самодельные сессии в журнал не попадают.
 	Session string `json:"session"`
+	// Viewer — кто смотрит сайт: роль, имя, клиент покупателя из сессии.
+	Viewer Viewer `json:"viewer"`
 	// Features — флаги контура коммерции (FEATURE_*): фронт не показывает блоки выключенных возможностей.
 	Features Features `json:"features"`
 	// Synthetic — что в данных придумано (catalog.synthetic) → плашка «Синтетические данные»; [] — нет.
@@ -252,6 +264,15 @@ type Features struct {
 	Companions   bool `json:"companions"`
 	MarginPolicy bool `json:"margin_policy"`
 	Solutions    bool `json:"solutions"`
+	// ResultsV3 — страница результатов контура выдачи (§11.5): фасеты лицензий, сортировки, группировка.
+	ResultsV3 bool `json:"results_v3"`
+	// Панель поиска контура выдачи (§11.2–§11.3): панель, товары в ней, маржа как разрешение равенства, блок рекомендаций;
+	// PanelViewed — основание «недавно просмотренное» (по умолчанию выкл.).
+	Panel         bool `json:"panel"`
+	PanelProducts bool `json:"panel_products"`
+	PanelMargin   bool `json:"panel_margin"`
+	PanelRecs     bool `json:"panel_recs"`
+	PanelViewed   bool `json:"panel_viewed"`
 }
 
 // LLMState — режим модели и бюджет (GET /api/meta → llm, POST /api/admin/llm-mode).

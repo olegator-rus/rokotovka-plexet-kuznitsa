@@ -39,7 +39,7 @@ test('networkError и isApiError', () => {
   assert.equal(isApiError(new Error('x')), false)
 })
 
-test('parseApiError: 401 — понятное «нужен вход менеджера» вместо текста про токен', () => {
+test('parseApiError: 401 — понятное «нужен вход сотрудника» вместо текста про токен', () => {
   const e = parseApiError(401, {
     error: {
       code: 'UNAUTHORIZED',

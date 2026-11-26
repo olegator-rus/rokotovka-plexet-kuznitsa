@@ -7,6 +7,8 @@ export interface EventContext {
   requestId: string | null
   sessionId: string
   clientId: string | null
+  /** Контур выдачи (§11.1): намерение; без него поле в событие не пишется. */
+  intentId?: string | null
 }
 
 export interface EventFields {
@@ -28,6 +30,7 @@ export function buildEvent(
     product_id: target.productId ?? null,
     position: target.position ?? null,
     payload: { ...(target.payload ?? {}) },
+    ...(ctx.intentId ? { intent_id: ctx.intentId } : {}),
   }
 }
 

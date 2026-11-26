@@ -310,7 +310,17 @@ func (s *Services) evalSearch(ctx context.Context, runID, cfg string, q domain.E
 			o.Ms = resp.Trace.TotalMs
 		}
 	}
+	// Метрики считаются по семействам (идеал — оценка семейства, evalScoreQuery): из выдачи берётся первая позиция
+	// каждого семейства. Иначе выдача без свёртки (точный артикул в контуре выдачи показывает варианты подряд) засчитывала бы
+	// одно семейство несколько раз и давала NDCG > 1.
+	seenFam := map[string]bool{}
 	for _, it := range resp.Items {
+		if it.FamilyID != "" {
+			if seenFam[it.FamilyID] {
+				continue
+			}
+			seenFam[it.FamilyID] = true
+		}
 		o.Items = append(o.Items, evalItem{ProductID: it.ProductID, FamilyID: it.FamilyID, Group: it.Group})
 	}
 	return o

@@ -15,11 +15,16 @@ import UiDialog from '@/components/ui/UiDialog.vue'
 import { useToast } from '@/components/ui/useToast'
 import { useResource } from '@/composables/useResource'
 import { isApiError, MSG_UNKNOWN } from '@/lib/apiError'
+import { AREA, denyMessage } from '@/lib/auth'
+import { useAuthStore } from '@/stores/auth'
 import { formatDateTime } from '@/lib/format'
 import { authorLabel, effectLine, sortVersions, versionDescription } from '@/lib/proposals'
 import { useAppStore } from '@/stores/app'
 
 const app = useAppStore()
+// Откат правил поиска — зона менеджера e-com (и руководителя)
+const auth = useAuthStore()
+const rollbackDeny = computed(() => (auth.can(AREA.rules) ? '' : denyMessage(AREA.rules)))
 const router = useRouter()
 const route = useRoute()
 const toast = useToast()
@@ -168,10 +173,17 @@ async function confirmRollback() {
                   v-if="v.version === active && v.version > 1"
                   type="button"
                   class="btn btn--secondary btn--sm ver__rollback"
+                  :disabled="!!rollbackDeny"
+                  :title="rollbackDeny || undefined"
                   @click="askRollback(v)"
                 >
                   <Undo2 :size="14" aria-hidden="true" /> Откатить
                 </button>
+                <span
+                  v-if="v.version === active && v.version > 1 && rollbackDeny"
+                  class="t-xs t-muted"
+                  >{{ rollbackDeny }}</span
+                >
               </header>
               <p v-if="v.description && v.version > 1">{{ versionDescription(v) }}</p>
               <PatchDiff

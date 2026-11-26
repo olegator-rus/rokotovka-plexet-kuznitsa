@@ -51,6 +51,8 @@ export interface CompanionBlock {
 export interface FacetValue {
   value: string | number | boolean
   count: number
+  /** Контур выдачи (§11.5): подпись значения лицензионного фасета («Продление», «1 год»). */
+  label?: string
 }
 
 export interface Facet {
@@ -79,6 +81,8 @@ export interface Features {
   companions: boolean
   margin_policy: boolean
   solutions: boolean
+  /** Контур выдачи: страница результатов (§11.5). */
+  results_v3?: boolean
 }
 
 /** Условие слота на позицию другого слота («ОС, если ноутбук без ОС»). */

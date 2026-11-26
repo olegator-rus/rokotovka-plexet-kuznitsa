@@ -34,8 +34,13 @@ import {
   sourceLabel,
 } from '@/lib/relations'
 import { useAppStore } from '@/stores/app'
+import { useAuthStore } from '@/stores/auth'
+import { AREA, denyMessage } from '@/lib/auth'
 
 const app = useAppStore()
+// Откат справочника связей — зона продукт-менеджера (и руководителя)
+const auth = useAuthStore()
+const rollbackDeny = computed(() => (auth.can(AREA.relations) ? '' : denyMessage(AREA.relations)))
 const toast = useToast()
 
 const rel = useResource((opts) => getRelations({}, opts))
@@ -313,10 +318,17 @@ const diffWord = (op: string) =>
               v-if="v.version === active && v.version > 1"
               type="button"
               class="btn btn--secondary btn--sm rv__rb"
+              :disabled="!!rollbackDeny"
+              :title="rollbackDeny || undefined"
               @click="askRollback(v)"
             >
               <Undo2 :size="14" aria-hidden="true" /> Откатить
             </button>
+            <span
+              v-if="v.version === active && v.version > 1 && rollbackDeny"
+              class="t-xs t-muted"
+              >{{ rollbackDeny }}</span
+            >
           </header>
           <p v-if="v.description" class="t-sm">
             {{ versionDescription({ description: v.description }) }}
@@ -411,6 +423,8 @@ const diffWord = (op: string) =>
               v-if="v.version === active && v.version > 1"
               type="button"
               class="btn btn--secondary btn--sm"
+              :disabled="!!rollbackDeny"
+              :title="rollbackDeny || undefined"
               @click="askRollback(v, openRel.id)"
             >
               <Undo2 :size="14" aria-hidden="true" /> Откатить к v{{ v.version - 1 }}

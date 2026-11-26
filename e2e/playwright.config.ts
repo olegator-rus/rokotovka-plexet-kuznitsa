@@ -2,8 +2,8 @@
 // Нужны поднятые API 127.0.0.1:8088 и эмбеддер 8089 (make dev / make ml). Vite на 5177 поднимается сам,
 // если не запущен (reuseExistingServer), и гасится Playwright по окончании — по своему процессу, не по порту.
 import { defineConfig, devices } from '@playwright/test'
+import { AUTH_STATE, BASE_URL } from './tests/auth-state'
 
-const BASE_URL = process.env.E2E_BASE_URL ?? 'http://localhost:5177'
 const destructive = process.env.E2E_DESTRUCTIVE === '1'
 
 export default defineConfig({
@@ -21,6 +21,8 @@ export default defineConfig({
   grepInvert: destructive ? undefined : /@destructive/,
   use: {
     baseURL: BASE_URL,
+    // Вход: сценарии идут под демо-аккаунтом руководителя (global-setup); гость — storageState пустой.
+    storageState: AUTH_STATE,
     locale: 'ru-RU',
     timezoneId: 'Europe/Moscow',
     colorScheme: 'dark',

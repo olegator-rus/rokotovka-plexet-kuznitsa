@@ -1,5 +1,6 @@
 <script setup lang="ts">
-// «Аналитика» (F30 — блок «Допродажи» у каждой роли). Период — в адресе (?days=30), роль — из шапки. Общие для всех ролей
+// «Аналитика» (F30 — блок «Допродажи» у каждой роли). Период — в адресе (?days=30), роль — из входа
+//; руководитель выбирает «Смотреть как» и видит блоки любой роли. Общие для всех ролей
 // плитки и воронка (у руководителя — свой верхний ряд); ниже блок роли: менеджер e-com — проблемные
 // запросы, продукт-менеджер — спрос без предложения, контент-менеджер — карточки и термины. Каждое число открывает объяснение: из каких событий и как посчитано.
 import { computed, ref, watch } from 'vue'
@@ -19,8 +20,9 @@ import ProductRole from '@/components/analytics/ProductRole.vue'
 import UiSelect from '@/components/ui/UiSelect.vue'
 import { useResource } from '@/composables/useResource'
 import { formatInt, formatPercent, plural } from '@/lib/format'
-import { ROLES } from '@/lib/roles'
+import { ROLES, isRoleId } from '@/lib/roles'
 import { useAppStore } from '@/stores/app'
+import { useAuthStore } from '@/stores/auth'
 
 const PERIODS = [
   { value: '7', label: '7 дней' },
@@ -33,6 +35,14 @@ const router = useRouter()
 const app = useAppStore()
 const pending = computed(() => app.pendingProposals)
 const { role } = storeToRefs(app)
+const auth = useAuthStore()
+const ROLE_OPTIONS = ROLES.map((r) => ({ value: r.id, label: r.label }))
+const viewAs = computed<string>({
+  get: () => role.value,
+  set: (v) => {
+    if (isRoleId(v)) app.setRole(v)
+  },
+})
 
 const days = computed<string>({
   get: () => {
@@ -154,7 +164,16 @@ const sourcesLine = computed(() => {
           <template v-if="sourcesLine"> · поисков: {{ sourcesLine }}</template>
         </p>
       </div>
-      <UiSelect v-model="days" :options="PERIODS" label="Период" prefix="Период" />
+      <div class="analytics__controls">
+        <UiSelect
+          v-if="auth.viewAs"
+          v-model="viewAs"
+          :options="ROLE_OPTIONS"
+          label="Смотреть как"
+          prefix="Смотреть как"
+        />
+        <UiSelect v-model="days" :options="PERIODS" label="Период" prefix="Период" />
+      </div>
     </header>
 
     <!-- Загрузка -->
@@ -257,6 +276,12 @@ const sourcesLine = computed(() => {
   display: flex;
   flex-direction: column;
   gap: var(--space-1);
+}
+.analytics__head > .analytics__controls {
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
 }
 .analytics__tiles {
   display: grid;

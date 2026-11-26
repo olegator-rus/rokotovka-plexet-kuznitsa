@@ -1,5 +1,8 @@
-// Роли бэк-офиса («Постоянные элементы»): меняют набор блоков в Аналитике, не права доступа.
-export type RoleId = 'ecom' | 'product' | 'content' | 'head'
+// Роли бэк-офиса («Постоянные элементы»): роль приходит из сессии входа, задаёт набор блоков
+// «Аналитики» и зону решений (lib/auth.ts). Список — для «Смотреть как» у руководителя.
+import type { StaffRole } from './auth.ts'
+
+export type RoleId = StaffRole
 
 export const ROLES: readonly { id: RoleId; label: string }[] = [
   { id: 'ecom', label: 'Менеджер e-com' },

@@ -16,15 +16,16 @@
 		-Server
 	}
 
-	# Вход в бэк-офис (ревью B2): экраны менеджера и их API — за basic-auth. Пароль — BACKOFFICE_TOKEN, в Caddy —
-	# его bcrypt-хэш в base64 (BACKOFFICE_HASH, команда — в .env.example). После входа браузер сам шлёт
-	# Authorization на все запросы этого origin; API сверяет пароль с тем же токеном (handlers/middleware_backoffice.go)
-	# и закрывает те же пути и без Caddy. Витрина покупателя (/search, /compare, /api/search, /api/events,
-	# /api/suggest, /api/meta) — без входа.
-	@backoffice path /analytics* /searchops* /changes* /costs* /api/analytics* /api/traces/* /api/costs* /api/effect* /api/agent/* /api/proposals* /api/configs* /api/catalog/* /api/admin/* /api/evaluations/run
-	basic_auth @backoffice bcrypt "PLEXeT SearchOps" {
-		{$BACKOFFICE_USER:manager} {$BACKOFFICE_HASH}
-	}
+	# Вход в бэк-офис — на сайте: страница /login, сессия в HttpOnly-cookie, права по ролям проверяет
+	# API (handlers/middleware_backoffice.go, handlers/auth.go). basic_auth Caddy больше не нужен и выключен: окно
+	# пароля браузера перекрывало бы страницу входа. Скрипты ходят в API с Authorization: Bearer <BACKOFFICE_TOKEN>.
+	# Второй замок на стенде (например, до показа жюри) — раскомментировать блок ниже и задать BACKOFFICE_HASH
+	# (bcrypt-хэш BACKOFFICE_TOKEN в base64, команда — в .env.example): тогда экраны бэк-офиса спросят ещё и пароль
+	# Caddy, а API примет его как токен.
+	# @backoffice path /analytics* /searchops* /changes* /costs* /margin* /api/analytics* /api/traces/* /api/costs* /api/effect* /api/agent/* /api/proposals* /api/configs* /api/relations* /api/margin/* /api/quotes /api/catalog/* /api/admin/* /api/evaluations/run
+	# basic_auth @backoffice bcrypt "PLEXeT SearchOps" {
+	# 	{$BACKOFFICE_USER:manager} {$BACKOFFICE_HASH}
+	# }
 
 	# API → Go (Fiber). X-Real-IP — настоящий адрес клиента: API читает его только от доверенного прокси.
 	handle /api/* {

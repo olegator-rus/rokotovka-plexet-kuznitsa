@@ -178,7 +178,7 @@ test.describe('Киллер-фичи П2 (подмены)', () => {
 
   for (const role of ['ecom', 'product', 'content', 'head'] as const) {
     test(`F30: «Допродажи» для роли ${role}`, async ({ page }) => {
-      await page.addInitScript((r) => window.localStorage.setItem('plexet.role', r), role)
+      await page.addInitScript((r) => window.sessionStorage.setItem('plexet.role', r), role)
       await page.route(/\/api\/analytics\?.*/, async (r) => {
         const resp = await r.fetch()
         const body = await resp.json()
@@ -215,7 +215,7 @@ test.describe('Киллер-фичи П2 (подмены)', () => {
     await page.route(/\/api\/margin\/policy$/, (r) => json(r, marginPolicy))
     await page.route(/\/api\/margin\/simulate$/, (r) => json(r, marginSimCategory))
     await page.route(new RegExp(`/api/proposals/${margin.id}$`), (r) => json(r, margin))
-    await page.addInitScript(() => window.localStorage.setItem('plexet.role', 'product'))
+    await page.addInitScript(() => window.sessionStorage.setItem('plexet.role', 'product'))
     await page.setViewportSize({ width: 360, height: 780 })
     for (const [url, name] of [
       ['/searchops?tab=queue', 'killer-f27-queue-360'],

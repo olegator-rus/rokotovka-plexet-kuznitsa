@@ -18,6 +18,11 @@ type SearchRequest struct {
 	Source string `json:"source"`
 	// Filters — фасеты контура коммерции; учитываться начнут с треком оборудования.
 	Filters []Filter `json:"filters"`
+	// Контур выдачи, страница результатов (§11.5): sort — recommended (пусто) | relevance | price_asc | price_desc |
+	// delivery; group — family (пусто) | none; intent_id — поисковое намерение (§11.1), только для журнала.
+	Sort     string `json:"sort"`
+	Group    string `json:"group"`
+	IntentID string `json:"intent_id"`
 }
 
 // Filter — условие фасета: {"key": "ram_gb", "op": "gte", "value": 32}; range — value..value2.
@@ -43,4 +48,6 @@ type EventRequest struct {
 	ProductID string          `json:"product_id"`
 	Position  *int            `json:"position"`
 	Payload   json.RawMessage `json:"payload"`
+	// IntentID — поисковое намерение, обязателен у событий контура выдачи.
+	IntentID string `json:"intent_id"`
 }

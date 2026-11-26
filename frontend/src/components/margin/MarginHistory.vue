@@ -10,6 +10,8 @@ import { isApiError, MSG_UNKNOWN } from '@/lib/apiError'
 import { formatDateTime } from '@/lib/format'
 import { weightLabel } from '@/lib/margin'
 import { authorLabel } from '@/lib/proposals'
+import { AREA, denyMessage } from '@/lib/auth'
+import { useAuthStore } from '@/stores/auth'
 
 const props = defineProps<{ versions: MarginPolicyVersion[]; active: number }>()
 const emit = defineEmits<{ changed: [version: number] }>()
@@ -51,6 +53,9 @@ async function confirm() {
     err.value = isApiError(e) ? e.message : MSG_UNKNOWN
   }
 }
+// Возврат версии политики маржи — зона менеджера e-com (и руководителя)
+const auth = useAuthStore()
+const deny = computed(() => (auth.can(AREA.margin) ? '' : denyMessage(AREA.margin)))
 </script>
 
 <template>
@@ -82,6 +87,8 @@ async function confirm() {
           v-if="v.version !== active"
           type="button"
           class="btn btn--secondary btn--sm hist__btn"
+          :disabled="!!deny"
+          :title="deny || undefined"
           @click="ask(v)"
         >
           <Undo2 :size="14" aria-hidden="true" /> Вернуть

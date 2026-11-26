@@ -17,14 +17,15 @@ export interface ApiError {
   message: string
   traceId?: string
   fields?: FieldProblem[]
+  /** 429: через сколько секунд повторить (заголовок Retry-After). */
+  retryAfter?: number
 }
 
 export const MSG_NETWORK = 'Нет соединения. Проверьте интернет и повторите'
 export const MSG_SERVER = 'Что-то пошло не так на сервере. Повторите позже'
 export const MSG_UNKNOWN = 'Запрос не выполнен. Повторите'
-/** 401 на стенде: экраны менеджера за входом (basic_auth в Caddy, BACKOFFICE_TOKEN на сервере). */
-export const MSG_AUTH =
-  'Нужен вход менеджера: обновите страницу — браузер спросит логин и пароль бэк-офиса'
+/** 401: экраны бэк-офиса — только после входа сотрудника. */
+export const MSG_AUTH = 'Нужен вход сотрудника: войдите и повторите'
 
 function isObject(v: unknown): v is Record<string, unknown> {
   return typeof v === 'object' && v !== null && !Array.isArray(v)
@@ -44,10 +45,16 @@ export function networkError(): ApiError {
 }
 
 /** Ответ с ошибкой → ApiError. Тело не по контракту (прокси, HTML) — общий текст по статусу. */
-export function parseApiError(status: number, body: unknown): ApiError {
+export function parseApiError(
+  status: number,
+  body: unknown,
+  retryAfter?: number | null,
+  /** 401 входа (/api/auth/*): текст сервера — для человека («Неверный логин или пароль»). */
+  authCall = false,
+): ApiError {
   const env = isObject(body) && isObject(body.error) ? body.error : undefined
   // Текст сервера про токен — для скриптов; человеку — что сделать в браузере.
-  if (status === 401)
+  if (status === 401 && !authCall)
     return {
       status,
       code: 'UNAUTHORIZED',
@@ -55,18 +62,21 @@ export function parseApiError(status: number, body: unknown): ApiError {
       traceId: typeof env?.traceId === 'string' ? env.traceId : undefined,
     }
   const fallback = status >= 500 ? MSG_SERVER : MSG_UNKNOWN
-  return {
+  const err: ApiError = {
     status,
     code: typeof env?.code === 'string' ? env.code : `HTTP_${status}`,
     message: typeof env?.message === 'string' && env.message ? env.message : fallback,
     traceId: typeof env?.traceId === 'string' ? env.traceId : undefined,
     fields: fieldProblems(env?.details),
   }
+  if (status === 429 && typeof retryAfter === 'number' && retryAfter > 0)
+    err.retryAfter = retryAfter
+  return err
 }
 
 export function isApiError(e: unknown): e is ApiError {
   return isObject(e) && typeof e.status === 'number' && typeof e.message === 'string'
 }
 
-/** Нужен вход менеджера (401 от API бэк-офиса). */
+/** Нужен вход сотрудника (401 от API бэк-офиса). */
 export const isAuthError = (e: ApiError | null | undefined) => e?.status === 401

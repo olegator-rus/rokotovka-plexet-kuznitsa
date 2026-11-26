@@ -9,14 +9,23 @@ func RegisterRoutes(app *fiber.App, h *Handler) {
 
 	// Плоскость приложения: фронт ходит сюда через тот же origin (Caddy в проде, прокси Vite в dev).
 	// NoStore — на всех ответах; лимит частоты — до всего остального; Origin — на всех мутациях, до разбора
-	// маршрута и тела; вход в бэк-офис — на всём, кроме витрины покупателя (BACKOFFICE_TOKEN,
-	// middleware_backoffice.go); срок обработки — на всё, кроме потока SSE.
-	api := app.Group("/api", NoStore, RateLimit(h.rate), h.Origin, h.Backoffice, RequestDeadline(APIDeadline))
+	// маршрута и тела; кто смотрит — cookie входа и токен (auth.go); вход в бэк-офис — на всём, кроме витрины
+	// покупателя и входа (middleware_backoffice.go); срок обработки — на всё, кроме потока SSE.
+	api := app.Group("/api", NoStore, RateLimit(h.rate), h.Origin, h.Identify, h.Backoffice, RequestDeadline(APIDeadline))
+
+	// Вход по ролям.
+	api.Get("/auth/config", h.AuthConfig)
+	api.Get("/auth/me", h.AuthMe)
+	api.Post("/auth/login", h.Login)
+	api.Post("/auth/demo-login", h.DemoLogin)
+	api.Post("/auth/demo-switch", h.DemoSwitch)
+	api.Post("/auth/logout", h.Logout)
 
 	api.Get("/health", h.Health)
 	api.Get("/meta", h.Meta)
 	api.Post("/search", h.Search)
 	api.Get("/suggest", h.Suggest)
+	api.Get("/suggest/recommendations", h.SuggestRecommendations)
 	api.Post("/events", h.Events)
 	api.Post("/catalog/import", h.ImportCatalog)
 	api.Get("/costs", h.Costs)
@@ -59,6 +68,7 @@ func RegisterRoutes(app *fiber.App, h *Handler) {
 	// Контур коммерции: спецификация и запрос КП; POST — витрина, GET — бэк-офис.
 	api.Post("/quotes", h.CreateQuote)
 	api.Get("/quotes", h.Quotes)
+	api.Get("/quotes/mine", h.MyQuotes) // свои КП покупателя
 	// Компаньоны к позиции спецификации (витрина).
 	api.Get("/companions", h.ProductCompanions)
 

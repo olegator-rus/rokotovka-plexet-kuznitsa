@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"kuznica/api/in"
+	"kuznica/api/services"
 
 	"github.com/gofiber/fiber/v2"
 )
@@ -19,6 +20,9 @@ func (h *Handler) MarginPolicy(c *fiber.Ctx) error {
 
 // ApplyMarginPolicy — POST /api/margin/policy: новое положение рычага — новая версия.
 func (h *Handler) ApplyMarginPolicy(c *fiber.Ctx) error {
+	if err := requireDecision(c, services.AreaMargin); err != nil {
+		return err
+	}
 	var req in.MarginPolicyRequest
 	if err := bindBody(c, &req); err != nil {
 		return err
@@ -32,6 +36,9 @@ func (h *Handler) ApplyMarginPolicy(c *fiber.Ctx) error {
 
 // RollbackMarginPolicy — POST /api/margin/policy/rollback.
 func (h *Handler) RollbackMarginPolicy(c *fiber.Ctx) error {
+	if err := requireDecision(c, services.AreaMargin); err != nil {
+		return err
+	}
 	var req in.MarginRollbackRequest
 	if err := bindBody(c, &req); err != nil {
 		return err

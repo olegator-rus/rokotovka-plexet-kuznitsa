@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"kuznica/api/in"
+	"kuznica/api/services"
 
 	"github.com/gofiber/fiber/v2"
 )
@@ -29,6 +30,9 @@ func (h *Handler) Proposal(c *fiber.Ctx) error {
 // ApproveProposal — POST /api/proposals/{id}/approve {"comment"}: правка → новая версия правил; задача —
 // «взята в работу».
 func (h *Handler) ApproveProposal(c *fiber.Ctx) error {
+	if err := h.requireProposalRole(c); err != nil {
+		return err
+	}
 	var req in.ApproveRequest
 	if len(c.Body()) > 0 {
 		if err := bindBody(c, &req); err != nil {
@@ -44,6 +48,9 @@ func (h *Handler) ApproveProposal(c *fiber.Ctx) error {
 
 // RejectProposal — POST /api/proposals/{id}/reject {"reason","comment"}: причина обязательна.
 func (h *Handler) RejectProposal(c *fiber.Ctx) error {
+	if err := h.requireProposalRole(c); err != nil {
+		return err
+	}
 	var req in.RejectRequest
 	if err := bindBody(c, &req); err != nil {
 		return err
@@ -53,4 +60,18 @@ func (h *Handler) RejectProposal(c *fiber.Ctx) error {
 		return err
 	}
 	return c.JSON(res)
+}
+
+// requireProposalRole — решение по предложению принимает его роль (или руководитель, или скрипт по токену):
+// иначе 403 «Это решение принимает <роль>» до разбора тела и без изменения состояния.
+func (h *Handler) requireProposalRole(c *fiber.Ctx) error {
+	role := actorRole(c)
+	if role == services.RoleHead || role == services.RoleSystem {
+		return nil
+	}
+	owner, err := h.services.ProposalRole(c.UserContext(), c.Params("id"))
+	if err != nil {
+		return err
+	}
+	return requireDecision(c, owner)
 }

@@ -18,7 +18,7 @@ import (
 // прогон набора через сервис поиска, таблица в stdout, запись в evaluations и JSON в --out.
 func runEval(ctx context.Context, log *zap.Logger, svc *services.Services, args []string) {
 	fs := flag.NewFlagSet("eval", flag.ExitOnError)
-	set := fs.String("set", "test", "набор: tune | test | regression | demo | holdout_week (реплей отложенной недели журнала)")
+	set := fs.String("set", "test", "набор: tune | test | regression | demo | holdout_week (реплей отложенной недели журнала) | panel (префиксы панели)")
 	configs := fs.String("configs", strings.Join(services.DefaultEvalConfigs, ","), "конфигурации через запятую")
 	outDir := fs.String("out", "../data/eval", "куда записать JSON прогона; пусто — не записывать")
 	noPersist := fs.Bool("no-persist", false, "не записывать результат в базу")
@@ -28,6 +28,10 @@ func runEval(ctx context.Context, log *zap.Logger, svc *services.Services, args 
 
 	svc.LoadCatalogState(ctx)
 	defer svc.Wait()
+	if *set == "panel" {
+		runPanelEval(ctx, log, svc, *outDir, !*noPersist)
+		return
+	}
 	if *set == "p2" && *commerce && *proposal == "" {
 		runCommerceEval(ctx, log, svc, *outDir, !*noPersist)
 		return
@@ -86,6 +90,31 @@ func runCommerceEval(ctx context.Context, log *zap.Logger, svc *services.Service
 		}
 	}
 	fmt.Print(services.FormatCommerceTable(res))
+}
+
+// runPanelEval — `make eval SET=panel`: прогон набора префиксов по прежним подсказкам и панели контура выдачи
+// — таблица, evaluations (GET /api/evaluations?set=panel) и JSON в outDir.
+func runPanelEval(ctx context.Context, log *zap.Logger, svc *services.Services, outDir string, persist bool) {
+	run, err := svc.RunPanelEvaluation(ctx, persist)
+	if err != nil {
+		if run == nil {
+			log.Fatal("оценка панели", zap.Error(err))
+		}
+		log.Error("оценка панели", zap.Error(err))
+	}
+	if outDir != "" {
+		if err := os.MkdirAll(outDir, 0o755); err != nil {
+			log.Fatal("оценка панели: каталог результатов", zap.Error(err))
+		}
+		raw, err := json.MarshalIndent(run, "", "  ")
+		if err == nil {
+			err = os.WriteFile(filepath.Join(outDir, "panel-"+run.RunID+".json"), raw, 0o644)
+		}
+		if err != nil {
+			log.Fatal("оценка панели: JSON прогона", zap.Error(err))
+		}
+	}
+	fmt.Print(services.FormatPanelTable(run))
 }
 
 // runImportLogs — `go run . import-logs`: только исторические логи (events.jsonl) в журналы, без

@@ -82,7 +82,9 @@ func main() {
 		PerIPDailyRub:   cfg.Ops.PerIPDailyRub,
 
 		Features: services.Features{Hardware: cfg.Features.Hardware, Companions: cfg.Features.Companions,
-			MarginPolicy: cfg.Features.MarginPolicy, Solutions: cfg.Features.Solutions},
+			MarginPolicy: cfg.Features.MarginPolicy, Solutions: cfg.Features.Solutions, ResultsV3: cfg.Features.ResultsV3,
+			Panel: cfg.Features.Panel, PanelProducts: cfg.Features.PanelProducts, PanelMargin: cfg.Features.PanelMargin,
+			PanelRecs: cfg.Features.PanelRecs, PanelViewed: cfg.Features.PanelViewed},
 	})
 
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
@@ -120,18 +122,28 @@ func main() {
 		runMargin(ctx, log, svc, os.Args[2:])
 		return
 	}
+	if len(os.Args) > 1 && os.Args[1] == "suggest-build" {
+		runSuggestBuild(ctx, log, svc, os.Args[2:])
+		return
+	}
+	if len(os.Args) > 1 && os.Args[1] == "suggest-bench" {
+		runSuggestBench(ctx, log, svc, os.Args[2:])
+		return
+	}
 	if len(os.Args) > 1 && os.Args[1] == "warmup" {
 		runWarmup(ctx, log, svc, os.Args[2:])
 		return
 	}
 	svc.LoadCatalogState(ctx)
+	go func() { _ = svc.WarmPanel(ctx) }() // словарь подсказок панели — в фоне, старт не ждёт
 	svc.RecoverAgentRuns(ctx)
 	if cfg.Agent.Schedule {
 		svc.StartAgentScheduler(ctx, cfg.Agent.Interval)
 	}
 	defer svc.Wait()
 	h := handlers.NewHandlerManager(svc, handlers.Options{PublicOrigin: cfg.PublicOrigin,
-		AdminEnabled: cfg.Ops.AdminEnabled, RatePerMinute: cfg.Ops.RatePerMinute, BackofficeToken: cfg.Ops.BackofficeToken})
+		AdminEnabled: cfg.Ops.AdminEnabled, RatePerMinute: cfg.Ops.RatePerMinute, BackofficeToken: cfg.Ops.BackofficeToken,
+		Auth: cfg.Auth, SecureCookie: cfg.IsProduction()})
 
 	app := fiber.New(handlers.WithTrustedProxies(handlers.ServerConfig(handlers.DefaultTimeouts), cfg.TrustedProxies))
 	// Порядок: recover (самый внешний) → номер запроса → fiberzap → routes.

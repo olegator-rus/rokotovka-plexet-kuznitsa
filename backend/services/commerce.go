@@ -18,6 +18,15 @@ type Features struct {
 	Companions   bool `json:"companions"`
 	MarginPolicy bool `json:"margin_policy"`
 	Solutions    bool `json:"solutions"`
+	// ResultsV3 — страница результатов контура выдачи (§11.5, results.go).
+	ResultsV3 bool `json:"results_v3"`
+	// Панель поиска контура выдачи (§11.2–§11.3): панель, товары в ней, маржа как разрешение равенства, блок рекомендаций;
+	// PanelViewed — основание «недавно просмотренное» (по умолчанию выкл.).
+	Panel         bool `json:"panel"`
+	PanelProducts bool `json:"panel_products"`
+	PanelMargin   bool `json:"panel_margin"`
+	PanelRecs     bool `json:"panel_recs"`
+	PanelViewed   bool `json:"panel_viewed"`
 }
 
 // commerceCatalog — справочники контура коммерции из снимка каталога. Неизменяем после сборки: импорт заменяет

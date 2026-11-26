@@ -4,3 +4,6 @@ playwright-report/
 blob-report/
 playwright/.cache/
 *.webm
+
+# Сессия демо-аккаунта для прогонов (global-setup) — не в git.
+.auth/

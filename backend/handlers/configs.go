@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"kuznica/api/in"
+	"kuznica/api/services"
 
 	"github.com/gofiber/fiber/v2"
 )
@@ -19,6 +20,9 @@ func (h *Handler) Configs(c *fiber.Ctx) error {
 
 // RollbackConfig — POST /api/configs/rollback {"to_version","comment"} → новая версия = копия выбранной.
 func (h *Handler) RollbackConfig(c *fiber.Ctx) error {
+	if err := requireDecision(c, services.AreaRules); err != nil {
+		return err
+	}
 	var req in.RollbackRequest
 	if err := bindBody(c, &req); err != nil {
 		return err

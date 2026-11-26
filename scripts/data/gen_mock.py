@@ -6,7 +6,7 @@
     python3.13 scripts/data/gen_mock.py            # пишет в data/mock/
     python3.13 scripts/data/gen_mock.py --out DIR  # в другой каталог (проверка детерминизма)
 
-Данные контура коммерции — gen_mock_p2.py. Описание данных — data/README.md.
+Данные контуров коммерции и выдачи — gen_mock_p2.py и gen_mock_p3.py. Описание данных — data/README.md.
 """
 
 import argparse
@@ -26,6 +26,7 @@ from defs_refs import ALIASES, RELATIONS, CLIENTS
 from defs_queries import DEMO, EXACT, SKU_ITEMS, L
 from defs_queries2 import LICENSE, ANALOG, PURPOSE, RENEWAL, ABSENT, GAP, NON_PRODUCT, NOISE
 import gen_mock_p2
+import gen_mock_p3
 
 SEED = 0x1352905
 LOG_START = datetime(2026, 4, 27, tzinfo=timezone.utc)  # 30 дней: 27.04–26.05.2026
@@ -547,6 +548,8 @@ def main():
     meta2, relations, extra, events2, planted = gen_mock_p2.extend(
         SEED, LOG_START, LOG_DAYS, weighted, products, vendors, cats_list, relations, clients, queries, events,
         aliases, LegacySearch)
+    # Контур выдачи: набор префиксов панели и события намерений — отдельным блоком в конце журнала (gen_mock_p3.py).
+    prefixes, events3 = gen_mock_p3.extend(SEED, LOG_START, LOG_DAYS, products, queries, events + events2)
 
     write_json(out / "catalog.json", {**meta2, "products": products})
     write_json(out / "vendors.json", vendors)
@@ -558,8 +561,9 @@ def main():
     for name, data in extra.items():
         write_json(out / name, data)
     (out / "PLANTED.md").write_text(planted, encoding="utf-8")
+    write_json(out / "prefixes.json", prefixes)
     with open(out / "events.jsonl", "w", encoding="utf-8") as fh:
-        for e in events + events2:
+        for e in events + events2 + events3:
             fh.write(json.dumps(e, ensure_ascii=False, separators=(",", ":")) + "\n")
     events = events + events2
 

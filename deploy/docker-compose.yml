@@ -51,6 +51,12 @@ services:
       FEATURE_MARGIN_POLICY: ${FEATURE_MARGIN_POLICY:-}
       FEATURE_SOLUTIONS: ${FEATURE_SOLUTIONS:-}
       BACKOFFICE_TOKEN: ${BACKOFFICE_TOKEN:?set BACKOFFICE_TOKEN in .env}
+      # Вход по ролям: демо-кнопки для жюри, аккаунты по паролю, срок сессии.
+      AUTH_REQUIRED: ${AUTH_REQUIRED:-}
+      DEMO_LOGIN_BUTTONS: ${DEMO_LOGIN_BUTTONS:-}
+      AUTH_ACCOUNTS: ${AUTH_ACCOUNTS:-}
+      AUTH_SESSION_TTL: ${AUTH_SESSION_TTL:-}
+      AUTH_LOGIN_PER_MIN: ${AUTH_LOGIN_PER_MIN:-}
       TZ: Europe/Moscow
     depends_on:
       db:
@@ -70,8 +76,9 @@ services:
     environment:
       DOMAIN: ${DOMAIN}
       ACME_EMAIL: ${ACME_EMAIL:?set ACME_EMAIL in .env}
+      # Только для выключаемого basic_auth в Caddyfile (по умолчанию закомментирован: вход — на сайте).
       BACKOFFICE_USER: ${BACKOFFICE_USER:-manager}
-      BACKOFFICE_HASH: ${BACKOFFICE_HASH:?set BACKOFFICE_HASH in .env}
+      BACKOFFICE_HASH: ${BACKOFFICE_HASH:-}
     ports:
       - "80:80"
       - "443:443"

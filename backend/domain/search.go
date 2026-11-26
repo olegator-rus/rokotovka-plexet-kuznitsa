@@ -39,6 +39,8 @@ type SearchEvent struct {
 	ClientID       *string `gorm:"index"`
 	SessionID      *string `gorm:"index"`
 	TotalMs        int
+	// IntentID — поисковое намерение, из которого отправлен запрос; nil — без намерения.
+	IntentID *string `gorm:"index;size:64"`
 	// Source — live (поиск) | mock_log (импорт исторических логов).
 	Source string `gorm:"size:16;index;default:live"`
 }
@@ -112,6 +114,8 @@ type BehaviorEvent struct {
 	ProductID *string `gorm:"index"`
 	Position  *int
 	Payload   JSONB `gorm:"type:jsonb"`
+	// IntentID — поисковое намерение: все события одного ввода; nil — событие вне намерения.
+	IntentID *string `gorm:"index;size:64"`
 	// Source — live (POST /api/events) | mock_log (импорт исторических логов).
 	Source string `gorm:"size:16;index;default:live"`
 }

@@ -25,6 +25,12 @@ func (s *Services) featuresFor(ctx context.Context) Features {
 		f.Companions = f.Companions && o.Companions
 		f.MarginPolicy = f.MarginPolicy && o.MarginPolicy
 		f.Solutions = f.Solutions && o.Solutions
+		f.ResultsV3 = f.ResultsV3 && o.ResultsV3
+		f.Panel = f.Panel && o.Panel
+		f.PanelProducts = f.PanelProducts && o.PanelProducts
+		f.PanelMargin = f.PanelMargin && o.PanelMargin
+		f.PanelRecs = f.PanelRecs && o.PanelRecs
+		f.PanelViewed = f.PanelViewed && o.PanelViewed
 	}
 	return f
 }

@@ -103,7 +103,7 @@ test.describe('Киллер-фичи П2 — живой API', () => {
 
   for (const role of ['ecom', 'product', 'content', 'head'] as const) {
     test(`F30 live: «Допродажи» — ${role}`, async ({ page }) => {
-      await page.addInitScript((r) => window.localStorage.setItem('plexet.role', r), role)
+      await page.addInitScript((r) => window.sessionStorage.setItem('plexet.role', r), role)
       await page.goto('/analytics?days=30')
       const block = page.getByRole('region', { name: 'Допродажи' })
       await expect(block).toBeVisible({ timeout: 30_000 })

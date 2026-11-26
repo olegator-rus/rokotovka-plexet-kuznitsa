@@ -1,18 +1,21 @@
 <script setup lang="ts">
-// Шапка: на мобильном — кнопка меню и знак; справа — плашка режима LLM, роль (только в бэк-офисных
-// разделах) и клиент. На узком экране переключатели уходят второй строкой.
+// Шапка: на мобильном — кнопка меню и знак; справа — плашка режима LLM, «Глазами клиента» (только сотруднику на
+// витрине: роль приходит из входа) и вход: гость — «Войти», вошедший — меню аккаунта. На узком экране
+// инструменты уходят второй строкой.
 import { computed } from 'vue'
 import { useRoute } from 'vue-router'
 import { Menu } from 'lucide-vue-next'
+import AccountMenu from './AccountMenu.vue'
 import BrandMark from './BrandMark.vue'
 import ClientSwitch from './ClientSwitch.vue'
 import LlmModeBadge from './LlmModeBadge.vue'
-import RoleSwitch from './RoleSwitch.vue'
 import SpecButton from '@/components/spec/SpecButton.vue'
+import { useAppStore } from '@/stores/app'
 
 defineEmits<{ openMenu: [] }>()
 
 const route = useRoute()
+const app = useAppStore()
 const backoffice = computed(() => route.meta.backoffice === true)
 // Контур коммерции: «Спецификация» — в шапке раздела «Поиск».
 const storefront = computed(() => route.path === '/search')
@@ -36,8 +39,8 @@ const title = computed(() => (typeof route.meta.section === 'string' ? route.met
     <div class="app-header__tools">
       <SpecButton v-if="storefront" />
       <LlmModeBadge />
-      <RoleSwitch v-if="backoffice" />
-      <ClientSwitch />
+      <ClientSwitch v-if="app.canPickClient && !backoffice" />
+      <AccountMenu />
     </div>
   </header>
 </template>

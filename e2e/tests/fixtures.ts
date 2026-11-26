@@ -6,8 +6,40 @@
 // аналитика, стоимость и агент. allowDestructive: true снимает запрет — только для @destructive и живого
 // дубля видео. E2E_LOG_SEARCHES=1 — поиски пишутся как живые (для дубля, если нужно).
 import { test as base, expect, type Page, type Response } from '@playwright/test'
+import { BASE_URL } from './auth-state'
 
 export { expect }
+
+/** Origin витрины: изменяющие запросы API принимаются только с ним (и вход тоже). */
+export const ORIGIN = new URL(BASE_URL).origin
+
+/** Без входа: test.use({ storageState: GUEST }). */
+export const GUEST = { cookies: [], origins: [] }
+
+/** Демо-аккаунты. */
+export const PERSONA = {
+  buyerSmb: 'buyer-smb',
+  buyerEnterprise: 'buyer-enterprise',
+  buyerGov: 'buyer-gov',
+  ecom: 'staff-ecom',
+  product: 'staff-product',
+  content: 'staff-content',
+  head: 'staff-head',
+} as const
+
+/** Адрес — экран входа с возвратом на path (vue-router кодирует returnTo по-своему — сравниваем разобранным). */
+export const loginWith = (path: string) => (u: URL) =>
+  u.pathname === '/login' && u.searchParams.get('returnTo') === path
+
+/** Войти в демо-аккаунт в контексте страницы (cookie общая с браузером). Демо-состояние базы не меняется. */
+export async function loginAs(page: Page, persona: string) {
+  const resp = await page.request.post('/api/auth/demo-login', {
+    data: { persona },
+    headers: { Origin: ORIGIN },
+  })
+  expect(resp.status(), `демо-вход ${persona}`).toBe(200)
+  return ((await resp.json()) as { viewer: { role: string; name: string } }).viewer
+}
 
 const DESTRUCTIVE: { method: string; path: RegExp }[] = [
   { method: 'POST', path: /^\/api\/agent\/runs$/ },

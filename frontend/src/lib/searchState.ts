@@ -5,8 +5,10 @@
 //   &rm=license_quantity:10 — снятый чип (повторяется)
 //   &cl=license_metric:device — ответ на уточняющий вопрос (повторяется)
 //   &f=ram_gb:gte:32       — фасет оборудования, контур коммерции (повторяется, lib/facets.ts)
+//   &sort=price_asc&group=none — сортировка и группировка страницы результатов, контур выдачи (по умолчанию не пишутся)
 import type { ChipRef, ConfigId, SearchRequest } from '@/api/types'
 import type { SearchFilter } from '@/api/typesP2'
+import type { ResultsGroup, ResultsSort } from '@/api/typesResults'
 import { parseFilters, serializeFilter } from './facets.ts'
 
 export const CONFIG_IDS: readonly ConfigId[] = ['live', 'B0', 'B1', 'B2', 'B3', 'B4']
@@ -25,6 +27,23 @@ export interface SearchState {
   trace: boolean
   /** Фасеты оборудования (контур коммерции); необязательное — старые вызовы без поля работают. */
   filters?: SearchFilter[]
+  /** Контур выдачи (§11.5): сортировка и группировка выдачи; undefined — по умолчанию (recommended, family). */
+  sort?: ResultsSort
+  group?: ResultsGroup
+}
+
+export const RESULT_SORTS: readonly ResultsSort[] = [
+  'recommended',
+  'relevance',
+  'price_asc',
+  'price_desc',
+  'delivery',
+]
+
+function parseSort(raw: string): ResultsSort | undefined {
+  return raw !== 'recommended' && (RESULT_SORTS as readonly string[]).includes(raw)
+    ? (raw as ResultsSort)
+    : undefined
 }
 
 export function emptyState(): SearchState {
@@ -86,6 +105,8 @@ export function parseSearchQuery(query: RawQuery): SearchState {
     clarify,
     trace: first(query.trace) === '1',
     filters: parseFilters(all(query.f)),
+    ...(parseSort(first(query.sort)) ? { sort: parseSort(first(query.sort)) } : {}),
+    ...(first(query.group) === 'none' ? { group: 'none' as const } : {}),
   }
 }
 
@@ -101,6 +122,8 @@ export function serializeSearchState(state: SearchState): Record<string, string 
   if (cl.length) out.cl = cl
   if (state.trace) out.trace = '1'
   if (state.filters?.length) out.f = state.filters.map(serializeFilter)
+  if (state.sort && state.sort !== 'recommended') out.sort = state.sort
+  if (state.group === 'none') out.group = 'none'
   return out
 }
 
@@ -151,5 +174,8 @@ export function buildSearchRequest(state: SearchState, ctx: RequestContext): Sea
     limit: ctx.limit ?? SEARCH_LIMIT,
     // Контур коммерции: фасеты — только если выбраны, иначе тело запроса как в контуре поиска.
     ...(state.filters?.length ? { filters: state.filters.map((f) => ({ ...f })) } : {}),
+    // Контур выдачи: сортировка и группировка — только не по умолчанию.
+    ...(state.sort && state.sort !== 'recommended' ? { sort: state.sort } : {}),
+    ...(state.group === 'none' ? { group: state.group } : {}),
   }
 }

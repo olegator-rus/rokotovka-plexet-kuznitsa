@@ -20,7 +20,8 @@ test.describe('Поиск', () => {
 
     const list = page.getByRole('listbox')
     await expect(list).toBeVisible()
-    await expect(list.getByText('Запросы', { exact: true })).toBeVisible()
+    // Сервер контура коммерции — группа «Запросы», панель контура выдачи (§11.2) — «Подсказки».
+    await expect(list.getByText(/^(Запросы|Подсказки)$/).first()).toBeVisible()
     const options = list.getByRole('option')
     await expect(options.first()).toBeVisible()
     expect(await options.count()).toBeLessThanOrEqual(8)

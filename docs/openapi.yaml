@@ -131,9 +131,19 @@ paths:
       parameters:
         - { name: q, in: query, required: true, schema: { type: string } }
         - { name: client_id, in: query, schema: { type: string } }
+        - { name: intent_id, in: query, schema: { type: string, maxLength: 128 }, description: "поисковое намерение" }
+        - { name: session_id, in: query, schema: { type: string, maxLength: 128 } }
+        - { name: limit, in: query, schema: { type: integer, minimum: 1, maximum: 6 }, description: "товаров в панели; по умолчанию 6" }
+      description: |
+        Прежние `groups` (не больше 8 строк) и секции панели контура выдачи: `mode`, `normalized`,
+        `corrected`, `refinements` (≤6), `suggestions` (≤5), `categories` (≤2), `vendors` (≤2), `products` (≤6 семейств),
+        `total_hint`, `meta` (время секций, `partial`, `products_cached`, `llm_calls`/`embed_calls`/`rerank_calls` = 0,
+        версии). На нажатие — 0 LLM, 0 векторизаций, реранкер выключен. Трасса панели — `GET /api/traces/{X-Request-Id}`.
+        Лимит частоты — 20 запросов в секунду с адреса (сверх — 429). Флаг FEATURE_PANEL=off — `mode: off`, секции пустые.
       responses:
+        "429": { description: Слишком частые запросы подсказок }
         "200":
-          description: Не больше 8 строк суммарно
+          description: groups и секции панели
           content:
             application/json:
               schema:
@@ -155,6 +165,27 @@ paths:
                               text: { type: string }
                               id: { type: [string, "null"] }
                               highlight: { type: array, items: { type: integer }, minItems: 2, maxItems: 2 }
+  /api/suggest/recommendations:
+    get:
+      tags: [Поиск]
+      summary: Блок рекомендаций панели поиска
+      description: |
+        Лестница оснований: spec → exact (точный SKU; или артикул в q) → viewed (FEATURE_PANEL_VIEWED, по умолчанию выкл.)
+        → category (популярное в категории). Для первых трёх — проверенные связи контура коммерции, совместимость не unknown.
+        Оснований нет или FEATURE_PANEL_RECS=off — `null`.
+      operationId: suggestRecommendations
+      security: []
+      parameters:
+        - { name: spec, in: query, schema: { type: string }, description: "id позиций спецификации через запятую (≤10)" }
+        - { name: exact, in: query, schema: { type: string, maxLength: 128 }, description: "product_id точного SKU из панели" }
+        - { name: q, in: query, schema: { type: string } }
+        - { name: viewed, in: query, schema: { type: string, maxLength: 128 } }
+        - { name: category, in: query, schema: { type: string, maxLength: 128 } }
+        - { name: session_id, in: query, schema: { type: string, maxLength: 128 } }
+        - { name: intent_id, in: query, schema: { type: string, maxLength: 128 } }
+      responses:
+        "200":
+          description: "{basis, title, why, items[Companion ≤3]} или null"
   /api/companions:
     get:
       tags: [Поиск]

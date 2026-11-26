@@ -27,19 +27,27 @@ import ConfigSwitch from '@/components/search/ConfigSwitch.vue'
 import ManagerDialog from '@/components/search/ManagerDialog.vue'
 import ResultCard, { type ItemAction } from '@/components/search/ResultCard.vue'
 import ResultSkeleton from '@/components/search/ResultSkeleton.vue'
-import SearchBox from '@/components/search/SearchBox.vue'
+import SearchPanel, { type PanelSubmit } from '@/components/panel/SearchPanel.vue'
 import SearchError from '@/components/search/SearchError.vue'
 import UnderstandingBar from '@/components/search/UnderstandingBar.vue'
 import TracePanel from '@/components/trace/TracePanel.vue'
 import ComplementsBlock from '@/components/search/ComplementsBlock.vue'
 import SolutionCard from '@/components/search/SolutionCard.vue'
 import UpgradeCard from '@/components/search/UpgradeCard.vue'
+import AppliedFilters from '@/components/results/AppliedFilters.vue'
+import FamilyCard from '@/components/results/FamilyCard.vue'
+import RefinementChips from '@/components/results/RefinementChips.vue'
+import ResultsFacets from '@/components/results/ResultsFacets.vue'
+import ResultsToolbar from '@/components/results/ResultsToolbar.vue'
+import type { Refinement, ResultsGroup, ResultsSort } from '@/api/typesResults'
+import { namedAttrs, refinementFilter, resultsHeading } from '@/lib/resultsView'
+import { newIntentId } from '@/lib/panel'
 import UiSwitch from '@/components/ui/UiSwitch.vue'
 import { useToast } from '@/components/ui/useToast'
 import { DESKTOP_QUERY, useMediaQuery } from '@/composables/useMediaQuery'
 import { type ApiError, isApiError, MSG_UNKNOWN } from '@/lib/apiError'
 import { buildEvent, type EventFields } from '@/lib/events'
-import { formatFound } from '@/lib/format'
+import { formatFound, formatMs } from '@/lib/format'
 import { emptyTitle, splitResults } from '@/lib/results'
 import {
   GUEST_CLIENT_ID,
@@ -53,7 +61,6 @@ import {
   withQuery,
   type SearchState,
 } from '@/lib/searchState'
-import type { SuggestRow } from '@/lib/suggest'
 import { useAppStore } from '@/stores/app'
 import { useSpecStore } from '@/stores/spec'
 import {
@@ -97,7 +104,14 @@ const response = shallowRef<SearchResponse | null>(null)
 const error = ref<ApiError | null>(null)
 const selected = ref<string | null>(null)
 const managerOpen = ref(false)
-const box = ref<InstanceType<typeof SearchBox> | null>(null)
+const box = ref<InstanceType<typeof SearchPanel> | null>(null)
+/** Намерение (§11.1), из которого отправлен ближайший поиск: уходит в тело POST /api/search один раз. */
+let pendingIntent: string | null = null
+/**
+ * Намерение текущей выдачи (§11.1): из панели — её id; открыта ссылкой — своё. Фильтры, сортировка и раскрытие
+ * вариантов того же запроса — то же намерение; новый текст запроса — новое.
+ */
+let resultsIntent: { q: string; id: string } | null = null
 let ctrl: AbortController | null = null
 
 function go(next: SearchState, mode: 'push' | 'replace' = 'push') {
@@ -125,6 +139,10 @@ async function run(s: SearchState) {
       sessionId: app.sessionId,
       defaultConfig: defaultConfig.value,
     })
+    if (pendingIntent) body.intent_id = pendingIntent
+    if (pendingIntent || resultsIntent?.q !== s.q)
+      resultsIntent = { q: s.q, id: pendingIntent ?? newIntentId() }
+    pendingIntent = null
     const resp = await postSearch(body, { signal: c.signal })
     if (ctrl !== c) return
     response.value = resp
@@ -155,13 +173,18 @@ watch(
   { immediate: true },
 )
 
-// Клиент: адрес ↔ переключатель в шапке. Без client в адресе берётся выбранный в шапке.
+// Клиент: адрес ↔ переключатель в шапке. Без client в адресе берётся выбранный в шапке. Покупатель и гость клиента
+// не выбирают: чужой client в адресе заменяется своим.
 watch(
   () => state.value.client,
   (c) => {
     if (!onSearchRoute()) return
-    if (c === null && route.query.client === undefined && clientId.value !== GUEST_CLIENT_ID) {
-      void go({ ...state.value, client: clientId.value }, 'replace')
+    const own = clientId.value === GUEST_CLIENT_ID ? null : clientId.value
+    if (
+      (c === null && route.query.client === undefined && own !== null) ||
+      (!app.canPickClient && c !== own)
+    ) {
+      void go({ ...state.value, client: own }, 'replace')
       return
     }
     const id = c ?? GUEST_CLIENT_ID
@@ -254,6 +277,87 @@ function onUpgradeAdd(u: Upgrade) {
 }
 
 const showFacets = computed(() => facets.value.length > 0 || filters.value.length > 0)
+
+// ── Контур выдачи: страница результатов. Сервер прислал counts — новая раскладка:
+// уточнения, заголовок с сортировкой и группировкой, применённые фильтры, лицензионные фасеты, карточки-семейства.
+const resultsOn = computed(
+  () => featureOn(features.value, 'results_v3') && Boolean(response.value?.counts),
+)
+const resultFacets = computed(() => response.value?.facets ?? [])
+const refinements = computed(() => (resultsOn.value ? (response.value?.refinements ?? []) : []))
+const named = computed(() => namedAttrs(response.value?.chips ?? []))
+const sortValue = computed<ResultsSort>(() => state.value.sort ?? 'recommended')
+const groupValue = computed<ResultsGroup>(() =>
+  response.value?.group === 'none' ? 'none' : (state.value.group ?? 'family'),
+)
+const forcedFlat = computed(() => response.value?.group === 'none' && state.value.group !== 'none')
+const showResultFacets = computed(() => resultFacets.value.length > 0 || filters.value.length > 0)
+const inSpec = (id: string) => spec.has(id)
+/** Фильтры выдачи сняли всё, хотя запрос находит товары (сервер: empty без менеджера). */
+const filteredEmpty = computed(
+  () => resultsOn.value && filters.value.length > 0 && (response.value?.items.length ?? 0) === 0,
+)
+
+function onRefinement(r: Refinement) {
+  const f = refinementFilter(r)
+  trackQuiet('refinement_apply', {
+    payload: { field: r.field, value: r.value, label: r.label, hits: r.hits, place: 'results' },
+  })
+  if (!f) {
+    submit(r.query)
+    return
+  }
+  void go({ ...state.value, filters: withFilter(filters.value, f.key, f) })
+}
+
+function onResultFacet(key: string, filter: SearchFilter | null) {
+  const prev = filters.value.find((f) => f.key === key)
+  if (filter) trackQuiet('filter_apply', { payload: { key, value: filter.value, op: filter.op } })
+  else trackQuiet('filter_remove', { payload: { key, value: prev?.value ?? null } })
+  void go({ ...state.value, filters: withFilter(filters.value, key, filter) })
+}
+
+function onFilterRemove(f: SearchFilter) {
+  trackQuiet('filter_remove', { payload: { key: f.key, value: f.value } })
+  void go({ ...state.value, filters: withFilter(filters.value, f.key, null) })
+}
+
+function onFiltersReset() {
+  trackQuiet('filters_reset', { payload: { count: filters.value.length } })
+  void go({ ...state.value, filters: [] })
+}
+
+function onSort(v: ResultsSort) {
+  if (v === sortValue.value) return
+  trackQuiet('sort_change', { payload: { value: v, from: sortValue.value } })
+  void go({ ...state.value, sort: v === 'recommended' ? undefined : v })
+}
+
+function onGroup(v: ResultsGroup) {
+  if (v === groupValue.value) return
+  trackQuiet('group_change', { payload: { value: v } })
+  void go({ ...state.value, group: v === 'family' ? undefined : v })
+}
+
+function onVariantExpand(item: SearchItem, position: number) {
+  selected.value = item.product_id
+  trackQuiet('variant_expand', {
+    productId: item.product_id,
+    position,
+    payload: { family_id: item.family_id, variants: (item.variants ?? []).length },
+  })
+}
+
+function onSpecTarget(target: SearchItemBase, position: number) {
+  spec.add(lineFromItem(target, quantityForItem(target, response.value?.chips ?? [])))
+  trackQuiet('click', { productId: target.product_id, position, payload: { action: 'spec' } })
+  toast.add({
+    tone: 'ok',
+    title: 'Добавлено в спецификацию',
+    detail: target.title,
+    action: openSpecAction(),
+  })
+}
 const companionAnchor = computed(() => {
   const a = response.value?.companions?.anchor
   if (!a) return null
@@ -362,6 +466,7 @@ function eventContext() {
     requestId: response.value?.request_id ?? null,
     sessionId: app.sessionId,
     clientId: state.value.client,
+    intentId: resultsIntent?.id ?? null,
   }
 }
 
@@ -390,12 +495,17 @@ function submit(raw: string) {
   void go(next)
 }
 
-function onPick(row: SuggestRow) {
-  trackQuiet('suggest_pick', {
-    position: row.position,
-    payload: { type: row.type, text: row.text, id: row.id, position: row.position },
-  })
-  submit(row.text)
+/** Панель поиска (контур выдачи): Enter, подсказка, категория, производитель, товар — с условиями бейджей. */
+function onPanelSubmit(p: PanelSubmit) {
+  pendingIntent = p.intentId
+  const next = { ...withQuery(state.value, p.q), filters: p.filters }
+  if (
+    JSON.stringify(serializeSearchState(next)) === JSON.stringify(serializeSearchState(state.value))
+  ) {
+    void run(state.value)
+    return
+  }
+  void go(next)
 }
 
 function onAsTyped() {
@@ -486,12 +596,11 @@ function sendManagerRequest() {
     <div class="search-page__main">
       <h1 class="sr-only">Поиск по каталогу</h1>
       <div class="search-page__bar">
-        <SearchBox
+        <SearchPanel
           ref="box"
           v-model="text"
           :client-id="state.client ?? GUEST_CLIENT_ID"
-          @submit="submit"
-          @pick="onPick"
+          @submit="onPanelSubmit"
         />
         <div class="search-page__controls">
           <ConfigSwitch
@@ -508,7 +617,13 @@ function sendManagerRequest() {
       <SearchError v-else-if="status === 'error' && error" :error="error" @retry="run(state)" />
 
       <template v-else-if="status === 'ready' && response">
-        <p class="search-page__found t-sm t-muted t-num" role="status">
+        <h2 v-if="resultsOn" class="search-page__heading" role="status">
+          {{ resultsHeading(response) }}
+          <span v-if="response.trace?.total_ms != null" class="t-sm t-muted">
+            · {{ formatMs(response.trace.total_ms) }}
+          </span>
+        </h2>
+        <p v-else class="search-page__found t-sm t-muted t-num" role="status">
           {{ formatFound(response.total, response.trace?.total_ms) }} · {{ response.config }}
         </p>
 
@@ -532,7 +647,17 @@ function sendManagerRequest() {
 
         <SolutionCard v-if="solution" :solution="solution" @apply="onSolutionApply" />
 
-        <section v-if="blocks.absent || blocks.nothing" class="panel search-page__absent">
+        <section v-if="filteredEmpty" class="panel search-page__absent" role="status">
+          <h2 class="t-h2">{{ response.empty?.message || 'По выбранным фильтрам позиций нет' }}</h2>
+          <p class="t-muted">Снимите один из фильтров или сбросьте все — запрос останется.</p>
+          <div>
+            <button type="button" class="btn btn--secondary" @click="onFiltersReset">
+              Сбросить фильтры
+            </button>
+          </div>
+        </section>
+
+        <section v-else-if="blocks.absent || blocks.nothing" class="panel search-page__absent">
           <h2 class="t-h2">
             {{
               blocks.absent
@@ -560,9 +685,42 @@ function sendManagerRequest() {
           Для точной проверки укажите конфигурацию сервера
         </p>
 
-        <div :class="['search-page__body', { 'search-page__body--facets': showFacets }]">
+        <template v-if="resultsOn">
+          <RefinementChips :items="refinements" @apply="onRefinement" />
+          <ResultsToolbar
+            v-if="response.items.length || filters.length"
+            :response="response"
+            :sort="sortValue"
+            :group="groupValue"
+            :forced-flat="forcedFlat"
+            @sort="onSort"
+            @group="onGroup"
+          />
+          <AppliedFilters
+            :filters="filters"
+            :facets="resultFacets"
+            @remove="onFilterRemove"
+            @reset="onFiltersReset"
+          />
+        </template>
+
+        <div
+          :class="[
+            'search-page__body',
+            { 'search-page__body--facets': resultsOn ? showResultFacets : showFacets },
+          ]"
+        >
+          <ResultsFacets
+            v-if="resultsOn && showResultFacets"
+            class="search-page__facets"
+            :facets="resultFacets"
+            :filters="filters"
+            :query-key="state.q"
+            @apply="onResultFacet"
+            @reset="onFiltersReset"
+          />
           <FacetsPanel
-            v-if="showFacets"
+            v-else-if="!resultsOn && showFacets"
             class="search-page__facets"
             :facets="facets"
             :filters="filters"
@@ -572,7 +730,29 @@ function sendManagerRequest() {
           <div class="search-page__results">
             <ol v-if="mainTop.length" class="search-page__list" aria-label="Результаты">
               <li v-for="p in mainTop" :key="p.item.product_id">
+                <FamilyCard
+                  v-if="resultsOn"
+                  :item="p.item"
+                  :position="p.position"
+                  :named="named"
+                  :selected="state.trace && selected === p.item.product_id"
+                  :in-spec="inSpec"
+                  :show-compat="hardwareOn"
+                  @expand="onVariantExpand"
+                  @spec="onSpecTarget"
+                  @price-request="(t, pos) => onAction('price_request', t, pos)"
+                  @why="onWhy"
+                >
+                  <RequiredLine
+                    v-if="requiredOf(p.item).length"
+                    :required="requiredOf(p.item)"
+                    :anchor-id="p.item.product_id"
+                    :anchor-title="p.item.title"
+                    :request-id="response.request_id"
+                  />
+                </FamilyCard>
                 <ResultCard
+                  v-else
                   :item="p.item"
                   :position="p.position"
                   :selected="state.trace && selected === p.item.product_id"
@@ -610,7 +790,29 @@ function sendManagerRequest() {
               aria-label="Продолжение выдачи"
             >
               <li v-for="p in mainRest" :key="p.item.product_id">
+                <FamilyCard
+                  v-if="resultsOn"
+                  :item="p.item"
+                  :position="p.position"
+                  :named="named"
+                  :selected="state.trace && selected === p.item.product_id"
+                  :in-spec="inSpec"
+                  :show-compat="hardwareOn"
+                  @expand="onVariantExpand"
+                  @spec="onSpecTarget"
+                  @price-request="(t, pos) => onAction('price_request', t, pos)"
+                  @why="onWhy"
+                >
+                  <RequiredLine
+                    v-if="requiredOf(p.item).length"
+                    :required="requiredOf(p.item)"
+                    :anchor-id="p.item.product_id"
+                    :anchor-title="p.item.title"
+                    :request-id="response.request_id"
+                  />
+                </FamilyCard>
                 <ResultCard
+                  v-else
                   :item="p.item"
                   :position="p.position"
                   :selected="state.trace && selected === p.item.product_id"
@@ -650,7 +852,21 @@ function sendManagerRequest() {
               </h2>
               <ol class="search-page__list">
                 <li v-for="p in blocks.analogs" :key="p.item.product_id">
+                  <FamilyCard
+                    v-if="resultsOn"
+                    :item="p.item"
+                    :position="p.position"
+                    :named="named"
+                    :selected="state.trace && selected === p.item.product_id"
+                    :in-spec="inSpec"
+                    :show-compat="hardwareOn"
+                    @expand="onVariantExpand"
+                    @spec="onSpecTarget"
+                    @price-request="(t, pos) => onAction('price_request', t, pos)"
+                    @why="onWhy"
+                  />
                   <ResultCard
+                    v-else
                     :item="p.item"
                     :position="p.position"
                     :selected="state.trace && selected === p.item.product_id"
@@ -778,6 +994,13 @@ function sendManagerRequest() {
 }
 .search-page__found {
   min-height: var(--lh-sm);
+}
+.search-page__heading {
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+  font-size: var(--fs-h2, 1.125rem);
+  font-weight: var(--fw-semibold);
 }
 .search-page__notes {
   display: flex;

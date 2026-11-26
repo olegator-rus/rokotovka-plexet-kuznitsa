@@ -2,8 +2,9 @@
 // Панель «Спецификация» справа: позиция — количество — цена, пометка
 // происхождения, итог («N позиций · у M цена по запросу · известная часть от …»), «Запросить КП» и
 // «Скопировать спецификацию». Пусто — «Добавьте позиции из поиска»; ошибка запроса — позиции сохранены,
-// «Повторить». Сумму не считает сервер — фронт складывает только известные цены из выдачи.
-import { computed } from 'vue'
+// «Повторить». Сумму не считает сервер — фронт складывает только известные цены из выдачи. Гость оставляет контакт для
+// ответа (покупатель и сотрудник известны по входу).
+import { computed, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import {
   DialogClose,
@@ -19,8 +20,25 @@ import { useToast } from '@/components/ui/useToast'
 import { formatPrice } from '@/lib/format'
 import { hasKnownPrice, originLabel, priceModeLabel, specText } from '@/lib/spec'
 import { useSpecStore } from '@/stores/spec'
+import { useAuthStore } from '@/stores/auth'
+import { contactProblem } from '@/lib/auth'
 
 const spec = useSpecStore()
+const auth = useAuthStore()
+/** Гость: контакт для ответа на КП (почта или телефон) — уходит в комментарий запроса. */
+const needContact = computed(() => !auth.signedIn)
+const contact = ref('')
+const contactTried = ref(false)
+const contactErr = computed(() => (contactTried.value ? contactProblem(contact.value) : null))
+function requestQuote() {
+  if (needContact.value) {
+    contactTried.value = true
+    if (contactProblem(contact.value)) return
+    void spec.sendQuote(`Контакт: ${contact.value.trim()}`)
+    return
+  }
+  void spec.sendQuote()
+}
 const toast = useToast()
 const route = useRoute()
 const router = useRouter()
@@ -173,12 +191,32 @@ function startOver() {
             </span>
           </div>
 
+          <div v-if="needContact" class="spec-sheet__contact">
+            <label for="spec-contact" class="t-sm">Контакт для ответа — почта или телефон</label>
+            <input
+              id="spec-contact"
+              v-model="contact"
+              class="spec-sheet__input"
+              autocomplete="email"
+              maxlength="120"
+              :aria-invalid="contactErr ? true : undefined"
+              :aria-describedby="contactErr ? 'spec-contact-err' : undefined"
+            />
+            <p v-if="contactErr" id="spec-contact-err" class="spec-sheet__field-err t-xs">
+              {{ contactErr }}
+            </p>
+            <p v-else class="t-xs t-muted spec-sheet__hint">
+              Стенд демонстрационный — подойдёт вымышленный контакт. Покупателю после входа контакт
+              не нужен.
+            </p>
+          </div>
+
           <footer class="spec-sheet__actions">
             <button
               type="button"
               class="btn btn--primary"
               :disabled="spec.quoteStatus === 'sending'"
-              @click="spec.sendQuote()"
+              @click="requestQuote"
             >
               {{
                 spec.quoteStatus === 'sending'
@@ -321,6 +359,36 @@ function startOver() {
 }
 .spec-sheet__total {
   font-weight: var(--fw-semibold);
+}
+.spec-sheet__contact {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+.spec-sheet__input {
+  box-sizing: border-box;
+  min-height: var(--control-h);
+  padding: 0 var(--space-3);
+  border: var(--border-w) solid var(--border-control);
+  border-radius: var(--radius-control);
+  background: var(--bg);
+  color: var(--text);
+  font: inherit;
+  font-size: var(--fs-input);
+}
+.spec-sheet__input:focus-visible {
+  outline: var(--focus-w) solid var(--focus-ring);
+  outline-offset: 1px;
+}
+.spec-sheet__input[aria-invalid='true'] {
+  border-color: var(--danger);
+}
+.spec-sheet__hint {
+  margin: 0;
+}
+.spec-sheet__field-err {
+  margin: 0;
+  color: var(--danger);
 }
 .spec-sheet__error {
   display: flex;

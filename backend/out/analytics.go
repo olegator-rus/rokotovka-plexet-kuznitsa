@@ -19,6 +19,9 @@ type AnalyticsResponse struct {
 	Effect *Effect `json:"effect"`
 	// Commerce — блок «Допродажи» для роли (контур коммерции); nil — блок не собран.
 	Commerce *AnalyticsCommerce `json:"commerce"`
+	// Intents — учёт поисковых намерений контура выдачи: две конверсии, пустые выдачи и подсказки
+	// отдельно; nil — без базы.
+	Intents *IntentAnalytics `json:"intents"`
 }
 
 // AnalyticsTiles — сводные доли.

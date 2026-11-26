@@ -1,6 +1,6 @@
 <script setup lang="ts">
-// Переключатель клиента: список из /api/meta, без него — только «Гость». Нужен для флоу F5:
-// один запрос от разных клиентов даёт разную выдачу.
+// «Смотреть глазами клиента» — только сотруднику: список из /api/meta, без него — только «Гость».
+// Нужен для флоу F5: один запрос от разных клиентов даёт разную выдачу. У покупателя клиент — из входа.
 import { computed } from 'vue'
 import { storeToRefs } from 'pinia'
 import UiSelect, { type UiSelectOption } from '@/components/ui/UiSelect.vue'

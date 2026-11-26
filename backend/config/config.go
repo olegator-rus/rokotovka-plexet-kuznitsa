@@ -74,6 +74,8 @@ type Config struct {
 	Ops OpsConfig
 	// Features — флаги контура коммерции FEATURE_* (features.go).
 	Features Features
+	// Auth — вход по ролям AUTH_*, DEMO_LOGIN_BUTTONS (auth.go).
+	Auth AuthConfig
 }
 
 func (c Config) IsProduction() bool { return c.AppEnv == EnvProduction }
@@ -137,6 +139,9 @@ func Load() (Config, error) {
 	if c.Features, err = loadFeatures(); err != nil {
 		problems = append(problems, err.Error())
 	}
+	if c.Auth, err = loadAuth(dev); err != nil {
+		problems = append(problems, err.Error())
+	}
 	for _, a := range c.TrustedProxies {
 		if !validProxy(a) {
 			problems = append(problems, fmt.Sprintf("TRUSTED_PROXIES: %q — не IP и не CIDR", a))
@@ -187,6 +192,7 @@ func (c Config) Summary() []string {
 		c.Agent.summary(c.LLM),
 		c.Ops.summary(),
 		c.Features.summary(),
+		c.Auth.summary(),
 	}
 }
 
