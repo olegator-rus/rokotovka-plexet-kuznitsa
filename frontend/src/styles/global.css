@@ -1,28 +1,27 @@
-/* Порядок слоёв: PrimeVue после theme и base Tailwind, но до utilities —
-   утилиты Tailwind перебивают стили компонентов (primevue.dev/tailwind). */
-@layer theme, base, primevue, components, utilities;
+/* Порядок слоёв Tailwind: утилиты перебивают стили компонентов. */
+@layer theme, base, components, utilities;
 
 @import 'tailwindcss';
-@import 'tailwindcss-primeui';
 
 @import './fonts.css';
 @import './tokens.css';
 
-/* Токены → утилиты Tailwind: bg-surface, text-text-2, border-border, text-accent… */
+/* Палитра Tailwind по умолчанию выключена: в утилитах доступны только цвета токенов
+   (bg-surface, text-text-2, border-border…). Новых цветов вне tokens.css не вводим. */
 @theme inline {
+  --color-*: initial;
   --font-sans: var(--font-sans);
-  --font-display: var(--font-display);
+  --font-mono: var(--font-mono);
   --color-bg: var(--bg);
   --color-surface: var(--surface);
   --color-surface-2: var(--surface-2);
+  --color-surface-3: var(--surface-3);
   --color-border: var(--border);
   --color-text: var(--text);
   --color-text-2: var(--text-2);
+  --color-text-3: var(--text-3);
   --color-accent: var(--accent);
-  --color-accent-soft: var(--accent-soft);
   --color-on-accent: var(--on-accent);
-  --color-ok: var(--ok);
-  --color-ok-bg: var(--ok-bg);
   --color-danger: var(--danger);
   --color-danger-bg: var(--danger-bg);
   --radius-card: var(--radius-card);
@@ -32,6 +31,7 @@
 @layer base {
   html {
     -webkit-text-size-adjust: 100%;
+    background: var(--bg);
   }
   body {
     margin: 0;
@@ -45,38 +45,214 @@
     -webkit-font-smoothing: antialiased;
   }
   :focus-visible {
-    outline: 2px solid var(--focus-ring);
+    outline: var(--focus-w) solid var(--focus-ring);
     outline-offset: 2px;
+  }
+  h1,
+  h2,
+  h3,
+  p {
+    margin: 0;
+  }
+  button {
+    font: inherit;
+    color: inherit;
+  }
+  a {
+    color: inherit;
   }
 }
 
 @layer components {
-  .t-hero {
-    font-family: var(--font-display);
-    font-size: var(--fs-hero);
-    line-height: var(--lh-hero);
-    font-weight: 700;
-    letter-spacing: -0.02em;
+  .t-h1 {
+    font-size: var(--fs-h1);
+    line-height: var(--lh-h1);
+    font-weight: var(--fw-semibold);
   }
   .t-h2 {
     font-size: var(--fs-h2);
     line-height: var(--lh-h2);
-    font-weight: 600;
+    font-weight: var(--fw-semibold);
   }
-  .t-caption {
-    font-size: var(--fs-caption);
-    line-height: var(--lh-caption);
+  .t-sm {
+    font-size: var(--fs-sm);
+    line-height: var(--lh-sm);
   }
-  .container-page {
-    width: 100%;
-    max-width: 80rem;
-    margin-inline: auto;
-    padding-inline: 1rem;
+  .t-xs {
+    font-size: var(--fs-xs);
+    line-height: var(--lh-xs);
   }
-  @media (min-width: 768px) {
-    .container-page {
-      padding-inline: 2rem;
+  .t-muted {
+    color: var(--text-2);
+  }
+  .t-num {
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
+  .t-mono {
+    font-family: var(--font-mono);
+    font-size: var(--fs-xs);
+    line-height: var(--lh-xs);
+  }
+  .sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+
+  /* Кнопки: primary — одна на блок, secondary — контур, ghost — без фона, link — текст с подчёркиванием. */
+  .btn {
+    box-sizing: border-box;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-2);
+    min-height: var(--control-h);
+    padding: 0 var(--space-3);
+    border: var(--border-w) solid transparent;
+    border-radius: var(--radius-control);
+    background: transparent;
+    font-size: var(--fs-body);
+    line-height: var(--lh-body);
+    font-weight: var(--fw-medium);
+    white-space: nowrap;
+    text-decoration: none;
+    cursor: pointer;
+    user-select: none;
+    transition:
+      background-color var(--dur-fast) var(--ease-standard),
+      border-color var(--dur-fast) var(--ease-standard),
+      color var(--dur-fast) var(--ease-standard);
+  }
+  .btn:disabled,
+  .btn[aria-disabled='true'] {
+    cursor: not-allowed;
+    color: var(--text-3);
+    background: var(--surface-2);
+    border-color: transparent;
+  }
+  .btn--primary {
+    background: var(--accent);
+    color: var(--on-accent);
+  }
+  .btn--primary:hover:not(:disabled) {
+    background: var(--accent-hover);
+  }
+  .btn--secondary {
+    background: var(--surface);
+    color: var(--text);
+    border-color: var(--border-control);
+  }
+  .btn--secondary:hover:not(:disabled) {
+    background: var(--surface-2);
+  }
+  .btn--ghost {
+    color: var(--text-2);
+  }
+  .btn--ghost:hover:not(:disabled) {
+    background: var(--surface-2);
+    color: var(--text);
+  }
+  .btn--sm {
+    min-height: var(--control-h-sm);
+    padding: 0 var(--space-2);
+    font-size: var(--fs-sm);
+    line-height: var(--lh-sm);
+  }
+  .btn--icon {
+    width: var(--control-h);
+    padding: 0;
+  }
+  .btn--icon.btn--sm {
+    width: var(--control-h-sm);
+  }
+  .link {
+    padding: 0;
+    border: 0;
+    background: none;
+    color: var(--text);
+    font: inherit;
+    text-decoration: underline;
+    text-decoration-color: var(--text-3);
+    text-underline-offset: 3px;
+    cursor: pointer;
+  }
+  .link:hover {
+    text-decoration-color: var(--text);
+  }
+
+  /* Пометки: нейтральная плашка; цветные варианты — только маршрут и статус, рядом всегда текст. */
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-1);
+    min-height: 1.25rem;
+    padding: 0 var(--space-2);
+    border: var(--border-w) solid var(--border);
+    border-radius: var(--radius-sm);
+    background: var(--surface-2);
+    color: var(--text-2);
+    font-size: var(--fs-xs);
+    line-height: var(--lh-xs);
+    font-weight: var(--fw-medium);
+    white-space: nowrap;
+  }
+  .badge--strong {
+    color: var(--text);
+    border-color: var(--border-control);
+  }
+  .route-a {
+    --tone: var(--route-a);
+    --tone-bg: var(--route-a-bg);
+  }
+  .route-b {
+    --tone: var(--route-b);
+    --tone-bg: var(--route-b-bg);
+  }
+  .route-c {
+    --tone: var(--route-c);
+    --tone-bg: var(--route-c-bg);
+  }
+  .route-d {
+    --tone: var(--route-d);
+    --tone-bg: var(--route-d-bg);
+  }
+  .badge--tone {
+    color: var(--tone);
+    background: var(--tone-bg);
+    border-color: transparent;
+  }
+
+  .panel {
+    background: var(--surface);
+    border: var(--border-w) solid var(--border);
+    border-radius: var(--radius-card);
+  }
+
+  .skeleton {
+    display: block;
+    height: var(--skeleton-line);
+    border-radius: var(--radius-sm);
+    background: var(--surface-3);
+    animation: skeleton-pulse 1.4s ease-in-out infinite;
+  }
+  @keyframes skeleton-pulse {
+    50% {
+      opacity: 0.45;
     }
+  }
+
+  .page {
+    box-sizing: border-box;
+    width: 100%;
+    max-width: var(--content-max);
+    padding: var(--space-6) var(--gutter) var(--space-12);
   }
 }
 
@@ -86,5 +262,6 @@
   *::after {
     transition-duration: 0.01ms !important;
     animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
   }
 }

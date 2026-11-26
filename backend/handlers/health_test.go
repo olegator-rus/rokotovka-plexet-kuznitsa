@@ -27,7 +27,7 @@ func newTestApp() *fiber.App {
 	return app
 }
 
-// Без базы health отвечает 200 и честно показывает db: down.
+// Без базы, OpenSearch и эмбеддера health отвечает 200 и честно показывает их состояние.
 func TestHealth(t *testing.T) {
 	app := newTestApp()
 	for _, path := range []string{"/health", "/api/health"} {
@@ -45,7 +45,7 @@ func TestHealth(t *testing.T) {
 		if err := json.NewDecoder(resp.Body).Decode(&body); err != nil {
 			t.Fatal(err)
 		}
-		if body.Status != "ok" || body.DB != "down" || body.Time != "2026-05-27T09:30:00Z" {
+		if body.Status != "ok" || body.DB != "down" || body.Search != "down" || body.Embedder != "off" || body.Time != "2026-05-27T09:30:00Z" {
 			t.Fatalf("%s: body = %+v", path, body)
 		}
 	}

@@ -1,0 +1,8 @@
+[
+  { "alias": "касперский", "canonical": "kaspersky", "kind": "transliteration", "target": "vendor", "target_id": "kaspersky" },
+  { "alias": "каспер", "canonical": "kaspersky", "kind": "slang", "target": "vendor", "target_id": "kaspersky" },
+  { "alias": "фотошоп", "canonical": "photoshop", "kind": "transliteration", "target": "family", "target_id": "adobe-photoshop" },
+  { "alias": "ворд", "canonical": "word", "kind": "slang", "target": "term", "target_id": "word" },
+  { "alias": "офис", "canonical": "office", "kind": "transliteration", "target": "family", "target_id": "microsoft-office" },
+  { "alias": "антивирус", "canonical": "антивирусы", "kind": "alias", "target": "category", "target_id": "security" }
+]

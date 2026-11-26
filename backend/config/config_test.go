@@ -1,14 +1,23 @@
 package config
 
 import (
+	"os"
 	"strings"
 	"testing"
 )
 
+// envKeys — все переменные, которые читает пакет.
+var envKeys = []string{"APP_ENV", "PORT", "PUBLIC_ORIGIN", "DATABASE_URL", "TRUSTED_PROXIES", "OPENSEARCH_URL",
+	"EMBEDDER_URL", "RERANKER_URL", "DATA_DIR", "LLM_PROVIDER", "LLM_BASE_URL", "LLM_MODEL", "LLM_FOLDER_ID",
+	"LLM_API_KEY", "LLM_MODE"}
+
+// clearEnv — окружение без наших переменных: t.Setenv запоминает значение для восстановления, Unsetenv
+// убирает переменную (для адресов сервисов «не задана» и «пустая» означают разное).
 func clearEnv(t *testing.T) {
 	t.Helper()
-	for _, k := range []string{"APP_ENV", "PORT", "PUBLIC_ORIGIN", "DATABASE_URL", "TRUSTED_PROXIES"} {
+	for _, k := range envKeys {
 		t.Setenv(k, "")
+		_ = os.Unsetenv(k)
 	}
 }
 
@@ -97,5 +106,88 @@ func TestSummaryHidesSecrets(t *testing.T) {
 	c := Config{AppEnv: EnvDevelopment, Addr: defaultAddr, DatabaseURL: "postgres://u:secret@h/db"}
 	if s := strings.Join(c.Summary(), "\n"); strings.Contains(s, "secret") {
 		t.Fatalf("Summary выдаёт секрет: %s", s)
+	}
+}
+
+// В development адреса сервисов по умолчанию локальные; пустое значение или off выключает шаг.
+func TestServiceURLs(t *testing.T) {
+	clearEnv(t)
+	c, err := Load()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if c.OpenSearchURL != devOpenSearchURL || c.EmbedderURL != devModelsURL || c.RerankerURL != devModelsURL || c.DataDir != defaultDataDir {
+		t.Fatalf("значения по умолчанию: %+v", c)
+	}
+	clearEnv(t)
+	t.Setenv("EMBEDDER_URL", "")
+	t.Setenv("RERANKER_URL", "off")
+	t.Setenv("OPENSEARCH_URL", "http://os:9200/")
+	c, err = Load()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if c.EmbedderURL != "" || c.RerankerURL != "" || c.OpenSearchURL != "http://os:9200" {
+		t.Fatalf("выключение и нормализация адресов: %+v", c)
+	}
+	clearEnv(t)
+	t.Setenv("OPENSEARCH_URL", "os:9200")
+	if _, err := Load(); err == nil || !strings.Contains(err.Error(), "OPENSEARCH_URL") {
+		t.Fatalf("адрес без схемы должен отклоняться: %v", err)
+	}
+}
+
+// В production адреса по умолчанию не подставляются: незаданный сервис выключен.
+func TestServiceURLsProductionDefaults(t *testing.T) {
+	clearEnv(t)
+	t.Setenv("APP_ENV", EnvProduction)
+	t.Setenv("PUBLIC_ORIGIN", "https://shop.example.ru")
+	t.Setenv("DATABASE_URL", "postgres://db")
+	t.Setenv("TRUSTED_PROXIES", "172.16.0.0/12")
+	c, err := Load()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if c.OpenSearchURL != "" || c.EmbedderURL != "" || c.RerankerURL != "" {
+		t.Fatalf("в production адреса по умолчанию пустые: %+v", c)
+	}
+}
+
+func TestLLMConfig(t *testing.T) {
+	clearEnv(t)
+	l, err := LoadLLM()
+	if err != nil || l.Online() || l.Mode != LLMModeOff || l.Provider != LLMNone {
+		t.Fatalf("без ключа модель выключена: %+v, %v", l, err)
+	}
+	clearEnv(t)
+	t.Setenv("LLM_API_KEY", "k")
+	t.Setenv("LLM_FOLDER_ID", "b1gfolder")
+	l, err = LoadLLM()
+	if err != nil || !l.Enabled() || l.Model != "gpt://b1gfolder/"+defaultLLMModel {
+		t.Fatalf("с ключом и каталогом модель включена: %+v, %v", l, err)
+	}
+	if strings.Contains(l.summary(), "b1gfolder") || strings.Contains(l.summary(), "=k") {
+		t.Fatalf("сводка выдаёт каталог или ключ: %s", l.summary())
+	}
+	t.Setenv("LLM_MODE", "off")
+	if l, err = LoadLLM(); err != nil || l.Enabled() {
+		t.Fatalf("LLM_MODE=off выключает модель: %+v, %v", l, err)
+	}
+	for k, v := range map[string]string{"LLM_MODE": "maybe", "LLM_PROVIDER": "magic", "LLM_BASE_URL": "ftp://x"} {
+		clearEnv(t)
+		t.Setenv(k, v)
+		if _, err := LoadLLM(); err == nil || !strings.Contains(err.Error(), k) {
+			t.Fatalf("%s=%s должен отклоняться: %v", k, v, err)
+		}
+	}
+	clearEnv(t)
+	t.Setenv("LLM_MODE", "on")
+	if _, err := LoadLLM(); err == nil {
+		t.Fatal("LLM_MODE=on без ключа должен отклоняться")
+	}
+	clearEnv(t)
+	t.Setenv("LLM_API_KEY", "k")
+	if _, err := LoadLLM(); err == nil || !strings.Contains(err.Error(), "LLM_FOLDER_ID") {
+		t.Fatalf("Yandex без каталога должен отклоняться: %v", err)
 	}
 }

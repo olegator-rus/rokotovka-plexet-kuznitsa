@@ -8,7 +8,7 @@ COMPOSE := docker compose -f deploy/docker-compose.yml --env-file .env
 DEV_COMPOSE := docker compose -f deploy/docker-compose.dev.yml --env-file deploy/.env.dev
 
 .DEFAULT_GOAL := help
-.PHONY: help env db db-down install dev run web test lint check check-secrets build deploy
+.PHONY: help env db db-down ml import install dev run web test test-live lint check check-secrets build deploy
 
 help: ## показать список целей
 	@grep -hE '^[a-zA-Z0-9_-]+:.*?## ' $(MAKEFILE_LIST) \
@@ -23,20 +23,26 @@ env: ## локальные секреты: случайный пароль dev-�
 	sed -e "s#^DATABASE_URL=.*#DATABASE_URL=postgres://kuznica:$$pw@127.0.0.1:5441/kuznica?sslmode=disable#" \
 	    backend/.env.example > backend/.env && chmod 600 backend/.env && echo "создан backend/.env"; fi
 
-db: ## поднять локальный Postgres (127.0.0.1:5441)
-	$(DEV_COMPOSE) up -d --wait db
+db: ## поднять локальные Postgres (127.0.0.1:5441) и OpenSearch (127.0.0.1:9201)
+	$(DEV_COMPOSE) up -d --wait db opensearch
 
-db-down: ## остановить локальный Postgres (данные остаются в томе)
+db-down: ## остановить локальные Postgres и OpenSearch (данные остаются в томах)
 	$(DEV_COMPOSE) down
+
+ml: ## эмбеддер и реранкер на 127.0.0.1:8089 (нативно, MPS)
+	./ml/run.sh
+
+import: db ## импорт data/mock в Postgres и индекс OpenSearch (векторы — если make ml запущен)
+	cd backend && go run . import
 
 install: ## зависимости фронта (pnpm)
 	cd frontend && pnpm install
 
-dev: db ## база + API на 127.0.0.1:8088 + Vite на localhost:5177 (Ctrl+C гасит API и Vite)
+dev: db ## Postgres + OpenSearch + API на 127.0.0.1:8088 + Vite на localhost:5177 (Ctrl+C гасит API и Vite)
 	@test -d frontend/node_modules || (cd frontend && pnpm install)
 	@trap 'kill 0' EXIT; (cd backend && go run .) & (cd frontend && pnpm dev) & wait
 
-run: ## только API из исходников (без базы — health отдаёт db: down)
+run: ## только API из исходников (без базы и OpenSearch — health отдаёт db/search: down)
 	cd backend && go run .
 
 web: ## только dev-сервер фронта
@@ -45,6 +51,10 @@ web: ## только dev-сервер фронта
 test: ## go vet + go test бэкенда, node --test фронта
 	cd backend && go vet ./... && go test ./... -race -count=1
 	cd frontend && pnpm test
+
+test-live: ## живой тест поиска на локальных OpenSearch и эмбеддере (свой индекс itest_products)
+	cd backend && OPENSEARCH_URL=http://127.0.0.1:9201 EMBEDDER_URL=http://127.0.0.1:8089 \
+		go test -tags integration ./services/ -run Live -count=1 -v
 
 lint: ## gofmt + go vet, eslint + prettier + vue-tsc
 	@out=$$(cd backend && gofmt -l .); if [ -n "$$out" ]; then echo "gofmt: $$out"; exit 1; fi

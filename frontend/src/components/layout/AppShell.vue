@@ -1,0 +1,167 @@
+<script setup lang="ts">
+// Оболочка приложения: левая панель с разделами (на мобильном — выезжающая, reka Dialog), шапка и
+// содержимое раздела. Ссылка «К содержимому» — первый Tab на странице.
+import { ref, watch } from 'vue'
+import { storeToRefs } from 'pinia'
+import { useRoute } from 'vue-router'
+import {
+  DialogClose,
+  DialogContent,
+  DialogOverlay,
+  DialogPortal,
+  DialogRoot,
+  DialogTitle,
+} from 'reka-ui'
+import { X } from 'lucide-vue-next'
+import { useAppStore } from '@/stores/app'
+import AppHeader from './AppHeader.vue'
+import AppNav from './AppNav.vue'
+import BrandMark from './BrandMark.vue'
+
+const app = useAppStore()
+const { meta } = storeToRefs(app)
+const drawer = ref(false)
+const route = useRoute()
+
+watch(
+  () => route.fullPath,
+  () => {
+    drawer.value = false
+  },
+)
+</script>
+
+<template>
+  <a class="skip-link" href="#main">К содержимому</a>
+  <div class="shell">
+    <aside class="shell__sidebar" aria-label="Навигация">
+      <div class="shell__brand"><BrandMark /></div>
+      <AppNav />
+      <p v-if="meta" class="shell__versions t-xs">
+        Каталог {{ meta.catalog_version }} · правила v{{ meta.rules_version }}
+      </p>
+    </aside>
+
+    <div class="shell__main">
+      <AppHeader @open-menu="drawer = true" />
+      <main id="main" class="shell__content" tabindex="-1">
+        <slot />
+      </main>
+    </div>
+  </div>
+
+  <DialogRoot v-model:open="drawer">
+    <DialogPortal>
+      <DialogOverlay class="ui-scrim" />
+      <DialogContent class="drawer" :aria-describedby="undefined">
+        <div class="drawer__head">
+          <DialogTitle class="drawer__title"><BrandMark /></DialogTitle>
+          <DialogClose class="btn btn--ghost btn--icon" aria-label="Закрыть меню">
+            <X :size="18" aria-hidden="true" />
+          </DialogClose>
+        </div>
+        <AppNav @navigate="drawer = false" />
+        <p v-if="meta" class="shell__versions t-xs">
+          Каталог {{ meta.catalog_version }} · правила v{{ meta.rules_version }}
+        </p>
+      </DialogContent>
+    </DialogPortal>
+  </DialogRoot>
+</template>
+
+<style scoped>
+.skip-link {
+  position: absolute;
+  left: var(--space-2);
+  top: -100px;
+  z-index: 100;
+  padding: var(--space-2) var(--space-3);
+  background: var(--accent);
+  color: var(--on-accent);
+  border-radius: var(--radius-control);
+  text-decoration: none;
+  font-weight: var(--fw-medium);
+}
+.skip-link:focus {
+  top: var(--space-2);
+}
+.shell {
+  display: flex;
+  min-height: 100dvh;
+}
+.shell__sidebar {
+  display: none;
+}
+.shell__main {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+}
+.shell__content {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+  outline: none;
+}
+.shell__versions {
+  margin-top: auto;
+  padding: var(--space-3);
+  color: var(--text-3);
+}
+@media (min-width: 1024px) {
+  .shell__sidebar {
+    position: sticky;
+    top: 0;
+    display: flex;
+    flex: none;
+    flex-direction: column;
+    gap: var(--space-4);
+    box-sizing: border-box;
+    width: var(--sidebar-w);
+    height: 100dvh;
+    padding: var(--space-3) var(--space-2);
+    background: var(--surface);
+    border-right: var(--border-w) solid var(--border);
+  }
+  .shell__brand {
+    display: flex;
+    align-items: center;
+    min-height: calc(var(--header-h) - 2 * var(--space-3));
+    padding: 0 var(--space-3);
+  }
+}
+</style>
+
+<style>
+.drawer {
+  position: fixed;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 51;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  width: min(var(--drawer-w), 85vw);
+  padding: var(--space-3) var(--space-2);
+  background: var(--surface);
+  border-right: var(--border-w) solid var(--border);
+  box-shadow: var(--shadow-overlay);
+  animation: ui-slide-right var(--dur-panel) var(--ease-standard);
+}
+.drawer:focus-visible {
+  outline: none;
+}
+.drawer__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-left: var(--space-3);
+}
+.drawer__title {
+  margin: 0;
+}
+</style>

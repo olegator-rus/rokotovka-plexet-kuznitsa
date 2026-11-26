@@ -1,4 +1,4 @@
-// Единственный HTTP-клиент магазина (AGENTS.md: все вызовы через него). Тот же origin, что и SPA:
+// Единственный HTTP-клиент фронта (AGENTS.md: все вызовы через него). Тот же origin, что и SPA:
 // /api проксирует Vite в dev и Caddy в проде. Любой отказ приходит вызывающему как ApiError
 // (lib/apiError.ts), никогда как сырой Response или TypeError.
 import { networkError, parseApiError } from '@/lib/apiError'

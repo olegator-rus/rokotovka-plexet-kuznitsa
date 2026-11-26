@@ -1,6 +1,8 @@
-# Локальная разработка: только Postgres. API и фронт — с хоста (`make dev`).
-# Имя проекта задано явно: соседние проекты тоже поднимают postgres, compose не должен принять
-# чужой контейнер за свой.
+# Локальная разработка: Postgres и OpenSearch. API и фронт — с хоста (`make dev`), эмбеддер — нативно
+# (`make ml`). Имя проекта задано явно: соседние проекты тоже поднимают postgres, compose не должен
+# принять чужой контейнер за свой.
+#
+# Docker VM общая с соседними проектами (8 ГБ): у OpenSearch heap 1 ГБ и потолок контейнера 2 ГБ.
 name: kuznica-dev
 
 services:
@@ -15,11 +17,38 @@ services:
     ports: ["127.0.0.1:5441:5432"]
     volumes:
       - kuznica_dev_pgdata:/var/lib/postgresql/data
+    mem_limit: 512m
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U kuznica -d kuznica"]
       interval: 5s
       timeout: 5s
       retries: 10
 
+  opensearch:
+    image: opensearchproject/opensearch:3.9.0
+    environment:
+      discovery.type: single-node
+      # Только dev и только loopback: плагин безопасности выключен, демо-сертификаты не ставятся.
+      DISABLE_SECURITY_PLUGIN: "true"
+      DISABLE_INSTALL_DEMO_CONFIG: "true"
+      DISABLE_PERFORMANCE_ANALYZER_AGENT_CLI: "true"
+      OPENSEARCH_JAVA_OPTS: -Xms1g -Xmx1g
+      # Диск хоста может быть заполнен больше порогов по умолчанию — индекс не должен уходить в read-only.
+      cluster.routing.allocation.disk.threshold_enabled: "false"
+    # 9201: 9200 может быть занят. Только loopback.
+    ports: ["127.0.0.1:9201:9200"]
+    volumes:
+      - kuznica_dev_osdata:/usr/share/opensearch/data
+    mem_limit: 2g
+    ulimits:
+      nofile: { soft: 65536, hard: 65536 }
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:9200/_cluster/health?wait_for_status=yellow&timeout=5s >/dev/null"]
+      interval: 10s
+      timeout: 10s
+      retries: 30
+      start_period: 30s
+
 volumes:
   kuznica_dev_pgdata:
+  kuznica_dev_osdata:

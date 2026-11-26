@@ -3,7 +3,7 @@ package out
 
 import "kuznica/api/pkg/errs"
 
-// ErrorBody — конверт любой ошибки API: {"error":{"code","message","traceId"}} (AGENTS.md).
+// ErrorBody — конверт любой ошибки API: {"error":{"code","message","traceId"}}.
 // Фронт разбирает его в одном месте — форма меняется только вместе с контрактом.
 type ErrorBody struct {
 	Error ErrorInfo `json:"error"`
@@ -20,11 +20,14 @@ type ErrorInfo struct {
 }
 
 // Health — GET /health и GET /api/health. status — живость процесса (всегда ok, раз ответил);
-// db — готовность базы (ok | down), без причин отказа; time — время ответа сервера (RFC 3339).
+// db и search — готовность базы и OpenSearch (ok | down); embedder — сервис векторов (ok | down | off,
+// off — не настроен); причин отказа нет. time — время ответа сервера (RFC 3339).
 type Health struct {
-	Status string `json:"status"`
-	DB     string `json:"db"`
-	Time   string `json:"time"`
+	Status   string `json:"status"`
+	DB       string `json:"db"`
+	Search   string `json:"search"`
+	Embedder string `json:"embedder"`
+	Time     string `json:"time"`
 }
 
 // OkDown — ok | down для полей готовности.

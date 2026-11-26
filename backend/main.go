@@ -1,11 +1,15 @@
-// API магазина (шаблон хакатона «AI Кузница», кейс поиска). HTTP-сервер Fiber:
+// API PLEXeT SearchOps — умный поиск для B2B-магазина ПО. HTTP-сервер Fiber:
 // handlers → services → repositories; раскладка и соглашения — AGENTS.md.
+//
+// `go run .` — HTTP-сервер; `go run . import` — импорт каталога из DATA_DIR в OpenSearch и PostgreSQL
+// (то же, что POST /api/catalog/import), сводка — JSON в stdout.
 //
 // CORS не подключён намеренно: SPA и /api на одном origin (Caddy в проде, прокси Vite в dev).
 package main
 
 import (
 	"context"
+	"encoding/json"
 	"os"
 	"os/signal"
 	"runtime/debug"
@@ -13,6 +17,9 @@ import (
 	"time"
 
 	"kuznica/api/config"
+	"kuznica/api/externalApi/catalogsource"
+	"kuznica/api/externalApi/opensearch"
+	"kuznica/api/externalApi/tei"
 	"kuznica/api/handlers"
 	"kuznica/api/repositories"
 	"kuznica/api/services"
@@ -49,11 +56,24 @@ func main() {
 		log.Fatal("миграция", zap.Error(err))
 	}
 
-	svc := services.NewServices(repos, services.Options{})
-	h := handlers.NewHandlerManager(svc, handlers.Options{PublicOrigin: cfg.PublicOrigin})
+	svc := services.NewServices(repos, services.Options{
+		Search:   opensearch.New(cfg.OpenSearchURL, searchTimeout),
+		Embedder: tei.New(cfg.EmbedderURL, modelsTimeout),
+		Reranker: tei.New(cfg.RerankerURL, modelsTimeout),
+		Source:   catalogsource.MockJSON{Dir: cfg.DataDir},
+		LLMMode:  cfg.LLM.Mode,
+	})
 
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
+
+	if len(os.Args) > 1 && os.Args[1] == "import" {
+		runImport(ctx, log, svc)
+		return
+	}
+	svc.LoadCatalogState(ctx)
+	defer svc.Wait()
+	h := handlers.NewHandlerManager(svc, handlers.Options{PublicOrigin: cfg.PublicOrigin})
 
 	app := fiber.New(handlers.WithTrustedProxies(handlers.ServerConfig(handlers.DefaultTimeouts), cfg.TrustedProxies))
 	// Порядок: recover (самый внешний) → номер запроса → fiberzap → routes.
@@ -87,6 +107,25 @@ func main() {
 	if err := app.Listen(cfg.Addr); err != nil {
 		log.Fatal("HTTP", zap.Error(err))
 	}
+}
+
+// Сроки вызовов внешних сервисов. Импорт считает векторы пачками по 32 — первый вызов прогревает модель,
+// поэтому срок сервиса моделей длинный; поиск ставит на вектор запроса свой короткий срок.
+const (
+	searchTimeout = 30 * time.Second
+	modelsTimeout = 120 * time.Second
+)
+
+// runImport — `go run . import`: импорт и сводка в stdout; сбой — код выхода 1.
+func runImport(ctx context.Context, log *zap.Logger, svc *services.Services) {
+	res, err := svc.ImportCatalog(ctx)
+	if err != nil {
+		log.Fatal("импорт", zap.Error(err))
+	}
+	enc := json.NewEncoder(os.Stdout)
+	enc.SetIndent("", "  ")
+	enc.SetEscapeHTML(false)
+	_ = enc.Encode(res)
 }
 
 // newLogger — журнал процесса: в production JSON (production-конфиг zap), иначе консольный вывод

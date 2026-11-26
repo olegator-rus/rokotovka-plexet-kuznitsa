@@ -1,0 +1,4 @@
+[
+  { "from_family": "adobe-photoshop", "to_family": "fotomaster", "type": "substitute", "note": "отечественный фоторедактор" },
+  { "from_family": "microsoft-office-2021", "to_family": "myoffice-standard", "type": "substitute", "note": "офисный пакет из реестра" }
+]

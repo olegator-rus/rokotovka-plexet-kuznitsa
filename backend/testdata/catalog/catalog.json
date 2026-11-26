@@ -1,0 +1,77 @@
+{
+  "version": "fixture-1",
+  "products": [
+    {
+      "id": "kis-2dev-1y", "sku": "KL1939RDBFS", "family_id": "kaspersky-internet-security",
+      "family_name": "Kaspersky Internet Security", "title": "Kaspersky Internet Security, 2 устройства, 1 год",
+      "vendor_id": "kaspersky", "category_id": "antivirus-home",
+      "description": "Защита домашних компьютеров и смартфонов от вирусов, фишинга и шифровальщиков.",
+      "attributes": { "platform": "Windows, macOS, Android", "edition": "Standard" },
+      "license": { "type": "subscription", "metric": "device", "quantity": 2, "duration_months": 12, "edition": "Standard" },
+      "price_rub": 2990, "price_on_request": false, "origin": "ru", "in_reestr": true, "popularity": 0.72, "margin": 0.18
+    },
+    {
+      "id": "kis-5dev-1y", "sku": "KL1939RDEFS", "family_id": "kaspersky-internet-security",
+      "family_name": "Kaspersky Internet Security", "title": "Kaspersky Internet Security, 5 устройств, 1 год",
+      "vendor_id": "kaspersky", "category_id": "antivirus-home",
+      "description": "Защита домашних компьютеров и смартфонов от вирусов, фишинга и шифровальщиков.",
+      "attributes": { "platform": "Windows, macOS, Android", "edition": "Standard" },
+      "license": { "type": "subscription", "metric": "device", "quantity": 5, "duration_months": 12, "edition": "Standard" },
+      "price_rub": 4990, "price_on_request": false, "origin": "ru", "in_reestr": true, "popularity": 0.55, "margin": 0.18
+    },
+    {
+      "id": "ksos-10dev-1y", "sku": "KL4541RAKFS", "family_id": "kaspersky-small-office-security",
+      "family_name": "Kaspersky Small Office Security", "title": "Kaspersky Small Office Security, 10 устройств + 1 сервер, 1 год",
+      "vendor_id": "kaspersky", "category_id": "antivirus-business",
+      "description": "Антивирус для малого офиса: рабочие станции, файловый сервер и мобильные устройства.",
+      "attributes": { "platform": "Windows, macOS, Android", "servers": 1 },
+      "license": { "type": "subscription", "metric": "device", "quantity": 10, "duration_months": 12, "edition": "" },
+      "price_rub": 21990, "price_on_request": false, "origin": "ru", "in_reestr": true, "popularity": 0.61, "margin": 0.22
+    },
+    {
+      "id": "photoshop-1u-1y", "sku": "65297615BA01A12", "family_id": "adobe-photoshop",
+      "family_name": "Adobe Photoshop", "title": "Adobe Photoshop для команд, 1 пользователь, 1 год",
+      "vendor_id": "adobe", "category_id": "graphics",
+      "description": "Растровый графический редактор для ретуши фотографий, дизайна и иллюстраций.",
+      "attributes": { "platform": "Windows, macOS" },
+      "license": { "type": "subscription", "metric": "user", "quantity": 1, "duration_months": 12, "edition": "Teams" },
+      "price_rub": null, "price_on_request": true, "origin": "foreign", "in_reestr": false, "popularity": 0.66, "margin": 0.12
+    },
+    {
+      "id": "fotomaster-pro-perp", "sku": "", "family_id": "fotomaster",
+      "family_name": "ФотоМАСТЕР", "title": "ФотоМАСТЕР Профи, бессрочная лицензия",
+      "vendor_id": "amssoft", "category_id": "graphics",
+      "description": "Фоторедактор с автоматической ретушью, заменой фона и пакетной обработкой снимков.",
+      "attributes": { "platform": "Windows" },
+      "license": { "type": "perpetual", "metric": "device", "quantity": 1, "duration_months": null, "edition": "Профи" },
+      "price_rub": 1990, "price_on_request": false, "origin": "ru", "in_reestr": true, "popularity": 0.31, "margin": 0.35
+    },
+    {
+      "id": "office-2021-hb", "sku": "T5D-03511", "family_id": "microsoft-office-2021",
+      "family_name": "Microsoft Office 2021", "title": "Microsoft Office 2021 для дома и бизнеса",
+      "vendor_id": "microsoft", "category_id": "office",
+      "description": "Word, Excel, PowerPoint и Outlook для одного компьютера, бессрочно.",
+      "attributes": { "platform": "Windows, macOS" },
+      "license": { "type": "perpetual", "metric": "device", "quantity": 1, "duration_months": null, "edition": "Home & Business" },
+      "price_rub": 24990, "price_on_request": false, "origin": "foreign", "in_reestr": false, "popularity": 0.58, "margin": 0.09
+    },
+    {
+      "id": "myoffice-std-perp", "sku": "MO-STD-PERP", "family_id": "myoffice-standard",
+      "family_name": "МойОфис Стандартный", "title": "МойОфис Стандартный, бессрочная лицензия на 1 пользователя",
+      "vendor_id": "ncloudtech", "category_id": "office",
+      "description": "Российский офисный пакет: редакторы текста и таблиц, почта и календарь.",
+      "attributes": { "platform": "Windows, Linux, macOS" },
+      "license": { "type": "perpetual", "metric": "user", "quantity": 1, "duration_months": null, "edition": "Стандартный" },
+      "price_rub": 9490, "price_on_request": false, "origin": "ru", "in_reestr": true, "popularity": 0.44, "margin": 0.21
+    },
+    {
+      "id": "1c-buh-prof", "sku": "4601546041715", "family_id": "1c-accounting",
+      "family_name": "1С:Бухгалтерия 8", "title": "1С:Бухгалтерия 8 ПРОФ, электронная поставка",
+      "vendor_id": "1c", "category_id": "accounting",
+      "description": "Учёт и налоговая отчётность для малого и среднего бизнеса на платформе 1С:Предприятие 8.3.",
+      "attributes": { "platform": "Windows, Linux" },
+      "license": { "type": "perpetual", "metric": "org", "quantity": null, "duration_months": null, "edition": "ПРОФ" },
+      "price_rub": 13800, "price_on_request": false, "origin": "ru", "in_reestr": true, "popularity": 0.81, "margin": 0.15
+    }
+  ]
+}

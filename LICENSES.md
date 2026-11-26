@@ -3,9 +3,6 @@
 Правило: только OFL / MIT / ISC / Apache-2.0 / BSD; шрифты и иконки self-host; строка добавляется в момент
 подключения.
 
-PrimeVue закреплён на ветке 4.x: начиная с 5.0 PrimeVue и `@primeuix/themes` 3.x распространяются под
-коммерческой «PrimeUI License». Обновлять эти пакеты через мажорную версию нельзя.
-
 | Name | Version | Origin | License | Used in |
 | --- | --- | --- | --- | --- |
 | Fiber | v2.52.x | github.com/gofiber/fiber | MIT | backend |
@@ -20,11 +17,18 @@ PrimeVue закреплён на ветке 4.x: начиная с 5.0 PrimeVue 
 | Vue | 3.5.x | vuejs.org | MIT | frontend |
 | Vue Router | 5.x | router.vuejs.org | MIT | frontend |
 | Pinia | 4.x | pinia.vuejs.org | MIT | frontend |
-| PrimeVue | 4.5.x | primevue.org | MIT | frontend |
-| @primeuix/themes | 2.0.x | primevue.org | MIT | frontend (тема) |
+| reka-ui | 2.11.x | reka-ui.com | MIT | frontend (примитивы: Combobox, Select, Dialog, Toast, Tooltip, ToggleGroup, Switch, Collapsible) |
 | Tailwind CSS | 4.x | tailwindcss.com | MIT | frontend |
-| tailwindcss-primeui | 0.6.x | github.com/primefaces/tailwindcss-primeui | MIT | frontend |
 | Lucide (lucide-vue-next) | 1.x | lucide.dev | ISC | frontend (иконки) |
-| Golos Text (@fontsource/golos-text) | 5.3.x | github.com/googlefonts/golos-text | SIL OFL 1.1 | frontend (шрифт, self-host) |
-| Unbounded (@fontsource/unbounded) | 5.3.x | github.com/googlefonts/unbounded | SIL OFL 1.1 | frontend (заголовки, self-host) |
+| Inter (@fontsource-variable/inter) | 5.3.x | github.com/rsms/inter | SIL OFL 1.1 | frontend (шрифт, self-host) |
 | Caddy | 2.x | caddyserver.com | Apache-2.0 | deploy (web) |
+| OpenSearch (образ opensearchproject/opensearch) | 3.9.0 | opensearch.org | Apache-2.0 | deploy (поиск: BM25 и k-NN; backend ходит по REST через net/http, без SDK) |
+| BAAI/bge-m3 (веса) | ревизия 5617a9f | huggingface.co/BAAI/bge-m3 | MIT | ml (эмбеддинги; качается в кеш HF, в репо не лежит) |
+| BAAI/bge-reranker-v2-m3 (веса) | ревизия 953dc6f | huggingface.co/BAAI/bge-reranker-v2-m3 | Apache-2.0 | ml (реранкер; качается в кеш HF) |
+| PyTorch | 2.15.0 | github.com/pytorch/pytorch | BSD-3-Clause | ml (инференс на MPS/CPU) |
+| Transformers | 5.24.1 | github.com/huggingface/transformers | Apache-2.0 | ml (модели) |
+| tokenizers | 0.23.3 | github.com/huggingface/tokenizers | Apache-2.0 | ml (токенизатор, через transformers) |
+| huggingface_hub | 2.4.0 | github.com/huggingface/huggingface_hub | Apache-2.0 | ml (скачивание моделей) |
+| FastAPI | 0.165.0 | github.com/fastapi/fastapi | MIT | ml (HTTP API) |
+| Uvicorn | 0.54.0 | github.com/Kludex/uvicorn | BSD-3-Clause | ml (HTTP-сервер) |
+| Прочие транзитивные пакеты ml | см. `ml/requirements.txt` | pypi.org | MIT / BSD / Apache-2.0 / ISC; исключения: tqdm — MPL-2.0 AND MIT, typing_extensions — PSF-2.0, regex — Apache-2.0 AND CNRI-Python | ml (ставятся pip, не распространяются; tqdm тянут transformers и huggingface_hub) |

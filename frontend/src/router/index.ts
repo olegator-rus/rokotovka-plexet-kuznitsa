@@ -1,27 +1,67 @@
 import { createRouter, createWebHistory } from 'vue-router'
-import HomePage from '@/pages/HomePage.vue'
-import { SHOP_NAME } from '@/lib/brand'
+import SearchPage from '@/pages/SearchPage.vue'
+import { PRODUCT_NAME } from '@/lib/brand'
 
-// Маршруты витрины. Входа нет: все страницы публичные. Страница с title в meta меняет заголовок вкладки.
+declare module 'vue-router' {
+  interface RouteMeta {
+    /** Название раздела: заголовок вкладки и подпись в шапке. */
+    section?: string
+    /** Бэк-офисный раздел: в шапке виден переключатель роли. */
+    backoffice?: boolean
+  }
+}
+
+// Шесть разделов («Навигация»). Входа нет: все страницы публичные.
 export const router = createRouter({
   history: createWebHistory(),
   routes: [
-    { path: '/', name: 'home', component: HomePage, meta: { title: SHOP_NAME } },
+    { path: '/', redirect: '/search' },
+    { path: '/search', name: 'search', component: SearchPage, meta: { section: 'Поиск' } },
+    {
+      path: '/compare',
+      name: 'compare',
+      component: () => import('@/pages/ComparePage.vue'),
+      meta: { section: 'До / После' },
+    },
+    {
+      path: '/analytics',
+      name: 'analytics',
+      component: () => import('@/pages/AnalyticsPage.vue'),
+      meta: { section: 'Аналитика', backoffice: true },
+    },
+    {
+      path: '/searchops',
+      name: 'searchops',
+      component: () => import('@/pages/SearchOpsPage.vue'),
+      meta: { section: 'SearchOps', backoffice: true },
+    },
+    {
+      path: '/changes',
+      name: 'changes',
+      component: () => import('@/pages/ChangesPage.vue'),
+      meta: { section: 'Изменения', backoffice: true },
+    },
+    {
+      path: '/costs',
+      name: 'costs',
+      component: () => import('@/pages/CostsPage.vue'),
+      meta: { section: 'Экономика', backoffice: true },
+    },
     {
       path: '/:pathMatch(.*)*',
       name: 'not-found',
       component: () => import('@/pages/NotFoundPage.vue'),
-      meta: { title: `Страница не найдена — ${SHOP_NAME}` },
+      meta: { section: 'Страница не найдена' },
     },
   ],
   scrollBehavior(to, from, saved) {
     if (saved) return saved
-    // Смена ?q= и ?cat= на той же странице не прыгает наверх.
+    // Смена запроса на той же странице не прыгает наверх.
     if (to.path === from.path) return false
     return { top: 0 }
   },
 })
 
 router.afterEach((to) => {
-  if (typeof to.meta.title === 'string') document.title = to.meta.title
+  document.title = to.meta.section ? `${to.meta.section} — ${PRODUCT_NAME}` : PRODUCT_NAME
 })

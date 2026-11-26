@@ -1,0 +1,10 @@
+[
+  { "id": "security", "name": "Безопасность", "parent_id": null },
+  { "id": "antivirus-home", "name": "Антивирусы для дома", "parent_id": "security" },
+  { "id": "antivirus-business", "name": "Антивирусы для бизнеса", "parent_id": "security" },
+  { "id": "creative", "name": "Графика и дизайн", "parent_id": null },
+  { "id": "graphics", "name": "Графические редакторы", "parent_id": "creative" },
+  { "id": "productivity", "name": "Офис и учёт", "parent_id": null },
+  { "id": "office", "name": "Офисные пакеты", "parent_id": "productivity" },
+  { "id": "accounting", "name": "Бухгалтерия", "parent_id": "productivity" }
+]

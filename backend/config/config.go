@@ -39,6 +39,18 @@ type Config struct {
 	// TrustedProxies — TRUSTED_PROXIES: IP или CIDR обратного прокси (Caddy) через запятую. Только от
 	// них API берёт адрес клиента из X-Real-IP. Пусто — заголовок игнорируется. В production обязателен.
 	TrustedProxies []string
+	// OpenSearchURL — OPENSEARCH_URL: адрес OpenSearch. Не задан — в development http://127.0.0.1:9201,
+	// в production пусто. Пусто — API стартует, поиск отвечает 503, health — search: down.
+	OpenSearchURL string
+	// EmbedderURL, RerankerURL — EMBEDDER_URL, RERANKER_URL: TEI-совместимый сервис моделей. Не задано —
+	// в development http://127.0.0.1:8089; пусто или off — шаг пропускается (в трассе skipped).
+	EmbedderURL string
+	RerankerURL string
+	// DataDir — DATA_DIR: каталог mock-данных для импорта; по умолчанию ../data/mock (запуск из backend/).
+	DataDir string
+	// LLM — модель для разбора сложных запросов (LLM_PROVIDER, LLM_BASE_URL, LLM_MODEL, LLM_FOLDER_ID,
+	// LLM_API_KEY, LLM_MODE). Пока только читается и проверяется.
+	LLM LLMConfig
 }
 
 func (c Config) IsProduction() bool { return c.AppEnv == EnvProduction }
@@ -50,8 +62,25 @@ func Load() (Config, error) {
 		PublicOrigin:   env("PUBLIC_ORIGIN", ""),
 		DatabaseURL:    env("DATABASE_URL", ""),
 		TrustedProxies: list(os.Getenv("TRUSTED_PROXIES")),
+		DataDir:        env("DATA_DIR", defaultDataDir),
 	}
 	var problems []string
+	dev := c.AppEnv == EnvDevelopment
+	c.OpenSearchURL = service("OPENSEARCH_URL", devOpenSearchURL, dev)
+	c.EmbedderURL = service("EMBEDDER_URL", devModelsURL, dev)
+	c.RerankerURL = service("RERANKER_URL", devModelsURL, dev)
+	for _, u := range []struct{ key, val string }{
+		{"OPENSEARCH_URL", c.OpenSearchURL}, {"EMBEDDER_URL", c.EmbedderURL}, {"RERANKER_URL", c.RerankerURL},
+	} {
+		if u.val != "" && !httpURL(u.val) {
+			problems = append(problems, fmt.Sprintf("%s=%q: ожидается http(s)-адрес", u.key, u.val))
+		}
+	}
+	llm, err := LoadLLM()
+	if err != nil {
+		problems = append(problems, err.Error())
+	}
+	c.LLM = llm
 	for _, a := range c.TrustedProxies {
 		if !validProxy(a) {
 			problems = append(problems, fmt.Sprintf("TRUSTED_PROXIES: %q — не IP и не CIDR", a))
@@ -94,7 +123,48 @@ func (c Config) Summary() []string {
 		fmt.Sprintf("HTTP %s, APP_ENV=%s, origin %s", c.Addr, c.AppEnv, c.PublicOrigin),
 		fmt.Sprintf("база: %s", set(c.DatabaseURL)),
 		fmt.Sprintf("доверенные прокси (X-Real-IP): %s", proxies(c.TrustedProxies)),
+		fmt.Sprintf("OpenSearch: %s", orOff(c.OpenSearchURL)),
+		fmt.Sprintf("эмбеддер: %s, реранкер: %s", orOff(c.EmbedderURL), orOff(c.RerankerURL)),
+		fmt.Sprintf("данные для импорта: %s", c.DataDir),
+		c.LLM.summary(),
 	}
+}
+
+// Адреса по умолчанию для development: OpenSearch из deploy/docker-compose.dev.yml и нативный сервис
+// моделей (make ml). В production по умолчанию пусто — адреса задаёт compose стенда.
+const (
+	devOpenSearchURL = "http://127.0.0.1:9201"
+	devModelsURL     = "http://127.0.0.1:8089"
+	defaultDataDir   = "../data/mock"
+)
+
+// service — адрес внешнего сервиса. Переменная не задана — значение по умолчанию (только в development);
+// задана пустой или off — сервис выключен.
+func service(key, devDefault string, dev bool) string {
+	v, ok := os.LookupEnv(key)
+	if !ok {
+		if dev {
+			return devDefault
+		}
+		return ""
+	}
+	v = strings.TrimRight(strings.TrimSpace(v), "/")
+	if strings.EqualFold(v, "off") {
+		return ""
+	}
+	return v
+}
+
+func httpURL(raw string) bool {
+	u, err := url.Parse(raw)
+	return err == nil && (u.Scheme == "http" || u.Scheme == "https") && u.Host != ""
+}
+
+func orOff(v string) string {
+	if v == "" {
+		return "выключен"
+	}
+	return v
 }
 
 // origin — схема и хост без пути: «https://example.ru/» → «https://example.ru».

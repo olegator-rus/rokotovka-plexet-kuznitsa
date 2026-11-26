@@ -1,7 +1,7 @@
 // Package errs — единственная типизированная ошибка приложения *Error с enum Type.
 // Центральный обработчик (handlers.ErrorHandler, посаженный в fiber.Config.ErrorHandler)
 // — ЕДИНСТВЕННОЕ место, где Type превращается в HTTP-статус и конверт
-// {"error":{"code","message","traceId"}} (AGENTS.md, «Соглашения API»).
+// {"error":{"code","message","traceId"}} («Соглашения API»).
 package errs
 
 import (

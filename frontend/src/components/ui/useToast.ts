@@ -1,0 +1,36 @@
+// Тосты: модульное состояние + хост UiToast (подключён в App.vue). Виден один тост: новый заменяет старый.
+import { reactive } from 'vue'
+
+export type ToastTone = 'ok' | 'error' | 'info'
+
+export interface ToastMessage {
+  tone: ToastTone
+  title: string
+  detail?: string
+}
+
+export interface ToastItem extends ToastMessage {
+  id: number
+  open: boolean
+}
+
+export const TOAST_LIFE_MS = 4000
+
+let seq = 0
+export const toastState = reactive<{ items: ToastItem[] }>({ items: [] })
+
+function add(message: ToastMessage): number {
+  const id = ++seq
+  for (const t of toastState.items) t.open = false
+  toastState.items.push({ ...message, id, open: true })
+  return id
+}
+
+function remove(id: number) {
+  const i = toastState.items.findIndex((t) => t.id === id)
+  if (i >= 0) toastState.items.splice(i, 1)
+}
+
+export function useToast() {
+  return { add, remove }
+}

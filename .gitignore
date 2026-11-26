@@ -9,3 +9,5 @@ backend/api
 frontend/dist/
 
 agency/
+artifacts/
+data/eval/*-*T*-*.json

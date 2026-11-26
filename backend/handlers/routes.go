@@ -12,4 +12,8 @@ func RegisterRoutes(app *fiber.App, h *Handler) {
 	api := app.Group("/api", NoStore, h.Origin)
 
 	api.Get("/health", h.Health)
+	api.Get("/meta", h.Meta)
+	api.Post("/search", h.Search)
+	api.Post("/events", h.Events)
+	api.Post("/catalog/import", h.ImportCatalog)
 }

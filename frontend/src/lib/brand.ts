@@ -1,3 +1,3 @@
-// Название магазина — в одном месте: имя и бренд витрины придут вместе с кейсом. Заголовок вкладки —
-// index.html и router/index.ts.
-export const SHOP_NAME = 'Магазин'
+// Название продукта — в одном месте. Заголовок вкладки собирает router/index.ts.
+export const PRODUCT_NAME = 'PLEXeT SearchOps'
+export const PRODUCT_SHORT = 'PLEXeT'

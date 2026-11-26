@@ -1,0 +1,5 @@
+[
+  { "id": "guest", "name": "Гость", "segment": "individual", "purchases": [] },
+  { "id": "client-a", "name": "Клиент А", "segment": "smb", "purchases": [{ "product_id": "ksos-10dev-1y", "date": "2025-05-22" }] },
+  { "id": "client-b", "name": "Клиент Б", "segment": "enterprise", "purchases": [] }
+]

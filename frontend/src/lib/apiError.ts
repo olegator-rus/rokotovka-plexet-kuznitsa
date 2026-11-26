@@ -1,5 +1,5 @@
 // Разбор ответа об ошибке API в один вид. Конверт сервера:
-// { "error": { "code", "message", "traceId", "details"? } } (AGENTS.md, «Соглашения API»).
+// { "error": { "code", "message", "traceId", "details"? } } («Соглашения API»).
 // Чистая функция без DOM и fetch: её проверяют node-тесты, а http.ts только зовёт.
 
 export interface FieldProblem {
