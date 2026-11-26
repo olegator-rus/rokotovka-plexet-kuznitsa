@@ -57,6 +57,7 @@ onMounted(async () => {
   display: grid;
   gap: var(--space-2);
   padding: var(--space-4) var(--space-5);
-  scroll-margin-top: var(--space-8);
+  /* Под прилипшей шапкой: её высота измеряется (на телефоне шапка в две строки). */
+  scroll-margin-top: calc(var(--header-actual, var(--header-h)) + var(--space-4));
 }
 </style>

@@ -268,6 +268,10 @@ thead .metrics__name {
   .metrics__cfg-hint {
     display: none;
   }
+  /* Пометка у B4 в узкой колонке растягивала шапку всей таблицы до ~180 px пустоты. */
+  .metrics__cfg-note {
+    min-width: 11rem;
+  }
 }
 .by-type {
   display: flex;

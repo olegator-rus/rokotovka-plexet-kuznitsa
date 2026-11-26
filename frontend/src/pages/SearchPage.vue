@@ -100,6 +100,10 @@ watch(
 )
 
 const status = ref<'idle' | 'loading' | 'ready' | 'error'>('idle')
+/** Тот же текст запроса пересчитывается (фильтр, сортировка, группировка): прежняя выдача на месте до ответа. */
+const refreshing = ref(false)
+/** Текст запроса, чья выдача сейчас на экране. */
+let shownQ: string | null = null
 const response = shallowRef<SearchResponse | null>(null)
 const error = ref<ApiError | null>(null)
 const selected = ref<string | null>(null)
@@ -125,11 +129,16 @@ async function run(s: SearchState) {
     status.value = 'idle'
     response.value = null
     error.value = null
+    refreshing.value = false
+    shownQ = null
     return
   }
   const c = new AbortController()
   ctrl = c
-  status.value = 'loading'
+  // Без скелета на уточнении страница не укорачивается: прокрутка и фокус в фильтрах и сортировке остаются.
+  const refine = status.value === 'ready' && response.value !== null && shownQ === s.q
+  if (refine) refreshing.value = true
+  else status.value = 'loading'
   error.value = null
   try {
     // Сессию выдаёт сервер в /api/meta: поиск по ссылке при открытии ждёт её (meta грузится один раз).
@@ -146,13 +155,16 @@ async function run(s: SearchState) {
     const resp = await postSearch(body, { signal: c.signal })
     if (ctrl !== c) return
     response.value = resp
+    shownQ = s.q
     selected.value = resp.items?.[0]?.product_id ?? null
     status.value = 'ready'
+    refreshing.value = false
   } catch (e) {
     if (ctrl !== c) return
     if (e instanceof DOMException && e.name === 'AbortError') return
     error.value = isApiError(e) ? e : { status: 0, code: 'UNKNOWN', message: MSG_UNKNOWN }
     status.value = 'error'
+    refreshing.value = false
   }
 }
 
@@ -801,8 +813,12 @@ async function onSupply() {
           <div
             :class="[
               'search-page__body',
-              { 'search-page__body--facets': resultsOn ? showResultFacets : showFacets },
+              {
+                'search-page__body--facets': resultsOn ? showResultFacets : showFacets,
+                'search-page__body--busy': refreshing,
+              },
             ]"
+            :aria-busy="refreshing || undefined"
           >
             <ResultsFacets
               v-if="resultsOn && showResultFacets"
@@ -1098,7 +1114,7 @@ async function onSupply() {
       <aside v-if="state.trace && isDesktop" class="search-page__trace" aria-label="Трасса запроса">
         <TracePanel
           :trace="response?.trace ?? null"
-          :loading="status === 'loading'"
+          :loading="status === 'loading' || refreshing"
           :titles="titles"
           :selected="selected"
           :query="response?.query ?? null"
@@ -1119,7 +1135,7 @@ async function onSupply() {
           <DialogTitle class="sr-only">Трасса запроса</DialogTitle>
           <TracePanel
             :trace="response?.trace ?? null"
-            :loading="status === 'loading'"
+            :loading="status === 'loading' || refreshing"
             :titles="titles"
             :selected="selected"
             :query="response?.query ?? null"
@@ -1255,6 +1271,10 @@ async function onSupply() {
   flex-direction: column;
   gap: var(--space-3);
   min-width: 0;
+}
+.search-page__body--busy .search-page__results {
+  opacity: 0.6;
+  transition: opacity 0.15s;
 }
 .search-page__toolbar {
   position: sticky;

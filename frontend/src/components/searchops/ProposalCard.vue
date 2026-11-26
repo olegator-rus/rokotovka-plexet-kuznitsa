@@ -608,6 +608,10 @@ const runLink = computed(() =>
   align-items: center;
   gap: var(--space-2);
 }
+/* Кнопки решения — у правого края, над подписью «Это решение принимает …». */
+.pcard__actions {
+  justify-content: flex-end;
+}
 .pcard__deny {
   display: flex;
   flex-basis: 100%;

@@ -108,6 +108,13 @@ const tone = (ok: boolean | null) =>
   line-height: var(--lh-xs);
   font-weight: var(--fw-medium);
 }
+/* Значок внешней ссылки (svg после preflight — блочный) стоит в строке со словом «основание». */
+.rp__basis a {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  white-space: nowrap;
+}
 .rp__diff,
 .rp__basis,
 .rp__statuses {
