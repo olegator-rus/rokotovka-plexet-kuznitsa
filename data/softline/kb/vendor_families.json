@@ -157,7 +157,12 @@
   "family_id": "46421",
   "feed_family_name": "Эшелон «СКАНЕР-ВС»",
   "feed_vendor": "npo-echelon",
-  "in_feed": true
+  "in_feed": true,
+  "variants": [
+   "Base",
+   "Enterprise"
+  ],
+  "variants_note": "Офферы фида размечены вариантом не везде: «Enterprise» есть в части названий, «Base» отдельно не указан."
  },
  {
   "vendor_name": "MaxPatrol EPP",
@@ -165,6 +170,14 @@
   "family_id": "437421",
   "feed_family_name": "MaxPatrol Endpoint Protection Platform",
   "feed_vendor": "positive-technologies",
+  "in_feed": true
+ },
+ {
+  "vendor_name": "Dr.Web «Малый бизнес» (сертификат ФСТЭК № 3509)",
+  "line": "drweb-business",
+  "family_id": "4062",
+  "feed_family_name": "Dr.Web «Малый бизнес» сертифицированный ФСТЭК России (сертификат №3509)",
+  "feed_vendor": "drweb",
   "in_feed": true
  }
 ]
