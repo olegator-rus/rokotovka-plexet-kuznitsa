@@ -14,10 +14,19 @@ const candidatesTop = 50
 // sourceExcludes — вектор в выдаче не нужен: он большой, а позиция ответа собирается из остальных полей.
 var sourceExcludes = map[string]any{"excludes": []string{"embedding"}}
 
-// bm25Fields — поля multi_match B1 с весами.
+// bm25Fields — поля multi_match B1 с весами. B1 — точка отсчёта «BM25 без улучшений»:
+// поля не меняются.
 var bm25Fields = []string{
 	"title.exact^5", "title.ru^3", "title.ngram", "family_name^3", "aliases^2", "vendor^2", "sku^5",
 	"description", "attributes",
+}
+
+// b3Fields — поля текстовой ветки B3 (контур фида): у фида заказчика длинные названия позиций с
+// условиями лицензии и бедные описания — название семейства весит больше названия позиции, точное совпадение
+// с ним — как с артикулом; полный путь категории ищется с весом 1.
+var b3Fields = []string{
+	"title.exact^5", "title.ru^3", "title.ngram", "family_name^4", "family_name.exact^5", "aliases^2", "vendor^2",
+	"sku^5", "category_path", "description", "attributes",
 }
 
 // substringQuery — B0: нормализованный запрос как подстрока названия (title.exact уже приведён тем же
@@ -76,12 +85,12 @@ const b3MinMatch = "2<-34%"
 func bm25QueryB3(text, expansions, minMatch string, size int, filters []any) map[string]any {
 	text, expansions = engineText(text), engineText(expansions)
 	should := []any{map[string]any{"multi_match": map[string]any{
-		"query": text, "fields": bm25Fields, "type": "best_fields", "tie_breaker": 0.3,
+		"query": text, "fields": b3Fields, "type": "best_fields", "tie_breaker": 0.3,
 		"minimum_should_match": minMatch,
 	}}}
 	if expansions != "" {
 		should = append(should, map[string]any{"multi_match": map[string]any{
-			"query": expansions, "fields": bm25Fields, "type": "best_fields", "tie_breaker": 0.3,
+			"query": expansions, "fields": b3Fields, "type": "best_fields", "tie_breaker": 0.3,
 			"boost": 0.5,
 		}})
 	}
@@ -95,7 +104,7 @@ func bm25QueryB3(text, expansions, minMatch string, size int, filters []any) map
 }
 
 // engineMaxUnits — сколько слов запроса уходит в текстовый запрос движка. Каждое слово разворачивается в предложение
-// по каждому из полей bm25Fields (и в n-граммы title.ngram); у OpenSearch потолок — 1024 предложения
+// по каждому из полей b3Fields (и в n-граммы title.ngram); у OpenSearch потолок — 1024 предложения
 // (too_many_nested_clauses → 502). 32 слова — с запасом больше любого осмысленного запроса покупателя.
 const engineMaxUnits = 32
 

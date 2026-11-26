@@ -371,6 +371,8 @@ func groupByFamily(ranked []fused, docs map[string]indexDoc, normalized, cfg str
 			Group: matchGroup(cfg, normalized, d), MatchesQuery: true, PurchasedBefore: purchased(d),
 			Final: round4(f.Relevance),
 			Kind:  docKind(d), MPN: d.MPNRaw, PriceMode: docPriceMode(d), Required: []out.Companion{},
+			OfferURL: d.OfferURL, FamilyURL: d.FamilyURL, VendorURL: d.VendorURL, Available: d.Available,
+			OldPriceRub: d.OldPriceRub, LicenseKind: d.LicenseKind,
 		}
 		if i, ok := at[d.FamilyID]; ok {
 			items[i].Variants = append(items[i].Variants, it)

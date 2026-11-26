@@ -1,0 +1,62 @@
+# Фид заказчика (store.softline.ru, YML для Mindbox) → контракт. Файлы в feed/ собирает
+# scripts/data/softline_feed.py (python3.13 scripts/data/softline_feed.py), отчёт — FEED_STATS.md.
+#
+#   DATA_SOURCE=generic DATA_MAPPING=../data/softline/mapping.yaml go run . import
+#
+# Откат на mock: DATA_SOURCE=mock go run . import (версия mock-2).
+# Маржи, популярности, заказов, связей, правил лицензий и совместимости в фиде нет — разделов нет, справочники пусты.
+
+version: softline-feed
+base_dir: feed
+
+catalog:
+  file: products.jsonl
+  columns:
+    id: id
+    sku: sku
+    title: title
+    description: description
+    vendor: vendor                 # слаг vendorUrl = id вендора
+    category: category             # categoryId — второй уровень дерева
+    family_id: family_id           # group_id (третий уровень); у электроники — offer-<id>
+    family_name: family_name
+    price_rub: price               # правило — в импорте: цена только при available и price > 0
+    available: available
+    old_price_rub: old_price
+    offer_url: offer_url
+    kind: kind
+    mpn: mpn
+    license_type: license_type
+    license_kind: license_kind     # base | renewal | upgrade | migration | support | module | course | other
+    license_org_type: license_org_type
+    license_metric: license_metric
+    license_quantity: license_quantity
+    license_tier_min: license_tier_min
+    license_tier_max: license_tier_max
+    license_duration_months: license_duration_months
+    license_duration: license_duration
+    license_edition: license_edition
+    in_reestr: in_reestr
+  attributes: ["attrs.*"]          # все параметры оффера, кроме заглушек «другое или отсутствует»
+  defaults:
+    # Популярности (продаж, кликов) в фиде нет. 0.5 — одно значение у всех позиций: слагаемое популярности в
+    # итоговой оценке одинаково и порядок не меняет. Число офферов семейства популярностью не считается.
+    popularity: "0.5"
+
+vendors:
+  file: vendors.jsonl
+  columns: {id: id, name: name, origin: origin, url: url, slug: slug}
+
+categories:
+  file: categories.jsonl
+  columns: {id: id, name: name, parent_id: parent_id}
+
+aliases:
+  file: aliases.jsonl
+  columns: {alias: alias, canonical: canonical, kind: kind, target: target, target_id: target_id}
+
+# URL семейств (group_id → страница семейства на сайте) — собирает scripts/data/softline_family_urls.py.
+# Файла нет — URL семейства пустой, импорт пишет предупреждение.
+family_urls:
+  file: ../family_urls.jsonl
+  columns: {family_id: group_id, url: family_url}

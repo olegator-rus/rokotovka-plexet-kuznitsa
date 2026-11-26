@@ -36,6 +36,9 @@ type Mapping struct {
 	Purchases  *Table `yaml:"purchases"`
 	QueryLog   *Table `yaml:"query_log"`
 	Events     *Table `yaml:"events"`
+	// FamilyURLs — страницы семейств на сайте: family_id → url (контур фида). Необязательный файл: нет его —
+	// предупреждение, URL семейства пустой.
+	FamilyURLs *Table `yaml:"family_urls"`
 	// CompanionPairs — размеченные пары блока допродажи (companion_pairs.json): файл или лист;
 	// нет — метрики блока в `make eval SET=p2` не считаются («нет разметки»).
 	CompanionPairs *Table `yaml:"companion_pairs"`
@@ -107,9 +110,13 @@ var tableFields = map[string][]string{
 	"catalog": {"id", "sku", "title", "description", "family_id", "family_name", "vendor", "category",
 		"price_rub", "price_on_request", "license_type", "license_metric", "license_quantity",
 		"license_duration_months", "license_duration", "license_edition", "origin", "in_reestr", "popularity", "margin",
-		"kind", "mpn", "model_id", "compatible_with", "price_mode"},
-	"vendors":    {"id", "name", "origin"},
-	"categories": {"id", "name", "parent_id", "parent", "path"},
+		"kind", "mpn", "model_id", "compatible_with", "price_mode",
+		// Контур фида (фид заказчика): наличие, прежняя цена, страницы, вид и ступень лицензии.
+		"available", "old_price_rub", "offer_url", "family_url", "license_kind", "license_org_type",
+		"license_tier_min", "license_tier_max"},
+	"vendors":     {"id", "name", "origin", "url", "slug"},
+	"family_urls": {"family_id", "url"},
+	"categories":  {"id", "name", "parent_id", "parent", "path"},
 	"relations": {"from", "to", "type", "note", "id", "from_product", "to_product", "requirement", "compatibility",
 		"conditions", "quantity_strategy", "source", "source_url", "evidence_level", "review_status", "reviewed_at",
 		"upgrade_adds"},
@@ -134,6 +141,7 @@ var requiredFields = map[string][]string{
 	"query_log":       {"text"},
 	"events":          {"ts", "type"},
 	"companion_pairs": {"anchor_product", "candidate_product", "class"},
+	"family_urls":     {"family_id", "url"},
 }
 
 // LoadMapping — разобрать и проверить mapping.yaml.
@@ -169,7 +177,7 @@ func LoadMapping(path string) (*Mapping, error) {
 func (m *Mapping) tables() map[string]*Table {
 	return map[string]*Table{"catalog": m.Catalog, "vendors": m.Vendors, "categories": m.Categories,
 		"relations": m.Relations, "aliases": m.Aliases, "clients": m.Clients, "purchases": m.Purchases,
-		"query_log": m.QueryLog, "events": m.Events, "companion_pairs": m.CompanionPairs}
+		"query_log": m.QueryLog, "events": m.Events, "companion_pairs": m.CompanionPairs, "family_urls": m.FamilyURLs}
 }
 
 func (m *Mapping) validate() error {

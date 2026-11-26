@@ -19,6 +19,16 @@ const (
 	embedBatch = 32
 	// bulkBatch — документов в одном _bulk: с векторами документ ~20 КБ, пачка ~2 МБ.
 	bulkBatch = 100
+	// embedAllMax — до скольких позиций вектор считается каждой; в каталоге больше — по одной позиции на
+	// семейство. Замер на фиде заказчика: BGE-M3 на MPS — 51 текст/с, все 136 040 позиций — 44 мин;
+	// позиции семейства различаются условиями лицензии, а их разбирает текстовая ветка и правила лицензий.
+	embedAllMax = 20000
+)
+
+// Охват векторов (ImportResult.EmbedScope).
+const (
+	EmbedScopeAll    = "all"
+	EmbedScopeFamily = "family"
 )
 
 // Тексты отказов импорта.
@@ -64,7 +74,13 @@ func (s *Services) ImportCatalog(ctx context.Context) (*out.ImportResult, error)
 	docs := buildDocs(snap)
 
 	t := time.Now()
-	res.Vectors, err = s.embedDocs(ctx, docs)
+	targets, scope := embedTargets(docs)
+	res.EmbedScope = scope
+	rest, reused := s.reuseVectors(ctx, docs, targets)
+	res.Vectors, err = s.embedDocs(ctx, docs, rest)
+	if res.Vectors {
+		res.EmbeddedDocs, res.ReusedVectors = len(targets), reused
+	}
 	res.EmbedMs = time.Since(t).Milliseconds()
 	if err != nil {
 		res.Warnings = append(res.Warnings, "индекс без векторов: "+err.Error())
@@ -133,17 +149,109 @@ func (s *Services) ImportCatalog(ctx context.Context) (*out.ImportResult, error)
 	return res, nil
 }
 
-// embedDocs — векторы документов пачками по embedBatch. Всё или ничего: при сбое любой пачки векторы
+// embedTargets — какие документы получают вектор: все, если каталог до embedAllMax позиций, иначе по одному
+// на семейство (embedRepresentative).
+func embedTargets(docs []indexDoc) ([]int, string) {
+	if len(docs) <= embedAllMax {
+		all := make([]int, len(docs))
+		for i := range docs {
+			all[i] = i
+		}
+		return all, EmbedScopeAll
+	}
+	best := map[string]int{}
+	var order []string
+	for i, d := range docs {
+		j, ok := best[d.FamilyID]
+		if !ok {
+			best[d.FamilyID] = i
+			order = append(order, d.FamilyID)
+			continue
+		}
+		if embedRank(d) > embedRank(docs[j]) {
+			best[d.FamilyID] = i
+		}
+	}
+	out := make([]int, 0, len(order))
+	for _, f := range order {
+		out = append(out, best[f])
+	}
+	return out, EmbedScopeFamily
+}
+
+// embedRank — кто представляет семейство в векторном поиске: в наличии с ценой, затем в наличии, затем базовая
+// лицензия (не продление, поддержка, модуль или курс). При равенстве — первая позиция семейства в каталоге.
+func embedRank(d indexDoc) int {
+	r := 0
+	if d.Available != nil && *d.Available {
+		r += 4
+		if d.PriceRub != nil {
+			r += 2
+		}
+	}
+	if d.LicenseKind == "" || d.LicenseKind == domain.LicenseKindBase {
+		r++
+	}
+	return r
+}
+
+// reuseBatch — позиций в одном запросе векторов прежнего индекса.
+const reuseBatch = 500
+
+// reuseVectors — векторы из текущего индекса для позиций, у которых текст эмбеддинга не изменился: повторный
+// импорт того же фида (новые URL семейств, правка таблицы лицензий) не пересчитывает тысячи векторов заново
+// (12,5 тыс. на MPS — 8 мин). Возвращает позиции, которым вектор нужно посчитать, и сколько взято готовыми.
+// Индекса нет или он без векторов — считается всё.
+func (s *Services) reuseVectors(ctx context.Context, docs []indexDoc, targets []int) ([]int, int) {
+	if !s.search.Enabled() || len(targets) == 0 {
+		return targets, 0
+	}
+	rest := make([]int, 0, len(targets))
+	reused := 0
+	for from := 0; from < len(targets); from += reuseBatch {
+		batch := targets[from:min(from+reuseBatch, len(targets))]
+		ids := make([]string, 0, len(batch))
+		for _, i := range batch {
+			ids = append(ids, docs[i].ProductID)
+		}
+		res, err := s.search.Search(ctx, s.alias, map[string]any{
+			"size": len(ids), "query": map[string]any{"terms": map[string]any{"product_id": ids}},
+			"_source": []string{"product_id", "family_name", "title", "category_path", "description", "embedding"},
+		})
+		if err != nil {
+			zap.L().Info("импорт: векторы прежнего индекса не прочитаны — считаются заново", zap.Error(err))
+			return append(rest, targets[from:]...), reused
+		}
+		old := make(map[string]indexDoc, len(res.Hits.Hits))
+		for _, h := range res.Hits.Hits {
+			var d indexDoc
+			if json.Unmarshal(h.Source, &d) == nil && len(d.Embedding) == embeddingDim {
+				old[d.ProductID] = d
+			}
+		}
+		for _, i := range batch {
+			if o, ok := old[docs[i].ProductID]; ok && embeddingText(o) == embeddingText(docs[i]) {
+				docs[i].Embedding = o.Embedding
+				reused++
+				continue
+			}
+			rest = append(rest, i)
+		}
+	}
+	return rest, reused
+}
+
+// embedDocs — векторы документов targets пачками по embedBatch. Всё или ничего: при сбое любой пачки векторы
 // снимаются со всех документов — половина индекса с векторами исказила бы dense-выдачу.
-func (s *Services) embedDocs(ctx context.Context, docs []indexDoc) (bool, error) {
+func (s *Services) embedDocs(ctx context.Context, docs []indexDoc, targets []int) (bool, error) {
 	if !s.embedder.Enabled() {
 		return false, fmt.Errorf("сервис моделей не настроен (EMBEDDER_URL)")
 	}
-	for from := 0; from < len(docs); from += embedBatch {
-		to := min(from+embedBatch, len(docs))
-		texts := make([]string, 0, to-from)
-		for _, d := range docs[from:to] {
-			texts = append(texts, embeddingText(d))
+	for from := 0; from < len(targets); from += embedBatch {
+		batch := targets[from:min(from+embedBatch, len(targets))]
+		texts := make([]string, 0, len(batch))
+		for _, i := range batch {
+			texts = append(texts, embeddingText(docs[i]))
 		}
 		vecs, err := s.embedder.Embed(ctx, texts, embeddingDim)
 		if err != nil {
@@ -152,8 +260,8 @@ func (s *Services) embedDocs(ctx context.Context, docs []indexDoc) (bool, error)
 			}
 			return false, err
 		}
-		for i, v := range vecs {
-			docs[from+i].Embedding = v
+		for k, v := range vecs {
+			docs[batch[k]].Embedding = v
 		}
 	}
 	return true, nil

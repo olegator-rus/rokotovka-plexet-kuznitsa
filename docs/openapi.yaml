@@ -1764,6 +1764,12 @@ components:
             label: { type: string }
             checked_at: { type: string }
         analog_note: { type: string, description: "Контур доводки: у аналога отсутствующего товара — «Не «…», а другой продукт: …»" }
+        offer_url: { type: string, description: "Контур фида: страница позиции на сайте магазина (фид); в mock нет" }
+        family_url: { type: string, description: "Контур фида: страница семейства на сайте (собрана по хлебным крошкам); пусто — не собрана" }
+        vendor_url: { type: string, description: "Контур фида: страница вендора на сайте" }
+        available: { type: boolean, description: "Контур фида: в наличии по фиду; нет поля — источник наличие не сообщает" }
+        old_price_rub: { type: number, description: "Контур фида: прежняя цена из фида; скидка — при old_price_rub > price_rub > 0" }
+        license_kind: { type: string, enum: [base, renewal, upgrade, migration, support, module, course, other], description: "Контур фида: вид позиции по типу лицензии" }
     Upgrade:
       description: «Старшая редакция» (связь upgrade, 1–2 строки upgrade_adds) — Companion с классом upgrade
       allOf:

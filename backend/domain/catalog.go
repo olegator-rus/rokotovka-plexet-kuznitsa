@@ -57,6 +57,19 @@ type Product struct {
 	ModelID string `gorm:"index" json:"model_id"`
 	// PriceMode — fixed | from | quote_required | customer_specific | unavailable.
 	PriceMode string `gorm:"size:24" json:"price_mode"`
+	// Контур фида: поля фида заказчика. В mock их нет — пустые значения, Available nil.
+	// OfferURL — страница позиции на сайте магазина; FamilyURL — страница семейства (собирается с сайта отдельно).
+	OfferURL  string `json:"offer_url"`
+	FamilyURL string `json:"family_url"`
+	// Available — в наличии по данным источника; nil — источник наличие не сообщает (mock: решает PriceOnRequest).
+	Available *bool `json:"available"`
+	// OldPriceRub — прежняя цена (> 0) как в источнике; скидка — только при OldPriceRub > PriceRub > 0.
+	OldPriceRub *float64 `json:"old_price_rub"`
+	// FeedPriceRub — цена из источника (> 0), которую нельзя показывать как действующую: позиция не в наличии
+	//. У позиции с действующей ценой — nil, цена в PriceRub.
+	FeedPriceRub *float64 `json:"feed_price_rub"`
+	// CategoryPathIDs — id категорий от корня до категории позиции (CategoryID — последний).
+	CategoryPathIDs []string `gorm:"serializer:json;type:jsonb" json:"category_path_ids,omitempty"`
 	// CatalogVersion — версия снимка каталога, из которого позиция импортирована.
 	CatalogVersion string    `json:"-"`
 	ImportedAt     time.Time `json:"-"`
@@ -69,13 +82,42 @@ type License struct {
 	Quantity       *int    `json:"quantity"`        // nil — без количества
 	DurationMonths *int    `json:"duration_months"` // nil — бессрочная
 	Edition        string  `json:"edition"`
+	// Контур фида (фид заказчика), в mock пусто.
+	// Kind — вид позиции по типу лицензии (LicenseKind*); "" — неизвестно. Таблица приведения — данные источника.
+	Kind string `gorm:"size:16" json:"kind,omitempty"`
+	// OrgType — для кого лицензия: commercial | academic | government | nonprofit | home; "" — не указано.
+	OrgType string `gorm:"size:16" json:"org_type,omitempty"`
+	// TierMin, TierMax — ступень цены за единицу («от 100 до 149 узлов»); Quantity у такой позиции — TierMin.
+	// TierMax nil при TierMin — «от N и больше».
+	TierMin *int `json:"tier_min,omitempty"`
+	TierMax *int `json:"tier_max,omitempty"`
 }
+
+// Виды позиции по типу лицензии (License.Kind): базовая лицензия выше продлений, поддержки, модулей и курсов.
+const (
+	LicenseKindBase      = "base"      // полная версия, подписка
+	LicenseKindRenewal   = "renewal"   // продление
+	LicenseKindUpgrade   = "upgrade"   // обновление версии или редакции
+	LicenseKindMigration = "migration" // льготный переход с другого продукта — не скидка
+	LicenseKindSupport   = "support"   // техподдержка
+	LicenseKindModule    = "module"    // модуль, расширение, add-on
+	LicenseKindCourse    = "course"    // курс, обучение
+	LicenseKindOther     = "other"
+)
+
+// LicenseKinds — все виды позиции.
+var LicenseKinds = []string{LicenseKindBase, LicenseKindRenewal, LicenseKindUpgrade, LicenseKindMigration,
+	LicenseKindSupport, LicenseKindModule, LicenseKindCourse, LicenseKindOther}
 
 // Vendor — производитель.
 type Vendor struct {
 	ID     string `gorm:"primaryKey" json:"id"`
 	Name   string `json:"name"`
 	Origin string `json:"origin"` // ru | foreign
+	// URL — страница вендора на сайте магазина, Slug — её последний сегмент (контур фида; в mock пусто).
+	// «Вендор + категория» — URL + "?filter[category][]=" + id категории второго уровня.
+	URL  string `json:"url,omitempty"`
+	Slug string `json:"slug,omitempty"`
 }
 
 // Category — категория; ParentID nil — корень.

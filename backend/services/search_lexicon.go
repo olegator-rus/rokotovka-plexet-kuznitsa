@@ -155,9 +155,15 @@ func newSearchLexicon(s *domain.CatalogSnapshot) *searchLexicon {
 	// generic — слово названия семейства, которое на самом деле называет категорию («антивирус» в «ESET NOD32
 	// Антивирус»): по нему семейство не считается названным в запросе.
 	catWordSet := map[string]bool{}
+	// catPrefix6 — первые 6 букв слов категорий от 6 букв: «антивирусы» и «антивирус» совпадают. Множество, а не
+	// перебор слов на каждое слово семейства: на фиде заказчика перебор был квадратичным.
+	catPrefix6 := map[string]bool{}
 	for _, c := range catWords {
 		if utf8.RuneCountInString(c) >= 4 {
 			catWordSet[c] = true
+		}
+		if rc := []rune(c); len(rc) >= 6 {
+			catPrefix6[string(rc[:6])] = true
 		}
 	}
 	generic := func(w string) bool {
@@ -165,15 +171,7 @@ func newSearchLexicon(s *domain.CatalogSnapshot) *searchLexicon {
 			return true // «дома», «бизнеса»: слово названия категории, а не продукта
 		}
 		rw := []rune(w)
-		if len(rw) < 6 {
-			return false
-		}
-		for _, c := range catWords {
-			if rc := []rune(c); len(rc) >= 6 && string(rc[:6]) == string(rw[:6]) {
-				return true
-			}
-		}
-		return false
+		return len(rw) >= 6 && catPrefix6[string(rw[:6])]
 	}
 	for _, d := range buildDocs(s) {
 		lx.docs[d.ProductID] = d

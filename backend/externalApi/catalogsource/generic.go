@@ -290,6 +290,19 @@ func (l *genericLoader) open(name string, t *Table) (*table, error) {
 		}
 	}
 	for _, a := range t.Attributes {
+		if prefix, wild := strings.CutSuffix(strings.TrimSpace(a), "*"); wild {
+			// «attrs.*» — все колонки с префиксом (generic_feed.go attributeColumns).
+			found := false
+			for _, h := range td.headers {
+				if strings.HasPrefix(h, prefix) && h != prefix {
+					used[h], found = true, true
+				}
+			}
+			if !found {
+				tb.info.Missing = append(tb.info.Missing, "attributes ← "+a)
+			}
+			continue
+		}
 		col, _ := splitAttr(a)
 		if h, ok := byFold[fold(col)]; ok {
 			used[h] = true
@@ -394,6 +407,10 @@ func (l *genericLoader) load(ctx context.Context) (*genericData, error) {
 			return nil, err
 		}
 		tb.finish(l)
+	}
+	l.fillCategoryPaths()
+	if err := l.loadFamilyURLs(); err != nil {
+		return nil, err
 	}
 	sort.SliceStable(l.d.events, func(i, j int) bool { return l.d.events[i].TS.Before(l.d.events[j].TS) })
 	orderReports := l.restoreOrders()
@@ -517,7 +534,8 @@ func (l *genericLoader) loadVendors(tb *table) error {
 			tb.skip("повтор id")
 			continue
 		}
-		l.addVendor(domain.Vendor{ID: id, Name: name, Origin: normOrigin(tb.get(rec, "origin"))})
+		l.addVendor(domain.Vendor{ID: id, Name: name, Origin: normOrigin(tb.get(rec, "origin")), URL: tb.get(rec, "url"),
+			Slug: tb.get(rec, "slug")})
 	}
 	return nil
 }
@@ -713,6 +731,8 @@ func normOrigin(raw string) string {
 func (l *genericLoader) loadCatalog(tb *table) error {
 	snap := l.d.snap
 	popMax := 0.0
+	attrCols := attributeColumns(tb)
+	seenIDs := make(map[string]bool, len(tb.td.rows))
 	for n, rec := range tb.td.rows {
 		title := tb.get(rec, "title")
 		if title == "" {
@@ -727,10 +747,13 @@ func (l *genericLoader) loadCatalog(tb *table) error {
 		if p.ID == "" {
 			p.ID = Slug(title) + "-" + strconv.Itoa(n+1)
 		}
-		if _, dup := l.productByKey[p.ID]; dup {
+		// Повтор — только среди id: артикул другой позиции может совпасть с id («4861» у фида заказчика), а
+		// productByKey хранит и артикулы.
+		if seenIDs[p.ID] {
 			tb.skip("повтор id")
 			continue
 		}
+		seenIDs[p.ID] = true
 		p.VendorID = l.vendorID(tb.get(rec, "vendor"))
 		p.CategoryID = l.categoryID(tb.get(rec, "category"))
 		p.FamilyName = tb.get(rec, "family_name")
@@ -743,8 +766,10 @@ func (l *genericLoader) loadCatalog(tb *table) error {
 			switch {
 			case ok && onReq:
 				p.PriceOnRequest = true
-			case ok:
+			case ok && v > 0:
 				p.PriceRub = &v
+			case ok:
+				p.PriceOnRequest = true // нулевая цена — не цена: «по запросу»
 			}
 		}
 		if raw := tb.get(rec, "price_on_request"); raw != "" {
@@ -755,6 +780,7 @@ func (l *genericLoader) loadCatalog(tb *table) error {
 		if p.PriceRub == nil && tb.has("price_rub") && !tb.has("price_on_request") {
 			p.PriceOnRequest = true // колонка цены есть, ячейка пуста — «по запросу»
 		}
+		l.feedFields(tb, rec, &p)
 		lic := &p.License
 		if raw := tb.get(rec, "license_type"); raw != "" {
 			if lic.Type = normLicenseType(raw); lic.Type == "" {
@@ -792,6 +818,7 @@ func (l *genericLoader) loadCatalog(tb *table) error {
 			}
 		}
 		lic.Edition = tb.get(rec, "license_edition")
+		l.licenseFields(tb, rec, lic)
 		p.Origin = normOrigin(tb.get(rec, "origin"))
 		if raw := tb.get(rec, "in_reestr"); raw != "" {
 			p.InReestr, _ = parseBool(raw)
@@ -811,12 +838,9 @@ func (l *genericLoader) loadCatalog(tb *table) error {
 			}
 		}
 		attrs := map[string]any{}
-		for _, a := range tb.t.Attributes {
-			col, key := splitAttr(a)
-			for _, h := range tb.td.headers {
-				if fold(h) == fold(col) && strings.TrimSpace(rec[h]) != "" {
-					attrs[key] = strings.TrimSpace(rec[h])
-				}
+		for _, a := range attrCols {
+			if v := strings.TrimSpace(rec[a.header]); v != "" {
+				attrs[a.key] = v
 			}
 		}
 		if lic.Edition != "" {
@@ -830,7 +854,7 @@ func (l *genericLoader) loadCatalog(tb *table) error {
 		}
 		l.hardwareFields(tb, rec, &p)
 		snap.Products = append(snap.Products, p)
-		l.productByKey[p.ID] = p.ID
+		l.productByKey[p.ID] = p.ID // id важнее артикула другой позиции с тем же текстом
 		if p.SKU != "" {
 			if _, ok := l.productByKey[p.SKU]; !ok {
 				l.productByKey[p.SKU] = p.ID

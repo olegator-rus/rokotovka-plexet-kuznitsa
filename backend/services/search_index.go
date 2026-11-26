@@ -145,6 +145,18 @@ func indexBody(meta indexMeta) map[string]any {
 				"compatible_with": keyword,
 				"model_id":        keyword,
 				"price_mode":      keyword,
+				// Контур фида (фид заказчика): страницы, наличие, прежняя и нерабочая цена, вид и ступень лицензии.
+				"offer_url":        map[string]any{"type": "keyword", "index": false},
+				"family_url":       map[string]any{"type": "keyword", "index": false},
+				"vendor_url":       map[string]any{"type": "keyword", "index": false},
+				"vendor_slug":      keyword,
+				"available":        map[string]any{"type": "boolean"},
+				"old_price_rub":    map[string]any{"type": "float"},
+				"feed_price_rub":   map[string]any{"type": "float"},
+				"license_kind":     keyword,
+				"license_org_type": keyword,
+				"license_tier_min": map[string]any{"type": "integer"},
+				"license_tier_max": map[string]any{"type": "integer"},
 				"embedding": map[string]any{
 					"type": "knn_vector", "dimension": embeddingDim,
 					"method": map[string]any{"name": "hnsw", "engine": "lucene", "space_type": "cosinesimil",
@@ -192,7 +204,19 @@ type indexDoc struct {
 	CompatibleWith []string           `json:"compatible_with,omitempty"`
 	ModelID        string             `json:"model_id,omitempty"`
 	PriceMode      string             `json:"price_mode"`
-	Embedding      []float32          `json:"embedding,omitempty"`
+	// Контур фида. Пустые поля (mock) в документ не пишутся; Available nil — источник наличие не сообщает.
+	OfferURL       string    `json:"offer_url,omitempty"`
+	FamilyURL      string    `json:"family_url,omitempty"`
+	VendorURL      string    `json:"vendor_url,omitempty"`
+	VendorSlug     string    `json:"vendor_slug,omitempty"`
+	Available      *bool     `json:"available,omitempty"`
+	OldPriceRub    *float64  `json:"old_price_rub,omitempty"`
+	FeedPriceRub   *float64  `json:"feed_price_rub,omitempty"`
+	LicenseKind    string    `json:"license_kind,omitempty"`
+	LicenseOrgType string    `json:"license_org_type,omitempty"`
+	LicenseTierMin *int      `json:"license_tier_min,omitempty"`
+	LicenseTierMax *int      `json:"license_tier_max,omitempty"`
+	Embedding      []float32 `json:"embedding,omitempty"`
 }
 
 // buildDocs — документы индекса из снимка каталога: имена вендора и категории, путь категории, алиасы
@@ -213,6 +237,7 @@ func buildDocs(s *domain.CatalogSnapshot) []indexDoc {
 		}
 		relations[r.FromFamily][r.Type] = append(relations[r.FromFamily][r.Type], r.ToFamily)
 	}
+	aliases := newAliasIndex(s.Aliases)
 	docs := make([]indexDoc, 0, len(s.Products))
 	for _, p := range s.Products {
 		ids, names := categoryChain(cats, p.CategoryID)
@@ -248,6 +273,17 @@ func buildDocs(s *domain.CatalogSnapshot) []indexDoc {
 			CompatibleWith:  p.CompatibleWith,
 			ModelID:         p.ModelID,
 			PriceMode:       p.PriceMode,
+			OfferURL:        p.OfferURL,
+			FamilyURL:       p.FamilyURL,
+			VendorURL:       vendors[p.VendorID].URL,
+			VendorSlug:      vendors[p.VendorID].Slug,
+			Available:       p.Available,
+			OldPriceRub:     p.OldPriceRub,
+			FeedPriceRub:    p.FeedPriceRub,
+			LicenseKind:     p.License.Kind,
+			LicenseOrgType:  p.License.OrgType,
+			LicenseTierMin:  p.License.TierMin,
+			LicenseTierMax:  p.License.TierMax,
 		}
 		if d.Vendor == "" {
 			d.Vendor = p.VendorID
@@ -255,7 +291,7 @@ func buildDocs(s *domain.CatalogSnapshot) []indexDoc {
 		if len(names) > 0 {
 			d.Category = names[len(names)-1]
 		}
-		d.Aliases = aliasesFor(s.Aliases, p, ids)
+		d.Aliases = aliases.forProduct(p, ids)
 		docs = append(docs, d)
 	}
 	return docs
@@ -284,37 +320,74 @@ func categoryChain(cats map[string]domain.Category, id string) ([]string, []stri
 	return ids, names
 }
 
-// aliasesFor — алиасы, которые относятся к позиции: вендора, семейства (id совпадает или семейство —
-// вариант цели: «microsoft-office» → «microsoft-office-2021»), категории или её предка, термина (каноническое
-// слово есть в названии, семействе или описании).
-func aliasesFor(all []domain.Alias, p domain.Product, categoryIDs []string) []string {
-	var out []string
-	seen := map[string]bool{}
-	text := ""
+// aliasIndex — алиасы, разложенные по цели один раз на снимок: на фиде в 136 тыс. позиций перебор всех
+// алиасов для каждой позиции (с разбором канонической формы) занимал основное время сборки документов.
+type aliasIndex struct {
+	byVendor, byCategory map[string][]string
+	familyPrefix         []domain.Alias // алиасы семейства: цель — id семейства или префикс id варианта
+	terms                []termAlias
+}
+
+// termAlias — алиас термина и его каноническая форма словами через пробел.
+type termAlias struct{ alias, canonical string }
+
+func newAliasIndex(all []domain.Alias) *aliasIndex {
+	ix := &aliasIndex{byVendor: map[string][]string{}, byCategory: map[string][]string{}}
 	for _, a := range all {
-		hit := false
 		switch a.Target {
 		case domain.AliasTargetVendor:
-			hit = a.TargetID == p.VendorID
+			ix.byVendor[a.TargetID] = append(ix.byVendor[a.TargetID], a.Alias)
 		case domain.AliasTargetFamily:
-			hit = a.TargetID == p.FamilyID || strings.HasPrefix(p.FamilyID, a.TargetID+"-")
+			ix.familyPrefix = append(ix.familyPrefix, a)
 		case domain.AliasTargetCategory:
-			for _, id := range categoryIDs {
-				hit = hit || id == a.TargetID
-			}
+			ix.byCategory[a.TargetID] = append(ix.byCategory[a.TargetID], a.Alias)
 		case domain.AliasTargetTerm:
-			if text == "" {
-				text = " " + strings.Join(wordsOf(p.Title+" "+p.FamilyName+" "+p.Description), " ") + " "
-			}
-			c := strings.Join(wordsOf(a.Canonical), " ")
-			hit = c != "" && strings.Contains(text, " "+c+" ")
+			ix.terms = append(ix.terms, termAlias{alias: a.Alias, canonical: strings.Join(wordsOf(a.Canonical), " ")})
 		}
-		if hit && !seen[a.Alias] {
-			seen[a.Alias] = true
-			out = append(out, a.Alias)
+	}
+	return ix
+}
+
+// forProduct — алиасы, которые относятся к позиции: вендора, семейства (id совпадает или семейство — вариант
+// цели: «microsoft-office» → «microsoft-office-2021»), категории или её предка, термина (каноническое слово
+// есть в названии, семействе или описании). Порядок — как в aliasesFor до индекса: вендор, семейство,
+// категория, термин; повторы убраны.
+func (ix *aliasIndex) forProduct(p domain.Product, categoryIDs []string) []string {
+	var out []string
+	seen := map[string]bool{}
+	add := func(a string) {
+		if !seen[a] {
+			seen[a] = true
+			out = append(out, a)
+		}
+	}
+	for _, a := range ix.byVendor[p.VendorID] {
+		add(a)
+	}
+	for _, a := range ix.familyPrefix {
+		if a.TargetID == p.FamilyID || strings.HasPrefix(p.FamilyID, a.TargetID+"-") {
+			add(a.Alias)
+		}
+	}
+	for _, id := range categoryIDs {
+		for _, a := range ix.byCategory[id] {
+			add(a)
+		}
+	}
+	if len(ix.terms) > 0 {
+		text := " " + strings.Join(wordsOf(p.Title+" "+p.FamilyName+" "+p.Description), " ") + " "
+		for _, t := range ix.terms {
+			if t.canonical != "" && strings.Contains(text, " "+t.canonical+" ") {
+				add(t.alias)
+			}
 		}
 	}
 	return out
+}
+
+// aliasesFor — алиасы позиции по полному списку (тесты и разовые вызовы); сборка документов — через aliasIndex.
+func aliasesFor(all []domain.Alias, p domain.Product, categoryIDs []string) []string {
+	return newAliasIndex(all).forProduct(p, categoryIDs)
 }
 
 var wordRe = regexp.MustCompile(`[\p{L}\p{N}]+`)

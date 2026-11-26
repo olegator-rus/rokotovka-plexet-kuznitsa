@@ -612,6 +612,8 @@ func (rc rankCtx) toItem(fh *familyHit) out.SearchItem {
 			PurchasedBefore: rc.purchased["p:"+d.ProductID] || rc.purchased["f:"+d.FamilyID],
 			Final:           fh.final,
 			Kind:            docKind(d), MPN: d.MPNRaw, PriceMode: docPriceMode(d), Required: []out.Companion{},
+			OfferURL: d.OfferURL, FamilyURL: d.FamilyURL, VendorURL: d.VendorURL, Available: d.Available,
+			OldPriceRub: d.OldPriceRub, LicenseKind: d.LicenseKind,
 		}
 	}
 	it := mk(fh.head)
@@ -640,6 +642,8 @@ func quantityOK(d indexDoc, n int) bool {
 	switch {
 	case q == n, isPerUnit(d):
 		return true
+	case d.LicenseTierMin != nil && n >= *d.LicenseTierMin && (d.LicenseTierMax == nil || n <= *d.LicenseTierMax):
+		return true // ступень цены за единицу фида: «от 100 до 149 узлов» закрывает 120
 	case q > 0 && d.LicenseMetric != nil && *d.LicenseMetric == domain.MetricCore && n%q == 0:
 		return true
 	}

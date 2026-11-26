@@ -124,6 +124,14 @@ type SearchItem struct {
 	// Контур доводки: статус реестра семейства и строка отличий аналога отсутствующего товара.
 	Reestr     *Reestr `json:"reestr,omitempty"`
 	AnalogNote string  `json:"analog_note,omitempty"`
+	// Контур фида (фид заказчика; в mock пусто и не выводится): страницы позиции, семейства и вендора на сайте,
+	// наличие, прежняя цена (скидка — при old_price_rub > price_rub > 0) и вид позиции по типу лицензии.
+	OfferURL    string   `json:"offer_url,omitempty"`
+	FamilyURL   string   `json:"family_url,omitempty"`
+	VendorURL   string   `json:"vendor_url,omitempty"`
+	Available   *bool    `json:"available,omitempty"`
+	OldPriceRub *float64 `json:"old_price_rub,omitempty"`
+	LicenseKind string   `json:"license_kind,omitempty"`
 }
 
 // ItemCompatibility — совместимость позиции с моделью из запроса.
@@ -322,24 +330,30 @@ type MetaClient struct {
 
 // ImportResult — POST /api/catalog/import и `go run . import`: что загружено и сколько это заняло.
 type ImportResult struct {
-	Source         string   `json:"source"`
-	CatalogVersion string   `json:"catalog_version"`
-	Products       int      `json:"products"`
-	Families       int      `json:"families"`
-	Vendors        int      `json:"vendors"`
-	Categories     int      `json:"categories"`
-	Relations      int      `json:"relations"`
-	Aliases        int      `json:"aliases"`
-	Clients        int      `json:"clients"`
-	Index          string   `json:"index"`
-	Vectors        bool     `json:"vectors"`
-	Database       bool     `json:"database"` // записан ли каталог в PostgreSQL
-	RulesVersion   int      `json:"rules_version"`
-	EmbedMs        int64    `json:"embed_ms"`
-	IndexMs        int64    `json:"index_ms"`
-	DatabaseMs     int64    `json:"database_ms"`
-	TotalMs        int64    `json:"total_ms"`
-	Warnings       []string `json:"warnings"`
+	Source         string `json:"source"`
+	CatalogVersion string `json:"catalog_version"`
+	Products       int    `json:"products"`
+	Families       int    `json:"families"`
+	Vendors        int    `json:"vendors"`
+	Categories     int    `json:"categories"`
+	Relations      int    `json:"relations"`
+	Aliases        int    `json:"aliases"`
+	Clients        int    `json:"clients"`
+	Index          string `json:"index"`
+	Vectors        bool   `json:"vectors"`
+	// EmbedScope — all (вектор у каждой позиции) | family (по одной позиции на семейство, большой каталог);
+	// EmbeddedDocs — сколько документов получили вектор.
+	EmbedScope   string `json:"embed_scope"`
+	EmbeddedDocs int    `json:"embedded_docs"`
+	// ReusedVectors — из них взяты из прежнего индекса (текст эмбеддинга не изменился).
+	ReusedVectors int      `json:"reused_vectors"`
+	Database      bool     `json:"database"` // записан ли каталог в PostgreSQL
+	RulesVersion  int      `json:"rules_version"`
+	EmbedMs       int64    `json:"embed_ms"`
+	IndexMs       int64    `json:"index_ms"`
+	DatabaseMs    int64    `json:"database_ms"`
+	TotalMs       int64    `json:"total_ms"`
+	Warnings      []string `json:"warnings"`
 }
 
 // ProductCompanions — GET /api/companions: «К этой позиции» в спецификации.
