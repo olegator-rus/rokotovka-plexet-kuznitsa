@@ -18,6 +18,8 @@ export interface Cause {
   id: CauseId
   label: string
   owner: string
+  /** Роль-владелец: права на решение — по ней. */
+  role: 'ecom' | 'product' | 'content' | 'head'
   kind: CauseKind
   codes: readonly string[]
 }
@@ -27,13 +29,15 @@ export const CAUSES: readonly Cause[] = [
     id: 'not_understood',
     label: 'Поиск не понял запрос',
     owner: 'Администратор поиска',
+    role: 'ecom',
     kind: 'search_fix',
     codes: ['TYPO', 'ALIAS_GAP', 'SUGGESTION_GAP'],
   },
   {
     id: 'ranked_low',
     label: 'Нужный товар стоит низко или задублирован',
-    owner: 'Команда поиска',
+    owner: 'Администратор поиска',
+    role: 'ecom',
     kind: 'search_fix',
     codes: ['RANKING_FAILURE', 'FAMILY_DUPLICATE', 'SUGGESTION_DEGRADED'],
   },
@@ -41,34 +45,39 @@ export const CAUSES: readonly Cause[] = [
     id: 'content_gap',
     label: 'В карточке не хватает данных',
     owner: 'Каталог',
+    role: 'content',
     kind: 'owner_task',
     codes: ['CONTENT_GAP'],
   },
   {
     id: 'not_in_catalog',
     label: 'Товара нет в каталоге',
-    owner: 'Категорийный менеджер',
+    owner: 'Категорийный и лицензионный менеджер',
+    role: 'product',
     kind: 'owner_task',
     codes: ['ASSORTMENT_GAP', 'SUBSTITUTE_AVAILABLE'],
   },
   {
     id: 'relation_rule',
     label: 'Ошибка в связи или лицензионном правиле',
-    owner: 'Лицензионный специалист',
+    owner: 'Категорийный и лицензионный менеджер',
+    role: 'product',
     kind: 'search_fix',
     codes: ['BROKEN_RELATION', 'MISSING_REQUIRED', 'CONSTRAINT_CONFLICT'],
   },
   {
     id: 'non_product',
     label: 'Запрос не о товаре',
-    owner: 'Поддержка и справка',
+    owner: 'Администратор поиска',
+    role: 'ecom',
     kind: 'owner_task',
     codes: ['NON_PRODUCT'],
   },
   {
     id: 'noise',
     label: 'Шум или недостаточно данных',
-    owner: 'Ручной разбор',
+    owner: 'Руководитель e-com',
+    role: 'head',
     kind: 'owner_task',
     codes: ['NOISE', 'UNKNOWN'],
   },
@@ -93,6 +102,7 @@ export interface CauseView {
   cause: Cause | null
   label: string
   owner: string
+  role: Cause['role']
   kind: CauseKind
   /** Коды подпричин — мелко. */
   codes: string[]
@@ -101,6 +111,8 @@ export interface CauseView {
 export interface CauseInput {
   cause?: string | null
   owner?: string | null
+  /** Подпись владельца с сервера — главнее таблицы. */
+  owner_label?: string | null
   diagnosis?: string | null
   action?: string | null
 }
@@ -120,7 +132,9 @@ export function causeView(p: CauseInput): CauseView {
   return {
     cause: c,
     label: c?.label ?? server,
-    owner: displayOwner(p.owner) || c?.owner || 'Ручной разбор',
+    role: c?.role ?? 'head',
+    owner:
+      (p.owner_label ?? '').trim() || displayOwner(p.owner) || c?.owner || 'Руководитель e-com',
     kind,
     codes: p.diagnosis ? [p.diagnosis] : [],
   }

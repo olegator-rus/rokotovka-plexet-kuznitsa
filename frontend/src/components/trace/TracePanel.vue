@@ -1,11 +1,14 @@
 <script setup lang="ts">
 // Панель трассы: сводка, шаги сверху вниз, разложение скора выбранного товара,
 // отсечённые товары с причиной, «Скопировать JSON». Без запроса — подсказка, при загрузке — скелет.
+// Сотруднику — «Разобрать»: запуск агента на этом запросе (контур автономии, S4 кадр 3) и переход в ленту.
 import { computed } from 'vue'
-import { Copy, X } from 'lucide-vue-next'
+import { Copy, Microscope, X } from 'lucide-vue-next'
 import type { Trace } from '@/api/types'
 import UiSelect from '@/components/ui/UiSelect.vue'
 import { useToast } from '@/components/ui/useToast'
+import { useAnalyseQuery } from '@/composables/useAnalyseQuery'
+import { useAuthStore } from '@/stores/auth'
 import { formatScore } from '@/lib/format'
 import { rejectedLabel, traceItemFor, traceJson } from '@/lib/trace'
 import ScoreBreakdown from './ScoreBreakdown.vue'
@@ -22,10 +25,15 @@ const props = defineProps<{
   closable?: boolean
   /** Панель внутри окна со своим заголовком: свой заголовок только для скринридера. */
   embedded?: boolean
+  /** Запрос выдачи: с ним сотрудник может отдать его агенту на разбор. */
+  query?: string | null
 }>()
 
 const emit = defineEmits<{ select: [productId: string]; close: [] }>()
 const toast = useToast()
+const auth = useAuthStore()
+const { analyse, busy: analysing } = useAnalyseQuery()
+const canAnalyse = computed(() => auth.staff && !!props.query?.trim() && !!props.trace)
 
 const items = computed(() => props.trace?.items ?? [])
 const selectedItem = computed(
@@ -63,6 +71,17 @@ async function copyJson() {
     <header class="trace__head">
       <h2 id="trace-title" :class="embedded ? 'sr-only' : 't-h2'">Трасса запроса</h2>
       <div class="trace__tools">
+        <button
+          v-if="canAnalyse"
+          type="button"
+          class="btn btn--secondary btn--sm"
+          :disabled="!!analysing"
+          :title="`Агент разберёт «${query}»: план, гипотезы, прогон`"
+          @click="analyse(query!)"
+        >
+          <Microscope :size="14" aria-hidden="true" />
+          {{ analysing ? 'Запускаем…' : 'Разобрать' }}
+        </button>
         <button type="button" class="btn btn--ghost btn--sm" :disabled="!trace" @click="copyJson">
           <Copy :size="14" aria-hidden="true" />
           Скопировать JSON

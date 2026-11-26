@@ -48,6 +48,7 @@ export const CHANGE_KIND_LABELS: Record<string, string> = {
   typo: 'опечатка',
   alias: 'алиас',
   clean: 'очистка',
+  sku: 'артикул',
 }
 
 export const REJECT_REASON_LABELS: Record<string, string> = {
@@ -165,8 +166,13 @@ export function stepSummary(step: TraceStep): string {
       const src =
         typeof step.source === 'string' && step.source ? parseSourceLabel(step.source) : ''
       const why = skipReasonLabel(step.reason)
-      if (why) return `${src || 'правила'} · ${why}`
-      return src || 'выполнено'
+      // ПДн (телефон, почта, ИНН…) заменены метками до кэша и модели — pii_masked шага (сервер, pii.go).
+      const pii =
+        typeof step.pii_masked === 'number' && step.pii_masked > 0
+          ? ` · замаскировано: ${step.pii_masked}`
+          : ''
+      if (why) return `${src || 'правила'} · ${why}${pii}`
+      return `${src || 'выполнено'}${pii}`
     }
     case 'normalize': {
       const n = step.changes?.length ?? 0

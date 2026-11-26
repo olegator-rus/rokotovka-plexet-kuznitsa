@@ -116,7 +116,7 @@ test.describe('Бэк-офис П2', () => {
     const card = page.getByRole('article').filter({ hasText: 'Сломанная связь' })
     await expect(card).toBeVisible()
     await expect(card.getByTestId('cause')).toHaveText('Ошибка в связи или лицензионном правиле')
-    await expect(card.getByTestId('owner')).toContainText('Лицензионный специалист')
+    await expect(card.getByTestId('owner')).toContainText('Категорийный и лицензионный менеджер')
     await expect(card).toContainText('было: дополнение · условно обязательное · совместимость не подтверждена')
     await expect(card).toContainText('Уровень: E2 — документ вендора · сильное')
     await expect(card).toContainText('Техническая корректность: подтверждена')

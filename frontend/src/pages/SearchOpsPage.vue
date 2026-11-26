@@ -1,26 +1,29 @@
 <script setup lang="ts">
-// SearchOps («Навигация»): вкладки «Запросы без ответа», «Запуски», «Очередь», «Изменения»,
-// «Политика ранжирования» (reka Tabs, вкладка в адресе: /searchops?tab=failed|runs|queue|changes|policy).
-// «Запустить разбор» → POST /api/agent/runs → страница запуска с лентой. «Разобрать» в «Запросах без ответа» ведёт
-// сюда с ?tab=runs&q=<запрос>: запуск на одном запросе подключит трек агента.
+// SearchOps («Навигация»; контур автономии — «Память»): вкладки «Запросы без ответа», «Запуски»,
+// «Очередь», «Память», «Изменения», «Политика ранжирования» (reka Tabs, вкладка в адресе:
+// /searchops?tab=failed|runs|queue|memory|changes|policy). «Запустить разбор» → POST /api/agent/runs по периоду →
+// лента запуска. «Разобрать» в строке запроса — запуск на одном запросе (useAnalyseQuery); старый адрес
+// ?tab=runs&q=<запрос> показывает плашку с той же кнопкой.
 import { computed, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { storeToRefs } from 'pinia'
 import { TabsContent, TabsList, TabsRoot, TabsTrigger } from 'reka-ui'
 import { Play } from 'lucide-vue-next'
-import { getRuns, startRun } from '@/api/agent'
+import { getAgentSettings, getRuns, startRun } from '@/api/agent'
 import ChangesPanel from '@/components/searchops/ChangesPanel.vue'
 import FailedQueries from '@/components/searchops/FailedQueries.vue'
+import MemoryPanel from '@/components/searchops/MemoryPanel.vue'
 import PolicyPanel from '@/components/searchops/PolicyPanel.vue'
 import ProposalQueue from '@/components/searchops/ProposalQueue.vue'
 import RunsList from '@/components/searchops/RunsList.vue'
 import { useToast } from '@/components/ui/useToast'
+import { useAnalyseQuery } from '@/composables/useAnalyseQuery'
 import { useResource } from '@/composables/useResource'
 import { isApiError } from '@/lib/apiError'
 import { isRunActive } from '@/lib/agentFeed'
 import { useAppStore } from '@/stores/app'
 
-const TABS = ['failed', 'runs', 'queue', 'changes', 'policy'] as const
+const TABS = ['failed', 'runs', 'queue', 'memory', 'changes', 'policy'] as const
 type Tab = (typeof TABS)[number]
 
 const route = useRoute()
@@ -36,16 +39,20 @@ const tab = computed<Tab>({
   set: (t) => void router.replace({ query: { tab: t } }),
 })
 
-/** Запрос из «Разобрать» (?q=): запуск на одном запросе подключит трек агента. */
+/** Старый адрес «Разобрать» (?tab=runs&q=): плашка с запуском на одном запросе. */
 const askedQuery = computed(() =>
   tab.value === 'runs' && typeof route.query.q === 'string' ? route.query.q.trim() : '',
 )
 
+const { analyse, busy: analysing } = useAnalyseQuery()
+
 const runs = useResource((opts) => getRuns(opts))
+const settings = useResource((opts) => getAgentSettings(opts))
 watch(
   tab,
   (t) => {
     if (t === 'runs' || t === 'failed') void runs.load({ quiet: !!runs.data.value })
+    if (t === 'runs') void settings.load({ quiet: !!settings.data.value })
   },
   { immediate: true },
 )
@@ -104,6 +111,7 @@ async function onStart() {
             {{ pendingProposals }}
           </span>
         </TabsTrigger>
+        <TabsTrigger value="memory" class="tabs__trigger">Память</TabsTrigger>
         <TabsTrigger value="changes" class="tabs__trigger">Изменения</TabsTrigger>
         <TabsTrigger value="policy" class="tabs__trigger">Политика ранжирования</TabsTrigger>
       </TabsList>
@@ -112,22 +120,35 @@ async function onStart() {
         <FailedQueries />
       </TabsContent>
       <TabsContent value="runs" class="sops__panel">
-        <p v-if="askedQuery" class="panel sops__asked t-sm" role="status">
-          Разбор запроса «<strong>{{ askedQuery }}</strong
-          >»: запуск на одном запросе ещё не подключён. «Запустить разбор» разберёт неудачные
-          запросы за 30 дней (до 5 самых частых кластеров).
-        </p>
+        <div v-if="askedQuery" class="panel sops__asked t-sm" role="status">
+          <span
+            >Разобрать запрос «<strong>{{ askedQuery }}</strong
+            >» — агент построит план и проверит гипотезы при вас.</span
+          >
+          <button
+            type="button"
+            class="btn btn--primary btn--sm"
+            :disabled="!!analysing"
+            @click="analyse(askedQuery)"
+          >
+            {{ analysing ? 'Запускаем…' : 'Разобрать' }}
+          </button>
+        </div>
         <RunsList
           :runs="runs.data.value?.items ?? null"
           :status="runs.status.value"
           :error="runs.error.value"
           :starting="starting"
+          :settings="settings.data.value ?? null"
           @start="onStart"
-          @retry="runs.load()"
+          @retry="(runs.load(), settings.load())"
         />
       </TabsContent>
       <TabsContent value="queue" class="sops__panel">
         <ProposalQueue @start="onStart" />
+      </TabsContent>
+      <TabsContent value="memory" class="sops__panel">
+        <MemoryPanel />
       </TabsContent>
       <TabsContent value="changes" class="sops__panel">
         <ChangesPanel />
@@ -164,6 +185,11 @@ async function onStart() {
   gap: var(--space-4);
 }
 .sops__asked {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2) var(--space-3);
   padding: var(--space-3) var(--space-4);
   color: var(--text-2);
 }

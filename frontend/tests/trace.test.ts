@@ -116,6 +116,11 @@ test('шаг intent: источник разбора и причина отка�
   const { intentFallback } = await import('../src/lib/trace.ts')
   assert.equal(stepSummary(step({ name: 'intent', source: 'llm' })), 'LLM')
   assert.equal(
+    stepSummary(step({ name: 'intent', source: 'llm', pii_masked: 2 })),
+    'LLM · замаскировано: 2',
+  )
+  assert.equal(stepSummary(step({ name: 'intent', source: 'llm', pii_masked: 0 })), 'LLM')
+  assert.equal(
     stepSummary(step({ name: 'intent', source: 'rules', reason: 'budget_exceeded' })),
     'правила · дневной бюджет LLM исчерпан',
   )

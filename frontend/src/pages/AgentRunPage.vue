@@ -2,6 +2,8 @@
 // Страница запуска агента: лента шагов по кластерам, новые снизу (SSE, при обрыве — опрос),
 // справа колонка состояния. Завершённый запуск открывается в том же виде из истории.
 // ?cluster=<id> — переход из предложения «Показать ход расследования»: прокрутка к шагам этого кластера.
+// Контур автономии: в шапке — триггер и вход; блок «План» (последняя редакция), «Бюджет» — израсходовано из лимита; шаги
+// памяти и проверки эффекта выделены в ленте (AgentStepRow); итог — «N предложений, M задач, K пропущено по памяти».
 import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue'
 import { RouterLink, useRoute } from 'vue-router'
 import { ArrowLeft, CircleAlert, LoaderCircle, Square } from 'lucide-vue-next'
@@ -22,6 +24,7 @@ import {
 } from '@/lib/agentFeed'
 import { formatDateTime, formatInt, formatRub, plural } from '@/lib/format'
 import { diagnosisLabel, effectLine } from '@/lib/proposals'
+import { budgetRows, isLegacyRun, outcomeLine, triggerDetail, triggerLabel } from '@/lib/agentRuns'
 import { useAppStore } from '@/stores/app'
 
 const route = useRoute()
@@ -60,6 +63,23 @@ function toCluster(id: string) {
 }
 
 const stopReason = computed(() => stopReasonLabel(run.value?.stop_reason))
+const legacy = computed(() => !!run.value && isLegacyRun(run.value))
+const plan = computed(() => run.value?.plan ?? null)
+const budget = computed(() => budgetRows(run.value?.budget, run.value?.stop_reason))
+const unprocessed = computed(() => run.value?.unprocessed ?? [])
+const title = computed(() => {
+  const r = run.value
+  if (!r) return 'Запуск агента'
+  if (r.query) return `Разбор запроса «${r.query}»`
+  if (r.trigger === 'schedule') return 'Ночной разбор неудачных запросов'
+  if (r.trigger === 'spike') return 'Разбор всплеска неудачных поисков'
+  if (r.trigger === 'catalog_change') return 'Проверка после обновления каталога'
+  return 'Разбор неудачных запросов'
+})
+const why = computed(() => {
+  const w = run.value?.input?.why
+  return typeof w === 'string' ? w : ''
+})
 const failed = computed(() => run.value?.status === 'failed' || run.value?.status === 'stopped')
 const noFailures = computed(
   () =>
@@ -151,14 +171,20 @@ onBeforeUnmount(() => window.clearInterval(clock))
 
     <header class="run__head">
       <div>
-        <h1 id="run-title" class="t-h1">Разбор неудачных запросов</h1>
+        <h1 id="run-title" class="t-h1">{{ title }}</h1>
         <p class="t-sm t-muted">
           <template v-if="run">
             {{ formatDateTime(run.started_at) }} ·
-            {{ run.trigger === 'schedule' ? 'по расписанию' : 'запущен вручную' }} ·
+            <span data-testid="run-trigger">триггер: {{ triggerLabel(run.trigger) }}</span
+            ><template v-if="triggerDetail(run) !== triggerLabel(run.trigger)">
+              ({{ triggerDetail(run) }})</template
+            >
+            ·
+            <template v-if="run.read_only">только чтение · </template>
           </template>
           <span class="t-mono">{{ runId }}</span>
         </p>
+        <p v-if="why" class="t-sm run__why">{{ why }}</p>
       </div>
       <div class="run__actions">
         <span v-if="run" class="badge badge--strong">
@@ -197,6 +223,53 @@ onBeforeUnmount(() => window.clearInterval(clock))
 
     <div v-else-if="run" class="run__grid">
       <div class="run__main">
+        <!-- План: последняя редакция (модель или по приоритету) -->
+        <section v-if="plan" class="panel run__plan" aria-label="План запуска">
+          <p class="run__block-title">
+            План<template v-if="plan.revision > 1"> · редакция {{ plan.revision }}</template>
+            <span class="t-xs t-muted">
+              ·
+              {{
+                plan.source === 'model'
+                  ? 'построила модель'
+                  : 'по приоритету (модель не ответила по схеме)'
+              }}</span
+            >
+          </p>
+          <p>{{ plan.summary }}</p>
+          <p v-if="plan.change" class="t-sm t-muted">Изменение: {{ plan.change }}</p>
+          <ol v-if="plan.clusters?.length" class="run__plan-list t-sm">
+            <li v-for="c in plan.clusters" :key="c.cluster_id">
+              <button type="button" class="link" @click="toCluster(c.cluster_id)">
+                {{ c.label }}
+              </button>
+              <span v-if="c.why" class="t-muted"> — {{ c.why }}</span>
+            </li>
+          </ol>
+          <p v-if="plan.dropped?.length" class="t-xs t-muted">
+            Выпало из плана: {{ plan.dropped.map((d) => `«${d.label}»`).join(', ') }}
+          </p>
+        </section>
+
+        <!-- Бюджет: израсходовано из лимита -->
+        <section v-if="budget.length" class="panel run__budget" aria-label="Бюджет запуска">
+          <p class="run__block-title">
+            Бюджет запуска · израсходовано из лимита{{ active ? ' на сейчас' : '' }}
+          </p>
+          <ul class="run__budget-list">
+            <li v-for="b in budget" :key="b.key" :class="{ 'run__budget--hit': b.exhausted }">
+              <span class="t-sm">{{ b.label }}</span>
+              <span class="t-num t-sm">{{ b.used }} из {{ b.limit }}</span>
+              <span class="run__bar" aria-hidden="true"
+                ><span :style="{ width: `${Math.round(b.share * 100)}%` }"
+              /></span>
+            </li>
+          </ul>
+          <p v-if="unprocessed.length" class="t-sm t-muted">
+            Не разобрано: {{ unprocessed.map((u) => `«${u.label}»`).join(', ') }}
+          </p>
+        </section>
+
         <!-- Остановлен или упал: причина, готовые предложения сохранены -->
         <div v-if="failed" class="panel run__stopped" role="status">
           <CircleAlert :size="18" aria-hidden="true" class="run__stopped-icon" />
@@ -219,7 +292,8 @@ onBeforeUnmount(() => window.clearInterval(clock))
         <!-- Итог завершённого запуска -->
         <div v-if="!active && run.status === 'done' && !noFailures" class="panel run__outcome">
           <p class="t-h2">Итог</p>
-          <p>{{ runOutcomeLine(run) }}</p>
+          <p data-testid="run-outcome">{{ legacy ? runOutcomeLine(run) : outcomeLine(run) }}</p>
+          <p v-if="!legacy && stopReason" class="t-sm t-muted">Остановка: {{ stopReason }}</p>
           <p v-if="run.episode?.metrics?.failed_queries" class="t-sm t-muted run__metrics">
             За {{ run.episode.metrics.days ?? run.days ?? 30 }} дней:
             {{ formatInt(run.episode.metrics.failed_queries) }} неудачных запросов из
@@ -279,7 +353,9 @@ onBeforeUnmount(() => window.clearInterval(clock))
           </div>
           <p class="t-sm">
             Стоимость запуска:
-            <RouterLink to="/costs" class="num-btn">{{ formatRub(run.cost_rub) }}</RouterLink>
+            <RouterLink to="/proofs?tab=cost" class="num-btn">{{
+              formatRub(run.cost_rub)
+            }}</RouterLink>
             <template v-if="run.proposals_created">
               ·
               <RouterLink to="/searchops?tab=queue" class="link">Открыть очередь</RouterLink>
@@ -449,6 +525,54 @@ p.run__empty {
 }
 .run__stopped-title {
   font-weight: var(--fw-medium);
+}
+.run__why {
+  color: var(--text-2);
+}
+.run__plan,
+.run__budget {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-4);
+}
+.run__block-title {
+  font-weight: var(--fw-semibold);
+}
+.run__plan-list {
+  margin: 0;
+  padding-left: var(--space-5);
+}
+.run__budget-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(11rem, 1fr));
+  gap: var(--space-2) var(--space-4);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.run__budget-list > li {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 2px var(--space-2);
+}
+.run__bar {
+  grid-column: 1 / -1;
+  height: 4px;
+  overflow: hidden;
+  border-radius: var(--radius-sm);
+  background: var(--surface-3);
+}
+.run__bar > span {
+  display: block;
+  height: 100%;
+  background: var(--text-2);
+}
+.run__budget--hit .run__bar > span {
+  background: var(--status-pending);
+}
+.run__budget--hit > span:nth-child(2) {
+  color: var(--status-pending);
 }
 .run__outcome {
   display: flex;

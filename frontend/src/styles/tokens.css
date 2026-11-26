@@ -51,6 +51,10 @@
   --status-rolled-back: #a7b0bd;
   --status-rolled-back-bg: #1b1f27;
 
+  /* Лента агента (контур автономии): шаги памяти выделены своим цветом и всегда подписаны словом «память» */
+  --feed-memory: #86b9ee;
+  --feed-memory-bg: #122337;
+
   /* Знак изменения метрики */
   --delta-up: #7fd4a6;
   --delta-down: #f2a08f;

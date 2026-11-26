@@ -1,9 +1,10 @@
 <script setup lang="ts">
 // Вкладка «Очередь» (контур доводки): правки поиска и задачи владельцам по оценке приоритета, затем по
 // потерянному спросу; фильтр по статусу и роли-владельцу (в адресе: ?status=&role=). Решение — через диалог, итог — тост; после принятия тост
-// ведёт в «Поиск» на действующих правилах B4.
+// ведёт в «Поиск» на действующих правилах B4. Контур автономии: плашка сверху — «N предложений от ночного запуска 03:00 · M от
+// всплеска 14:20» (по trigger и run_started_at ждущих предложений), каждая часть ведёт в свой запуск.
 import { computed, nextTick, ref, watch } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { RouterLink, useRoute, useRouter } from 'vue-router'
 import { storeToRefs } from 'pinia'
 import { Bot, Play } from 'lucide-vue-next'
 import { getProposals } from '@/api/agent'
@@ -16,6 +17,7 @@ import { formatInt } from '@/lib/format'
 import { PROPOSAL_ROLES, PROPOSAL_STATUSES, isTicket, searchCheckUrl } from '@/lib/proposals'
 import { causeView } from '@/lib/causes'
 import { sortQueue } from '@/lib/queue'
+import { originText, queueBannerLine, queueOrigins } from '@/lib/agentRuns'
 import { useAppStore } from '@/stores/app'
 import DecisionDialogs from './DecisionDialogs.vue'
 import ProposalCard from './ProposalCard.vue'
@@ -86,6 +88,8 @@ watch(
   { immediate: true },
 )
 const filtered = computed(() => status.value !== 'pending' || role.value !== ALL)
+const origins = computed(() => queueOrigins(items.value))
+const bannerLine = computed(() => queueBannerLine(origins.value))
 
 const target = ref<{ proposal: Proposal; mode: 'accept' | 'reject' } | null>(null)
 const activeVersion = computed(() => meta.value?.rules_version ?? null)
@@ -147,6 +151,18 @@ function onRejected(p: Proposal) {
         }}
       </span>
     </div>
+
+    <p v-if="bannerLine" class="panel queue__banner" role="status" data-testid="queue-banner">
+      <Bot :size="16" aria-hidden="true" class="queue__banner-icon" />
+      <span>
+        <template v-for="(o, i) in origins" :key="o.runId"
+          ><template v-if="i"> · </template
+          ><RouterLink :to="`/searchops/runs/${encodeURIComponent(o.runId)}`" class="link">{{
+            originText(o, i === 0)
+          }}</RouterLink></template
+        >
+      </span>
+    </p>
 
     <div
       v-if="res.status.value === 'loading' && !res.data.value"
@@ -220,6 +236,17 @@ function onRejected(p: Proposal) {
   flex-wrap: wrap;
   align-items: center;
   gap: var(--space-2) var(--space-3);
+}
+.queue__banner {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+}
+.queue__banner-icon {
+  flex: none;
+  margin-top: 2px;
+  color: var(--text-2);
 }
 .queue__count {
   min-width: 0;

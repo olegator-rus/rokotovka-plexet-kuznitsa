@@ -172,6 +172,10 @@ test('«Каталог» не может утвердить правку свя�
     data: {},
   })
   expect(rb.status()).toBe(403)
+  // Фраза отказа — services.DenyMessage, та же, что lib/auth.ts denyMessage у кнопок.
+  expect(((await rb.json()) as { error: { message: string } }).error.message).toBe(
+    'Это решение принимает администратор поиска',
+  )
 })
 
 test('руководитель может всё: кнопки активны, сервер пропускает к проверке тела (422, не 403)', async ({

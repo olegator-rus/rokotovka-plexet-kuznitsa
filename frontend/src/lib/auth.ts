@@ -55,7 +55,9 @@ export function canDecide(
 
 /** Подсказка у неактивной кнопки — та же фраза, что 403 сервера (services.DenyMessage). */
 export function denyMessage(owner: string | null | undefined): string {
-  if (owner === 'ecom' || owner === 'product' || owner === 'content') {
+  // Как services.DenyMessage: у каталога — «команда каталога».
+  if (owner === 'content') return 'Это решение принимает команда каталога'
+  if (owner === 'ecom' || owner === 'product') {
     const l = ROLE_LABELS[owner]
     return `Это решение принимает ${l.charAt(0).toLowerCase()}${l.slice(1)}`
   }

@@ -5,19 +5,24 @@ import { computed, ref, type Component } from 'vue'
 import { CollapsibleContent, CollapsibleRoot, CollapsibleTrigger } from 'reka-ui'
 import {
   BookMarked,
+  BookOpen,
   ChevronDown,
   ChevronRight,
   CircleAlert,
   CircleCheck,
   CircleX,
+  Gauge,
+  History,
   Inbox,
   Lightbulb,
+  ListChecks,
   MessageSquareText,
+  SkipForward,
   Stethoscope,
   Wrench,
 } from 'lucide-vue-next'
 import type { StepView } from '@/lib/agentFeed'
-import { formatClock } from '@/lib/agentFeed'
+import { effectVerdict, formatClock } from '@/lib/agentFeed'
 import { formatMs } from '@/lib/format'
 
 const props = defineProps<{ view: StepView }>()
@@ -32,13 +37,22 @@ const icon = computed<Component>(() => {
   if (k === 'hypothesis') return Lightbulb
   if (k === 'check') return props.view.passed ? CircleCheck : CircleX
   if (k === 'memory') return BookMarked
+  if (k === 'memory_read') return BookOpen
+  if (k === 'memory_skip') return SkipForward
+  if (k === 'effect_check') return History
+  if (k === 'plan') return ListChecks
+  if (k === 'budget') return Gauge
   if (k === 'proposal') return Inbox
   if (k === 'error') return CircleAlert
   return MessageSquareText
 })
 
 /** Цвет только у смысловых шагов: проверка прошла/нет, отклонённая гипотеза, ошибка, предложение. */
+const verdict = computed(() => effectVerdict(s.value))
 const tone = computed(() => {
+  if (verdict.value === 'helped') return 'status-accepted'
+  if (verdict.value === 'harmed') return 'status-rejected'
+  if (verdict.value === 'no_effect') return ''
   if (props.view.rejected) return 'status-rejected'
   if (props.view.passed === true) return 'status-accepted'
   if (props.view.passed === false) return 'status-rejected'
@@ -52,6 +66,28 @@ const head = computed(() => {
     parts[0] += ` №${s.value.hypothesis_no}`
   if (props.view.toolLabel) parts.push(props.view.toolLabel)
   return parts.join(' · ')
+})
+
+/**
+ * Подпись выделенного шага (контур автономии): шаги памяти и проверки эффекта видны в ленте сразу — цветом и словом,
+ * а не только иконкой.
+ */
+const TAGS: Record<string, string> = {
+  memory_read: 'память',
+  memory_skip: 'память · пропуск',
+  memory: 'память',
+  effect_check: 'проверка эффекта',
+  budget: 'бюджет',
+}
+const VERDICTS: Record<string, string> = {
+  helped: 'помогло',
+  no_effect: 'без эффекта',
+  harmed: 'навредило',
+}
+const tag = computed(() => {
+  const t = TAGS[s.value.kind]
+  if (!t) return ''
+  return verdict.value ? `${t}: ${VERDICTS[verdict.value]}` : t
 })
 
 const checkLabel = computed(() => {
@@ -87,6 +123,7 @@ const hasResult = computed(() => !!s.value.result && Object.keys(s.value.result)
         <component :is="icon" :size="16" />
       </span>
       <span class="astep__kind">
+        <span v-if="tag" class="astep__tag" data-testid="step-tag">{{ tag }}</span>
         {{ head }}
         <span v-if="checkLabel" class="astep__check">· {{ checkLabel }}</span>
       </span>
@@ -209,10 +246,45 @@ button.astep__head:hover {
   text-decoration-color: var(--tone);
   text-decoration-thickness: 2px;
 }
-.astep--memory {
-  background: var(--surface-2);
+.astep--memory,
+.astep--effect,
+.astep--plan {
+  background: var(--tone-bg, var(--surface-2));
+  box-shadow: inset 3px 0 0 var(--tag-line, var(--border-control));
 }
-.astep--memory .astep__icon,
+.astep--memory {
+  --tag-line: var(--feed-memory);
+  --tone-bg: var(--feed-memory-bg);
+}
+.astep--plan {
+  --tone-bg: var(--surface-2);
+}
+.astep--effect {
+  --tag-line: var(--tone, var(--text-2));
+}
+.astep--effect .astep__icon {
+  color: var(--tone, var(--text));
+}
+.astep--plan .astep__title,
+.astep--effect .astep__title,
+.astep--memory .astep__title {
+  font-weight: var(--fw-medium);
+}
+.astep--budget .astep__icon {
+  color: var(--status-pending);
+}
+.astep__tag {
+  display: inline-block;
+  margin-right: var(--space-1);
+  padding: 0 var(--space-1);
+  border-radius: var(--radius-sm);
+  background: var(--bg);
+  color: var(--tag-line, var(--text));
+  font-weight: var(--fw-semibold);
+}
+.astep--memory .astep__icon {
+  color: var(--feed-memory);
+}
 .astep--memory .astep__kind {
   color: var(--text);
 }

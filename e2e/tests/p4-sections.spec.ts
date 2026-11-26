@@ -1,9 +1,9 @@
 // Контур доводки («Переделанные экраны»): три раздела — «Поиск», «SearchOps», «Доказательства»;
-// SearchOps — пять вкладок, «Запросы без ответа» с фильтрами по причине и владельцу и кнопкой «Разобрать»;
+// SearchOps — шесть вкладок (контур автономии вернул «Память»), «Запросы без ответа» с фильтрами по причине и владельцу и кнопкой «Разобрать»;
 // «Доказательства» — три вкладки, «Вклад компонентов» пока пуст. Старые адреса ведут на новые места.
 // Демо-состояние не меняется. E2E_SCREENS=1 — снимки разделов 1440/360 в artifacts/screens/p4/.
 import type { Page } from '@playwright/test'
-import { expect, test } from './fixtures'
+import { MAIN_RUN_ID, expect, test } from './fixtures'
 
 const OUT = '../artifacts/screens/p4'
 const SHOTS = process.env.E2E_SCREENS === '1'
@@ -16,7 +16,7 @@ async function noOverflow(page: Page, name: string) {
 }
 
 test.describe('Контур доводки: три раздела', () => {
-  test('сотрудник: в навигации ровно три раздела; SearchOps — пять вкладок по порядку', async ({
+  test('сотрудник: в навигации ровно три раздела; SearchOps — шесть вкладок по порядку (контур автономии вернул «Память»)', async ({
     page,
   }) => {
     await page.goto('/searchops')
@@ -26,6 +26,7 @@ test.describe('Контур доводки: три раздела', () => {
       'Запросы без ответа',
       'Запуски',
       /Очередь/,
+      'Память',
       'Изменения',
       'Политика ранжирования',
     ])
@@ -33,13 +34,12 @@ test.describe('Контур доводки: три раздела', () => {
       'data-state',
       'active',
     )
-    // Удалённого нет: «Память», «Аналитика», «Экономика», «Маржа», «Эффект».
-    await expect(page.getByRole('tab', { name: 'Память' })).toHaveCount(0)
+    // Удалённого нет: «Аналитика», «Экономика», «Маржа», «Эффект».
     for (const name of ['Аналитика', 'Экономика', 'Маржа', 'Изменения', 'До / После'])
       await expect(nav.getByRole('link', { name })).toHaveCount(0)
   })
 
-  test('«Запросы без ответа»: колонки, фильтры по причине и владельцу, «Разобрать» ведёт в «Запуски»', async ({
+  test('«Запросы без ответа»: колонки, фильтры по причине и владельцу, «Разобрать» — запуск на одном запросе', async ({
     page,
   }) => {
     await page.goto('/searchops?tab=failed')
@@ -54,9 +54,17 @@ test.describe('Контур доводки: три раздела', () => {
 
     const first = table.getByRole('row').nth(1)
     const query = ((await first.getByRole('link').first().textContent()) ?? '').trim()
+    // Контур автономии: «Разобрать» — POST /api/agent/runs {"query"} и переход в ленту. Здесь запуск подменён ответом с
+    // готовым запуском: демо-состояние не меняется (живой запуск — в s4-agent.spec.ts по E2E_LIVE_AGENT=1).
+    let body: unknown = null
+    await page.route('**/api/agent/runs', async (route) => {
+      if (route.request().method() !== 'POST') return route.fallback()
+      body = route.request().postDataJSON()
+      await route.fulfill({ status: 202, json: { run_id: MAIN_RUN_ID } })
+    })
     await first.getByRole('button', { name: /^Разобрать/ }).click()
-    await expect(page).toHaveURL((u) => u.searchParams.get('tab') === 'runs' && u.searchParams.get('q') === query)
-    await expect(page.getByRole('status').filter({ hasText: `Разбор запроса «${query}»` })).toBeVisible()
+    await expect(page).toHaveURL(new RegExp(`/searchops/runs/${MAIN_RUN_ID}`))
+    expect(body).toEqual({ query })
 
     // Фильтр по владельцу пишется в адрес и сужает таблицу.
     await page.goto('/searchops?tab=failed&owner=' + encodeURIComponent('Администратор поиска'))

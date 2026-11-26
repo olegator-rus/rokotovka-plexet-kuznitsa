@@ -1106,6 +1106,7 @@ async function onSupply() {
         :loading="status === 'loading'"
         :titles="titles"
         :selected="selected"
+        :query="response?.query ?? null"
         closable
         @select="selected = $event"
         @close="setTrace(false)"
@@ -1125,6 +1126,7 @@ async function onSupply() {
             :loading="status === 'loading'"
             :titles="titles"
             :selected="selected"
+            :query="response?.query ?? null"
             closable
             @select="selected = $event"
             @close="setTrace(false)"

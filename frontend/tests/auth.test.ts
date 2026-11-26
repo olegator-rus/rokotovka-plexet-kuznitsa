@@ -29,7 +29,7 @@ test('canDecide: руководитель — всё, роль — только 
   }
   assert.equal(denyMessage('product'), 'Это решение принимает категорийный и лицензионный менеджер')
   assert.equal(denyMessage('ecom'), 'Это решение принимает администратор поиска')
-  assert.equal(denyMessage('content'), 'Это решение принимает каталог')
+  assert.equal(denyMessage('content'), 'Это решение принимает команда каталога')
   assert.equal(denyMessage('x'), 'Это решение принимает руководитель e-com')
 })
 

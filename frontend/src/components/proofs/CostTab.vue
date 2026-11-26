@@ -5,7 +5,7 @@
 // ничего не пересчитывает, кроме сценариев месяца из замеров и допущений человека.
 import { computed, onMounted, ref, shallowRef } from 'vue'
 import { getRuns } from '@/api/agent'
-import { getCosts } from '@/api/costs'
+import { getCosts, getCostsSummary } from '@/api/costs'
 import type { CostRouteRow, LlmCall } from '@/api/types'
 import BlockError from '@/components/common/BlockError.vue'
 import ExplainDialog, { type Explanation } from '@/components/common/ExplainDialog.vue'
@@ -21,10 +21,11 @@ import { formatCost, formatInt, formatMs, formatPercent, plural } from '@/lib/fo
 import { ROUTE_LABELS, isRoute } from '@/lib/trace'
 import { useAuthStore } from '@/stores/auth'
 
-// Журнал вызовов и список запусков агента — бэк-офис: гостю не запрашиваются.
+// Журнал вызовов и список запусков агента — бэк-офис: гостю не запрашиваются. Гость получает открытую сводку
+// GET /api/costs/summary (те же маршруты, средняя, доля без LLM и «Месяц», без журнала).
 const auth = useAuthStore()
 
-const res = useResource((opts) => getCosts(0, opts))
+const res = useResource((opts) => (auth.staff ? getCosts(0, opts) : getCostsSummary(opts)))
 const toast = useToast()
 const extraCalls = shallowRef<LlmCall[]>([])
 const loadingMore = ref(false)

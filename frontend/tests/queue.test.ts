@@ -38,7 +38,7 @@ test('sortQueue: оценка приоритета по убыванию, зат
   )
 })
 
-test('причины: 7 штук, каждый код диагноза — ровно в одной, владельцы по таблице', () => {
+test('причины: 7 штук, каждый код диагноза — ровно в одной, владельцы — четыре роли', () => {
   assert.equal(CAUSES.length, 7)
   const codes = CAUSES.flatMap((c) => c.codes)
   assert.equal(new Set(codes).size, codes.length)
@@ -46,7 +46,8 @@ test('причины: 7 штук, каждый код диагноза — ро�
   assert.equal(causeOfCode('ASSORTMENT_GAP')?.label, 'Товара нет в каталоге')
   assert.equal(causeOfCode('CONTENT_GAP')?.owner, 'Каталог')
   assert.equal(causeOfCode('MARGIN_OPPORTUNITY'), null)
-  assert.equal(OWNER_OPTIONS.length, 7)
+  // Четыре роли-владельца: владелец — роль сотрудника, а не отдельная должность.
+  assert.equal(OWNER_OPTIONS.length, 4)
 })
 
 test('causeView: сервер главнее кода; ticket — задача владельцу; без причины — ручной разбор', () => {
@@ -56,7 +57,7 @@ test('causeView: сервер главнее кода; ticket — задача �
   assert.deepEqual(fix.codes, ['TYPO'])
   const task = causeView({ diagnosis: 'ASSORTMENT_GAP', action: 'ticket' })
   assert.equal(task.kind, 'owner_task')
-  assert.equal(task.owner, 'Категорийный менеджер')
+  assert.equal(task.owner, 'Категорийный и лицензионный менеджер')
   const server = causeView({ cause: 'content_gap', owner: 'Отдел каталога', diagnosis: 'TYPO' })
   assert.equal(server.label, 'В карточке не хватает данных')
   assert.equal(server.owner, 'Отдел каталога')
@@ -65,5 +66,5 @@ test('causeView: сервер главнее кода; ticket — задача �
   assert.equal(causeView({ diagnosis: 'TYPO', owner: 'ecom' }).owner, 'Администратор поиска')
   const none = causeView({})
   assert.equal(none.label, 'Шум или недостаточно данных')
-  assert.equal(none.owner, 'Ручной разбор')
+  assert.equal(none.owner, 'Руководитель e-com')
 })

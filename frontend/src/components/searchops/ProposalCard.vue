@@ -3,6 +3,8 @@
 // код подпричины мелко → запросы кластера с частотой → что предлагается (разница правил) или что сделать владельцу →
 // результат прогона → ход расследования → решение. Два вида: «Правка поиска» (утвердить / отклонить с причиной) и
 // «Задача владельцу» (отправить). Причина — lib/causes.ts (с сервера cause/owner, без них — по коду диагноза).
+// Контур автономии: у карточки — откуда она (триггер и запуск); карточка отката, предложенного агентом (action: rollback):
+// «Правка от … навредила…», обратная правка и прогон до / после отката.
 import { computed, ref } from 'vue'
 import { CollapsibleContent, CollapsibleRoot, CollapsibleTrigger } from 'reka-ui'
 import { RouterLink } from 'vue-router'
@@ -14,6 +16,7 @@ import {
   CircleX,
   Lock,
   Search,
+  Undo2,
 } from 'lucide-vue-next'
 import type { Proposal } from '@/api/types'
 import { denyMessage } from '@/lib/auth'
@@ -38,6 +41,7 @@ import {
 import { KIND_LABELS, causeView } from '@/lib/causes'
 import { PRIORITY_CAPTION, priorityValue } from '@/lib/queue'
 import { isRelationPatch } from '@/lib/relationProposal'
+import { runWhen, triggerLabel } from '@/lib/agentRuns'
 import PatchDiff from './PatchDiff.vue'
 import RelationPatchView from './RelationPatchView.vue'
 
@@ -74,6 +78,9 @@ const priority = computed(() =>
   priorityValue(p.value as Proposal & { priority_score?: number | null }),
 )
 const detailsOpen = ref(false)
+// Контур автономии: откат, предложенный агентом, и происхождение карточки.
+const rollback = computed(() => p.value.action === 'rollback' || !!p.value.rollback_of)
+const origin = computed(() => (p.value.trigger ? runWhen(p.value.run_started_at) || ' ' : ''))
 const runLink = computed(() =>
   p.value.run_id
     ? {
@@ -93,7 +100,10 @@ const runLink = computed(() =>
   >
     <header class="pcard__head">
       <span :class="['badge', 'badge--tone', status.tone]">{{ status.label }}</span>
-      <span class="badge" data-testid="kind">{{ KIND_LABELS[cause.kind] }}</span>
+      <span v-if="rollback" class="badge badge--strong" data-testid="kind">
+        <Undo2 :size="12" aria-hidden="true" /> Откат от агента
+      </span>
+      <span v-else class="badge" data-testid="kind">{{ KIND_LABELS[cause.kind] }}</span>
       <span v-if="priority" class="pcard__priority t-sm" data-testid="priority">
         <strong class="t-num">{{ priority }}</strong>
         <span class="t-xs t-muted">{{ PRIORITY_CAPTION }}</span>
@@ -120,6 +130,17 @@ const runLink = computed(() =>
           <span class="t-mono">{{ p.diagnosis }}</span> · </template
         ><template v-if="commerce">{{ p.cluster?.label }}</template
         ><template v-else>кластер «{{ p.cluster?.label }}»</template>
+      </p>
+      <p v-if="origin" class="t-xs pcard__origin" data-testid="origin">
+        <span class="t-muted">Откуда:</span>
+        <RouterLink
+          v-if="runLink"
+          :to="runLink"
+          class="link"
+          :title="`Триггер: ${triggerLabel(p.trigger)}`"
+          >{{ triggerLabel(p.trigger) }} · запуск {{ origin }}</RouterLink
+        >
+        <template v-else>{{ triggerLabel(p.trigger) }}</template>
       </p>
     </div>
     <p v-if="stale" class="pcard__stale t-sm">
@@ -151,7 +172,13 @@ const runLink = computed(() =>
 
     <section v-else class="pcard__block" aria-label="Что предлагается">
       <p class="pcard__label">
-        {{ ticket ? `Что сделать · кому: ${cause.owner}` : 'Что предлагается' }}
+        {{
+          rollback
+            ? `Откатить правку${p.rollback_of?.config_version ? ` версии ${p.rollback_of.config_version}` : ''} — обратная правка`
+            : ticket
+              ? `Что сделать · кому: ${cause.owner}`
+              : 'Что предлагается'
+        }}
       </p>
       <ul v-if="todo.length" class="pcard__todo">
         <li v-for="t in todo" :key="t">{{ t }}</li>
@@ -170,8 +197,8 @@ const runLink = computed(() =>
 
     <section v-if="ev" class="pcard__block" aria-label="Результат прогона">
       <p class="pcard__label">
-        Результат прогона
-        <template v-if="p.hypotheses_tried > 1">
+        {{ rollback ? 'Прогон: с правкой (сейчас) → после отката' : 'Результат прогона' }}
+        <template v-if="p.hypotheses_tried > 1 && !rollback">
           · проверено {{ p.hypotheses_tried }}
           {{ plural(p.hypotheses_tried, ['гипотеза', 'гипотезы', 'гипотез']) }}
         </template>
@@ -387,6 +414,11 @@ const runLink = computed(() =>
   display: flex;
   flex-direction: column;
   gap: 2px;
+}
+.pcard__origin {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
 }
 .pcard__cause-title {
   margin: 0;

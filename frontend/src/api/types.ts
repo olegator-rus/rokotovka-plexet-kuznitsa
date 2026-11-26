@@ -15,6 +15,7 @@ import type {
   Upgrade,
 } from './typesP2'
 import type { P3EventType } from './typesPanel'
+import type { RollbackOf, RunBudget, RunOutcome, RunPlan, RunUnprocessed } from './typesAgent'
 import type {
   ItemAttrs,
   Refinement,
@@ -702,6 +703,8 @@ export interface CostsResponse {
   summary: CostsSummary
   routes: CostRouteRow[]
   calls: CostsCalls
+  /** Открытая сводка (GET /api/costs/summary, гость): журнал вызовов только сотруднику, calls пуст. */
+  journal_hidden?: boolean
   /** Месячные сценарии сервера: из них блок «Месяц» берёт LLM на запрос и стоимость запуска. */
   monthly?: CostsMonthly
 }
@@ -740,6 +743,15 @@ export interface AgentRun {
     timeout_sec?: number
   }
   episode?: RunEpisode | null
+  // Контур автономии
+  query?: string | null
+  read_only?: boolean
+  input?: Record<string, unknown> | null
+  plan?: RunPlan | null
+  budget?: RunBudget | null
+  outcome?: RunOutcome | null
+  unprocessed?: RunUnprocessed[] | null
+  duration_ms?: number | null
 }
 
 /** Итог запуска: метрики периода, итог каждого кластера, эффект принятых правок. */
@@ -766,7 +778,20 @@ export interface RunEpisode {
 }
 
 export type AgentStepKind =
-  'tool_call' | 'thought' | 'check' | 'memory' | 'diagnosis' | 'hypothesis' | 'proposal' | 'error'
+  | 'tool_call'
+  | 'thought'
+  | 'check'
+  | 'memory'
+  | 'diagnosis'
+  | 'hypothesis'
+  | 'proposal'
+  | 'error'
+  // контур автономии
+  | 'plan'
+  | 'memory_read'
+  | 'memory_skip'
+  | 'effect_check'
+  | 'budget'
 
 export interface AgentStep {
   id: string
@@ -794,11 +819,10 @@ export interface AgentRunDetail {
   steps: AgentStep[]
 }
 
-export interface AgentRunRequest {
-  days: number
-  max_clusters: number
-  trigger: 'manual' | 'schedule'
-}
+export type AgentRunRequest =
+  | { days: number; max_clusters: number; trigger: 'manual' | 'schedule' }
+  /** Контур автономии: запуск на одном запросе («Разобрать»), триггер manual. */
+  | { query: string }
 
 export type ProposalStatus = 'pending' | 'accepted' | 'rejected' | 'rolled_back' | 'stale'
 export type ProposalRole = 'ecom' | 'product' | 'content'
@@ -953,6 +977,13 @@ export interface Proposal {
   /** Контур доводки: одна из семи причин и её владелец; код диагноза — подпричина. */
   cause?: string | null
   owner?: string | null
+  cause_label?: string | null
+  owner_label?: string | null
+  /** Контур автономии: откуда предложение — триггер и время запуска; задача владельцу; откат от агента. */
+  trigger?: string | null
+  run_started_at?: string | null
+  task_to_owner?: boolean
+  rollback_of?: RollbackOf | null
 }
 
 export interface ProposalsResponse {

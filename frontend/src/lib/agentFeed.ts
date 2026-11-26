@@ -67,7 +67,17 @@ export function parseSse<T>(data: string): T | null {
 // ── Виды шагов ──
 
 /** Три вида: вызов инструмента, вывод агента, результат проверки; плюс память и ошибка. */
-export type StepGroup = 'tool' | 'reasoning' | 'check' | 'memory' | 'proposal' | 'error'
+export type StepGroup =
+  | 'tool'
+  | 'reasoning'
+  | 'check'
+  | 'memory'
+  | 'proposal'
+  | 'error'
+  // контур автономии: план, проверка эффекта прошлой правки, бюджет
+  | 'plan'
+  | 'effect'
+  | 'budget'
 
 const KIND_META: Record<string, { label: string; group: StepGroup }> = {
   tool_call: { label: 'Инструмент', group: 'tool' },
@@ -78,6 +88,19 @@ const KIND_META: Record<string, { label: string; group: StepGroup }> = {
   memory: { label: 'Память', group: 'memory' },
   proposal: { label: 'Предложение', group: 'proposal' },
   error: { label: 'Ошибка', group: 'error' },
+  plan: { label: 'План', group: 'plan' },
+  memory_read: { label: 'Читаю', group: 'memory' },
+  memory_skip: { label: 'Пропускаю', group: 'memory' },
+  effect_check: { label: 'Прошлая правка', group: 'effect' },
+  budget: { label: 'Бюджет', group: 'budget' },
+}
+
+/** Вердикт шага effect_check: helped | no_effect | harmed (result.verdict), иначе по ok. */
+export function effectVerdict(step: AgentStep): 'helped' | 'no_effect' | 'harmed' | null {
+  if (step.kind !== 'effect_check') return null
+  const v = step.result?.verdict
+  if (v === 'helped' || v === 'no_effect' || v === 'harmed') return v
+  return step.ok ? null : 'harmed'
 }
 
 export function stepKind(kind: string): { label: string; group: StepGroup } {
@@ -101,6 +124,7 @@ export const TOOL_LABELS: Record<string, string> = {
   create_assortment_ticket: 'Задача по ассортименту',
   verify_applied_change: 'Эффект принятой правки',
   close_cluster: 'Кластер закрыт',
+  submit_plan: 'План запуска',
   ...P2_TOOL_LABELS,
 }
 
@@ -262,7 +286,21 @@ export function segmentByCluster(steps: AgentStep[], run: AgentRun | null): Clus
     }
     out[out.length - 1].steps.push(stepView(s, rejected, hypotheses))
   }
+  for (const seg of out) if (!seg.clusterId) seg.label = runSegmentLabel(seg.steps, seg === out[0])
   return out
+}
+
+/** Заголовок сегмента вне кластеров (контур автономии): план и проверки эффекта в начале, бюджет и итог в конце. */
+function runSegmentLabel(views: StepView[], first: boolean): string {
+  const kinds = new Set(views.map((v) => v.step.kind))
+  if (kinds.size === 1 && kinds.has('budget')) return 'Бюджет запуска'
+  const parts: string[] = []
+  if (kinds.has('plan')) parts.push('план')
+  if (kinds.has('memory_read') || kinds.has('memory_skip')) parts.push('память')
+  if (kinds.has('effect_check')) parts.push('проверка эффекта прошлых правок')
+  if (!parts.length) return first ? 'Подготовка запуска' : 'Запуск'
+  const t = parts.join(', ')
+  return t.charAt(0).toUpperCase() + t.slice(1)
 }
 
 // ── Колонка состояния ──
@@ -290,6 +328,11 @@ const STOP_REASONS: Record<string, string> = {
   no_failed_queries: 'неудачных запросов за период нет',
   budget_limit: 'исчерпан дневной бюджет LLM',
   error: 'внутренняя ошибка запуска',
+  steps_budget: 'исчерпан бюджет шагов',
+  cost_budget: 'исчерпан бюджет стоимости',
+  time_budget: 'исчерпан бюджет времени',
+  already_solved: 'поиск уже отвечает верно — разбирать нечего',
+  no_findings: 'находок нет',
 }
 
 export function stopReasonLabel(reason: string | null | undefined): string | null {

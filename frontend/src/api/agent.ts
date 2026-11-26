@@ -11,6 +11,7 @@ import type {
   ProposalsResponse,
   RollbackResponse,
 } from './types'
+import type { AgentSettings, MemoryLayerId, MemoryLayerResponse } from './typesAgent'
 
 /** GET /api/agent/runs — прошлые запуски. */
 export const getRuns = (opts?: RequestOptions) => http.get<AgentRunsResponse>('/agent/runs', opts)
@@ -64,3 +65,27 @@ export const rollbackConfig = (toVersion: number, comment = '') =>
 
 /** GET /api/agent/memory — решения человека, которые агент помнит. */
 export const getMemory = (opts?: RequestOptions) => http.get<MemoryResponse>('/agent/memory', opts)
+
+// ── Контур автономии ──
+
+/** GET /api/agent/runs?trigger= — запуски одного вида; без фильтра — все. */
+export function getRunsBy(trigger: string | null, opts?: RequestOptions) {
+  const qs = trigger ? `?trigger=${encodeURIComponent(trigger)}` : ''
+  return http.get<AgentRunsResponse>(`/agent/runs${qs}`, opts)
+}
+
+/** POST /api/agent/runs {"query"} — «Разобрать» на одном запросе (триггер manual) → 202 {run_id}. */
+export const startQueryRun = (query: string) =>
+  http.post<{ run_id: string }>('/agent/runs', { query })
+
+/** GET /api/agent/settings — режим, расписание, пороги триггеров, бюджеты. */
+export const getAgentSettings = (opts?: RequestOptions) =>
+  http.get<AgentSettings>('/agent/settings', opts)
+
+/** GET /api/agent/memory?layer=decisions|suppress|episodes */
+export const getMemoryLayer = (layer: MemoryLayerId, opts?: RequestOptions) =>
+  http.get<MemoryLayerResponse>(`/agent/memory?layer=${layer}`, opts)
+
+/** POST /api/agent/memory/suppress/{id}/remove {"reason"} — человек снимает «не предлагать»; это тоже решение. */
+export const removeSuppress = (id: string, reason: string) =>
+  http.post<unknown>(`/agent/memory/suppress/${encodeURIComponent(id)}/remove`, { reason })

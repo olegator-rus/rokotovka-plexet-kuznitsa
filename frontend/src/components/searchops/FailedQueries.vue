@@ -2,8 +2,8 @@
 // Вкладка «Запросы без ответа» («Переделанные экраны»): неудачные запросы за период — запрос,
 // частота, исход (пусто, нет клика, переформулировка), причина, если разобран, владелец, статус; кнопка «Разобрать»
 // в строке; фильтр по причине и владельцу. Данные — GET /api/analytics (problems). Причина и владелец — с сервера
-// (cause, owner), без них — по коду диагноза (lib/causes.ts). «Разобрать» пока ведёт в «Запуски» с запросом в
-// параметре (?tab=runs&q=…): запуск на одном запросе подключит трек агента.
+// (cause, owner), без них — по коду диагноза (lib/causes.ts). «Разобрать» — запуск агента на одном запросе
+// (POST /api/agent/runs {"query"}) и переход в ленту запуска.
 import { computed, watch } from 'vue'
 import { RouterLink, useRoute, useRouter } from 'vue-router'
 import { Microscope } from 'lucide-vue-next'
@@ -11,6 +11,7 @@ import { getAnalytics } from '@/api/analytics'
 import type { ProblemQuery } from '@/api/types'
 import BlockError from '@/components/common/BlockError.vue'
 import UiSelect from '@/components/ui/UiSelect.vue'
+import { useAnalyseQuery } from '@/composables/useAnalyseQuery'
 import { useResource } from '@/composables/useResource'
 import { CAUSE_OPTIONS, OWNER_OPTIONS, causeView, isDiagnosisCode } from '@/lib/causes'
 import { formatInt, plural } from '@/lib/format'
@@ -95,9 +96,7 @@ function resetFilters() {
   void router.replace({ query: { ...route.query, cause: undefined, owner: undefined } })
 }
 
-function analyse(q: string) {
-  void router.push({ path: '/searchops', query: { tab: 'runs', q } })
-}
+const { analyse, busy } = useAnalyseQuery()
 </script>
 
 <template>
@@ -212,9 +211,11 @@ function analyse(q: string) {
                 type="button"
                 class="btn btn--secondary btn--sm"
                 :aria-label="`Разобрать «${r.p.query}»`"
+                :disabled="!!busy"
                 @click="analyse(r.p.query)"
               >
-                <Microscope :size="14" aria-hidden="true" /> Разобрать
+                <Microscope :size="14" aria-hidden="true" />
+                {{ busy === r.p.query.trim() ? 'Запускаем…' : 'Разобрать' }}
               </button>
             </td>
           </tr>
