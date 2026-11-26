@@ -6,6 +6,7 @@ import {
   BLOCK_TITLE,
   blockItems,
   blockTitle,
+  companionBadges,
   evidenceView,
   noDates,
   reasonText,
@@ -38,6 +39,7 @@ test('основание: A — документ вендора со ссылк�
   assert.deepEqual(a, {
     level: 'A',
     tag: 'по документу вендора',
+    reasonInTag: false,
     docUrl: 'https://astra.ru/cert.pdf',
     docTitle: 'сертификат Ready for Astra № 29073/2025',
   })
@@ -52,11 +54,58 @@ test('основание: A — документ вендора со ссылк�
       },
     }),
   )
-  assert.equal(b?.tag, 'из каталога')
+  assert.equal(b?.tag, 'из каталога: тип лицензии')
   assert.equal(b?.docUrl, '', 'у B ссылки на документ нет')
   const c = evidenceView(companion('x', { evidence_level: 'c', source_url: 'https://e.x/doc' }))
   assert.equal(c?.tag, 'проверьте совместимость')
   assert.equal(c?.docUrl, '')
+})
+
+test('основание class_logic: «по логике класса: <причина>», причина отдельной строкой не повторяется', () => {
+  const v = evidenceView(
+    companion('kis', {
+      reason: 'Офису нужна защита. Вариант для Microsoft Office 365',
+      evidence: {
+        level: 'B',
+        kind: 'class_logic',
+        title: 'Логика заказчика: офис → антивирус',
+        url: '',
+        doc_number: '',
+      },
+    }),
+  )
+  assert.equal(v?.tag, 'по логике класса: офису нужна защита. Вариант для Microsoft Office 365')
+  assert.equal(v?.reasonInTag, true)
+  assert.equal(v?.docUrl, '')
+  const sku = evidenceView(
+    companion('x', {
+      evidence: { level: 'B', kind: 'sku_platform', title: '', url: '', doc_number: '' },
+    }),
+  )
+  assert.equal(sku?.tag, 'из каталога: название позиции')
+  // Без причины — просто «по логике класса».
+  const bare = evidenceView(
+    companion('y', {
+      reason: '',
+      evidence: { level: 'B', kind: 'class_logic', title: '', url: '', doc_number: '' },
+    }),
+  )
+  assert.deepEqual([bare?.tag, bare?.reasonInTag], ['по логике класса', false])
+})
+
+test('бейджи карточки блока: «Скидка N%» тоном, «Акция» — только без строки акции, без повторов', () => {
+  assert.deepEqual(companionBadges({ badges: ['Скидка 26%', 'Акция', 'Скидка 26%'], promos: [] }), [
+    { text: 'Скидка 26%', discount: true },
+    { text: 'Акция', discount: false },
+  ])
+  assert.deepEqual(
+    companionBadges({
+      badges: ['Акция'],
+      promos: [{ id: 'p', title: 't', text: 'Акция: t', url: '' }],
+    }),
+    [],
+  )
+  assert.deepEqual(companionBadges({ badges: null, promos: null }), [])
 })
 
 test('основание: без уровня (справочник mock E4) — null; javascript: — не ссылка', () => {

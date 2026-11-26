@@ -18,6 +18,7 @@ import type {
   PanelRefinement,
   PanelSuggestResponse,
   PanelSuggestion,
+  PanelTogether,
 } from '@/api/typesPanel'
 import { useMediaQuery } from '@/composables/useMediaQuery'
 import { buildEvent, type EventFields } from '@/lib/events'
@@ -47,6 +48,7 @@ import {
   sameRefinement,
   suggestionParts,
   toPanelView,
+  togetherReason,
   withRecent,
   withoutRecent,
 } from '@/lib/panel'
@@ -124,6 +126,10 @@ const offered = computed(() =>
   idle.value || !view.value ? [] : offeredRefinements(view.value.refinements, applied.value),
 )
 const products = computed<PanelProduct[]>(() => (idle.value ? [] : (view.value?.products ?? [])))
+/** «Вместе с этим» под первым товаром (§16.8); у товаров прежнего запроса не показываем. */
+const together = computed<PanelTogether[]>(() =>
+  idle.value || productsStale.value ? [] : (view.value?.together ?? []),
+)
 /** Место под товары держим, пока они могут прийти: ждём ответ или сервер не успел (partial). */
 const productsSlot = computed(
   () =>
@@ -665,6 +671,24 @@ function activate(opt: PanelOption) {
       addProduct(p, opt.position)
       return
     }
+    case 'together': {
+      // Как нажатие на товар панели: поиск по названию позиции, событие — с пометкой «вместе с этим».
+      const t = opt.together as PanelTogether
+      track('instant_product_click', {
+        productId: t.product_id,
+        position: opt.position,
+        payload: {
+          family_id: t.family_id,
+          position: opt.position,
+          prefix_len: prefixLen,
+          exact: false,
+          source: 'together',
+          anchor_family_id: t.anchor_family_id,
+        },
+      })
+      send(t.title || t.family_name, 'product', [], 'product', { family_id: t.family_id })
+      return
+    }
     case 'rec':
       openRec(opt.rec as Companion, opt.position)
       return
@@ -1118,6 +1142,37 @@ const popularCache = vueRef<Sugg[] | null>(null)
                 </div>
                 <div v-else class="sp__prod sp__prod--stale" aria-disabled="true">
                   <PanelProductCard :product="p" />
+                </div>
+                <div
+                  v-if="i === 0 && together.length"
+                  class="sp__together"
+                  role="none"
+                  data-testid="panel-together"
+                >
+                  <span class="sp__together-label t-xs" aria-hidden="true">
+                    {{ GROUP_LABELS.together }}
+                  </span>
+                  <div
+                    v-for="(t, j) in together"
+                    :id="oid('together', j)"
+                    :key="`tg-${t.product_id}`"
+                    role="option"
+                    :aria-selected="isActive(oid('together', j))"
+                    :aria-label="`Вместе с этим: ${t.family_name || t.title}`"
+                    :class="['sp__tg', { 'is-active': isActive(oid('together', j)) }]"
+                    :data-level="t.level"
+                    @click="pick(oid('together', j))"
+                  >
+                    <span class="sp__tg-line">
+                      <span class="sp__tg-title t-sm">{{ t.family_name || t.title }}</span>
+                      <strong
+                        v-if="t.price_rub != null && t.price_rub > 0"
+                        class="sp__tg-price t-sm t-num"
+                        >{{ formatPrice(t.price_rub) }}</strong
+                      >
+                    </span>
+                    <span class="sp__tg-why t-xs">{{ togetherReason(t) }}</span>
+                  </div>
                 </div>
                 <div
                   v-if="p.sku_exact && has(oid('product_add', 0))"
@@ -1630,6 +1685,65 @@ const popularCache = vueRef<Sugg[] | null>(null)
 .sp__all.is-active,
 .sp__sec-vendors .sp__opt.is-active {
   border-color: var(--accent);
+}
+
+/* «Вместе с этим» — одна-две тихие строки под первым товаром: название и цена, причина мелко */
+.sp__together {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  margin: 0 0 var(--space-1) var(--space-5);
+  padding-left: var(--space-2);
+  border-left: var(--border-w) solid var(--border);
+}
+.sp__together-label {
+  padding: 0 var(--space-2);
+  color: var(--text-3);
+}
+.sp__tg {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+  padding: var(--space-1) var(--space-2);
+  border: var(--border-w) solid transparent;
+  border-radius: var(--radius-control);
+  cursor: pointer;
+}
+.sp__tg:hover {
+  background: var(--surface-3);
+}
+.sp__tg.is-active {
+  background: var(--surface-3);
+  border-color: var(--accent);
+}
+.sp__tg-line {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
+  min-width: 0;
+}
+.sp__tg-title {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  color: var(--text);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.sp__tg-price {
+  flex: none;
+  color: var(--text);
+}
+.sp__tg-why {
+  display: -webkit-box;
+  overflow: hidden;
+  color: var(--text-2);
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  overflow-wrap: anywhere;
 }
 
 /* «В спецификацию» у точного артикула — широкая кнопка под строкой товара */

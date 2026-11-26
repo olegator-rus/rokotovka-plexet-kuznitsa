@@ -46,13 +46,21 @@ export interface Companion {
   offer_url?: string | null
   family_url?: string | null
   promos?: Promo[] | null
+  /** §16.8: «Скидка N%» (old_price позиции), «Акция» (действующая акция). */
+  badges?: string[] | null
 }
 
 export type EvidenceLevel = 'A' | 'B' | 'C'
 
 export interface CompanionEvidence {
   level: EvidenceLevel | string
-  kind: 'compat_document' | 'license_kind' | 'sku_platform' | 'vendor_ecosystem' | string
+  kind:
+    | 'compat_document'
+    | 'license_kind'
+    | 'sku_platform'
+    | 'class_logic'
+    | 'vendor_ecosystem'
+    | string
   title: string
   url: string
   doc_number: string

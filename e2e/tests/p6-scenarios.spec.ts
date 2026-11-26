@@ -99,23 +99,18 @@ test.describe('сценарии S2 и S3 на фиде', () => {
       await expect(doc).toHaveAttribute('href', crypto?.evidence?.url ?? '')
       await expect(doc).toHaveAttribute('target', '_blank')
       await expect(doc).toHaveAttribute('rel', /noopener/)
-      // Антивирус для Astra — A по документу вендора (KES или Dr.Web — что подобрал сервер), ссылка на документ.
-      const av = card(/Kaspersky Endpoint Security|Dr\.?Web|Доктор Веб/).first()
-      await expect(av).toHaveAttribute('data-evidence', 'A')
-      await expect(av.getByTestId('evidence-doc')).toHaveAttribute('href', /^https:\/\//)
-      // Резервное копирование — есть в блоке; уровень основания — тот, что прислал сервер.
-      const backupItem = items.find((c) => /Кибер Бэкап|RuBackup/.test(c.title))
-      expect(backupItem, 'в блоке есть резервное копирование').toBeTruthy()
-      await expect(card(/Кибер Бэкап|RuBackup/).first()).toHaveAttribute(
-        'data-evidence',
-        backupItem?.evidence?.level ?? '',
-      )
+      // KES и Кибер Бэкап — A по документации вендора, ссылка на документ (S2 Кибер Бэкап с документом).
+      for (const re of [/Kaspersky Endpoint Security/, /Кибер Бэкап/]) {
+        const c = card(re).first()
+        await expect(c).toHaveAttribute('data-evidence', 'A')
+        await expect(c.getByTestId('evidence-doc')).toHaveAttribute('href', /^https:\/\//)
+      }
       // У каждой карточки — бейдж уровня и строка причины; ссылка на документ — только у A.
       const all = block.getByTestId('companion')
       await expect(all).toHaveCount(Math.min(items.length, 6))
       for (const c of await all.all()) {
         await expect(c.getByTestId('evidence-badge')).toBeVisible()
-        await expect(c.getByTestId('companion-reason')).not.toBeEmpty()
+        await expect(c.getByTestId('companion-reason').first()).not.toBeEmpty()
         if ((await c.getAttribute('data-evidence')) !== 'A')
           await expect(c.getByTestId('evidence-doc')).toHaveCount(0)
       }
@@ -188,5 +183,82 @@ test.describe('сценарии S2 и S3 на фиде', () => {
     // Акция — не бейдж: в строке бейджей её нет.
     await expect(card.getByTestId('discount-badge').filter({ hasText: /Акция/ })).toHaveCount(0)
     expect(await pageText(page)).not.toMatch(DATE)
+  })
+
+  test('«кибер бэкап»: вид class_logic — «по логике класса: <причина>», без ссылки и без «из каталога»', async ({
+    page,
+  }) => {
+    await page.goto('/')
+    const body = (await search(page, 'кибер бэкап')) as unknown as S6Body
+    const logic = (body.companions?.items ?? []).find((c) => c.evidence?.kind === 'class_logic')
+    expect(logic, 'в блоке есть связь из таблицы классов').toBeTruthy()
+    const card = page.getByTestId('companion').filter({ hasText: logic?.title.slice(0, 30) ?? '' }).first()
+    const badge = card.getByTestId('evidence-badge')
+    await expect(badge).toContainText(`по логике класса: ${logic?.reason.charAt(0).toLowerCase()}`)
+    await expect(badge).not.toContainText('из каталога')
+    await expect(card.getByTestId('evidence-doc')).toHaveCount(0)
+    // Бейдж скидки у карточки блока — как на выдаче.
+    const discounted = (body.companions?.items ?? []).find((c) =>
+      ((c as { badges?: string[] }).badges ?? []).some((x) => /Скидка/.test(x)),
+    )
+    if (discounted)
+      await expect(
+        page
+          .getByTestId('companion')
+          .filter({ hasText: discounted.title.slice(0, 30) })
+          .getByTestId('companion-badge')
+          .filter({ hasText: /^Скидка \d+%$/ }),
+      ).toHaveCount(1)
+    expect(await pageText(page)).not.toMatch(DATE)
+  })
+
+  for (const vp of [
+    { width: 1440, height: 900 },
+    { width: 360, height: 780 },
+  ]) {
+    test(`панель «аст» · ${vp.width}: «Вместе с этим» под первым товаром, нажатие — как на товар`, async ({ page }) => {
+      await page.setViewportSize(vp)
+      await page.goto('/')
+      const box = page.getByRole('combobox', { name: 'Поиск по каталогу' })
+      await box.click()
+      const [resp] = await Promise.all([
+        page.waitForResponse((r) => r.url().includes('/api/suggest?') && r.url().includes('q=%D0%B0%D1%81%D1%82')),
+        box.pressSequentially('аст', { delay: 30 }),
+      ])
+      const sug = (await resp.json()) as {
+        products: { family_id: string; family_name: string }[]
+        together: { anchor_family_id: string; family_name: string; title: string; price_rub: number; level: string }[]
+      }
+      expect(sug.products[0]?.family_name).toMatch(/Astra Linux/)
+      expect(sug.together.length).toBeGreaterThan(0)
+      expect(sug.together.every((t) => t.anchor_family_id === sug.products[0]?.family_id)).toBe(true)
+
+      const list = page.getByRole('listbox', { name: 'Подсказки поиска' })
+      const together = list.getByTestId('panel-together')
+      await expect(together).toContainText('Вместе с этим')
+      const rows = together.getByRole('option')
+      await expect(rows).toHaveCount(Math.min(sug.together.length, 2))
+      const first = sug.together[0]!
+      await expect(rows.first()).toContainText(first.family_name)
+      await expect(rows.first()).toContainText('₽')
+      expect(await together.innerText()).not.toMatch(DATE)
+      await noOverflow(page)
+
+      // Нажатие — поиск по позиции, как у товара панели.
+      const [req] = await Promise.all([
+        page.waitForRequest((r) => r.url().endsWith('/api/search') && r.method() === 'POST'),
+        rows.first().click(),
+      ])
+      expect((req.postDataJSON() as { query: string }).query).toBe(first.title || first.family_name)
+    })
+  }
+
+  test('панель «rfcg»: раскладка исправлена — «Показаны варианты для «касп»»', async ({ page }) => {
+    await page.goto('/')
+    const box = page.getByRole('combobox', { name: 'Поиск по каталогу' })
+    await box.click()
+    await box.pressSequentially('rfcg', { delay: 30 })
+    await expect(page.getByRole('listbox', { name: 'Подсказки поиска' }).getByText('Показаны варианты для «касп»')).toBeVisible()
+    await expect(box).toHaveValue('rfcg')
   })
 })

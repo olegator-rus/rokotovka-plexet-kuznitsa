@@ -19,11 +19,18 @@ import {
   saveRecent,
   suggestionParts,
   toPanelView,
+  togetherFor,
+  togetherReason,
   withRecent,
   withoutRecent,
   type OptionsInput,
 } from '../src/lib/panel.ts'
-import type { PanelProduct, PanelRefinement, PanelSuggestResponse } from '../src/api/typesPanel.ts'
+import type {
+  PanelProduct,
+  PanelRefinement,
+  PanelSuggestResponse,
+  PanelTogether,
+} from '../src/api/typesPanel.ts'
 
 const product = (i: number, over: Partial<PanelProduct> = {}): PanelProduct => ({
   family_id: `f${i}`,
@@ -280,4 +287,88 @@ test('карточка: строки по типу и цена', () => {
   assert.equal(panelPrice({ price_from_rub: 990, price_mode: 'from' }, fmt), 'от 990 ₽')
   assert.equal(panelPrice({ price_from_rub: 990, price_mode: 'fixed' }, fmt), '990 ₽')
   assert.equal(panelPrice({ price_from_rub: null, price_mode: 'fixed' }, fmt), 'Цена по запросу')
+})
+
+test('«Вместе с этим»: к первому семейству панели, без повторов, не больше двух; причина без дат', () => {
+  const first = {
+    family_id: 'astra',
+    product_id: 'p1',
+  } as unknown as Parameters<typeof togetherFor>[0]
+  const t = (id: string, over: Partial<PanelTogether> = {}): PanelTogether => ({
+    anchor_family_id: 'astra',
+    family_id: `f-${id}`,
+    family_name: `Семейство ${id}`,
+    product_id: id,
+    title: `Позиция ${id}`,
+    vendor: 'v',
+    price_rub: 100,
+    reason: 'Защита рабочих мест',
+    level: 'B',
+    kind: 'class_logic',
+    label: 'Антивирус',
+    ...over,
+  })
+  assert.deepEqual(
+    togetherFor(first, [
+      t('a'),
+      t('dup', { family_id: 'f-a' }),
+      t('other', { anchor_family_id: 'kes' }),
+      t('self', { family_id: 'astra' }),
+      t('b'),
+      t('c'),
+    ]).map((x) => x.product_id),
+    ['a', 'b'],
+  )
+  assert.deepEqual(togetherFor(undefined, [t('a')]), [])
+  assert.deepEqual(togetherFor(first, undefined), [])
+  assert.equal(
+    togetherReason({
+      reason: 'Совместимо с Astra Linux SE 1.7 — сертификат № 1 от 23.01.2025',
+      label: 'x',
+    }),
+    'Совместимо с Astra Linux SE 1.7 — сертификат № 1',
+  )
+  assert.equal(togetherReason({ reason: '', label: 'Хранилище' }), 'Хранилище')
+})
+
+test('«Вместе с этим» в обходе стрелками — сразу после первого товара', () => {
+  const view = toPanelView({
+    suggestions: [],
+    products: [
+      { family_id: 'astra', product_id: 'p1', title: 'Astra' },
+      { family_id: 'alt', product_id: 'p2', title: 'Alt' },
+    ] as unknown as PanelSuggestResponse['products'],
+    together: [
+      {
+        anchor_family_id: 'astra',
+        family_id: 'kes',
+        family_name: 'KES',
+        product_id: 'k1',
+        title: 'KES 1',
+        vendor: 'K',
+        price_rub: 3307.77,
+        reason: 'Защита рабочих мест',
+        level: 'A',
+        kind: 'compat_document',
+        label: 'Антивирус',
+      },
+    ],
+  })
+  const ids = buildOptions({
+    idle: false,
+    recent: [],
+    popular: [],
+    view,
+    productsStale: false,
+    recs: null,
+    recsLimit: 0,
+    mobile: false,
+    withAll: true,
+  }).map((o) => o.id)
+  assert.deepEqual(ids, [
+    'panel-opt-product-0',
+    'panel-opt-together-0',
+    'panel-opt-product-1',
+    'panel-opt-all-0',
+  ])
 })

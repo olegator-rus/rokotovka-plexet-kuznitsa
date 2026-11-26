@@ -8,10 +8,12 @@ import type {
   PanelRefinement,
   PanelSuggestResponse,
   PanelSuggestion,
+  PanelTogether,
   PanelVendor,
 } from '@/api/typesPanel'
 import type { Companion } from '@/api/typesP2'
 import type { SearchFilter } from '@/api/typesP2'
+import { noDates } from './companions.ts'
 
 export const PANEL_MIN_CHARS = 2
 export const PANEL_DEBOUNCE_MS = 150
@@ -56,6 +58,8 @@ export interface PanelView {
   categories: PanelCategory[]
   vendors: PanelVendor[]
   products: PanelProduct[]
+  /** «Вместе с этим» (§16.8): до двух дополнений к первому товару панели; иначе пусто. */
+  together: PanelTogether[]
   totalHint: number | null
   /** Товары не успели на сервере: место под них держим, ответ дозапрашиваем. */
   partial: boolean
@@ -96,10 +100,41 @@ export function toPanelView(
       : (resp?.categories ?? []).filter((c) => c?.id && c.name).slice(0, limits.categories),
     vendors: (resp?.vendors ?? []).filter((v) => v?.id && v.name).slice(0, limits.vendors),
     products: shown,
+    together: togetherFor(shown[0], resp?.together),
     totalHint: typeof resp?.total_hint === 'number' ? resp.total_hint : null,
     partial: Boolean(resp?.meta?.partial),
     serverMs: typeof resp?.meta?.ms?.total === 'number' ? resp.meta.ms.total : null,
   }
+}
+
+/**
+ * «Вместе с этим» к первому товару панели: только дополнения к его семейству (`anchor_family_id`), с названием,
+ * без повторов семейства и без самого первого товара; не больше двух.
+ */
+export function togetherFor(
+  first: PanelProduct | undefined,
+  list: readonly PanelTogether[] | null | undefined,
+): PanelTogether[] {
+  if (!first || !Array.isArray(list)) return []
+  const anchor = first.family_id || first.product_id
+  const seen = new Set<string>([anchor])
+  const out: PanelTogether[] = []
+  for (const t of list) {
+    if (!t?.product_id || !(t.family_name || t.title)) continue
+    if (t.anchor_family_id && t.anchor_family_id !== anchor) continue
+    const fam = t.family_id || t.product_id
+    if (seen.has(fam)) continue
+    seen.add(fam)
+    out.push(t)
+    if (out.length >= 2) break
+  }
+  return out
+}
+
+/** Подпись строки «Вместе с этим»: причина сервера без дат, нет причины — название класса дополнения. */
+export function togetherReason(t: Pick<PanelTogether, 'reason' | 'label'>): string {
+  const r = noDates(t.reason ?? '').trim()
+  return r || t.label || ''
 }
 
 export function isEmptyView(v: PanelView): boolean {
@@ -122,6 +157,7 @@ export type OptionKind =
   | 'vendor'
   | 'product'
   | 'product_add'
+  | 'together'
   | 'rec'
   | 'rec_add'
   | 'all'
@@ -140,6 +176,7 @@ export interface PanelOption {
   category?: PanelCategory
   vendor?: PanelVendor
   product?: PanelProduct
+  together?: PanelTogether
   rec?: Companion
   legacyType?: string
 }
@@ -167,6 +204,7 @@ export const GROUP_LABELS = {
   categories: 'Категории',
   vendors: 'Производители',
   products: 'Товары',
+  together: 'Вместе с этим',
   recs: 'Рекомендации',
   all: 'Все результаты',
 } as const
@@ -283,6 +321,16 @@ export function buildOptions(input: OptionsInput): PanelOption[] {
           product: p,
           position: i + 1,
         })
+      if (i === 0)
+        v.together.forEach((t, j) =>
+          push({
+            kind: 'together',
+            group: GROUP_LABELS.together,
+            label: t.family_name || t.title,
+            together: t,
+            position: j + 1,
+          }),
+        )
     })
   }
   const all = () => {

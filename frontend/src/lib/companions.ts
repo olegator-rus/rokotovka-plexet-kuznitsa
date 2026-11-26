@@ -70,10 +70,23 @@ export const EVIDENCE_TAGS: Record<EvidenceLevel, string> = {
   C: 'проверьте совместимость',
 }
 
+/** Подпись по виду основания (§16.8): вид точнее уровня. */
+export const EVIDENCE_KIND_TAGS: Record<string, string> = {
+  compat_document: 'по документу вендора',
+  license_kind: 'из каталога: тип лицензии',
+  sku_platform: 'из каталога: название позиции',
+  class_logic: 'по логике класса',
+}
+
 export interface EvidenceView {
   level: EvidenceLevel
-  /** «по документу вендора» / «из каталога» / «проверьте совместимость». */
+  /** «по документу вендора» / «из каталога: тип лицензии» / «по логике класса: <причина>» / по уровню. */
   tag: string
+  /**
+   * Вид `class_logic` (связь классов из таблицы заказчика): причина уже стоит в подписи «по логике класса: …»,
+   * отдельной строкой не повторяется.
+   */
+  reasonInTag: boolean
   /** Ссылка на документ — только у уровня A и только http(s). */
   docUrl: string
   /** Что за документ — для подсказки и экранного диктора. */
@@ -85,17 +98,43 @@ const safeHttp = (u: string | null | undefined) =>
 
 /** Основание позиции: объект `evidence` (фид), иначе прежнее `evidence_level`; уровня нет — null. */
 export function evidenceView(
-  c: Pick<Companion, 'evidence' | 'evidence_level' | 'source_url'>,
+  c: Pick<Companion, 'evidence' | 'evidence_level' | 'source_url'> &
+    Partial<Pick<Companion, 'reason'>>,
 ): EvidenceView | null {
   const level = (c.evidence?.level || c.evidence_level || '').trim().toUpperCase()
   if (level !== 'A' && level !== 'B' && level !== 'C') return null
+  const kind = c.evidence?.kind ?? ''
   const docUrl = level === 'A' ? safeHttp(c.evidence?.url || c.source_url) : ''
+  const reason = noDates(c.reason ?? '')
+  const classLogic = kind === 'class_logic' && level !== 'C'
+  let tag = (level !== 'C' && EVIDENCE_KIND_TAGS[kind]) || EVIDENCE_TAGS[level]
+  if (classLogic && reason) tag = `${tag}: ${lowerFirst(reason)}`
   return {
     level,
-    tag: EVIDENCE_TAGS[level],
+    tag,
+    reasonInTag: classLogic && Boolean(reason),
     docUrl,
     docTitle: noDates(c.evidence?.title ?? '') || 'документ вендора',
   }
+}
+
+const lowerFirst = (s: string) =>
+  /^[А-ЯЁA-Z][а-яёa-z]/.test(s) ? s.charAt(0).toLowerCase() + s.slice(1) : s
+
+/** Бейджи карточки блока как на выдаче: «Скидка N%»; «Акция» — только если строки акции нет. */
+export function companionBadges(
+  c: Pick<Companion, 'badges' | 'promos'>,
+): { text: string; discount: boolean }[] {
+  const hasPromo = (c.promos ?? []).length > 0
+  const out: { text: string; discount: boolean }[] = []
+  for (const raw of c.badges ?? []) {
+    const text = noDates(typeof raw === 'string' ? raw : '').trim()
+    if (!text || out.some((b) => b.text === text)) continue
+    const discount = /скидк/i.test(text)
+    if (!discount && hasPromo && /^акция$/i.test(text)) continue
+    out.push({ text, discount })
+  }
+  return out
 }
 
 /** Даты в интерфейсе не пишем: «… № 29073/2025 от 23.01.2025» → «… № 29073/2025». */

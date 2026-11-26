@@ -9,7 +9,13 @@ import VendorLogo from '@/components/common/VendorLogo.vue'
 import type { Companion } from '@/api/typesP2'
 import CompanionSource from '@/components/search/CompanionSource.vue'
 import PromoLine from '@/components/results/PromoLine.vue'
-import { BLOCK_TITLE, classLabel, evidenceView, reasonText } from '@/lib/companions'
+import {
+  BLOCK_TITLE,
+  classLabel,
+  companionBadges,
+  evidenceView,
+  reasonText,
+} from '@/lib/companions'
 import { priceModeLabel } from '@/lib/spec'
 import { useSpecStore } from '@/stores/spec'
 
@@ -56,7 +62,11 @@ const spec = useSpecStore()
               >
                 <span class="cmp-ev__level" aria-hidden="true">{{ evidenceView(c)?.level }}</span>
                 <span class="sr-only">Основание:</span>
-                {{ evidenceView(c)?.tag }}
+                <span
+                  class="cmp-ev__tag"
+                  :data-testid="evidenceView(c)?.reasonInTag ? 'companion-reason' : undefined"
+                  >{{ evidenceView(c)?.tag }}</span
+                >
               </span>
               <span v-if="c.category" class="t-muted">{{ c.category }}</span>
             </p>
@@ -68,7 +78,20 @@ const spec = useSpecStore()
             <p class="t-sm t-muted">
               {{ c.vendor }}<template v-if="c.license_line"> · {{ c.license_line }}</template>
             </p>
-            <p v-if="reasonText(c)" class="t-sm cmp-card__why" data-testid="companion-reason">
+            <p v-if="companionBadges(c).length" class="cmp-card__badges">
+              <span
+                v-for="b in companionBadges(c)"
+                :key="b.text"
+                :class="['badge', { 'badge--tone cmp-card__discount': b.discount }]"
+                data-testid="companion-badge"
+                >{{ b.text }}</span
+              >
+            </p>
+            <p
+              v-if="reasonText(c) && !evidenceView(c)?.reasonInTag"
+              class="t-sm cmp-card__why"
+              data-testid="companion-reason"
+            >
               {{ reasonText(c) }}
             </p>
             <PromoLine :promos="c.promos" />
@@ -169,11 +192,27 @@ const spec = useSpecStore()
 .cmp-ev {
   display: inline-flex;
   align-items: center;
+  min-width: 0;
   gap: var(--space-1);
   color: var(--text-2);
   white-space: nowrap;
 }
+.cmp-ev__tag {
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+.cmp-card__badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+  margin: 2px 0;
+}
+.cmp-card__discount {
+  --tone: var(--status-accepted);
+  --tone-bg: var(--status-accepted-bg);
+}
 .cmp-ev__level {
+  flex: none;
   display: inline-grid;
   place-items: center;
   width: 1.25rem;
@@ -184,11 +223,39 @@ const spec = useSpecStore()
   line-height: 1;
   font-weight: var(--fw-bold);
 }
-.cmp-ev--A .cmp-ev__level {
+.cmp-ev--A .cmp-ev__tag {
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+.cmp-card__badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+  margin: 2px 0;
+}
+.cmp-card__discount {
+  --tone: var(--status-accepted);
+  --tone-bg: var(--status-accepted-bg);
+}
+.cmp-ev__level {
   border-color: var(--status-accepted);
   color: var(--status-accepted);
 }
-.cmp-ev--C .cmp-ev__level {
+.cmp-ev--C .cmp-ev__tag {
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+.cmp-card__badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+  margin: 2px 0;
+}
+.cmp-card__discount {
+  --tone: var(--status-accepted);
+  --tone-bg: var(--status-accepted-bg);
+}
+.cmp-ev__level {
   border-style: dashed;
 }
 .cmp-card__doc {

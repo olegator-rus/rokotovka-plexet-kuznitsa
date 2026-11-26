@@ -74,6 +74,27 @@ export interface PanelMeta {
   catalog_version?: string
 }
 
+/** «Вместе с этим» (§16.8): дополнение к первому семейству панели из таблицы классов; дат нет. */
+export interface PanelTogether {
+  /** К какому семейству подсказки — первое в `products`. */
+  anchor_family_id: string
+  family_id: string
+  family_name: string
+  product_id: string
+  title: string
+  vendor: string
+  price_rub: number | null
+  /** Причина из таблицы классов; у A — плюс документ. */
+  reason: string
+  level: 'A' | 'B' | string
+  kind: 'class_logic' | 'compat_document' | string
+  /** Название класса дополнения («Антивирус для организаций»). */
+  label: string
+  offer_url?: string
+  family_url?: string
+  source_url?: string
+}
+
 /** GET /api/suggest (§11.2). Все поля контура выдачи необязательны: старый сервер отдаёт только `groups`. */
 export interface PanelSuggestResponse {
   groups?: SuggestGroup[]
@@ -88,6 +109,8 @@ export interface PanelSuggestResponse {
   products?: PanelProduct[]
   total_hint?: number | null
   meta?: PanelMeta
+  /** §16.8: 0–2 дополнения к первому семейству `products`. */
+  together?: PanelTogether[]
 }
 
 export type RecsBasis = 'spec' | 'exact_sku' | 'viewed' | 'category_popular'

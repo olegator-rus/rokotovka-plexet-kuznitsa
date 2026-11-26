@@ -43,13 +43,20 @@ for (const vp of [
 
     test('«kasp»: структурированные бейджи без дублей подсказок, семейства', async ({ page }) => {
       await openSearch(page)
-      await typeQuery(page, 'kasp')
+      const [resp] = await Promise.all([
+        page.waitForResponse((r) => r.url().includes('/api/suggest?') && r.url().includes('q=kasp')),
+        typeQuery(page, 'kasp'),
+      ])
+      const sug = (await resp.json()) as { refinements: { label: string }[] }
       const list = listbox(page)
-      // Фид: подсказки — линейки Kaspersky из шаблонов каталога, бейджи — уточнения по виду и количеству лицензий.
+      // Фид: подсказки — линейки Kaspersky из шаблонов каталога, бейджи — уточнения сервера (вид, срок, количество);
+      // набор уточнений зависит от правил подсказок — первый бейдж сервера виден на экране.
       await expect(list.getByRole('option', { name: 'Kaspersky Standard', exact: true })).toBeVisible()
-      await expect(badges(page).getByRole('button', { name: 'Уточнить: продление' })).toBeVisible()
+      expect(sug.refinements.length).toBeGreaterThan(0)
+      const firstRef = sug.refinements[0]!.label
+      await expect(badges(page).getByRole('button', { name: `Уточнить: ${firstRef}` })).toBeVisible()
       const labels = await badgeLabels(page)
-      expect(labels).toEqual(expect.arrayContaining(['продление']))
+      expect(labels).toEqual(expect.arrayContaining([firstRef]))
       const suggestions = (await list.getByRole('option').allTextContents()).map((t) => t.trim().toLowerCase())
       for (const l of labels) {
         expect(
