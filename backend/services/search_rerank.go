@@ -60,7 +60,7 @@ func (s *Services) rerankFamilies(ctx context.Context, query, route string, fams
 	for i, fh := range top {
 		texts[i] = rerankText(fh.head)
 	}
-	hits, err := s.reranker.Rerank(ctx, query, texts)
+	hits, err := s.rerankCached(ctx, query, texts)
 	if err != nil {
 		zap.L().Warn("поиск: реранкер недоступен — выдача без него", zap.Error(err))
 		return skipped(domain.StepRerank, rerankFailed)

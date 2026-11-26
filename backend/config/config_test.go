@@ -4,6 +4,7 @@ import (
 	"os"
 	"strings"
 	"testing"
+	"time"
 )
 
 // envKeys — все переменные, которые читает пакет.
@@ -262,6 +263,20 @@ func TestRerankWeight(t *testing.T) {
 	for _, raw := range []string{"1.5", "-1", "abc"} {
 		if _, err := rerankWeight(raw); err == nil {
 			t.Errorf("%q должен быть ошибкой", raw)
+		}
+	}
+}
+
+func TestModelCache(t *testing.T) {
+	if n, d, err := modelCache("", ""); err != nil || n != defaultModelCacheSize || d != defaultModelCacheTTL {
+		t.Fatalf("по умолчанию: %d %v %v", n, d, err)
+	}
+	if n, d, err := modelCache("0", "30m"); err != nil || n != 0 || d != 30*time.Minute {
+		t.Fatalf("0/30m: %d %v %v", n, d, err)
+	}
+	for _, c := range [][2]string{{"-1", ""}, {"x", ""}, {"", "0s"}, {"", "сутки"}} {
+		if _, _, err := modelCache(c[0], c[1]); err == nil {
+			t.Fatalf("%q/%q должно быть ошибкой", c[0], c[1])
 		}
 	}
 }

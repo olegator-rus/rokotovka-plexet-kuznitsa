@@ -112,11 +112,15 @@ class Engine:
                 out[idx] = vecs.cpu()
         return out
 
-    @torch.inference_mode()
     def rerank(self, query: str, texts: list[str], raw_scores: bool = False) -> list[float]:
+        return self.rerank_pairs([query] * len(texts), texts, raw_scores)
+
+    @torch.inference_mode()
+    def rerank_pairs(self, queries: list[str], texts: list[str], raw_scores: bool = False) -> list[float]:
+        """Оценки пар (queries[i], texts[i]): пары разных запросов идут в модель одной пачкой."""
         out = torch.empty(len(texts), dtype=torch.float32)
         with self._lock:
-            encoded = self.rr_tok([query] * len(texts), texts, truncation=True, max_length=self.max_length)
+            encoded = self.rr_tok(queries, texts, truncation=True, max_length=self.max_length)
             for idx in self._chunks(encoded):
                 logits = self.rr_model(**self._pad(self.rr_tok, encoded, idx)).logits.view(-1).float()
                 out[idx] = (logits if raw_scores else torch.sigmoid(logits)).cpu()

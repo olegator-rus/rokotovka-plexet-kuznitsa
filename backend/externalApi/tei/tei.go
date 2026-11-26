@@ -21,6 +21,9 @@ import (
 // maxResponseBody — потолок ответа: 64 вектора × 1024 числа в JSON — около 1,5 МБ.
 const maxResponseBody = 16 << 20
 
+// maxIdleConns — простаивающих соединений к сервису моделей (≈ число одновременных поисков).
+const maxIdleConns = 64
+
 // Client — клиент сервиса моделей. nil — сервис не настроен, шаг пропускается.
 type Client struct {
 	base string
@@ -32,7 +35,11 @@ func New(baseURL string, timeout time.Duration) *Client {
 	if baseURL == "" {
 		return nil
 	}
-	return &Client{base: strings.TrimRight(baseURL, "/"), http: &http.Client{Timeout: timeout}}
+	// Поиск зовёт сервис моделей из многих горутин сразу: у транспорта по умолчанию на хост держится 2
+	// простаивающих соединения, остальные под нагрузкой открываются заново на каждый вызов.
+	tr := http.DefaultTransport.(*http.Transport).Clone()
+	tr.MaxIdleConns, tr.MaxIdleConnsPerHost = maxIdleConns, maxIdleConns
+	return &Client{base: strings.TrimRight(baseURL, "/"), http: &http.Client{Timeout: timeout, Transport: tr}}
 }
 
 // Enabled — клиент настроен.

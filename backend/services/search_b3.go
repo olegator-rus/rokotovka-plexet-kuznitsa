@@ -78,6 +78,9 @@ func (s *Services) searchB3(ctx context.Context, requestID string, req in.Search
 
 	// intent: только маршрут D и только если разборщик подключён
 	var intentStep any = skipped(domain.StepIntent, "not_route_d")
+	if ent.noise {
+		intentStep = skipped(domain.StepIntent, rejectNoise)
+	}
 	if route == domain.RouteIntent {
 		intentStep = skipped(domain.StepIntent, "parser_not_connected")
 		if p := s.intentParser(); p != nil {
@@ -92,6 +95,11 @@ func (s *Services) searchB3(ctx context.Context, requestID string, req in.Search
 				parsed = guess
 			}
 			mergeParsed(parsed, &attrs, &ent, lx)
+			for _, d := range parsed.Dropped {
+				if d.Field == "reference_product" && d.Reason == "not_in_catalog" {
+					ent.absentName = d.Value
+				}
+			}
 			attrs.applyRequest(req)
 			ent.applyRemoved(removedSet(req.RemovedChips))
 			step, llmInfo, cost := IntentTrace(parsed, msSince(t))
@@ -176,7 +184,7 @@ func (s *Services) searchB3(ctx context.Context, requestID string, req in.Search
 		}
 		return nil, bm.err
 	}
-	if len(bm.step.Top) == 0 && route != domain.RouteIntent {
+	if len(bm.step.Top) == 0 && route != domain.RouteIntent && !ent.noise {
 		trace.Route = domain.RouteIntent
 		routeStep.Route = domain.RouteIntent
 		routeStep.Signals = append(routeStep.Signals, "zero_results")
@@ -204,10 +212,7 @@ func (s *Services) searchB3(ctx context.Context, requestID string, req in.Search
 	if ent.abbrev {
 		minDense = abbrevDenseMin
 	}
-	noLetters := !hasLetters(resp.Normalized) || looksLikeMarkup(req.Query)
-	for _, tok := range nr.tokens {
-		noLetters = noLetters && !looksLikeSKU(tok)
-	}
+	noLetters := ent.noise
 	ladder := []string{}
 	if len(nr.aliasHits) > 0 {
 		ladder = append(ladder, ladderAliases)
@@ -346,6 +351,39 @@ func (s *Services) searchB3(ctx context.Context, requestID string, req in.Search
 			ladder = append(ladder, ladderAnalogs)
 		}
 	}
+	// Товара нет в каталоге, близкого по смыслу тоже («solidworks»): аналоги — по связям substitute от
+	// семейств, которые названы вендором и категорией запроса (их называют правила или разбор маршрута D:
+	// SolidWorks → САПР, ближайший вендор каталога — Autodesk → AutoCAD → КОМПАС-3D, nanoCAD). Вектор здесь не
+	// решает: ближайшие по смыслу соседи у названий, которых каталог не знает, случайны.
+	// Не только absent(): категория из разбора («солидворкс» → САПР) снимает признак отсутствия, а товар всё
+	// равно не найден — непонятное слово осталось.
+	if len(fams) == 0 && len(ent.unknown) > 0 && !ent.abbrev && !noLetters && !ent.nonProduct && !attrs.analog {
+		if subs := absentSubstitutes(lx, ent); len(subs) > 0 {
+			ra := rc
+			ra.ent.vendors = nil // вендор — признак ближайшего продукта, а не условие для аналога
+			for _, sub := range subs {
+				if seen[sub] {
+					continue
+				}
+				seen[sub] = true
+				if fh := ra.buildFamily(sub, analogBaseRel, &trace.Rejected); fh != nil {
+					fh.group = domain.GroupAnalog
+					fams = append(fams, fh)
+				}
+			}
+			// Порядок аналогов — по реранкеру: «solidworks» ближе к КОМПАС-3D (3D-САПР), чем к nanoCAD (DWG).
+			if st := s.rerankFamilies(ctx, resp.Normalized, trace.Route, fams); !st.Skipped || rerankStep.Skipped {
+				rerankStep = st
+			}
+			for _, fh := range fams {
+				ra.score(fh)
+			}
+			sortFamilies(fams)
+			if len(fams) > 0 && !contains(ladder, ladderAnalogs) {
+				ladder = append(ladder, ladderAnalogs)
+			}
+		}
+	}
 	resp.Relaxed = relaxedMessages(rc, fams)
 	if len(resp.Relaxed) > 0 {
 		ladder = append(ladder, ladderRelax)
@@ -356,6 +394,8 @@ func (s *Services) searchB3(ctx context.Context, requestID string, req in.Search
 		exact = exact || fh.group != domain.GroupAnalog
 	}
 	switch {
+	case ent.noise:
+		resp.Empty = &out.Empty{Message: fmt.Sprintf("По запросу «%s» товаров нет — назовите программу или задачу", req.Query), ShowManager: true}
 	case ent.nonProduct:
 		resp.Empty = &out.Empty{Message: fmt.Sprintf("По запросу «%s» товаров нет — с этим вопросом поможет менеджер", req.Query), ShowManager: true}
 	case absent || len(fams) == 0 && !attrs.analog || !exact && len(fams) > 0 && !attrs.analog:
@@ -578,4 +618,37 @@ func complementsOf(lx *searchLexicon, familyID string, shown map[string]bool) []
 		})
 	}
 	return res
+}
+
+// absentSubstitutes — аналоги отсутствующего товара по связям substitute (в их направлении: от продукта к
+// замене): от семейств вендора и категории запроса (одного вендора; категория — та же или её раздел). Вендор
+// здесь — ближайший похожий продукт каталога, а не производитель: если покупатель или разбор назвали
+// отсутствующий товар продуктом этого вендора («Autodesk Revit»), замены AutoCAD ему не аналоги — ничего.
+// Без вендора или категории — тоже ничего: неясно, на что товар похож, и честнее «нет в каталоге».
+func absentSubstitutes(lx *searchLexicon, ent queryEntities) []string {
+	if len(ent.vendors) != 1 || ent.category == "" || len(ent.unknown) == 0 || len(ent.vendorTokens) > 0 {
+		return nil
+	}
+	v := ent.vendors[0]
+	if name := foldText(lx.vendorName[v]); name != "" && strings.Contains(foldText(ent.absentName), name) {
+		return nil
+	}
+	root := lx.categoryRoot[ent.category]
+	var out []string
+	seen := map[string]bool{}
+	for _, f := range lx.familyOrder {
+		if lx.familyVendor[f] != v {
+			continue
+		}
+		if c := lx.familyCat[f]; c != ent.category && (root == "" || lx.categoryRoot[c] != root) {
+			continue
+		}
+		for _, sub := range lx.substituteOf[f] {
+			if !seen[sub] && lx.familyVendor[sub] != v {
+				seen[sub] = true
+				out = append(out, sub)
+			}
+		}
+	}
+	return out
 }

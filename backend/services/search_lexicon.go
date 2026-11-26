@@ -39,6 +39,8 @@ type searchLexicon struct {
 	categoryRoot map[string]string
 	// substitutes — семейство → его аналоги из relations (substitute), в обе стороны.
 	substitutes map[string][]string
+	// substituteOf — то же только в направлении связи: продукт → его замена (AutoCAD → КОМПАС-3D).
+	substituteOf map[string][]string
 	// complements — семейство → что с ним покупают (relations complement, от from к to), с пояснением.
 	complements map[string][]familyLink
 	// renewals — семейство → на что оно продлевается (relations renewal, от from к to).
@@ -104,7 +106,7 @@ func newSearchLexicon(s *domain.CatalogSnapshot) *searchLexicon {
 		familyCat: map[string]string{}, familyWords: map[string]map[string]bool{}, idf: map[string]float64{},
 		vendorName: map[string]string{}, vendorPhrases: map[string]string{}, categoryName: map[string]string{},
 		categoryRoot: map[string]string{},
-		substitutes:  map[string][]string{}, complements: map[string][]familyLink{}, renewals: map[string][]string{}, baseAliases: s.Aliases,
+		substitutes:  map[string][]string{}, substituteOf: map[string][]string{}, complements: map[string][]familyLink{}, renewals: map[string][]string{}, baseAliases: s.Aliases,
 	}
 	addCore := func(text string) {
 		for _, w := range wordsOf(text) {
@@ -201,6 +203,10 @@ func newSearchLexicon(s *domain.CatalogSnapshot) *searchLexicon {
 		// Совместимость (compatibility) — не аналог: «KES для Astra Linux» не делает Astra заменой KES.
 		if r.Type != domain.RelationSubstitute {
 			continue
+		}
+		if r.FromFamily != r.ToFamily && !seen["s:"+r.FromFamily+">"+r.ToFamily] {
+			seen["s:"+r.FromFamily+">"+r.ToFamily] = true
+			lx.substituteOf[r.FromFamily] = append(lx.substituteOf[r.FromFamily], r.ToFamily)
 		}
 		for _, pair := range [][2]string{{r.FromFamily, r.ToFamily}, {r.ToFamily, r.FromFamily}} {
 			key := pair[0] + ">" + pair[1]

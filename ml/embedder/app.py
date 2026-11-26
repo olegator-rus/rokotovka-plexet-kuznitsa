@@ -12,6 +12,7 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse, Response
 from pydantic import BaseModel
 
+from .batcher import Batcher
 from .engine import Engine
 from .models import EMBEDDER, RERANKER
 
@@ -44,7 +45,8 @@ def _json(payload) -> Response:
     return Response(json.dumps(payload, separators=(",", ":")), media_type="application/json")
 
 
-def create_app(engine: Engine, max_batch: int) -> FastAPI:
+def create_app(engine: Engine, max_batch: int, rerank_batch: int = 32, wait_ms: float = 0.0) -> FastAPI:
+    batcher = Batcher(engine, max_batch=max_batch, rerank_batch=rerank_batch, wait_ms=wait_ms)
     app = FastAPI(title="kuznica-embedder", docs_url=None, redoc_url=None, openapi_url=None)
 
     @app.exception_handler(ApiError)
@@ -81,6 +83,7 @@ def create_app(engine: Engine, max_batch: int) -> FastAPI:
                 "max_input_length": engine.max_length,
                 "max_client_batch_size": max_batch,
                 "micro_batch": engine.micro_batch,
+                "batching": batcher.stats,
                 "load_seconds": engine.load_seconds,
                 **engine.memory(),
             }
@@ -91,7 +94,7 @@ def create_app(engine: Engine, max_batch: int) -> FastAPI:
         texts = [req.inputs] if isinstance(req.inputs, str) else req.inputs
         check_batch(len(texts), "inputs")
         try:
-            vectors = engine.embed(texts, normalize=req.normalize)
+            vectors = batcher.embed(texts, normalize=req.normalize)
         except Exception:
             log.exception("embed failed")
             raise ApiError("Backend", "embedding failed")
@@ -101,7 +104,7 @@ def create_app(engine: Engine, max_batch: int) -> FastAPI:
     def rerank(req: RerankRequest) -> Response:
         check_batch(len(req.texts), "texts")
         try:
-            scores = engine.rerank(req.query, req.texts, raw_scores=req.raw_scores)
+            scores = batcher.rerank(req.query, req.texts, raw_scores=req.raw_scores)
         except Exception:
             log.exception("rerank failed")
             raise ApiError("Backend", "rerank failed")

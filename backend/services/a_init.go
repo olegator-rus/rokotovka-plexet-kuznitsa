@@ -25,7 +25,9 @@ type Services struct {
 	embedder *tei.Client
 	reranker *tei.Client
 	rerankW  float64
-	source   CatalogSource
+	// models — кэш векторов запросов и оценок реранкера (search_modelcache.go); nil — без кэша.
+	models *modelCache
+	source CatalogSource
 	// llm — режим модели (переключается без перезапуска) и дневной бюджет (llmguard.go).
 	llm *llmGuard
 	// alias — алиас индекса каталога в OpenSearch.
@@ -60,6 +62,9 @@ type Options struct {
 	Reranker *tei.Client
 	// RerankWeight — доля оценки реранкера в релевантности на маршрутах C/D; 0 — реранкер не вызывается.
 	RerankWeight float64
+	// ModelCacheSize, ModelCacheTTL — LRU-кэш векторов запросов и оценок реранкера; 0 — без кэша.
+	ModelCacheSize int
+	ModelCacheTTL  time.Duration
 	// Source — источник каталога для импорта; nil — импорт недоступен.
 	Source CatalogSource
 	// LLMMode — on | off (config.LLMConfig.Mode); пусто — off.
@@ -103,6 +108,7 @@ func NewServices(repos *repositories.Repos, opts Options) *Services {
 		embedder: opts.Embedder,
 		reranker: opts.Reranker,
 		rerankW:  opts.RerankWeight,
+		models:   newModelCache(opts.ModelCacheSize, opts.ModelCacheTTL, opts.Now),
 		source:   opts.Source,
 		alias:    opts.IndexAlias,
 		judge:    opts.JudgeModel,

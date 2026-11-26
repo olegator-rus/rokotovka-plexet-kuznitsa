@@ -92,6 +92,8 @@ type normResult struct {
 	prefixes map[string]string
 	// protected — защищённые токены (версии, артикулы, коды): не исправляются.
 	protected map[string]bool
+	// raw — запрос как набран (для признака шума: разметка, SQL).
+	raw string
 }
 
 // correctionInfo — исправление и его уверенность. applied=false — «Возможно, вы искали».
@@ -121,7 +123,7 @@ func isProtectedToken(t string) bool {
 // normalizeFull — нормализация запроса по словарю каталога lx и правилам rules. asTyped — без раскладки
 // и опечаток.
 func normalizeFull(q string, lx *searchLexicon, rules *searchRules, asTyped bool) normResult {
-	res := normResult{changes: []domain.Change{}, protected: map[string]bool{}, prefixes: map[string]string{}}
+	res := normResult{raw: q, changes: []domain.Change{}, protected: map[string]bool{}, prefixes: map[string]string{}}
 	clean := foldText(q)
 	if clean != q {
 		res.changes = append(res.changes, domain.Change{Kind: changeClean, From: q, To: clean})
@@ -131,7 +133,7 @@ func normalizeFull(q string, lx *searchLexicon, rules *searchRules, asTyped bool
 	for i, t := range tokens {
 		tokens[i] = strings.TrimRight(t, "?!")
 	}
-	tokens = dropEmpty(tokens)
+	tokens = splitGlued(dropEmpty(tokens))
 	original := append([]string(nil), tokens...)
 	conf := ""
 	if lx != nil && !asTyped {
@@ -528,4 +530,71 @@ func applyAliases(tokens []string, rules *searchRules, res *normResult) []string
 		}
 	}
 	return out
+}
+
+// splitGlued — разделители и склейки внутри слова (нагрузочный тест П4): «касперский/10», «касперский,10пк» →
+// «касперский 10 пк»; «10пк», «16ядер», «2года» → число и единица отдельно. Знаки «, / ; |» режутся только в
+// кириллическом слове или рядом с цифрой: «,e[ufknthbz» — это «бухгалтерия» в английской раскладке, запятая там
+// — буква «б». Число отделяется только от единицы количества или срока: «3d», «1с», «x64» не трогаются.
+func splitGlued(tokens []string) []string {
+	out := make([]string, 0, len(tokens))
+	for _, t := range tokens {
+		for _, part := range splitSeparators(t) {
+			out = append(out, splitNumberUnit(part)...)
+		}
+	}
+	return out
+}
+
+func splitSeparators(t string) []string {
+	if !strings.ContainsAny(t, ",/;|") {
+		return []string{t}
+	}
+	rs := []rune(t)
+	cyr := false
+	for _, r := range rs {
+		cyr = cyr || r >= 'а' && r <= 'я' || r == 'ё'
+	}
+	var parts []string
+	start := 0
+	for i, r := range rs {
+		if !strings.ContainsRune(",/;|", r) {
+			continue
+		}
+		nearDigit := i > 0 && unicode.IsDigit(rs[i-1]) || i+1 < len(rs) && unicode.IsDigit(rs[i+1])
+		if !cyr && !nearDigit {
+			continue
+		}
+		if i > start {
+			parts = append(parts, string(rs[start:i]))
+		}
+		start = i + 1
+	}
+	if start < len(rs) {
+		parts = append(parts, string(rs[start:]))
+	}
+	if len(parts) == 0 {
+		return []string{t}
+	}
+	return parts
+}
+
+func splitNumberUnit(t string) []string {
+	i := 0
+	for i < len(t) && t[i] >= '0' && t[i] <= '9' {
+		i++
+	}
+	if i == 0 || i == len(t) {
+		return []string{t}
+	}
+	unit := t[i:]
+	for _, r := range unit {
+		if !unicode.IsLetter(r) {
+			return []string{t}
+		}
+	}
+	if _, ok := metricOf(unit); ok || durationUnit(unit) > 0 {
+		return []string{t[:i], unit}
+	}
+	return []string{t}
 }

@@ -14,6 +14,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"time"
 )
 
 // Значения APP_ENV.
@@ -50,6 +51,11 @@ type Config struct {
 	// RerankWeight — SEARCH_RERANK_WEIGHT: доля оценки реранкера в релевантности семейства на маршрутах C и D
 	// (0–1). По умолчанию 0.45 (подобрано на tune); 0 или off — реранкер выключен.
 	RerankWeight float64
+	// ModelCacheSize — SEARCH_MODEL_CACHE_SIZE: записей в LRU-кэше векторов запросов и оценок реранкера (по
+	// отдельности); по умолчанию 4096, 0 — без кэша. Повтор запроса не ходит в сервис моделей.
+	ModelCacheSize int
+	// ModelCacheTTL — SEARCH_MODEL_CACHE_TTL: срок записи кэша (Go duration: 30m, 6h); по умолчанию 6h.
+	ModelCacheTTL time.Duration
 	// DataDir — DATA_DIR: каталог mock-данных для импорта; по умолчанию ../data/mock (запуск из backend/).
 	DataDir string
 	// DataSource — DATA_SOURCE: mock (по умолчанию, JSON из DATA_DIR) | generic (любые таблицы по DATA_MAPPING).
@@ -83,6 +89,7 @@ func Load() (Config, error) {
 		IndexAlias:     env("INDEX_ALIAS", ""),
 	}
 	var problems []string
+	var err error
 	dev := c.AppEnv == EnvDevelopment
 	c.OpenSearchURL = service("OPENSEARCH_URL", devOpenSearchURL, dev)
 	c.EmbedderURL = service("EMBEDDER_URL", devModelsURL, dev)
@@ -98,6 +105,9 @@ func Load() (Config, error) {
 		problems = append(problems, err.Error())
 	} else {
 		c.RerankWeight = w
+	}
+	if c.ModelCacheSize, c.ModelCacheTTL, err = modelCache(os.Getenv("SEARCH_MODEL_CACHE_SIZE"), os.Getenv("SEARCH_MODEL_CACHE_TTL")); err != nil {
+		problems = append(problems, err.Error())
 	}
 	switch c.DataSource {
 	case DataSourceMock:
@@ -165,7 +175,8 @@ func (c Config) Summary() []string {
 		fmt.Sprintf("база: %s", set(c.DatabaseURL)),
 		fmt.Sprintf("доверенные прокси (X-Real-IP): %s", proxies(c.TrustedProxies)),
 		fmt.Sprintf("OpenSearch: %s", orOff(c.OpenSearchURL)),
-		fmt.Sprintf("эмбеддер: %s, реранкер: %s (вес на C/D %.2f)", orOff(c.EmbedderURL), orOff(c.RerankerURL), c.RerankWeight),
+		fmt.Sprintf("эмбеддер: %s, реранкер: %s (вес на C/D %.2f), кэш моделей: %d записей на %s", orOff(c.EmbedderURL),
+			orOff(c.RerankerURL), c.RerankWeight, c.ModelCacheSize, c.ModelCacheTTL),
 		c.dataSummary(),
 		c.LLM.summary(),
 		c.Agent.summary(c.LLM),
@@ -302,6 +313,32 @@ func proxies(p []string) string {
 const defaultRerankWeight = 0.45
 
 // rerankWeight — SEARCH_RERANK_WEIGHT: пусто — по умолчанию, off — 0, иначе число 0–1.
+// Кэш векторов запросов и оценок реранкера по умолчанию.
+const (
+	defaultModelCacheSize = 4096
+	defaultModelCacheTTL  = 6 * time.Hour
+)
+
+// modelCache — размер и срок кэша моделей (SEARCH_MODEL_CACHE_SIZE, SEARCH_MODEL_CACHE_TTL).
+func modelCache(rawSize, rawTTL string) (int, time.Duration, error) {
+	size, ttl := defaultModelCacheSize, defaultModelCacheTTL
+	if v := strings.TrimSpace(rawSize); v != "" {
+		n, err := strconv.Atoi(v)
+		if err != nil || n < 0 || n > 1_000_000 {
+			return 0, 0, fmt.Errorf("SEARCH_MODEL_CACHE_SIZE=%q: ожидается число 0–1000000", rawSize)
+		}
+		size = n
+	}
+	if v := strings.TrimSpace(rawTTL); v != "" {
+		d, err := time.ParseDuration(v)
+		if err != nil || d <= 0 {
+			return 0, 0, fmt.Errorf("SEARCH_MODEL_CACHE_TTL=%q: ожидается срок вида 30m или 6h", rawTTL)
+		}
+		ttl = d
+	}
+	return size, ttl, nil
+}
+
 func rerankWeight(raw string) (float64, error) {
 	raw = strings.TrimSpace(raw)
 	switch strings.ToLower(raw) {

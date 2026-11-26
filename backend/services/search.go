@@ -295,13 +295,13 @@ func (s *Services) dense(ctx context.Context, normalized string, info *indexMeta
 		return skip(reasonNoVectors)
 	}
 	ectx, cancel := context.WithTimeout(ctx, queryEmbedLimit)
-	vecs, err := s.embedder.Embed(ectx, []string{normalized}, embeddingDim)
+	vec, err := s.queryVector(ectx, normalized)
 	cancel()
 	if err != nil {
 		zap.L().Warn("поиск: вектор запроса не получен, dense пропущен", zap.Error(err))
 		return skip(reasonEmbedderDown)
 	}
-	res, err := s.search.Search(ctx, s.alias, knnQuery(vecs[0], candidatesTop, filters...))
+	res, err := s.search.Search(ctx, s.alias, knnQuery(vec, candidatesTop, filters...))
 	if err == nil {
 		r.step.Top, r.docs, err = parseHits(res)
 	}

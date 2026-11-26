@@ -2,11 +2,13 @@ package services
 
 import (
 	"context"
+	"regexp"
 	"strconv"
 	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
+	"unicode"
 	"unicode/utf8"
 
 	"kuznica/api/domain"
@@ -117,6 +119,9 @@ type queryEntities struct {
 	// latinUnknown — среди непонятных есть латинское слово: скорее всего, это название продукта.
 	latinUnknown bool
 	nonProduct   bool
+	// noise — запрос не о товаре и без смысла: разметка, SQL, одни знаки или цифры (isNoiseQuery). Такой
+	// запрос не идёт на маршрут D: модель за него не платится, ответ — честное «нет».
+	noise bool
 	// significant — значимых слов (не служебных, не атрибутов, не коды).
 	significant int
 	// abbrev — все непонятные слова — короткие кириллические (до 4 букв): похоже на сокращение, которого нет
@@ -127,6 +132,8 @@ type queryEntities struct {
 	vendorTokens map[string]bool
 	// textTokens — слова для текстового поиска (без атрибутов и слов намерения).
 	textTokens []string
+	// absentName — название товара, которого нет в каталоге, как его назвал разбор маршрута D («SolidWorks»).
+	absentName string
 	// parsedFamily — семейство, которое назвал разбор маршрута D (правила его не нашли).
 	parsedFamily string
 	// entityTokens — значимые слова запроса и полные слова недописанных: по ним ищутся семейства.
@@ -177,6 +184,7 @@ func findEntities(nr normResult, attrs queryAttrs, lx *searchLexicon, rules *sea
 			}
 		}
 	}
+	e.noise = isNoiseQuery(nr, lx, rules)
 	e.abbrev = len(e.unknown) == 1 && !e.latinUnknown
 	for _, u := range e.unknown {
 		e.abbrev = e.abbrev && utf8.RuneCountInString(u) <= 4
@@ -260,6 +268,9 @@ func (e *queryEntities) applyRemoved(removed map[string]map[string]bool) {
 
 // routeSignals — маршрут по сигналам ARCHITECTURE §2.2 (без LLM). Сигналы — в трассу.
 func routeSignals(nr normResult, attrs queryAttrs, ent queryEntities) (string, []string) {
+	if ent.noise {
+		return domain.RouteNormalized, []string{signalNoise}
+	}
 	var signals []string
 	significant := 0
 	for _, t := range ent.textTokens {
@@ -481,4 +492,28 @@ func (e queryEntities) absent() bool {
 		return false // названа задача («созваниваться», «чертежи»): ищем по категории, а не объявляем отсутствие
 	}
 	return !e.abbrev && len(e.unknown)*2 > e.significant
+}
+
+// signalNoise — сигнал маршрута для шума: разбор правилами, без модели.
+const signalNoise = "noise"
+
+// sqlLike — похоже на SQL или инъекцию: «' OR 1=1 --», «SELECT * FROM products», «DROP TABLE».
+var sqlLike = regexp.MustCompile(`(?i)\b(select|insert|update|delete|drop|union|alter|truncate)\b.*\b(from|into|table|where|set|select|all)\b` +
+	`|'\s*(or|and)\b|\b\d+\s*=\s*\d+\b|--\s*$|;\s*--|/\*`)
+
+// isNoiseQuery — запрос не о товаре по форме (нагрузочный тест П3): разметка или код, SQL, меньше двух букв
+// без единого слова каталога и артикула («!!!», «%%%», «№1», «123»). «1с», «r7» — слова каталога, не шум.
+func isNoiseQuery(nr normResult, lx *searchLexicon, rules *searchRules) bool {
+	if looksLikeMarkup(nr.raw) || sqlLike.MatchString(nr.raw) {
+		return true
+	}
+	if hasLetters(nr.normalized()) {
+		return false
+	}
+	for _, t := range nr.tokens {
+		if looksLikeSKU(t) || lx != nil && strings.IndexFunc(t, unicode.IsLetter) >= 0 && knownWord(t, lx, rules) {
+			return false
+		}
+	}
+	return true
 }

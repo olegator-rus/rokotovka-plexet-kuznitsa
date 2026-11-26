@@ -27,7 +27,9 @@ def main() -> None:
     engine.load_seconds["total"] = round(time.perf_counter() - t0, 2)
     log.info("models ready: device=%s dtype=%s load=%s %s", engine.device, engine.dtype, engine.load_seconds, engine.memory())
 
-    uvicorn.run(create_app(engine, max_batch), host=host, port=port, workers=1, log_level="info", access_log=True)
+    rerank_batch = int(os.environ.get("ML_RERANK_BATCH", "32"))
+    wait_ms = float(os.environ.get("ML_BATCH_WAIT_MS", "0"))
+    uvicorn.run(create_app(engine, max_batch, rerank_batch, wait_ms), host=host, port=port, workers=1, log_level="info", access_log=True)
 
 
 if __name__ == "__main__":

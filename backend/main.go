@@ -59,13 +59,15 @@ func main() {
 
 	src := dataSource(log, cfg)
 	svc := services.NewServices(repos, services.Options{
-		Search:       opensearch.New(cfg.OpenSearchURL, searchTimeout),
-		Embedder:     tei.New(cfg.EmbedderURL, modelsTimeout),
-		Reranker:     tei.New(cfg.RerankerURL, modelsTimeout),
-		RerankWeight: cfg.RerankWeight,
-		Source:       src,
-		IndexAlias:   cfg.IndexAlias,
-		LLMMode:      cfg.LLM.Mode,
+		Search:         opensearch.New(cfg.OpenSearchURL, searchTimeout),
+		Embedder:       tei.New(cfg.EmbedderURL, modelsTimeout),
+		Reranker:       tei.New(cfg.RerankerURL, modelsTimeout),
+		RerankWeight:   cfg.RerankWeight,
+		ModelCacheSize: cfg.ModelCacheSize,
+		ModelCacheTTL:  cfg.ModelCacheTTL,
+		Source:         src,
+		IndexAlias:     cfg.IndexAlias,
+		LLMMode:        cfg.LLM.Mode,
 
 		IntentModel:    intentModel(cfg.LLM, cfg.LLM.IntentModel),
 		IntentFallback: intentModel(cfg.LLM, cfg.LLM.FallbackModel),
