@@ -6,6 +6,7 @@ import { computed } from 'vue'
 import { CircleHelp, SpellCheck, X } from 'lucide-vue-next'
 import type { Chip, ChipRef, ClarifyOption, SearchResponse } from '@/api/types'
 import UiTooltip from '@/components/ui/UiTooltip.vue'
+import { chipLabel } from '@/lib/facets'
 
 const props = defineProps<{
   response: SearchResponse
@@ -71,7 +72,7 @@ const visible = computed(
           <span :class="['chip', chip.strict ? 'chip--strict' : 'chip--soft']">
             <UiTooltip :text="chip.strict ? 'Учтено строго' : 'Учтено по возможности'">
               <span class="chip__label" tabindex="0">
-                {{ chip.label }}
+                {{ chipLabel(chip) }}
                 <span class="sr-only">{{
                   chip.strict ? ', учтено строго' : ', по возможности'
                 }}</span>
@@ -80,7 +81,7 @@ const visible = computed(
             <button
               type="button"
               class="chip__remove"
-              :aria-label="`Снять условие «${chip.label}»`"
+              :aria-label="`Снять условие «${chipLabel(chip)}»`"
               @click="emit('removeChip', chip)"
             >
               <X :size="14" aria-hidden="true" />

@@ -4,8 +4,9 @@
 // он же «почему здесь»: открывает трассу этой позиции. Раскрытие показывает другие лицензии семейства,
 // подходящая под запрос — первой и с пометкой.
 import { computed, ref } from 'vue'
-import { ChevronDown, ChevronRight, Route } from 'lucide-vue-next'
+import { Check, ChevronDown, ChevronRight, ListPlus, Route } from 'lucide-vue-next'
 import type { SearchItem, SearchItemBase } from '@/api/types'
+import CompatBadge from '@/components/search/CompatBadge.vue'
 import { formatScore } from '@/lib/format'
 import {
   isPurchasable,
@@ -22,12 +23,17 @@ const props = defineProps<{
   position: number
   /** Позиция выбрана в панели трассы. */
   selected?: boolean
+  /** Контур коммерции: позиция уже в спецификации; undefined — кнопки «В спецификацию» нет. */
+  inSpec?: boolean
+  /** Контур коммерции: показывать значок совместимости (флаг hardware). */
+  showCompat?: boolean
 }>()
 
 const emit = defineEmits<{
   open: [item: SearchItem, position: number]
   action: [type: ItemAction, target: SearchItemBase, position: number]
   why: [item: SearchItem]
+  spec: [item: SearchItem, position: number]
 }>()
 
 const expanded = ref(false)
@@ -77,6 +83,12 @@ function toggle() {
             Вы покупали этот продукт
           </span>
         </p>
+        <p v-if="item.mpn || (showCompat && item.compatibility)" class="result__hw t-xs">
+          <span v-if="item.mpn" class="t-muted">
+            Парт-номер <span class="t-mono">{{ item.mpn }}</span>
+          </span>
+          <CompatBadge v-if="showCompat" :compat="item.compatibility" />
+        </p>
       </div>
 
       <p :class="['result__price t-num', { 'result__price--request': !isPurchasable(item) }]">
@@ -108,6 +120,26 @@ function toggle() {
         >
           Запросить цену
         </button>
+        <template v-if="inSpec !== undefined">
+          <span
+            v-if="inSpec"
+            class="btn btn--ghost btn--icon btn--sm result__spec"
+            role="img"
+            aria-label="В спецификации"
+          >
+            <Check :size="16" aria-hidden="true" />
+          </span>
+          <button
+            v-else
+            type="button"
+            class="btn btn--ghost btn--icon btn--sm result__spec"
+            :aria-label="`В спецификацию: ${item.title}`"
+            title="В спецификацию"
+            @click="emit('spec', item, position)"
+          >
+            <ListPlus :size="16" aria-hidden="true" />
+          </button>
+        </template>
       </div>
 
       <button
@@ -121,6 +153,8 @@ function toggle() {
         {{ formatScore(item.final) }}
       </button>
     </div>
+
+    <slot />
 
     <div v-if="expanded" :id="detailsId" class="result__details">
       <p v-if="!variants.length" class="t-sm t-muted">
@@ -231,6 +265,13 @@ function toggle() {
   gap: var(--space-1) var(--space-2);
   color: var(--text);
 }
+.result__hw {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-1) var(--space-2);
+  padding-left: var(--indent);
+}
 .result__price {
   grid-area: price;
   padding-left: var(--indent);
@@ -307,7 +348,7 @@ function toggle() {
 /* Широкая карточка (по ширине колонки, а не окна: с открытой трассой колонка уже) — одна строка. */
 @container (min-width: 36rem) {
   .result__row {
-    grid-template-columns: minmax(0, 1fr) 8.5rem 10.5rem auto;
+    grid-template-columns: minmax(0, 1fr) 8.5rem 12.5rem auto;
     grid-template-areas: 'main price actions why';
     padding: var(--space-2) var(--space-3);
   }

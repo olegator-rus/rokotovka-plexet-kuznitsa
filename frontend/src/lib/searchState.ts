@@ -4,7 +4,10 @@
 //   &as_typed=1            — «Искать как введено»
 //   &rm=license_quantity:10 — снятый чип (повторяется)
 //   &cl=license_metric:device — ответ на уточняющий вопрос (повторяется)
+//   &f=ram_gb:gte:32       — фасет оборудования, контур коммерции (повторяется, lib/facets.ts)
 import type { ChipRef, ConfigId, SearchRequest } from '@/api/types'
+import type { SearchFilter } from '@/api/typesP2'
+import { parseFilters, serializeFilter } from './facets.ts'
 
 export const CONFIG_IDS: readonly ConfigId[] = ['live', 'B0', 'B1', 'B2', 'B3', 'B4']
 export const SEARCH_LIMIT = 20
@@ -20,6 +23,8 @@ export interface SearchState {
   removed: ChipRef[]
   clarify: Record<string, string>
   trace: boolean
+  /** Фасеты оборудования (контур коммерции); необязательное — старые вызовы без поля работают. */
+  filters?: SearchFilter[]
 }
 
 export function emptyState(): SearchState {
@@ -31,6 +36,7 @@ export function emptyState(): SearchState {
     removed: [],
     clarify: {},
     trace: false,
+    filters: [],
   }
 }
 
@@ -79,6 +85,7 @@ export function parseSearchQuery(query: RawQuery): SearchState {
     removed,
     clarify,
     trace: first(query.trace) === '1',
+    filters: parseFilters(all(query.f)),
   }
 }
 
@@ -93,12 +100,13 @@ export function serializeSearchState(state: SearchState): Record<string, string 
   const cl = Object.entries(state.clarify).map(([k, v]) => `${k}:${v}`)
   if (cl.length) out.cl = cl
   if (state.trace) out.trace = '1'
+  if (state.filters?.length) out.f = state.filters.map(serializeFilter)
   return out
 }
 
 /** Новый текст запроса сбрасывает уточнения прошлого: снятые чипы, ответ на вопрос, «как введено». */
 export function withQuery(state: SearchState, q: string): SearchState {
-  return { ...state, q: q.trim(), asTyped: false, removed: [], clarify: {} }
+  return { ...state, q: q.trim(), asTyped: false, removed: [], clarify: {}, filters: [] }
 }
 
 export function withChipRemoved(state: SearchState, chip: ChipRef): SearchState {
@@ -141,5 +149,7 @@ export function buildSearchRequest(state: SearchState, ctx: RequestContext): Sea
     removed_chips: state.removed.map((c) => ({ field: c.field, value: c.value })),
     clarify: { ...state.clarify },
     limit: ctx.limit ?? SEARCH_LIMIT,
+    // Контур коммерции: фасеты — только если выбраны, иначе тело запроса как в контуре поиска.
+    ...(state.filters?.length ? { filters: state.filters.map((f) => ({ ...f })) } : {}),
   }
 }

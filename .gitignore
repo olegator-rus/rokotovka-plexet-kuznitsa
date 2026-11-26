@@ -10,6 +10,7 @@ frontend/dist/
 # «чужой» набор для проверки generic-импорта: пересобирается scripts/data/make_foreign.py
 data/foreign/
 
+__pycache__/
 agency/
 artifacts/
 data/eval/*-*T*-*.json

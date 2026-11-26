@@ -11,6 +11,7 @@ const PUBLIC = new Set([
   'GET /api/evaluations',
   'POST /api/search',
   'POST /api/events',
+  'POST /api/quotes', // контур коммерции: запрос КП из спецификации (витрина без входа)
 ])
 
 test('N1: витрина не запрашивает закрытые пути до перехода в бэк-офис; 401 — понятное сообщение', async ({

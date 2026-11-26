@@ -2,6 +2,7 @@
 // разбиение по кластерам, колонка состояния. Без DOM: проверяют tests/agentFeed.test.ts.
 import type { AgentRun, AgentRunDetail, AgentStep } from '@/api/types'
 import { formatInt, plural } from './format.ts'
+import { P2_TOOL_LABELS } from './relationProposal.ts'
 
 export interface FeedState {
   run: AgentRun | null
@@ -100,6 +101,7 @@ export const TOOL_LABELS: Record<string, string> = {
   create_assortment_ticket: 'Задача по ассортименту',
   verify_applied_change: 'Эффект принятой правки',
   close_cluster: 'Кластер закрыт',
+  ...P2_TOOL_LABELS,
 }
 
 export interface ClusterOutcomeRow {

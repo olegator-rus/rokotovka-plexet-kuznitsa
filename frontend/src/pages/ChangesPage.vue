@@ -1,11 +1,14 @@
 <script setup lang="ts">
 // «Изменения»: версии правил, новые сверху; автор, описание, ссылка на предложение,
 // разница списком. «Откатить» — диалог; откат создаёт новую версию-копию, история не стирается.
+// Вкладка «Связи» (контур коммерции) — справочник связей и его версии: /changes?tab=relations.
 import { computed, ref } from 'vue'
-import { RouterLink, useRouter } from 'vue-router'
+import { RouterLink, useRoute, useRouter } from 'vue-router'
+import { TabsContent, TabsList, TabsRoot, TabsTrigger } from 'reka-ui'
 import { CircleAlert, CircleCheck, CircleX, History, Undo2 } from 'lucide-vue-next'
 import { getConfigs, rollbackConfig } from '@/api/agent'
 import type { ConfigVersion } from '@/api/types'
+import RelationsTab from '@/components/changes/RelationsTab.vue'
 import BlockError from '@/components/common/BlockError.vue'
 import PatchDiff from '@/components/searchops/PatchDiff.vue'
 import UiDialog from '@/components/ui/UiDialog.vue'
@@ -18,7 +21,15 @@ import { useAppStore } from '@/stores/app'
 
 const app = useAppStore()
 const router = useRouter()
+const route = useRoute()
 const toast = useToast()
+
+type Tab = 'rules' | 'relations'
+const tab = computed<Tab>({
+  get: () => (route.query.tab === 'relations' ? 'relations' : 'rules'),
+  set: (t) =>
+    void router.replace({ query: { ...route.query, tab: t === 'rules' ? undefined : t } }),
+})
 
 const res = useResource((opts) => getConfigs(opts))
 void res.load()
@@ -82,112 +93,132 @@ async function confirmRollback() {
     <header class="changes__head">
       <h1 id="changes-title" class="t-h1">Изменения</h1>
       <p class="t-sm t-muted">
-        Версии правил поиска. Каждая принятая правка агента — новая версия; откат тоже создаёт
-        версию, история остаётся полной.
-        <template v-if="active">Действует версия {{ active }}.</template>
+        Версии правил поиска и справочника связей. Каждая принятая правка агента — новая версия;
+        откат тоже создаёт версию, история остаётся полной.
       </p>
     </header>
 
-    <div
-      v-if="res.status.value === 'loading' && !res.data.value"
-      class="changes__list"
-      aria-busy="true"
-    >
-      <div v-for="i in 3" :key="i" class="panel changes__skel">
-        <span class="skeleton" style="width: 35%" />
-        <span class="skeleton" style="width: 70%" />
-      </div>
-    </div>
+    <TabsRoot v-model="tab" class="changes">
+      <TabsList class="tabs" aria-label="Что менялось">
+        <TabsTrigger value="rules" class="tabs__trigger">Правила поиска</TabsTrigger>
+        <TabsTrigger value="relations" class="tabs__trigger">Связи</TabsTrigger>
+      </TabsList>
 
-    <BlockError
-      v-else-if="res.status.value === 'error'"
-      :error="res.error.value!"
-      title="Версии правил не загрузились"
-      @retry="res.load()"
-    />
+      <TabsContent value="relations" class="changes">
+        <RelationsTab />
+      </TabsContent>
 
-    <template v-else-if="res.data.value">
-      <div v-if="onlyInitial" class="panel changes__empty">
-        <History :size="20" aria-hidden="true" class="changes__empty-icon" />
-        <div>
-          <p class="t-h2">Действует исходная версия правил</p>
-          <p class="t-muted">
-            Принятые правки агента появятся здесь версиями — с разницей и кнопкой отката.
-          </p>
-          <RouterLink to="/searchops?tab=queue" class="link t-sm"
-            >Открыть очередь предложений</RouterLink
-          >
-        </div>
-      </div>
+      <TabsContent value="rules" class="changes">
+        <p v-if="active" class="t-sm t-muted">Действует версия правил {{ active }}.</p>
 
-      <ol class="changes__list">
-        <li
-          v-for="v in versions"
-          :key="v.version"
-          :class="['panel', 'ver', { 'ver--active': v.version === active }]"
+        <div
+          v-if="res.status.value === 'loading' && !res.data.value"
+          class="changes__list"
+          aria-busy="true"
         >
-          <header class="ver__head">
-            <span class="ver__num t-num">v{{ v.version }}</span>
-            <span v-if="v.version === active" class="badge badge--strong">действует</span>
-            <span class="t-sm t-muted">{{ formatDateTime(v.created_at) }}</span>
-            <span class="t-sm t-muted">· {{ authorLabel(v.author) }}</span>
-            <RouterLink
-              v-if="v.proposal_id"
-              :to="{ path: '/searchops', query: { tab: 'queue', status: 'all', p: v.proposal_id } }"
-              class="link t-sm"
-            >
-              открыть предложение
-            </RouterLink>
-            <button
-              v-if="v.version === active && v.version > 1"
-              type="button"
-              class="btn btn--secondary btn--sm ver__rollback"
-              @click="askRollback(v)"
-            >
-              <Undo2 :size="14" aria-hidden="true" /> Откатить
-            </button>
-          </header>
-          <p v-if="v.description && v.version > 1">{{ versionDescription(v) }}</p>
-          <PatchDiff
-            v-if="v.version > 1"
-            :patch="v.diff"
-            empty="Разница с предыдущей версией пуста"
-          />
-          <p v-else class="t-sm t-muted">{{ versionDescription(v) }}</p>
-          <div v-if="effectOf(v)" class="ver__effect">
-            <p class="t-xs t-muted">
-              Эффект после применения<template v-if="v.effect?.checked_at">
-                · проверил агент {{ formatDateTime(v.effect.checked_at) }}</template
-              >
-            </p>
-            <p
-              :class="[
-                'ver__effect-line',
-                effectOf(v)!.holds ? 'status-accepted' : 'status-rejected',
-              ]"
-            >
-              <component
-                :is="effectOf(v)!.holds ? CircleCheck : CircleX"
-                :size="14"
-                aria-hidden="true"
-              />
-              <span>
-                {{ effectOf(v)!.text }} — {{ effectOf(v)!.holds ? 'держится' : 'не держится' }}
-              </span>
-            </p>
-            <ul v-if="v.effect?.queries?.length" class="ver__effect-queries t-sm">
-              <li v-for="q in v.effect.queries" :key="q.text">
-                <span>{{ q.text }}</span>
-                <span :class="q.found ? '' : 't-muted'">{{ q.found ? 'находится' : 'нет' }}</span>
-              </li>
-            </ul>
+          <div v-for="i in 3" :key="i" class="panel changes__skel">
+            <span class="skeleton" style="width: 35%" />
+            <span class="skeleton" style="width: 70%" />
           </div>
-          <p v-else-if="v.version > 1" class="t-xs t-muted">
-            Эффект появится после следующего запуска агента: он сравнит метрики целевого кластера.
-          </p>
-        </li>
-      </ol>
-    </template>
+        </div>
+
+        <BlockError
+          v-else-if="res.status.value === 'error'"
+          :error="res.error.value!"
+          title="Версии правил не загрузились"
+          @retry="res.load()"
+        />
+
+        <template v-else-if="res.data.value">
+          <div v-if="onlyInitial" class="panel changes__empty">
+            <History :size="20" aria-hidden="true" class="changes__empty-icon" />
+            <div>
+              <p class="t-h2">Действует исходная версия правил</p>
+              <p class="t-muted">
+                Принятые правки агента появятся здесь версиями — с разницей и кнопкой отката.
+              </p>
+              <RouterLink to="/searchops?tab=queue" class="link t-sm"
+                >Открыть очередь предложений</RouterLink
+              >
+            </div>
+          </div>
+
+          <ol class="changes__list">
+            <li
+              v-for="v in versions"
+              :key="v.version"
+              :class="['panel', 'ver', { 'ver--active': v.version === active }]"
+            >
+              <header class="ver__head">
+                <span class="ver__num t-num">v{{ v.version }}</span>
+                <span v-if="v.version === active" class="badge badge--strong">действует</span>
+                <span class="t-sm t-muted">{{ formatDateTime(v.created_at) }}</span>
+                <span class="t-sm t-muted">· {{ authorLabel(v.author) }}</span>
+                <RouterLink
+                  v-if="v.proposal_id"
+                  :to="{
+                    path: '/searchops',
+                    query: { tab: 'queue', status: 'all', p: v.proposal_id },
+                  }"
+                  class="link t-sm"
+                >
+                  открыть предложение
+                </RouterLink>
+                <button
+                  v-if="v.version === active && v.version > 1"
+                  type="button"
+                  class="btn btn--secondary btn--sm ver__rollback"
+                  @click="askRollback(v)"
+                >
+                  <Undo2 :size="14" aria-hidden="true" /> Откатить
+                </button>
+              </header>
+              <p v-if="v.description && v.version > 1">{{ versionDescription(v) }}</p>
+              <PatchDiff
+                v-if="v.version > 1"
+                :patch="v.diff"
+                empty="Разница с предыдущей версией пуста"
+              />
+              <p v-else class="t-sm t-muted">{{ versionDescription(v) }}</p>
+              <div v-if="effectOf(v)" class="ver__effect">
+                <p class="t-xs t-muted">
+                  Эффект после применения<template v-if="v.effect?.checked_at">
+                    · проверил агент {{ formatDateTime(v.effect.checked_at) }}</template
+                  >
+                </p>
+                <p
+                  :class="[
+                    'ver__effect-line',
+                    effectOf(v)!.holds ? 'status-accepted' : 'status-rejected',
+                  ]"
+                >
+                  <component
+                    :is="effectOf(v)!.holds ? CircleCheck : CircleX"
+                    :size="14"
+                    aria-hidden="true"
+                  />
+                  <span>
+                    {{ effectOf(v)!.text }} — {{ effectOf(v)!.holds ? 'держится' : 'не держится' }}
+                  </span>
+                </p>
+                <ul v-if="v.effect?.queries?.length" class="ver__effect-queries t-sm">
+                  <li v-for="q in v.effect.queries" :key="q.text">
+                    <span>{{ q.text }}</span>
+                    <span :class="q.found ? '' : 't-muted'">{{
+                      q.found ? 'находится' : 'нет'
+                    }}</span>
+                  </li>
+                </ul>
+              </div>
+              <p v-else-if="v.version > 1" class="t-xs t-muted">
+                Эффект появится после следующего запуска агента: он сравнит метрики целевого
+                кластера.
+              </p>
+            </li>
+          </ol>
+        </template>
+      </TabsContent>
+    </TabsRoot>
 
     <UiDialog v-model:open="open" :title="`Откатить версию ${target?.version ?? ''}?`">
       <div class="changes__dialog">

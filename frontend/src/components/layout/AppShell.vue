@@ -3,7 +3,7 @@
 // содержимое раздела. Ссылка «К содержимому» — первый Tab на странице.
 import { ref, watch } from 'vue'
 import { storeToRefs } from 'pinia'
-import { useRoute } from 'vue-router'
+import { RouterLink, useRoute } from 'vue-router'
 import {
   DialogClose,
   DialogContent,
@@ -47,6 +47,10 @@ watch(
       <main id="main" class="shell__content" tabindex="-1">
         <slot />
       </main>
+      <footer class="shell__footer t-xs">
+        На сайте применяются рекомендательные технологии.
+        <RouterLink class="link" to="/rules">Правила рекомендаций</RouterLink>
+      </footer>
     </div>
   </div>
 
@@ -104,6 +108,11 @@ watch(
   flex-direction: column;
   min-width: 0;
   outline: none;
+}
+.shell__footer {
+  padding: var(--space-3) var(--gutter);
+  border-top: var(--border-w) solid var(--border);
+  color: var(--text-3);
 }
 .shell__versions {
   margin-top: auto;

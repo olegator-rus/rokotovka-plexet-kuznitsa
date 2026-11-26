@@ -1,6 +1,8 @@
 // Подписи и сводки трассы. Без DOM: tests/trace.test.ts.
 import type { ParseSource, Rejected, Route, Trace, TraceItem, TraceStep } from '@/api/types'
 import { formatDecimal, formatInt, plural } from './format.ts'
+import { MARGIN_STEP_FIELDS, marginSummary } from './traceMargin.ts'
+import { companionsSummary, hardwareSummary, isP2Field, p2HasDetails } from './traceP2.ts'
 
 export const ROUTE_LABELS: Record<Route, string> = {
   A: 'точный',
@@ -27,6 +29,9 @@ export const STEP_LABELS: Record<string, string> = {
   rerank: 'Реранкер',
   business: 'Бизнес-слой',
   relaxation: 'Ослабление условий',
+  margin: 'Маржа',
+  hardware: 'Оборудование',
+  companions: 'Компаньоны',
 }
 
 export const CHANGE_KIND_LABELS: Record<string, string> = {
@@ -187,10 +192,18 @@ export function stepSummary(step: TraceStep): string {
       const n = step.ladder?.length ?? 0
       return n === 0 ? 'не понадобилось' : `${n} ${plural(n, ['ступень', 'ступени', 'ступеней'])}`
     }
+    case 'margin':
+      return marginSummary(step)
+    case 'hardware':
+      return hardwareSummary(step)
+    case 'companions':
+      return companionsSummary(step)
     default:
       return 'выполнено'
   }
 }
+
+const arrLen = (v: unknown) => (Array.isArray(v) ? v.length : 0)
 
 /** Есть ли у шага что раскрывать. */
 export function stepHasDetails(step: TraceStep): boolean {
@@ -198,13 +211,20 @@ export function stepHasDetails(step: TraceStep): boolean {
   if (step.changes?.length || step.found?.length || step.unresolved?.length) return true
   if (step.signals?.length || step.top?.length || step.ladder?.length) return true
   if (step.weights && Object.keys(step.weights).length) return true
+  if (step.name === 'margin' && (arrLen(step.shifts) || arrLen(step.guards))) return true
+  if (p2HasDetails(step)) return true
   return stepExtraFields(step).length > 0
 }
 
 /** Поля шага вне известных — показываются как есть, чтобы новое поле сервера не терялось. */
 export function stepExtraFields(step: TraceStep): [string, unknown][] {
   return Object.entries(step).filter(
-    ([k, v]) => !KNOWN_STEP_FIELDS.has(k) && v !== undefined && v !== null,
+    ([k, v]) =>
+      !KNOWN_STEP_FIELDS.has(k) &&
+      !(step.name === 'margin' && MARGIN_STEP_FIELDS.includes(k)) &&
+      !isP2Field(step, k) &&
+      v !== undefined &&
+      v !== null,
   )
 }
 

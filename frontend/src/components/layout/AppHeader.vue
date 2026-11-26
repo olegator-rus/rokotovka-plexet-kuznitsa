@@ -8,11 +8,14 @@ import BrandMark from './BrandMark.vue'
 import ClientSwitch from './ClientSwitch.vue'
 import LlmModeBadge from './LlmModeBadge.vue'
 import RoleSwitch from './RoleSwitch.vue'
+import SpecButton from '@/components/spec/SpecButton.vue'
 
 defineEmits<{ openMenu: [] }>()
 
 const route = useRoute()
 const backoffice = computed(() => route.meta.backoffice === true)
+// Контур коммерции: «Спецификация» — в шапке раздела «Поиск».
+const storefront = computed(() => route.path === '/search')
 const title = computed(() => (typeof route.meta.section === 'string' ? route.meta.section : ''))
 </script>
 
@@ -31,6 +34,7 @@ const title = computed(() => (typeof route.meta.section === 'string' ? route.met
       <span v-if="title" class="app-header__title">{{ title }}</span>
     </div>
     <div class="app-header__tools">
+      <SpecButton v-if="storefront" />
       <LlmModeBadge />
       <RoleSwitch v-if="backoffice" />
       <ClientSwitch />

@@ -16,6 +16,9 @@ const DESTRUCTIVE: { method: string; path: RegExp }[] = [
   { method: 'POST', path: /^\/api\/configs\/rollback$/ },
   { method: 'POST', path: /^\/api\/evaluations\/run$/ },
   { method: 'POST', path: /^\/api\/catalog\/import$/ },
+  // контур коммерции, бэк-офис: применение и откат политики маржи, откат справочника связей
+  { method: 'POST', path: /^\/api\/margin\/policy(\/rollback)?$/ },
+  { method: 'POST', path: /^\/api\/relations\/rollback$/ },
 ]
 
 export const MAIN_RUN_ID = '01a20fe2-7723-78d1-97d0-7ce612e23ce7'

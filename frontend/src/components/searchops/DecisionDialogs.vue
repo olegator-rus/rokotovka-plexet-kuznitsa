@@ -6,10 +6,14 @@ import { computed, ref, watch } from 'vue'
 import { ToggleGroupItem, ToggleGroupRoot } from 'reka-ui'
 import { CircleAlert } from 'lucide-vue-next'
 import { approveProposal, rejectProposal } from '@/api/agent'
+import { postEvent } from '@/api/events'
 import type { ApproveResponse, Proposal, ProposalRejectReason } from '@/api/types'
 import UiDialog from '@/components/ui/UiDialog.vue'
 import { isApiError, MSG_UNKNOWN } from '@/lib/apiError'
 import { REJECT_REASONS, isTicket } from '@/lib/proposals'
+import { buildEvent } from '@/lib/events'
+import { isRelationPatch, relationIds } from '@/lib/relationProposal'
+import { useAppStore } from '@/stores/app'
 
 const props = defineProps<{
   /** Предложение и что с ним делаем; null — диалоги закрыты. */
@@ -56,6 +60,21 @@ const rejectOpen = computed({
 })
 
 const ticket = computed(() => !!props.target && isTicket(props.target.proposal))
+const relation = computed(() => !!props.target && isRelationPatch(props.target.proposal))
+const app = useAppStore()
+
+/** relation_decision: по событию на каждую связь правки. */
+function logRelationDecision(p: Proposal, decision: string, reason = '') {
+  if (!isRelationPatch(p)) return
+  for (const id of relationIds(p))
+    void postEvent(
+      buildEvent(
+        'relation_decision',
+        { requestId: null, sessionId: app.sessionId, clientId: null },
+        { payload: { relation_id: id, decision, reason, proposal_id: p.id } },
+      ),
+    ).catch(() => undefined)
+}
 const nextVersion = computed(() => (props.activeVersion ? props.activeVersion + 1 : null))
 const canReject = computed(
   () => !!reason.value && (reason.value !== 'other' || comment.value.trim().length > 0),
@@ -74,6 +93,7 @@ async function accept() {
   try {
     const res = await approveProposal(p.id)
     busy.value = false
+    logRelationDecision(p, 'accepted')
     emit('accepted', p, res)
   } catch (e) {
     busy.value = false
@@ -91,6 +111,7 @@ async function reject() {
   try {
     await rejectProposal(p.id, reason.value, comment.value.trim())
     busy.value = false
+    logRelationDecision(p, 'rejected', reason.value)
     emit('rejected', p)
   } catch (e) {
     busy.value = false
@@ -106,6 +127,10 @@ async function reject() {
       <p v-if="ticket">
         Правила поиска не меняются: предложение станет задачей ответственному за ассортимент или
         карточку.
+      </p>
+      <p v-else-if="relation">
+        Связь начнёт действовать в блоке «Дополните решение» сразу. Будет создана новая версия
+        справочника связей, её можно откатить в «Изменения» → «Связи».
       </p>
       <p v-else>
         Правило начнёт действовать сразу.

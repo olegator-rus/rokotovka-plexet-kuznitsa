@@ -1,6 +1,18 @@
 // Типы HTTP API — строго по контракту API:
 // поле меняется сначала там, потом здесь. Необязательные блоки ответа (`correction`, `clarify`, `empty`,
 // `llm`) сервер может не прислать или прислать null — типы допускают оба варианта.
+import type {
+  Companion,
+  CompanionBlock,
+  Facet,
+  Features,
+  ItemCompatibility,
+  ItemKind,
+  P2EventType,
+  PriceMode,
+  SearchFilter,
+  Solution,
+} from './typesP2'
 
 /** live — витрина: B3 на действующей (последней принятой) версии правил; лестница оценки — B0–B4. */
 export type ConfigId = 'live' | 'B0' | 'B1' | 'B2' | 'B3' | 'B4'
@@ -25,6 +37,9 @@ export interface Meta {
   clients: MetaClient[]
   /** Подписанный сервером токен сессии покупателя: идёт в session_id поиска и событий. */
   session?: string
+  /** Контур коммерции: флаги блоков и что в данных придумано (плашка «Синтетические данные»). */
+  features?: Features
+  synthetic?: string[]
 }
 
 /** Условие запроса, снятое пользователем крестиком на чипе. */
@@ -46,6 +61,8 @@ export interface SearchRequest {
   limit: number
   /** compare — поиск из «Одного запроса»: пишется в журнал, но не входит в аналитику и стоимость. */
   source?: 'live' | 'compare'
+  /** Контур коммерции: фасеты оборудования; пустые не отправляются. */
+  filters?: SearchFilter[]
 }
 
 export interface Correction {
@@ -61,6 +78,9 @@ export interface Chip {
   label: string
   /** true — учтено строго (обязательное условие), false — по возможности. */
   strict: boolean
+  /** Контур коммерции: оператор и единица числового условия («Память ≥ 32 ГБ»); поле mpn — чип «Парт-номер». */
+  op?: string
+  unit?: string
 }
 
 export interface ClarifyOption {
@@ -89,6 +109,12 @@ export interface SearchItemBase {
   matches_query: boolean
   purchased_before: boolean
   final: number
+  /** Контур коммерции: тип, парт-номер, режим цены, совместимость с целевой моделью, условно обязательное. */
+  kind?: ItemKind | string
+  mpn?: string
+  price_mode?: PriceMode | string
+  compatibility?: ItemCompatibility | null
+  required?: Companion[]
 }
 
 export interface SearchItem extends SearchItemBase {
@@ -122,6 +148,10 @@ export interface SearchResponse {
   related_queries: string[]
   /** «С этим покупают»: связи complement для первой позиции, до 3 семейств; B0–B2 — пусто. */
   complements?: Complement[]
+  /** Контур коммерции: «Дополните решение» (null — блока нет), шаблон решения, фасеты категории. */
+  companions?: CompanionBlock | null
+  solution?: Solution | null
+  facets?: Facet[]
   trace: Trace
 }
 
@@ -271,6 +301,7 @@ export type EventType =
   | 'correction_undo'
   | 'chip_remove'
   | 'clarify_answer'
+  | P2EventType
 
 export interface SearchEvent {
   type: EventType

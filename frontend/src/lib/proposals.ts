@@ -11,6 +11,7 @@ import type {
   RulePatchItem,
 } from '@/api/types'
 import { formatInt, plural } from './format.ts'
+import { P2_DIAGNOSIS_LABELS } from './relationProposal.ts'
 
 export const DIAGNOSIS_LABELS: Record<string, string> = {
   ALIAS_GAP: 'Неизвестный термин',
@@ -23,6 +24,7 @@ export const DIAGNOSIS_LABELS: Record<string, string> = {
   NON_PRODUCT: 'Нетоварный запрос',
   NOISE: 'Шум',
   UNKNOWN: 'Требует ручной проверки',
+  ...P2_DIAGNOSIS_LABELS,
 }
 
 export const diagnosisLabel = (d: string) => DIAGNOSIS_LABELS[d] ?? d

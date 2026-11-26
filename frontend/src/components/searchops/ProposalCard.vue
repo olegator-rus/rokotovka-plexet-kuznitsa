@@ -31,7 +31,9 @@ import {
   targetQueryRows,
   ticketLines,
 } from '@/lib/proposals'
+import { isRelationPatch } from '@/lib/relationProposal'
 import PatchDiff from './PatchDiff.vue'
+import RelationPatchView from './RelationPatchView.vue'
 
 const props = defineProps<{ proposal: Proposal; busy?: boolean }>()
 defineEmits<{ accept: []; reject: [] }>()
@@ -52,6 +54,13 @@ const todo = computed(() => (ticket.value ? ticketLines(p.value) : []))
 const effect = computed(() => effectLine(p.value.effect))
 const recheck = computed(() => recheckView(p.value))
 const stale = computed(() => staleReason(p.value))
+const relation = computed(() => isRelationPatch(p.value))
+// Предложение настройки маржи применяется на экране «Маржа», не из очереди.
+const marginLink = computed(() => {
+  if (p.value.action !== 'margin_policy') return null
+  const w = (p.value.patch as unknown as { weight?: unknown } | null)?.weight
+  return { path: '/margin', query: typeof w === 'number' ? { w: String(w) } : {} }
+})
 const detailsOpen = ref(false)
 const runLink = computed(() =>
   p.value.run_id
@@ -75,6 +84,7 @@ const runLink = computed(() =>
       <span class="badge">{{ diagnosisLabel(p.diagnosis) }}</span>
       <span class="t-xs t-muted">{{ proposalRoleLabel(p.role) }}</span>
       <span
+        v-if="!relation || p.cluster?.lost_demand"
         class="pcard__demand t-xs t-muted t-num"
         title="Различные сессии, в которых поиск по запросам кластера не удался"
       >
@@ -82,13 +92,16 @@ const runLink = computed(() =>
       </span>
     </header>
 
-    <h3 :id="`p-${p.id}-title`" class="t-h2">Кластер «{{ p.cluster?.label }}»</h3>
+    <h3 :id="`p-${p.id}-title`" class="t-h2">
+      <template v-if="relation || marginLink">{{ p.cluster?.label }}</template>
+      <template v-else>Кластер «{{ p.cluster?.label }}»</template>
+    </h3>
     <p v-if="stale" class="pcard__stale t-sm">
       <span class="pcard__effect-label">Почему устарело:</span> {{ stale }}. Принять нельзя.
     </p>
     <p v-if="p.diagnosis_text" class="pcard__diag">{{ p.diagnosis_text }}</p>
 
-    <section class="pcard__block" aria-label="Запросы кластера">
+    <section v-if="queries.length || !relation" class="pcard__block" aria-label="Запросы кластера">
       <p class="pcard__label">
         Запросы кластера · {{ formatInt(queries.length) }}
         {{ plural(queries.length, ['запрос', 'запроса', 'запросов']) }}
@@ -108,7 +121,9 @@ const runLink = computed(() =>
       </ul>
     </section>
 
-    <section class="pcard__block" aria-label="Что предлагается">
+    <RelationPatchView v-if="relation" :proposal="p" />
+
+    <section v-else class="pcard__block" aria-label="Что предлагается">
       <p class="pcard__label">{{ ticket ? 'Что сделать' : 'Что предлагается' }}</p>
       <ul v-if="todo.length" class="pcard__todo">
         <li v-for="t in todo" :key="t">{{ t }}</li>
@@ -265,7 +280,14 @@ const runLink = computed(() =>
         Показать ход расследования <ArrowRight :size="14" aria-hidden="true" />
       </RouterLink>
 
-      <div v-if="p.status === 'pending'" class="pcard__actions">
+      <div v-if="p.status === 'pending' && marginLink" class="pcard__actions">
+        <button type="button" class="btn btn--secondary" :disabled="busy" @click="$emit('reject')">
+          Отклонить
+        </button>
+        <RouterLink :to="marginLink" class="btn btn--primary">Открыть в песочнице</RouterLink>
+      </div>
+
+      <div v-else-if="p.status === 'pending'" class="pcard__actions">
         <button type="button" class="btn btn--secondary" :disabled="busy" @click="$emit('reject')">
           Отклонить
         </button>

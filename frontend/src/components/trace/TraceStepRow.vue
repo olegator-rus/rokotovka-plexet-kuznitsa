@@ -15,6 +15,8 @@ import {
   stepLabel,
   stepSummary,
 } from '@/lib/trace'
+import { marginGuardLines, marginPolicyLabel, marginShiftLines } from '@/lib/traceMargin'
+import TraceStepP2 from './TraceStepP2.vue'
 
 const props = defineProps<{ step: TraceStep; titles: Record<string, string> }>()
 
@@ -100,6 +102,29 @@ function show(v: unknown): string {
       <ol v-if="step.ladder?.length" class="step__list">
         <li v-for="(l, i) in step.ladder" :key="i">{{ show(l) }}</li>
       </ol>
+
+      <template v-if="step.name === 'margin'">
+        <p v-if="marginPolicyLabel(step)" class="t-xs t-muted">{{ marginPolicyLabel(step) }}</p>
+        <ul
+          v-if="marginShiftLines(step, titles).length"
+          class="step__list"
+          aria-label="Сдвиги маржи"
+        >
+          <li v-for="(m, i) in marginShiftLines(step, titles)" :key="i">
+            <span class="step__top-title">{{ m.title }}</span>
+            <span class="t-num t-muted"> · {{ m.text }}</span>
+          </li>
+        </ul>
+        <ul v-if="marginGuardLines(step).length" class="step__list" aria-label="Сработавшие защиты">
+          <li v-for="(g, i) in marginGuardLines(step)" :key="i">{{ g }}</li>
+        </ul>
+      </template>
+
+      <TraceStepP2
+        v-if="step.name === 'hardware' || step.name === 'companions'"
+        :step="step"
+        :titles="titles"
+      />
 
       <dl v-if="stepExtraFields(step).length" class="step__extra">
         <template v-for="[k, v] in stepExtraFields(step)" :key="k">

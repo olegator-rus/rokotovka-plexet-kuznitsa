@@ -6,7 +6,7 @@ import { computed, ref, shallowRef, watch } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useRoute, useRouter } from 'vue-router'
 import { DialogContent, DialogOverlay, DialogPortal, DialogRoot, DialogTitle } from 'reka-ui'
-import { Headset, Info } from 'lucide-vue-next'
+import { Headset, Info, ShieldAlert } from 'lucide-vue-next'
 import { postEvent } from '@/api/events'
 import { postSearch } from '@/api/search'
 import type {
@@ -19,6 +19,10 @@ import type {
   SearchItemBase,
   SearchResponse,
 } from '@/api/types'
+import type { Companion, SearchFilter } from '@/api/typesP2'
+import CompanionsBlock from '@/components/search/CompanionsBlock.vue'
+import FacetsPanel from '@/components/search/FacetsPanel.vue'
+import RequiredLine from '@/components/search/RequiredLine.vue'
 import ConfigSwitch from '@/components/search/ConfigSwitch.vue'
 import ManagerDialog from '@/components/search/ManagerDialog.vue'
 import ResultCard, { type ItemAction } from '@/components/search/ResultCard.vue'
@@ -49,6 +53,16 @@ import {
 } from '@/lib/searchState'
 import type { SuggestRow } from '@/lib/suggest'
 import { useAppStore } from '@/stores/app'
+import { useSpecStore } from '@/stores/spec'
+import {
+  blockItems,
+  featureOn,
+  firstImpression,
+  hasConditional,
+  impressionPayload,
+} from '@/lib/companions'
+import { usableFacet, withFilter } from '@/lib/facets'
+import { lineFromCompanion, lineFromItem, quantityForItem } from '@/lib/spec'
 
 const EXAMPLES = [
   'аналог фотошопа на 20 пользователей',
@@ -165,7 +179,9 @@ const titles = computed<Record<string, string>>(() => {
   for (const it of response.value?.items ?? []) {
     out[it.product_id] = it.title
     for (const v of it.variants ?? []) out[v.product_id] ??= v.title
+    for (const c of it.required ?? []) out[c.product_id] ??= c.title
   }
+  for (const c of response.value?.companions?.items ?? []) out[c.product_id] ??= c.title
   return out
 })
 const relaxed = computed(() => response.value?.relaxed ?? [])
@@ -173,6 +189,113 @@ const related = computed(() => {
   const own = (response.value?.query ?? '').trim().toLowerCase()
   return (response.value?.related_queries ?? []).filter((q) => q.trim().toLowerCase() !== own)
 })
+// ── Контур коммерции: допродажа, оборудование, спецификация ──
+const spec = useSpecStore()
+const features = computed(() => app.meta?.features)
+const companionsOn = computed(() => featureOn(features.value, 'companions'))
+const hardwareOn = computed(() => featureOn(features.value, 'hardware'))
+const filters = computed<SearchFilter[]>(() => state.value.filters ?? [])
+const facets = computed(() =>
+  hardwareOn.value ? (response.value?.facets ?? []).filter(usableFacet) : [],
+)
+const showFacets = computed(() => facets.value.length > 0 || filters.value.length > 0)
+const companionAnchor = computed(() => {
+  const a = response.value?.companions?.anchor
+  if (!a) return null
+  return response.value?.items.find((i) => i.product_id === a.product_id) ?? null
+})
+const companionItems = computed(() => {
+  if (!companionsOn.value) return []
+  const inCard = (companionAnchor.value?.required ?? []).map((c) => c.product_id)
+  return blockItems(response.value?.companions, inCard)
+})
+const companionAnchorTitle = computed(
+  () => companionAnchor.value?.title ?? response.value?.items[0]?.title ?? '',
+)
+const requiredOf = (item: SearchItem) => (companionsOn.value ? (item.required ?? []) : [])
+const conditionalNote = computed(
+  () => hardwareOn.value && hasConditional(response.value?.items ?? []),
+)
+/** Блок «Дополните решение» встаёт после третьего результата основной выдачи. */
+const BLOCK_AFTER = 3
+const mainTop = computed(() => blocks.value.main.slice(0, BLOCK_AFTER))
+const mainRest = computed(() => blocks.value.main.slice(BLOCK_AFTER))
+
+// Показ блока и строки — одно событие на поиск и место («События»).
+const impressions = new Set<string>()
+watch(response, (resp) => {
+  if (!resp || !companionsOn.value) return
+  const rid = resp.request_id
+  if (companionItems.value.length && firstImpression(impressions, rid, 'block')) {
+    const anchor = resp.companions?.anchor.product_id ?? ''
+    trackQuiet('companion_impression', {
+      payload: impressionPayload(anchor, companionItems.value, 'block'),
+    })
+  }
+  for (const it of resp.items ?? []) {
+    const req = requiredOf(it)
+    if (req.length && firstImpression(impressions, rid, `required:${it.product_id}`))
+      trackQuiet('companion_impression', {
+        payload: impressionPayload(it.product_id, req, 'required'),
+      })
+  }
+})
+
+function openSpecAction() {
+  return { label: 'Открыть', run: () => (spec.open = true) }
+}
+
+function onSpec(item: SearchItem) {
+  spec.add(lineFromItem(item, quantityForItem(item, response.value?.chips ?? [])))
+  toast.add({
+    tone: 'ok',
+    title: 'Добавлено в спецификацию',
+    detail: item.title,
+    action: openSpecAction(),
+  })
+}
+
+function onCompanionOpen(c: Companion, index: number) {
+  trackQuiet('companion_click', {
+    productId: c.product_id,
+    position: index + 1,
+    payload: { class: c.class, place: 'block' },
+  })
+  submit(c.title)
+}
+
+function onCompanionAdd(c: Companion, index: number) {
+  const qty = c.suggested_quantity ?? 1
+  spec.add(lineFromCompanion(c, qty, companionAnchorTitle.value))
+  trackQuiet('companion_add', {
+    productId: c.product_id,
+    position: index + 1,
+    payload: { class: c.class, quantity: qty, place: 'block' },
+  })
+  toast.add({
+    tone: 'ok',
+    title: 'Добавлено в спецификацию',
+    detail: c.title,
+    action: openSpecAction(),
+  })
+}
+
+function onFacet(key: string, filter: SearchFilter | null) {
+  trackQuiet('facet_apply', {
+    payload: {
+      key,
+      value: filter ? filter.value : null,
+      op: filter?.op ?? null,
+      value2: filter?.value2 ?? null,
+    },
+  })
+  void go({ ...state.value, filters: withFilter(filters.value, key, filter) })
+}
+
+function onFacetsReset() {
+  void go({ ...state.value, filters: [] })
+}
+
 const complements = computed(() => response.value?.complements ?? [])
 const complementAnchor = computed(() => response.value?.items[0]?.title ?? '')
 const showManager = computed(
@@ -375,47 +498,116 @@ function sendManagerRequest() {
           </div>
         </section>
 
-        <ol v-if="blocks.main.length" class="search-page__list" aria-label="Результаты">
-          <li v-for="p in blocks.main" :key="p.item.product_id">
-            <ResultCard
-              :item="p.item"
-              :position="p.position"
-              :selected="state.trace && selected === p.item.product_id"
-              @open="onOpen"
-              @action="onAction"
-              @why="onWhy"
+        <p v-if="conditionalNote" class="search-page__compat t-sm">
+          <ShieldAlert :size="16" aria-hidden="true" />
+          Для точной проверки укажите конфигурацию сервера
+        </p>
+
+        <div :class="['search-page__body', { 'search-page__body--facets': showFacets }]">
+          <FacetsPanel
+            v-if="showFacets"
+            class="search-page__facets"
+            :facets="facets"
+            :filters="filters"
+            @apply="onFacet"
+            @reset="onFacetsReset"
+          />
+          <div class="search-page__results">
+            <ol v-if="mainTop.length" class="search-page__list" aria-label="Результаты">
+              <li v-for="p in mainTop" :key="p.item.product_id">
+                <ResultCard
+                  :item="p.item"
+                  :position="p.position"
+                  :selected="state.trace && selected === p.item.product_id"
+                  :in-spec="spec.has(p.item.product_id)"
+                  :show-compat="hardwareOn"
+                  @open="onOpen"
+                  @action="onAction"
+                  @why="onWhy"
+                  @spec="onSpec"
+                >
+                  <RequiredLine
+                    v-if="requiredOf(p.item).length"
+                    :required="requiredOf(p.item)"
+                    :anchor-id="p.item.product_id"
+                    :anchor-title="p.item.title"
+                    :request-id="response.request_id"
+                  />
+                </ResultCard>
+              </li>
+            </ol>
+
+            <CompanionsBlock
+              v-if="companionItems.length"
+              :items="companionItems"
+              :anchor="companionAnchorTitle"
+              @open="onCompanionOpen"
+              @add="onCompanionAdd"
+              @search="submit"
             />
-          </li>
-        </ol>
 
-        <section
-          v-if="blocks.analogs.length"
-          class="search-page__section"
-          aria-labelledby="analogs-title"
-        >
-          <h2 id="analogs-title" class="t-h2">
-            {{ blocks.absent || !blocks.main.length ? 'Похожие по назначению' : 'Аналоги' }}
-          </h2>
-          <ol class="search-page__list">
-            <li v-for="p in blocks.analogs" :key="p.item.product_id">
-              <ResultCard
-                :item="p.item"
-                :position="p.position"
-                :selected="state.trace && selected === p.item.product_id"
-                @open="onOpen"
-                @action="onAction"
-                @why="onWhy"
-              />
-            </li>
-          </ol>
-        </section>
+            <ol
+              v-if="mainRest.length"
+              class="search-page__list"
+              :start="BLOCK_AFTER + 1"
+              aria-label="Продолжение выдачи"
+            >
+              <li v-for="p in mainRest" :key="p.item.product_id">
+                <ResultCard
+                  :item="p.item"
+                  :position="p.position"
+                  :selected="state.trace && selected === p.item.product_id"
+                  :in-spec="spec.has(p.item.product_id)"
+                  :show-compat="hardwareOn"
+                  @open="onOpen"
+                  @action="onAction"
+                  @why="onWhy"
+                  @spec="onSpec"
+                >
+                  <RequiredLine
+                    v-if="requiredOf(p.item).length"
+                    :required="requiredOf(p.item)"
+                    :anchor-id="p.item.product_id"
+                    :anchor-title="p.item.title"
+                    :request-id="response.request_id"
+                  />
+                </ResultCard>
+              </li>
+            </ol>
 
-        <ComplementsBlock
-          v-if="complements.length && blocks.main.length"
-          :items="complements"
-          :anchor="complementAnchor"
-          @action="onComplement"
-        />
+            <section
+              v-if="blocks.analogs.length"
+              class="search-page__section"
+              aria-labelledby="analogs-title"
+            >
+              <h2 id="analogs-title" class="t-h2">
+                {{ blocks.absent || !blocks.main.length ? 'Похожие по назначению' : 'Аналоги' }}
+              </h2>
+              <ol class="search-page__list">
+                <li v-for="p in blocks.analogs" :key="p.item.product_id">
+                  <ResultCard
+                    :item="p.item"
+                    :position="p.position"
+                    :selected="state.trace && selected === p.item.product_id"
+                    :in-spec="spec.has(p.item.product_id)"
+                    :show-compat="hardwareOn"
+                    @open="onOpen"
+                    @action="onAction"
+                    @why="onWhy"
+                    @spec="onSpec"
+                  />
+                </li>
+              </ol>
+            </section>
+
+            <ComplementsBlock
+              v-if="!companionItems.length && complements.length && blocks.main.length"
+              :items="complements"
+              :anchor="complementAnchor"
+              @action="onComplement"
+            />
+          </div>
+        </div>
 
         <section v-if="related.length" class="search-page__related" aria-labelledby="related-title">
           <h2 id="related-title" class="t-sm t-muted">Похожие запросы</h2>
@@ -494,6 +686,7 @@ function sendManagerRequest() {
   min-width: 0;
 }
 .search-page__main {
+  container-type: inline-size;
   display: flex;
   flex: 1;
   flex-direction: column;
@@ -552,6 +745,39 @@ function sendManagerRequest() {
   margin: 0;
   padding: 0;
   list-style: none;
+}
+.search-page__compat {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2);
+  color: var(--text-2);
+}
+.search-page__compat svg {
+  flex: none;
+  margin-top: 1px;
+}
+.search-page__body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  min-width: 0;
+}
+.search-page__results {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  min-width: 0;
+}
+@container (min-width: 52rem) {
+  .search-page__body--facets {
+    display: grid;
+    grid-template-columns: 14rem minmax(0, 1fr);
+    align-items: start;
+  }
+  .search-page__facets {
+    position: sticky;
+    top: calc(var(--header-h) + var(--space-3));
+  }
 }
 .search-page__section {
   display: flex;

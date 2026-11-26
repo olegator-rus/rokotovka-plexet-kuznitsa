@@ -54,6 +54,18 @@ export const router = createRouter({
       meta: { section: 'Экономика', backoffice: true },
     },
     {
+      path: '/rules',
+      name: 'rules',
+      component: () => import('@/pages/RulesPage.vue'),
+      meta: { section: 'Правила рекомендаций' },
+    },
+    {
+      path: '/margin',
+      name: 'margin',
+      component: () => import('@/pages/MarginPage.vue'),
+      meta: { section: 'Маржа', backoffice: true },
+    },
+    {
       path: '/:pathMatch(.*)*',
       name: 'not-found',
       component: () => import('@/pages/NotFoundPage.vue'),

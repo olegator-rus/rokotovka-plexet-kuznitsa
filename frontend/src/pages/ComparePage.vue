@@ -2,6 +2,7 @@
 // «До / После». Вкладки — reka Tabs, выбранная вкладка и запрос сравнения живут в адресе:
 //   /compare?tab=metrics | one&q=…&left=B0&right=B3 | regressions&cfg=B3 | effect
 // «Эффект агента» — реплей отложенной недели (набор holdout_week), только чтение.
+// «Коммерция» (контур коммерции) — лестница C0–C3 на наборе p2: /compare?tab=commerce.
 // Прогон оценки — POST /api/evaluations/run, дальше опрос GET /api/evaluations, пока идёт; с экрана
 // можно уйти и вернуться. Непосчитанные метрики не показываются, чисел-заглушек нет.
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
@@ -13,6 +14,7 @@ import { getEvaluations, runEvaluation } from '@/api/evaluations'
 import type { ConfigId, EvalJob } from '@/api/types'
 import BlockError from '@/components/common/BlockError.vue'
 import AgentEffect from '@/components/compare/AgentEffect.vue'
+import CommerceTab from '@/components/compare/CommerceTab.vue'
 import JudgeAgreement from '@/components/compare/JudgeAgreement.vue'
 import MetricsTable from '@/components/compare/MetricsTable.vue'
 import OneQueryCompare from '@/components/compare/OneQueryCompare.vue'
@@ -27,7 +29,7 @@ import { useAppStore } from '@/stores/app'
 
 const POLL_MS = 2000
 const EVAL_SET = 'test'
-const TABS = ['metrics', 'one', 'regressions', 'effect'] as const
+const TABS = ['metrics', 'one', 'regressions', 'effect', 'commerce'] as const
 type Tab = (typeof TABS)[number]
 
 const route = useRoute()
@@ -239,6 +241,7 @@ onBeforeUnmount(() => {
           <span v-if="columns.length" class="badge t-num">{{ regressionTotal }}</span>
         </TabsTrigger>
         <TabsTrigger value="effect" class="tabs__trigger">Эффект агента</TabsTrigger>
+        <TabsTrigger value="commerce" class="tabs__trigger">Коммерция</TabsTrigger>
       </TabsList>
 
       <TabsContent value="metrics" class="compare__panel">
@@ -313,6 +316,10 @@ onBeforeUnmount(() => {
 
       <TabsContent value="effect" class="compare__panel">
         <AgentEffect />
+      </TabsContent>
+
+      <TabsContent value="commerce" class="compare__panel">
+        <CommerceTab />
       </TabsContent>
 
       <TabsContent value="regressions" class="compare__panel">

@@ -1,6 +1,14 @@
-// Шесть разделов левой панели («Навигация»). backoffice — в шапке виден переключатель роли.
+// Разделы левой панели («Навигация»). backoffice — в шапке виден переключатель роли.
 import type { Component } from 'vue'
-import { Bot, ChartColumn, Coins, GitCompareArrows, History, Search } from 'lucide-vue-next'
+import {
+  BadgePercent,
+  Bot,
+  ChartColumn,
+  Coins,
+  GitCompareArrows,
+  History,
+  Search,
+} from 'lucide-vue-next'
 
 export interface Section {
   path: string
@@ -29,4 +37,5 @@ export const SECTIONS: readonly Section[] = [
   { path: '/searchops', name: 'searchops', label: 'SearchOps', icon: Bot, backoffice: true },
   { path: '/changes', name: 'changes', label: 'Изменения', icon: History, backoffice: true },
   { path: '/costs', name: 'costs', label: 'Экономика', icon: Coins, backoffice: true },
+  { path: '/margin', name: 'margin', label: 'Маржа', icon: BadgePercent, backoffice: true },
 ]

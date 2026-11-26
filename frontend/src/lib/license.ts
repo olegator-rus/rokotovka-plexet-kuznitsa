@@ -21,9 +21,15 @@ export function joinLicenseParts(parts: string[]): string {
 }
 
 /** Цена для показа: «12 990 ₽» или «Цена по запросу». */
-export function priceLabel(item: Pick<SearchItemBase, 'price_rub' | 'price_on_request'>): string {
+export function priceLabel(
+  item: Pick<SearchItemBase, 'price_rub' | 'price_on_request'> & { price_mode?: string },
+): string {
+  // Контур коммерции: «от …» и «Нет в наличии» по price_mode; без поля — как в контуре поиска.
+  if (item.price_mode === 'unavailable') return 'Нет в наличии'
   if (item.price_on_request || item.price_rub === null) return 'Цена по запросу'
-  return formatPrice(item.price_rub)
+  return item.price_mode === 'from'
+    ? `от ${formatPrice(item.price_rub)}`
+    : formatPrice(item.price_rub)
 }
 
 /** Можно положить в корзину: цена известна. Иначе действие — «Запросить цену». */
