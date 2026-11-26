@@ -459,6 +459,21 @@ paths:
       responses:
         "200":
           description: "{basis, title, why, items[Companion ≤3]} или null"
+  /api/help:
+    get:
+      tags: [Поиск]
+      summary: Статьи справки (витрина, без входа; контур доводки)
+      operationId: help
+      security: []
+      responses:
+        "200":
+          description: Статьи
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items: { type: array, items: { $ref: "#/components/schemas/HelpAnswer" } }
   /api/companions:
     get:
       tags: [Поиск]
@@ -720,6 +735,11 @@ paths:
       tags: [Агент]
       summary: Запуски агента (последние 50)
       operationId: agentRuns
+      parameters:
+        - name: trigger
+          in: query
+          description: Фильтр по триггеру (контур автономии); иное — 422
+          schema: { type: string, enum: [manual, schedule, spike, catalog_change] }
       responses:
         "200":
           description: Список
@@ -732,7 +752,12 @@ paths:
     post:
       tags: [Агент]
       summary: Запустить агента SearchOps
-      description: Один запуск за раз. Требует режим LLM `on` и непревышенный дневной бюджет.
+      description: |
+        Контур автономии: не больше `AGENT_MAX_PARALLEL` (2) запусков и один каждого вида; иначе 409. Требует
+        режим LLM `on` и непревышенный дневной бюджет. `{"query": "…"}` — «Разобрать» на одном запросе (≤ 200 символов,
+        только mode search): кластер из одного запроса, память показывается, но не пропускает; точное совпадение уже
+        первым — `stop_reason: already_solved` без вызова модели. Автоматические триггеры (schedule, spike,
+        catalog_change) запускает сам сервер, не этот метод.
       operationId: startAgentRun
       requestBody:
         content:
@@ -743,6 +768,7 @@ paths:
                 days: { type: integer, minimum: 1, maximum: 365, default: 30 }
                 max_clusters: { type: integer, minimum: 1, maximum: 12, default: 5 }
                 trigger: { type: string, enum: [manual, schedule], default: manual }
+                query: { type: string, maxLength: 200, description: "Контур автономии: запуск на одном запросе («Разобрать»)" }
                 mode:
                   type: string
                   enum: [search, commerce]
@@ -808,11 +834,19 @@ paths:
   /api/agent/memory:
     get:
       tags: [Агент]
-      summary: Память агента — решения человека по предложениям
+      summary: Память агента
+      description: |
+        Без `layer` — решения человека по предложениям (прежняя форма). Контур автономии: `layer=decisions` —
+        решения с ролью того, кто решил; `layer=suppress` — «не предлагать» с условием возврата (создаётся отказом
+        человека); `layer=episodes` — итоги разборов и проверок эффекта.
       operationId: agentMemory
+      parameters:
+        - name: layer
+          in: query
+          schema: { type: string, enum: [decisions, suppress, episodes] }
       responses:
         "200":
-          description: Решения
+          description: Решения (без layer) или записи слоя
           content:
             application/json:
               schema:
@@ -831,6 +865,93 @@ paths:
                         reason: { type: string }
                         comment: { type: string }
                         ts: { type: string, format: date-time }
+                  decisions:
+                    type: array
+                    items:
+                      type: object
+                      additionalProperties: true
+                      properties:
+                        decision: { type: string, enum: [accepted, rejected, rolled_back, suppress_removed] }
+                        decided_by: { type: string, description: роль из сессии }
+                        decided_by_label: { type: string }
+                        trigger: { type: string }
+                        cause: { $ref: "#/components/schemas/Cause" }
+                  suppress:
+                    type: array
+                    items:
+                      type: object
+                      additionalProperties: true
+                      properties:
+                        id: { type: string }
+                        cluster_key: { type: string }
+                        cluster_label: { type: string }
+                        scope: { type: string, enum: [cluster, patch] }
+                        return_condition: { type: string }
+                        current_failures: { type: [integer, "null"] }
+                        status: { type: string, enum: [active, lifted, removed] }
+                  episodes:
+                    type: array
+                    items:
+                      type: object
+                      additionalProperties: true
+                      properties:
+                        run_id: { type: string }
+                        trigger: { type: string }
+                        kind: { type: string, enum: [investigation, effect_check] }
+                        cluster_label: { type: string }
+                        effect: { type: [string, "null"], enum: [helped, no_effect, harmed, null] }
+        "422": { $ref: "#/components/responses/Error" }
+  /api/agent/memory/suppress/{id}/remove:
+    post:
+      tags: [Агент]
+      summary: Снять запись «не предлагать» (контур автономии)
+      description: Владелец причины, руководитель e-com или служебный доступ; причина обязательна; повтор — 409.
+      operationId: agentSuppressRemove
+      parameters: [{ $ref: "#/components/parameters/ID" }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [reason]
+              properties:
+                reason: { type: string }
+      responses:
+        "200": { description: Запись снята, решение suppress_removed записано }
+        "403": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+        "409": { $ref: "#/components/responses/Error" }
+        "422": { $ref: "#/components/responses/Error" }
+  /api/agent/settings:
+    get:
+      tags: [Агент]
+      summary: Режим агента, расписание, пороги триггеров, пул, бюджет (контур автономии)
+      operationId: agentSettings
+      responses:
+        "200":
+          description: Настройки
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AgentSettings" }
+    post:
+      tags: [Агент]
+      summary: Режим «только чтение» (руководитель e-com или служебный доступ)
+      operationId: setAgentSettings
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                read_only: { type: boolean }
+      responses:
+        "200":
+          description: Новые настройки
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AgentSettings" }
+        "403": { $ref: "#/components/responses/Error" }
   /api/proposals:
     get:
       tags: [Предложения и правила]
@@ -1612,6 +1733,15 @@ components:
             duration_months: { type: [integer, "null"] }
             delivery: { type: string, enum: [electronic, oem, physical, ""] }
             in_reestr: { type: boolean }
+        reestr:
+          type: [object, "null"]
+          description: "Контур доводки: статус в реестре российского ПО в трёх состояниях; у ПО"
+          properties:
+            status: { type: string, enum: [confirmed, not_matching, unknown] }
+            number: { type: string }
+            label: { type: string }
+            checked_at: { type: string }
+        analog_note: { type: string, description: "Контур доводки: у аналога отсутствующего товара — «Не «…», а другой продукт: …»" }
     Upgrade:
       description: «Старшая редакция» (связь upgrade, 1–2 строки upgrade_adds) — Companion с классом upgrade
       allOf:
@@ -1694,6 +1824,7 @@ components:
           properties:
             message: { type: string }
             show_manager: { type: boolean }
+            supply: { type: boolean, description: "Контур доводки: «Товара «…» нет в каталоге» — кнопка «Запросить поставку»" }
         related_queries: { type: array, items: { type: string } }
         complements:
           type: array
@@ -1786,7 +1917,51 @@ components:
                     value: {}
                     count: { type: integer }
                     label: { type: string, description: "подпись значения (лицензионные фасеты)" }
+        purchase:
+          type: [object, "null"]
+          description: |
+            Контур доводки: параметры закупки из запроса — если назван тип покупки, количество, срок,
+            организация или редакция; тогда `price_from_rub` семейства — минимум по вариантам с `matches_query`.
+            При названном типе покупки и вариантах в двух и больше редакциях — `clarify.attribute = edition`.
+          properties:
+            query: { type: string }
+            deal: { type: string, enum: [new, renewal, extension, migration] }
+            deal_label: { type: string }
+            quantity: { type: [integer, "null"] }
+            metric: { type: string }
+            duration_months: { type: [integer, "null"] }
+            org_type: { type: string, enum: [education, government, commercial, ""] }
+            org_label: { type: string }
+            edition: { type: string }
+        help:
+          oneOf: [{ $ref: "#/components/schemas/HelpAnswer" }, { type: "null" }]
+          description: "Контур доводки: answer — вопрос, а не покупка (items пусто); hint — статья рядом с товаром (продление)"
+        analog_original:
+          type: [object, "null"]
+          description: "Контур доводки: запрос замены — исходный продукт («Вы искали: …»), отдельно от аналогов"
+          properties:
+            family_id: { type: string }
+            family_name: { type: string }
+            product_id: { type: string }
+            title: { type: string }
+            vendor: { type: string }
+            category: { type: string }
+            price_from_rub: { type: [number, "null"] }
+            reestr: { type: [object, "null"], additionalProperties: true }
+        reestr_unconfirmed:
+          type: array
+          items: { $ref: "#/components/schemas/SearchItem" }
+          description: "Контур доводки: при явном требовании реестра неподтверждённые убраны из items сюда"
         trace: { $ref: "#/components/schemas/Trace" }
+    HelpAnswer:
+      type: object
+      properties:
+        id: { type: string }
+        mode: { type: string, enum: [answer, hint] }
+        title: { type: string }
+        text: { type: string }
+        link_label: { type: string }
+        url: { type: string }
     Trace:
       type: object
       description: |
@@ -2110,7 +2285,49 @@ components:
       properties:
         id: { type: string, format: uuid }
         status: { type: string, enum: [running, done, stopped, failed] }
-        trigger: { type: string, enum: [manual, schedule] }
+        trigger: { type: string, enum: [manual, schedule, spike, catalog_change] }
+        query: { type: [string, "null"], description: "Контур автономии: запуск «Разобрать» на одном запросе" }
+        read_only: { type: boolean, description: "Режим «только чтение» на момент старта" }
+        input: { type: object, additionalProperties: true, description: "Вход триггера: {at, slot, days, why} | {spike: {...}, why} | {fingerprint, from, to, why} | {query}" }
+        plan:
+          type: [object, "null"]
+          description: Последняя редакция плана
+          properties:
+            revision: { type: integer }
+            source: { type: string, enum: [model, fallback] }
+            summary: { type: string }
+            clusters:
+              type: array
+              items:
+                type: object
+                properties:
+                  cluster_id: { type: string }
+                  label: { type: string }
+                  score: { type: number }
+                  why: { type: string }
+            tools: { type: array, items: { type: string } }
+        budget:
+          type: [object, "null"]
+          properties:
+            limits: { type: object, properties: { steps: { type: integer }, tokens: { type: integer }, cost_rub: { type: number }, seconds: { type: integer } } }
+            used: { type: object, properties: { steps: { type: integer }, tokens: { type: integer }, cost_rub: { type: number }, seconds: { type: integer } } }
+            exhausted: { type: boolean }
+        outcome:
+          type: [object, "null"]
+          properties:
+            proposals: { type: integer }
+            tasks: { type: integer }
+            rollbacks: { type: integer }
+            drafts: { type: integer }
+            skipped_memory: { type: integer }
+            effect_checks: { type: integer }
+            helped: { type: integer }
+            no_effect: { type: integer }
+            harmed: { type: integer }
+        unprocessed:
+          type: array
+          items: { type: object, properties: { cluster_id: { type: string }, label: { type: string }, score: { type: number }, reason: { type: string } } }
+        duration_ms: { type: integer }
         started_at: { type: string, format: date-time }
         finished_at: { type: [string, "null"], format: date-time }
         days: { type: integer }
@@ -2125,7 +2342,7 @@ components:
         cost_rub: { type: number }
         stop_reason:
           type: string
-          enum: ["", user, step_limit, token_limit, budget_limit, timeout, llm_error, no_failed_queries, error]
+          enum: ["", user, step_limit, token_limit, budget_limit, timeout, llm_error, no_failed_queries, error, steps_budget, cost_budget, time_budget, already_solved, no_findings]
         summary: '{ type: string }'
         current_cluster:
           type: [object, "null"]
@@ -2142,6 +2359,36 @@ components:
             tokens_per_run: { type: integer }
             timeout_sec: { type: integer }
         episode: { type: [object, "null"], additionalProperties: true }
+    AgentSettings:
+      type: object
+      description: Контур автономии; line — режим, расписание и пороги одной строкой для шапки «Запусков»
+      properties:
+        read_only: { type: boolean }
+        mode_label: { type: string }
+        schedule:
+          type: object
+          properties:
+            enabled: { type: boolean }
+            at: { type: string }
+            interval: { type: string }
+            days: { type: integer }
+            next_at: { type: [string, "null"] }
+        spike:
+          type: object
+          properties:
+            enabled: { type: boolean }
+            window: { type: string }
+            min_searches: { type: integer }
+            empty_share: { type: number }
+            reform_share: { type: number }
+            query_freq: { type: integer }
+            cooldown: { type: string }
+        catalog_trigger: { type: boolean }
+        max_parallel: { type: integer }
+        running: { type: integer }
+        budget: { type: object, additionalProperties: true }
+        query_budget: { type: object, additionalProperties: true }
+        line: { type: string }
     AgentStep:
       type: object
       properties:
@@ -2149,7 +2396,7 @@ components:
         run_id: { type: string }
         seq: { type: integer }
         ts: { type: string, format: date-time }
-        kind: { type: string, enum: [tool_call, thought, check, memory, diagnosis, hypothesis, proposal, error] }
+        kind: { type: string, enum: [tool_call, thought, check, memory, diagnosis, hypothesis, proposal, error, plan, memory_read, memory_skip, effect_check, budget], description: "plan, memory_read, memory_skip, effect_check, budget — контур автономии; memory новыми запусками не пишется" }
         cluster_id: { type: [string, "null"] }
         tool: { type: [string, "null"] }
         title: { type: string }
@@ -2204,8 +2451,8 @@ components:
         economic_status: { type: string, enum: [unknown, estimated, measured, ""] }
         action:
           type: string
-          enum: [rules_patch, ticket, relation_patch, margin_policy, bundle]
-          description: "relation_patch — правка справочника связей; margin_policy и bundle удалены в контуре доводки — только у stale-предложений"
+          enum: [rules_patch, ticket, relation_patch, rollback, margin_policy, bundle]
+          description: "relation_patch — правка справочника связей; rollback — откат, предложенный агентом после проверки эффекта (контур автономии); margin_policy и bundle удалены в контуре доводки — только у stale-предложений"
         patch: { oneOf: [{ $ref: "#/components/schemas/RulePatch" }, { type: "null" }] }
         evaluation: { type: [object, "null"], additionalProperties: true, description: "Прогон: целевой кластер до/после, регрессия, причины" }
         evidence: { type: [object, "null"], additionalProperties: true }
@@ -2230,6 +2477,16 @@ components:
         config_version: { type: [integer, "null"] }
         effect: { type: [object, "null"], additionalProperties: true }
         check_query: { type: string }
+        trigger: { type: string, description: "Контур автономии: триггер запуска, который предложил" }
+        run_started_at: { type: [string, "null"], format: date-time }
+        task_to_owner: { type: boolean, description: "Контур автономии: задача владельцу вместо правки поиска (action ticket)" }
+        rollback_of:
+          type: [object, "null"]
+          description: "Контур автономии: у предложения отката — что откатывается"
+          properties:
+            proposal_id: { type: string }
+            config_version: { type: integer }
+            label: { type: string }
     ProposalDecision:
       type: object
       properties:
