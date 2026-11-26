@@ -88,6 +88,8 @@ type rankCtx struct {
 	business bool
 	// textTop — семейства из первых textTopN мест текстового поиска.
 	textTop map[string]bool
+	// hw — условия оборудования (hardware_search.go); nil — флаг выключен.
+	hw *hwPlan
 }
 
 // textTopN — сколько первых мест BM25 считаются совпадением по названию (не отсекаются категорией).
@@ -110,6 +112,9 @@ func isBusinessQuery(a queryAttrs, e queryEntities, segment string) bool {
 
 // rejectReason — нарушенное обязательное условие позиции; "" — допустима.
 func (rc rankCtx) rejectReason(d indexDoc) (string, string) {
+	if reason, detail := rc.hw.reject(d); reason != "" {
+		return reason, detail
+	}
 	a := rc.attrs
 	if a.origin == "ru" && d.Origin != "ru" {
 		return rejectOrigin, "нужно отечественное ПО"
@@ -281,6 +286,10 @@ func (rc rankCtx) assignGroup(fh *familyHit) {
 		return
 	}
 	fh.tier, fh.signals = rc.tierOf(fh.id)
+	if t := rc.hw.compatTier(fh.head); t > 0 {
+		fh.tier += t // «X для Y»: подтверждённая совместимость выше условной (hardware_search.go)
+		fh.signals = append(fh.signals, signalCompatVerified)
+	}
 	fh.scale, fh.exactQty = 1, 0
 	if n := rc.attrs.quantity; n > 1 && fh.head.LicenseQuantity != nil && *fh.head.LicenseQuantity == n && !isPerUnit(fh.head) {
 		fh.exactQty = 1

@@ -5,6 +5,8 @@ type AgentRunRequest struct {
 	Days        int    `json:"days"`
 	MaxClusters int    `json:"max_clusters"`
 	Trigger     string `json:"trigger"`
+	// Mode — search (по умолчанию: кластеры неудачных запросов) | commerce (справочник связей, контур коммерции).
+	Mode string `json:"mode"`
 }
 
 // ApproveRequest — POST /api/proposals/{id}/approve.

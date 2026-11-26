@@ -116,6 +116,10 @@ func main() {
 		runProposals(ctx, log, svc, os.Args[2:])
 		return
 	}
+	if len(os.Args) > 1 && os.Args[1] == "margin" {
+		runMargin(ctx, log, svc, os.Args[2:])
+		return
+	}
 	if len(os.Args) > 1 && os.Args[1] == "warmup" {
 		runWarmup(ctx, log, svc, os.Args[2:])
 		return

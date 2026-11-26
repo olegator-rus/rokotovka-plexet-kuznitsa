@@ -23,10 +23,15 @@ func runEval(ctx context.Context, log *zap.Logger, svc *services.Services, args 
 	outDir := fs.String("out", "../data/eval", "куда записать JSON прогона; пусто — не записывать")
 	noPersist := fs.Bool("no-persist", false, "не записывать результат в базу")
 	proposal := fs.String("with-proposal", "", "id ждущего предложения: эффект его правки в песочнице (B3, B4, B4+правка; в базу не пишется)")
+	commerce := fs.Bool("commerce", true, "набор p2: коммерческая лестница C0–C3 и прогоны с одним изменением (false — обычная лестница B)")
 	_ = fs.Parse(args)
 
 	svc.LoadCatalogState(ctx)
 	defer svc.Wait()
+	if *set == "p2" && *commerce && *proposal == "" {
+		runCommerceEval(ctx, log, svc, *outDir, !*noPersist)
+		return
+	}
 	var run *services.EvalResult
 	var err error
 	if *proposal != "" {
@@ -56,6 +61,31 @@ func runEval(ctx context.Context, log *zap.Logger, svc *services.Services, args 
 		}
 	}
 	fmt.Print(services.FormatEvalTable(run))
+}
+
+// runCommerceEval — `make eval SET=p2`: коммерческая лестница C0–C3 — таблица, evaluations
+// (GET /api/evaluations/commerce) и JSON в outDir.
+func runCommerceEval(ctx context.Context, log *zap.Logger, svc *services.Services, outDir string, persist bool) {
+	res, err := svc.RunCommerceEvaluation(ctx, persist)
+	if err != nil {
+		if res == nil {
+			log.Fatal("коммерческая лестница", zap.Error(err))
+		}
+		log.Error("коммерческая лестница", zap.Error(err))
+	}
+	if outDir != "" {
+		if err := os.MkdirAll(outDir, 0o755); err != nil {
+			log.Fatal("коммерческая лестница: каталог результатов", zap.Error(err))
+		}
+		raw, err := json.MarshalIndent(res, "", "  ")
+		if err == nil {
+			err = os.WriteFile(filepath.Join(outDir, "commerce-"+res.RunID+".json"), raw, 0o644)
+		}
+		if err != nil {
+			log.Fatal("коммерческая лестница: JSON прогона", zap.Error(err))
+		}
+	}
+	fmt.Print(services.FormatCommerceTable(res))
 }
 
 // runImportLogs — `go run . import-logs`: только исторические логи (events.jsonl) в журналы, без

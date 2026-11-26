@@ -100,6 +100,9 @@ func (s *Services) ApproveProposal(ctx context.Context, id string, req in.Approv
 	}
 	st := s.store()
 	comment := truncateRunes(strings.TrimSpace(req.Comment), 500)
+	if p.Action == domain.ActionRelationPatch {
+		return s.approveRelationPatch(ctx, p, comment)
+	}
 	var version *domain.ConfigVersion
 	base, rechecked := 0, false
 	if p.Action == domain.ActionRulesPatch {
@@ -283,7 +286,9 @@ func proposalView(p *domain.Proposal) out.Proposal {
 	v := out.Proposal{ID: p.ID.String(), RunID: p.RunID.String(), Diagnosis: p.Diagnosis, DiagnosisText: p.DiagnosisText,
 		Role: p.Role, Action: p.Action, Patch: rawOrNull(p.Patch), Evaluation: rawOrNull(p.Evaluation),
 		Evidence: rawOrNull(p.Evidence), HypothesesTried: p.HypothesesTried, BaseVersion: p.BaseVersion, Status: p.Status,
-		CreatedAt: p.CreatedAt, DecidedAt: p.DecidedAt, ConfigVersion: p.ConfigVersion, Effect: rawOrNull(p.Effect)}
+		CreatedAt: p.CreatedAt, DecidedAt: p.DecidedAt, ConfigVersion: p.ConfigVersion, Effect: rawOrNull(p.Effect),
+		EvidenceLevel: p.EvidenceLevel, TechnicalStatus: p.TechnicalStatus, EconomicStatus: p.EconomicStatus,
+		PriorityScore: p.PriorityScore}
 	if p.DecidedAt != nil {
 		v.DecidedReason, v.DecidedComment = &p.DecidedReason, &p.DecidedComment
 	}

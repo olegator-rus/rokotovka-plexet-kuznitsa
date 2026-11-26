@@ -298,8 +298,9 @@ func (r *Repos) ApplyRulesChange(ctx context.Context, ch *RulesChange) error {
 				return errs.NewConflictError(MsgRulesArchived)
 			}
 			var undone []domain.Proposal
-			if err := tx.Where("status = ? AND config_version > ?", domain.ProposalAccepted, ch.RollBackAbove).
-				Find(&undone).Error; err != nil {
+			// Только правки правил поиска: у relation_patch и margin_policy свои цепочки версий (контур коммерции).
+			if err := tx.Where("status = ? AND action = ? AND config_version > ?", domain.ProposalAccepted,
+				domain.ActionRulesPatch, ch.RollBackAbove).Find(&undone).Error; err != nil {
 				return err
 			}
 			for i := range undone {

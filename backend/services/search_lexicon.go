@@ -190,8 +190,26 @@ func newSearchLexicon(s *domain.CatalogSnapshot) *searchLexicon {
 	for w, c := range df {
 		lx.idf[w] = math.Log(1 + n/float64(c))
 	}
+	lx.indexRelations(s.Relations)
+	for w := range lexServiceWords {
+		lx.known[w] = true
+	}
+	for w := range lexStopWords {
+		lx.known[w] = true
+	}
+	lx.buildTranslit()
+	lx.buildCategoryWords(s.Categories)
+	lx.buildScale()
+	return lx
+}
+
+// indexRelations — карты связей словаря (аналоги, сопутствующие, продления) из набора связей; действующая версия
+// справочника связей (контур коммерции, relations.go) пересобирает их без переимпорта.
+func (lx *searchLexicon) indexRelations(rels []domain.Relation) {
+	lx.substitutes, lx.substituteOf = map[string][]string{}, map[string][]string{}
+	lx.complements, lx.renewals = map[string][]familyLink{}, map[string][]string{}
 	seen := map[string]bool{}
-	for _, r := range s.Relations {
+	for _, r := range rels {
 		if r.Type == domain.RelationComplement && r.FromFamily != r.ToFamily && !seen["c:"+r.FromFamily+">"+r.ToFamily] {
 			seen["c:"+r.FromFamily+">"+r.ToFamily] = true
 			lx.complements[r.FromFamily] = append(lx.complements[r.FromFamily], familyLink{Family: r.ToFamily, Note: r.Note})
@@ -217,16 +235,13 @@ func newSearchLexicon(s *domain.CatalogSnapshot) *searchLexicon {
 			lx.substitutes[pair[0]] = append(lx.substitutes[pair[0]], pair[1])
 		}
 	}
-	for w := range lexServiceWords {
-		lx.known[w] = true
-	}
-	for w := range lexStopWords {
-		lx.known[w] = true
-	}
-	lx.buildTranslit()
-	lx.buildCategoryWords(s.Categories)
-	lx.buildScale()
-	return lx
+}
+
+// withRelations — копия словаря с другим набором связей (остальное общее, только чтение).
+func (lx *searchLexicon) withRelations(rels []domain.Relation) *searchLexicon {
+	cp := *lx
+	cp.indexRelations(rels)
+	return &cp
 }
 
 // isKnown — слово есть в каталоге, словаре правил или служебных словах.

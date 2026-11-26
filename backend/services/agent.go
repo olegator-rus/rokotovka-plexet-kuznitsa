@@ -202,6 +202,13 @@ func (s *Services) StartAgentRun(ctx context.Context, req in.AgentRunRequest) (*
 	if trigger != domain.TriggerManual && trigger != domain.TriggerSchedule {
 		bad = append(bad, errs.FieldError{Field: "trigger", Code: errs.CodeInvalidFormat, Message: "Запуск — manual или schedule"})
 	}
+	mode := req.Mode
+	if mode == "" {
+		mode = domain.RunModeSearch
+	}
+	if mode != domain.RunModeSearch && mode != domain.RunModeCommerce {
+		bad = append(bad, errs.FieldError{Field: "mode", Code: errs.CodeInvalidFormat, Message: "Режим — search или commerce"})
+	}
 	if len(bad) > 0 {
 		return nil, errs.NewValidationError(errs.MsgInvalidFields).WithDetails(bad...)
 	}
@@ -211,8 +218,11 @@ func (s *Services) StartAgentRun(ctx context.Context, req in.AgentRunRequest) (*
 		return nil, errs.NewConflictError(MsgAgentRunning)
 	}
 	p := prompts.Agent()
+	if mode == domain.RunModeCommerce {
+		p = prompts.AgentCommerce()
+	}
 	run := &domain.AgentRun{Status: domain.RunRunning, Trigger: trigger, Days: days, MaxClusters: clusters,
-		StartedAt: s.now().UTC(), Model: llmModelName(a.model.Model()), PromptVersion: p.Version}
+		StartedAt: s.now().UTC(), Model: llmModelName(a.model.Model()), PromptVersion: p.Version, Mode: mode}
 	if err := st.CreateAgentRun(ctx, run); err != nil {
 		a.mu.Unlock()
 		return nil, err
@@ -235,7 +245,7 @@ func (s *Services) StartAgentRun(ctx context.Context, req in.AgentRunRequest) (*
 		a.execute(withRunWrites(WithAgentRunID(rctx, run.ID.String()), rs.writes), rs)
 	}()
 	zap.L().Info("агент: запуск", zap.String("run_id", run.ID.String()), zap.String("trigger", trigger),
-		zap.Int("days", days), zap.Int("max_clusters", clusters))
+		zap.Int("days", days), zap.Int("max_clusters", clusters), zap.String("mode", mode))
 	return &out.AgentRunStarted{RunID: run.ID.String()}, nil
 }
 
@@ -505,6 +515,7 @@ func (a *agentService) runView(r *domain.AgentRun) out.AgentRun {
 		Days: r.Days, MaxClusters: r.MaxClusters, ClustersTotal: r.ClustersTotal, ClustersDone: r.ClustersDone,
 		ProposalsCreated: r.ProposalsCreated, ToolCalls: r.ToolCalls, InputTokens: r.InputTokens, OutputTokens: r.OutputTokens,
 		CostRub: r.CostRub, StopReason: r.StopReason, Summary: r.Summary, Model: r.Model, RulesVersion: r.RulesVersion,
+		Mode:    firstNonEmpty(r.Mode, domain.RunModeSearch),
 		Episode: rawOrNull(r.Episode), MaxToolCalls: agentToolCallsPerCluster * max(r.ClustersTotal, 1),
 		Limits: out.AgentLimits{ToolCallsPerCluster: agentToolCallsPerCluster, Hypotheses: agentMaxHypotheses,
 			TokensPerRun: agentTokensPerRun, TimeoutSec: int(agentRunTimeout.Seconds())}}

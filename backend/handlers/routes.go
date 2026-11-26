@@ -42,6 +42,23 @@ func RegisterRoutes(app *fiber.App, h *Handler) {
 	api.Get("/configs", h.Configs)
 	api.Post("/configs/rollback", h.RollbackConfig)
 
+	// Контур коммерции: справочник связей и коммерческая лестница, бэк-офис.
+	api.Get("/relations", h.Relations)
+	api.Get("/relations/versions", h.RelationVersions)
+	api.Post("/relations/rollback", h.RollbackRelations)
+	api.Get("/evaluations/commerce", h.CommerceEvaluation)
+
+	// Политика маржи (контур коммерции, margin.go).
+	api.Get("/margin/policy", h.MarginPolicy)
+	api.Post("/margin/policy", h.ApplyMarginPolicy)
+	api.Post("/margin/policy/rollback", h.RollbackMarginPolicy)
+	api.Post("/margin/simulate", h.SimulateMargin)
+	api.Get("/margin/simulate/status", h.MarginSimulationStatus)
+
+	// Контур коммерции: спецификация и запрос КП; POST — витрина, GET — бэк-офис.
+	api.Post("/quotes", h.CreateQuote)
+	api.Get("/quotes", h.Quotes)
+
 	// Служебное: режим LLM без перезапуска (ADMIN_ENABLED).
 	api.Post("/admin/llm-mode", h.SetLLMMode)
 }

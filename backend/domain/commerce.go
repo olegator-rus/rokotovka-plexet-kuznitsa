@@ -61,8 +61,12 @@ type LicenseRule struct {
 	VendorID     string `gorm:"index" json:"vendor_id"`
 	AnchorFamily string `gorm:"index" json:"anchor_family"`
 	// AnchorAttrs — уточнение якоря по атрибутам ({"edition": "Standard"}); пусто — любая позиция семейства.
-	AnchorAttrs      map[string]string `gorm:"serializer:json;type:jsonb" json:"anchor_attrs,omitempty"`
-	RequiresCategory string            `json:"requires_category"`
+	AnchorAttrs map[string]string `gorm:"serializer:json;type:jsonb" json:"anchor_attrs,omitempty"`
+	// AnchorProduct — правило только для этой позиции семейства (SQL Server Standard «Server + CAL»); "" — любая.
+	AnchorProduct    string `json:"anchor_product,omitempty"`
+	RequiresCategory string `json:"requires_category"`
+	// RequiresFamily — требуемое семейство (точнее категории: клиентские лицензии 1С); "" — по категории.
+	RequiresFamily string `json:"requires_family,omitempty"`
 	// RequiresAttrs — условия на требуемое ({"version": ">=anchor.version"}).
 	RequiresAttrs    map[string]string `gorm:"serializer:json;type:jsonb" json:"requires_attrs,omitempty"`
 	Class            string            `gorm:"size:24" json:"class"`
@@ -101,6 +105,10 @@ type AttributeSpec struct {
 	Type        string   `json:"type"` // number | enum | bool
 	Facet       bool     `json:"facet"`
 	UnitAliases []string `json:"unit_aliases"`
+	// UnitConvert — синоним единицы с множителем к базовой («тб» → 1000 для ГБ); Values — значения enum. Трек
+	// оборудования, необязательны.
+	UnitConvert map[string]float64 `json:"unit_convert,omitempty"`
+	Values      []string           `json:"values,omitempty"`
 }
 
 // SolutionTemplate — шаблон комплексного решения: «рабочее место» → слоты.

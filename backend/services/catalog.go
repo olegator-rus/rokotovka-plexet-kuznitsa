@@ -36,6 +36,8 @@ type catalogState struct {
 	lex *searchLexicon
 	// commerce — справочники контура коммерции: связи, правила лицензий и совместимости, атрибуты, шаблоны (commerce.go).
 	commerce *commerceCatalog
+	// hw — словарь оборудования: парт-номера, единицы, модели (hardware.go).
+	hw *hardwareLexicon
 }
 
 // newCatalogState — состояние из снимка.
@@ -58,6 +60,7 @@ func newCatalogState(s *domain.CatalogSnapshot, rulesVersion int) *catalogState 
 		lex:          newSearchLexicon(s),
 		commerce:     newCommerceCatalog(s),
 	}
+	st.hw = newHardwareLexicon(s, st.lex)
 	family := make(map[string]string, len(s.Products))
 	for _, p := range s.Products {
 		family[p.ID] = p.FamilyID
@@ -128,6 +131,7 @@ func (s *Services) loadCatalogState(ctx context.Context) {
 		rules = 1 // исходные словари из каталога
 	}
 	s.catalog.Store(newCatalogState(snap, rules))
+	s.ReloadRelations(ctx) // действующая версия справочника связей (контур коммерции, relations.go)
 	zap.L().Info("справочники каталога загружены", zap.String("from", from), zap.String("version", snap.Version),
 		zap.Int("products", len(snap.Products)), zap.Int("clients", len(snap.Clients)), zap.Int("rules_version", rules),
 		zap.Int("license_rules", len(snap.LicenseRules)), zap.Int("compatibility_rules", len(snap.CompatibilityRules)))

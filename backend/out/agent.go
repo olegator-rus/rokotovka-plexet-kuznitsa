@@ -21,17 +21,19 @@ type AgentRun struct {
 	ProposalsCreated int        `json:"proposals_created"`
 	ToolCalls        int        `json:"tool_calls"`
 	// MaxToolCalls — лимит вызовов инструментов на запуск: лимит на кластер × выбранные кластеры.
-	MaxToolCalls   int             `json:"max_tool_calls"`
-	InputTokens    int             `json:"input_tokens"`
-	OutputTokens   int             `json:"output_tokens"`
-	CostRub        float64         `json:"cost_rub"`
-	StopReason     string          `json:"stop_reason"`
-	Summary        string          `json:"summary"`
-	CurrentCluster *ClusterRef     `json:"current_cluster"`
-	Model          string          `json:"model"`
-	RulesVersion   int             `json:"rules_version"`
-	Limits         AgentLimits     `json:"limits"`
-	Episode        json.RawMessage `json:"episode"`
+	MaxToolCalls   int         `json:"max_tool_calls"`
+	InputTokens    int         `json:"input_tokens"`
+	OutputTokens   int         `json:"output_tokens"`
+	CostRub        float64     `json:"cost_rub"`
+	StopReason     string      `json:"stop_reason"`
+	Summary        string      `json:"summary"`
+	CurrentCluster *ClusterRef `json:"current_cluster"`
+	Model          string      `json:"model"`
+	RulesVersion   int         `json:"rules_version"`
+	// Mode — search | commerce; у commerce rules_version — версия справочника связей.
+	Mode    string          `json:"mode"`
+	Limits  AgentLimits     `json:"limits"`
+	Episode json.RawMessage `json:"episode"`
 }
 
 // AgentLimits — ограничители запуска (для колонки «шаг N из лимита»).
@@ -123,6 +125,12 @@ type Proposal struct {
 	Effect        json.RawMessage `json:"effect"`
 	// CheckQuery — запрос для кнопки «Проверить в поиске».
 	CheckQuery string `json:"check_query"`
+	// Контур коммерции: уровень доказательности E0–E5, техническая корректность verified|unverified|failed,
+	// экономический эффект unknown|estimated|measured, оценка приоритета (null — не посчитана). Пусто у контура поиска.
+	EvidenceLevel   string   `json:"evidence_level"`
+	TechnicalStatus string   `json:"technical_status"`
+	EconomicStatus  string   `json:"economic_status"`
+	PriorityScore   *float64 `json:"priority_score"`
 }
 
 // ProposalList — GET /api/proposals.

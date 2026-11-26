@@ -51,6 +51,12 @@ var agentText string
 // Agent — системный промпт агента SearchOps (services/agent_loop.go).
 func Agent() Prompt { return parse(agentText) }
 
+//go:embed agent_commerce.md
+var agentCommerceText string
+
+// AgentCommerce — системный промпт агента в режиме «Коммерция»: справочник связей (services/agent_commerce.go).
+func AgentCommerce() Prompt { return parse(agentCommerceText) }
+
 //go:embed evalsets_classify.md
 var evalSetsClassifyText string
 

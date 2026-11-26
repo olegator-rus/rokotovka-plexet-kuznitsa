@@ -125,6 +125,7 @@ func (s *Services) ImportCatalog(ctx context.Context) (*out.ImportResult, error)
 	res.IndexMs += time.Since(t).Milliseconds()
 	s.index.Store(&cachedIndex{meta: meta, at: time.Now()})
 	s.catalog.Store(newCatalogState(snap, res.RulesVersion))
+	s.ReloadRelations(ctx) // версии справочника связей прежнего каталога не применяются (relations.go)
 	res.TotalMs = time.Since(started).Milliseconds()
 	zap.L().Info("импорт каталога", zap.String("version", res.CatalogVersion), zap.Int("products", res.Products),
 		zap.String("index", res.Index), zap.Bool("vectors", res.Vectors), zap.Int64("embed_ms", res.EmbedMs),

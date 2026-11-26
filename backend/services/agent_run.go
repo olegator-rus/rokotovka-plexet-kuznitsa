@@ -46,7 +46,13 @@ type runCtx struct {
 func (a *agentService) execute(ctx context.Context, rs *runState) {
 	rc := &runCtx{a: a, rs: rs, byID: map[string]*failedCluster{}, rows: map[string]*domain.IssueCluster{},
 		episode: map[string]any{}}
-	err := rc.run(ctx)
+	var err error
+	unit := "кластеров"
+	if rs.run.Mode == domain.RunModeCommerce {
+		err, unit = rc.runCommerce(ctx), "находок"
+	} else {
+		err = rc.run(ctx)
+	}
 	now := a.s.now().UTC()
 	// Учёт: вызовы разбора намерения внутри песочницы пишутся в llm_usage с тем же agent_run_id — ждём
 	// только записи этого запуска (не общий s.writes, см. runWrites).
@@ -88,8 +94,8 @@ func (a *agentService) execute(ctx context.Context, rs *runState) {
 	} else {
 		r.Summary = ""
 	}
-	r.Summary += fmt.Sprintf("Разобрано кластеров: %d из %d, предложений в очереди: %d, вызовов инструментов: %d, %d токенов, %.2f ₽",
-		r.ClustersDone, r.ClustersTotal, r.ProposalsCreated, r.ToolCalls, r.InputTokens+r.OutputTokens, r.CostRub)
+	r.Summary += fmt.Sprintf("Разобрано %s: %d из %d, предложений в очереди: %d, вызовов инструментов: %d, %d токенов, %.2f ₽",
+		unit, r.ClustersDone, r.ClustersTotal, r.ProposalsCreated, r.ToolCalls, r.InputTokens+r.OutputTokens, r.CostRub)
 	if n, _ := rc.episode["clusters_limited"].(int); n > 0 {
 		r.Summary += fmt.Sprintf(". Упёрлись в лимит %d вызовов на кластер: %d", agentToolCallsPerCluster, n)
 	}

@@ -63,9 +63,12 @@ func (s *Services) searchB3(ctx context.Context, requestID string, req in.Search
 	t = time.Now()
 	attrs := extractAttrs(nr.tokens)
 	attrs.applyRequest(req)
+	hw := s.hardwareParse(ctx, st, nr, &attrs, req) // оборудование (hardware*.go); флаг выключен — nil
 	ent := findEntities(nr, attrs, lx, rules)
 	ent.applyRemoved(removedSet(req.RemovedChips))
+	hw.applyEntities(&ent)
 	chips, found := attrs.chips(ent, lx)
+	chips, found = hw.chips(chips, found)
 	attrs.found = found
 	attrStep := domain.AttributesStep{StepBase: domain.StepBase{Name: domain.StepAttributes, Ms: msSince(t)},
 		Found: found, Unresolved: attrs.unresolved()}
@@ -73,6 +76,7 @@ func (s *Services) searchB3(ctx context.Context, requestID string, req in.Search
 	// route
 	t = time.Now()
 	route, signals := routeSignals(nr, attrs, ent)
+	route, signals = hw.route(route, signals, ent)
 	routeStep := domain.RouteStep{StepBase: domain.StepBase{Name: domain.StepRoute}, Route: route, Signals: signals}
 	routeStep.Ms = msSince(t)
 
@@ -169,6 +173,7 @@ func (s *Services) searchB3(ctx context.Context, requestID string, req in.Search
 
 	denseCh := make(chan retrieval, 1)
 	filters := strictFilters(attrs, ent)
+	filters = append(filters, hw.filters()...)
 	go func() { denseCh <- s.denseSafe(ctx, denseText, info, filters...) }()
 	bm := s.lexicalB3(ctx, text, expansions, b3MinMatch, filters)
 	if bm.err == nil && len(bm.step.Top) == 0 && strings.Contains(text, " ") {
@@ -176,6 +181,7 @@ func (s *Services) searchB3(ctx context.Context, requestID string, req in.Search
 		bm = s.lexicalB3(ctx, text, expansions, "1", filters)
 		bm.step.Mode = "multi_match_any"
 	}
+	s.exactRetrieve(ctx, hw, filters)
 	dn := <-denseCh
 	if bm.err != nil {
 		if opensearch.IsNotFound(bm.err) {
@@ -184,7 +190,7 @@ func (s *Services) searchB3(ctx context.Context, requestID string, req in.Search
 		}
 		return nil, bm.err
 	}
-	if len(bm.step.Top) == 0 && route != domain.RouteIntent && !ent.noise {
+	if len(bm.step.Top) == 0 && len(hw.exactHitsOrNil()) == 0 && route != domain.RouteIntent && !ent.noise && !hw.holdsRoute() {
 		trace.Route = domain.RouteIntent
 		routeStep.Route = domain.RouteIntent
 		routeStep.Signals = append(routeStep.Signals, "zero_results")
@@ -193,6 +199,7 @@ func (s *Services) searchB3(ctx context.Context, requestID string, req in.Search
 	// fusion
 	t = time.Now()
 	ranked := rrf(b3RRFK, bm.step.Top, dn.step.Top)
+	ranked = hw.fuse(ranked, b3RRFK)
 	fusionStep := domain.FusionStep{StepBase: domain.StepBase{Name: domain.StepFusion, Ms: msSince(t)}, K: b3RRFK}
 	denseScore := map[string]float64{}
 	for _, h := range dn.step.Top {
@@ -202,6 +209,7 @@ func (s *Services) searchB3(ctx context.Context, requestID string, req in.Search
 	// business: допустимость → порог → группы → скор
 	t = time.Now()
 	rc := s.rankContext(st, lx, req.ClientID, attrs, ent)
+	rc.hw = hw
 	for _, h := range bm.step.Top {
 		if h.Rank <= textTopN {
 			rc.textTop[lx.docs[h.ProductID].FamilyID] = true
@@ -411,6 +419,8 @@ func (s *Services) searchB3(ctx context.Context, requestID string, req in.Search
 		ladder = append(ladder, ladderEmpty)
 	}
 
+	fams, marginStep := s.marginStage(ctx, cfg, rc, trace.Route, fams, opts)
+
 	resp.Total = len(fams)
 	if len(fams) > limit {
 		fams = fams[:limit]
@@ -436,12 +446,30 @@ func (s *Services) searchB3(ctx context.Context, requestID string, req in.Search
 		resp.Complements = complementsOf(lx, resp.Items[0].FamilyID, map[string]bool{resp.Items[0].FamilyID: true})
 	}
 
+	// Допродажа: после выдачи, вне BM25/векторов; флаг выключен — шага и полей нет (companions.go).
+	var companionsStep any
+	if s.featuresFor(ctx).Companions {
+		companionsStep = s.companionsStep(s.commerceFor(ctx), st.lex, fams, trace.Route, companionQuery{quantity: attrs.quantity, metric: attrs.metric, tokens: nr.tokens},
+			attrs.analog, resp)
+	}
+
 	trace.Steps = []any{normStep, attrStep, routeStep, intentStep, bm.step, dn.step, fusionStep, rerankStep, businessStep, relaxStep}
+	hw.decorate(resp)
+	if hwStep := hw.step(); hwStep != nil {
+		trace.Steps = append(trace.Steps, hwStep)
+	}
+	if companionsStep != nil {
+		trace.Steps = append(trace.Steps, companionsStep)
+	}
+	if marginStep != nil {
+		trace.Steps = append(trace.Steps, marginStep)
+	}
 	trace.TotalMs = msSince(started)
 	resp.Trace = trace
 	if !opts.NoLog {
 		s.saveSearch(req, resp.Normalized, resp)
 	}
+	stripMarginStep(resp.Trace)
 	return resp, nil
 }
 

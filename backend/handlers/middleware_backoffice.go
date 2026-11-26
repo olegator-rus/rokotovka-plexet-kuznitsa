@@ -17,8 +17,8 @@ import (
 //   - Authorization: Basic <пользователь:токен> — браузер после входа на basic_auth Caddy (deploy/Caddyfile)
 //     сам шлёт этот заголовок на все запросы того же origin, фронту ничего хранить не нужно.
 //
-// Без входа (витрина покупателя): GET /api/health, /api/meta, /api/suggest, /api/evaluations (сводные метрики
-// вкладки «До / После») и POST /api/search, /api/events. Остальное — по умолчанию закрыто: новый маршрут без
+// Без входа (витрина покупателя): GET /api/health, /api/meta, /api/suggest, /api/evaluations и /api/evaluations/commerce (сводные метрики
+// вкладки «До / После») и POST /api/search, /api/events, /api/quotes. Остальное — по умолчанию закрыто: новый маршрут без
 // записи здесь попадёт под вход, а не наружу.
 
 // MsgBackofficeAuth — запрос в бэк-офис без входа или с неверным токеном.
@@ -33,8 +33,11 @@ var publicRoutes = map[string]bool{
 	fiber.MethodGet + " /api/meta":        true,
 	fiber.MethodGet + " /api/suggest":     true,
 	fiber.MethodGet + " /api/evaluations": true,
-	fiber.MethodPost + " /api/search":     true,
-	fiber.MethodPost + " /api/events":     true,
+	// Коммерческая лестница C0–C3 (вкладка «Коммерция» в «До / После»): сводные метрики, без цифр маржи позиций.
+	fiber.MethodGet + " /api/evaluations/commerce": true,
+	fiber.MethodPost + " /api/search":              true,
+	fiber.MethodPost + " /api/events":              true,
+	fiber.MethodPost + " /api/quotes":              true,
 }
 
 // isPublic — запрос витрины покупателя (HEAD — как GET; OPTIONS — без тела и действия).

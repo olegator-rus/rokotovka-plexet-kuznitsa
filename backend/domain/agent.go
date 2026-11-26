@@ -51,9 +51,23 @@ const (
 	DiagUnknown            = "UNKNOWN"
 )
 
+// Диагнозы контура коммерции: справочник связей, детерминированные, без данных о покупках.
+const (
+	DiagBrokenRelation  = "BROKEN_RELATION"
+	DiagMissingRequired = "MISSING_REQUIRED"
+)
+
 // Diagnoses — все коды диагнозов.
 var Diagnoses = []string{DiagAliasGap, DiagTypo, DiagAssortmentGap, DiagSubstitute, DiagContentGap,
-	DiagRankingFailure, DiagConstraintConflict, DiagNonProduct, DiagNoise, DiagUnknown}
+	DiagRankingFailure, DiagConstraintConflict, DiagNonProduct, DiagNoise, DiagUnknown,
+	DiagBrokenRelation, DiagMissingRequired}
+
+// Режимы запуска агента (AgentRun.Mode): search — кластеры неудачных запросов (контур поиска), commerce — справочник
+// связей и правила лицензий (контур коммерции, «Коммерция»).
+const (
+	RunModeSearch   = "search"
+	RunModeCommerce = "commerce"
+)
 
 // Статусы предложения.
 const (
@@ -84,6 +98,18 @@ const (
 const (
 	ActionRulesPatch = "rules_patch"
 	ActionTicket     = "ticket"
+	// ActionRelationPatch — правка справочника связей (контур коммерции): принятие создаёт версию kind=relations.
+	ActionRelationPatch = "relation_patch"
+)
+
+// Статусы предложения контура коммерции: техническая корректность и экономический эффект раздельно.
+const (
+	TechVerified   = "verified"
+	TechUnverified = "unverified"
+	TechFailed     = "failed"
+	EconUnknown    = "unknown"
+	EconEstimated  = "estimated"
+	EconMeasured   = "measured"
 )
 
 // Причины отказа человека.
@@ -149,6 +175,8 @@ type AgentRun struct {
 	Model            string
 	PromptVersion    string
 	RulesVersion     int
+	// Mode — search | commerce (контур коммерции); пусто у запусков контура поиска = search.
+	Mode string `gorm:"size:16"`
 	// Episode — эпизод запуска: метрики, эффект принятых правок (verify_applied_change), итоги кластеров.
 	Episode JSONB `gorm:"type:jsonb"`
 }
@@ -199,6 +227,12 @@ type Proposal struct {
 	ConfigVersion  *int
 	// Effect — эффект после принятия (verify_applied_change следующего запуска).
 	Effect JSONB `gorm:"type:jsonb"`
+	// Контур коммерции: уровень доказательности E0–E5, техническая корректность (verified|unverified|failed),
+	// экономический эффект (unknown|estimated|measured), оценка приоритета (nil — не посчитана).
+	EvidenceLevel   string   `gorm:"size:4"`
+	TechnicalStatus string   `gorm:"size:16"`
+	EconomicStatus  string   `gorm:"size:16"`
+	PriorityScore   *float64 `gorm:"type:numeric(14,2)"`
 }
 
 // Decision — решение человека по предложению. Отказы — память агента «не предлагать снова».

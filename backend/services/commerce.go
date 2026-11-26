@@ -36,6 +36,8 @@ type commerceCatalog struct {
 	solutions []domain.SolutionTemplate
 	// synthetic — что в данных придумано (catalog.synthetic); пусто — данные не помечены.
 	synthetic []string
+	// compat — индекс совместимости и допродажи (compat.go).
+	compat *compatIndex
 }
 
 // newCommerceCatalog — справочники контура коммерции из снимка.
@@ -63,6 +65,7 @@ func newCommerceCatalog(s *domain.CatalogSnapshot) *commerceCatalog {
 	for _, ad := range s.AttributeDefinitions {
 		c.attrDefs[ad.CategoryID] = ad.Attrs
 	}
+	c.compat = newCompatIndex(c)
 	return c
 }
 

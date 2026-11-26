@@ -17,7 +17,7 @@ info:
     - Вход в бэк-офис: при заданном `BACKOFFICE_TOKEN` всё, кроме витрины покупателя, требует
       `Authorization: Bearer <токен>` (скрипты) или `Basic` с паролем = токен (браузер после basic_auth Caddy);
       без входа — 401 с `WWW-Authenticate: Basic`. Без входа открыты только GET `/api/health`, `/api/meta`,
-      `/api/suggest`, `/api/evaluations` и POST `/api/search`, `/api/events` (`security: []` у операции).
+      `/api/suggest`, `/api/evaluations`, `/api/evaluations/commerce` и POST `/api/search`, `/api/events` (`security: []` у операции).
       В development токен пуст — вход выключен.
     - Квота модели на адрес: разбор запроса моделью (маршрут D) не дороже `LLM_PER_IP_DAILY_RUB` ₽ в сутки с
       одного адреса; сверх неё и сверх дневного бюджета разбор идёт по правилам (`fallback_reason` в трассе:
@@ -413,6 +413,11 @@ paths:
                 days: { type: integer, minimum: 1, maximum: 365, default: 30 }
                 max_clusters: { type: integer, minimum: 1, maximum: 12, default: 5 }
                 trigger: { type: string, enum: [manual, schedule], default: manual }
+                mode:
+                  type: string
+                  enum: [search, commerce]
+                  default: search
+                  description: commerce — справочник связей контура коммерции (BROKEN_RELATION, MISSING_REQUIRED)
       responses:
         "202":
           description: Запуск начат
@@ -633,6 +638,300 @@ paths:
                   rolled_back_proposals: { type: array, items: { type: string } }
         "409": { $ref: "#/components/responses/Error" }
         "422": { $ref: "#/components/responses/Error" }
+  /api/relations:
+    get:
+      tags: [Предложения и правила]
+      summary: Действующий справочник связей (контур коммерции)
+      operationId: relations
+      parameters:
+        - { name: family, in: query, schema: { type: string }, description: связи, где семейство — источник или цель }
+        - { name: status, in: query, schema: { type: string, enum: [approved, pending, rejected] } }
+        - { name: type, in: query, schema: { type: string, enum: [substitute, complement, renewal, compatibility, upgrade] } }
+        - { name: source, in: query, schema: { type: string } }
+      responses:
+        "200":
+          description: Связи действующей версии
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  version: { type: integer }
+                  materialized: { type: boolean, description: false — версий ещё нет, справочник = каталог }
+                  catalog_version: { type: string }
+                  stale_after_days: { type: integer }
+                  total: { type: integer }
+                  items:
+                    type: array
+                    items:
+                      type: object
+                      description: связь relations.json плюс from_name, to_name, needs_review
+                      additionalProperties: true
+        "422": { $ref: "#/components/responses/Error" }
+  /api/relations/versions:
+    get:
+      tags: [Предложения и правила]
+      summary: Версии справочника связей (config_versions.kind = relations)
+      operationId: relationVersions
+      responses:
+        "200":
+          description: Версии, новые сверху
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  active: { type: integer }
+                  items:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        version: { type: integer }
+                        created_at: { type: string, format: date-time }
+                        author: { type: string }
+                        source: { type: string, enum: [import, agent, rollback] }
+                        description: { type: string }
+                        proposal_id: { type: string, nullable: true }
+                        diff: { type: object, description: "{add, remove, update:[{before, after}]}" }
+                        relations: { type: integer }
+                        catalog_version: { type: string }
+                        archived: { type: boolean }
+        "503": { $ref: "#/components/responses/Error" }
+  /api/relations/rollback:
+    post:
+      tags: [Предложения и правила]
+      summary: Откат справочника связей — новая версия, равная выбранной
+      operationId: rollbackRelations
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [to_version]
+              properties:
+                to_version: { type: integer, minimum: 1 }
+                comment: { type: string }
+      responses:
+        "200":
+          description: Новая версия
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  version: { type: integer }
+                  rolled_back_to: { type: integer }
+                  rolled_back_proposals: { type: array, items: { type: string } }
+        "404": { $ref: "#/components/responses/Error" }
+        "409": { $ref: "#/components/responses/Error" }
+        "422": { $ref: "#/components/responses/Error" }
+  /api/evaluations/commerce:
+    get:
+      tags: [Оценка]
+      summary: Коммерческая лестница C0–C3 на наборе p2 (последний прогон make eval SET=p2)
+      operationId: commerceEvaluation
+      security: []
+      parameters:
+        - { name: set, in: query, schema: { type: string, enum: [p2], default: p2 } }
+      responses:
+        "200":
+          description: Лестница и прогоны с одним изменённым компонентом
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  run_id: { type: string }
+                  set: { type: string }
+                  ready: { type: object, properties: { hardware: { type: boolean }, companions: { type: boolean }, margin: { type: boolean } } }
+                  ladder: { type: array, items: { type: object, additionalProperties: true } }
+                  single_changes: { type: array, items: { type: object, additionalProperties: true } }
+                  notes: { type: array, items: { type: string } }
+        "422": { $ref: "#/components/responses/Error" }
+  /api/margin/policy:
+    get:
+      tags: [Маржа]
+      summary: Действующая политика маржи (вес рычага), положения, защиты, история версий
+      description: >
+        Версии — config_versions kind=margin; версия 0 — исходная (вес контура поиска = 0.05, в базе её нет).
+        stop_weight — упор рычага по последней симуляции на tune (null — симуляции не было).
+      operationId: getMarginPolicy
+      responses:
+        "200":
+          description: Политика
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  version: { type: integer }
+                  weight: { type: number }
+                  base_weight: { type: number, description: "0.05 — выдача контура поиска" }
+                  positions: { type: array, items: { type: number }, description: "0, 0.03, 0.05, 0.08, 0.12, 0.15" }
+                  guards:
+                    type: object
+                    properties:
+                      exact_query: { type: boolean }
+                      exact_top1: { type: boolean }
+                      group_lock: { type: boolean }
+                      compatibility: { type: boolean }
+                      max_shift: { type: integer }
+                  epsilon: { type: number }
+                  max_shift: { type: integer }
+                  stop_weight: { type: [number, "null"] }
+                  synthetic: { type: boolean, description: "Маржа в данных синтетическая (catalog.synthetic)" }
+                  enabled: { type: boolean, description: "FEATURE_MARGIN_POLICY" }
+                  versions:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        version: { type: integer }
+                        weight: { type: number }
+                        source: { type: string, enum: [default, human, rollback, agent] }
+                        author: { type: string }
+                        comment: { type: string }
+                        created_at: { type: [string, "null"], format: date-time }
+    post:
+      tags: [Маржа]
+      summary: Применить положение рычага — новая версия политики
+      description: >
+        Вес — одно из положений; положение за упором (share_over_eps > 0 на tune) — 422; то же, что действует, — 409;
+        без базы — 503. Первая проверка упора может прогнать базовую выдачу tune (до ~20 с).
+      operationId: applyMarginPolicy
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [weight]
+              properties:
+                weight: { type: number }
+                comment: { type: string }
+      responses:
+        "201": { description: Новая версия, content: { application/json: { schema: { $ref: "#/components/schemas/MarginApplied" } } } }
+        "409": { $ref: "#/components/responses/Error" }
+        "422": { $ref: "#/components/responses/Error" }
+        "503": { $ref: "#/components/responses/Error" }
+  /api/margin/policy/rollback:
+    post:
+      tags: [Маржа]
+      summary: Откат политики маржи — новая версия, равная выбранной (0 — исходная 0.05)
+      operationId: rollbackMarginPolicy
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [to_version]
+              properties:
+                to_version: { type: integer, minimum: 0 }
+                comment: { type: string }
+      responses:
+        "201": { description: Новая версия, content: { application/json: { schema: { $ref: "#/components/schemas/MarginApplied" } } } }
+        "404": { $ref: "#/components/responses/Error" }
+        "409": { $ref: "#/components/responses/Error" }
+        "503": { $ref: "#/components/responses/Error" }
+  /api/margin/simulate:
+    post:
+      tags: [Маржа]
+      summary: Симуляция положений рычага на размеченном наборе (tune по умолчанию)
+      description: >
+        Базовая выдача набора (поиск витрины до политики) собирается в фоне один раз на каталог и версию правил и
+        кэшируется; положения применяются к ней тем же кодом, что в поиске. Если сбор не уложился в срок запроса —
+        503 «ещё считается», прогресс — GET /api/margin/simulate/status. Ничего не меняет в боевом поиске.
+      operationId: simulateMargin
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                set: { type: string, enum: [tune, test, regression, demo] }
+                positions: { type: array, items: { type: number } }
+      responses:
+        "200":
+          description: Показатели по положениям
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  set: { type: string }
+                  set_hash: { type: string }
+                  queries: { type: integer }
+                  judged: { type: integer }
+                  epsilon: { type: number }
+                  base_ndcg10: { type: number }
+                  base_weight: { type: number }
+                  current_weight: { type: number }
+                  policy_version: { type: integer }
+                  stop_weight: { type: number, description: "Упор: последнее положение вверх от 0.05 с share_over_eps = 0" }
+                  min_weight: { type: number }
+                  catalog_version: { type: string }
+                  rules_version: { type: integer }
+                  synthetic: { type: boolean }
+                  cached: { type: boolean }
+                  duration_ms: { type: integer }
+                  note: { type: string }
+                  items:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        weight: { type: number }
+                        ndcg10: { type: number }
+                        ndcg_delta_mean: { type: number }
+                        ndcg_delta_p10: { type: number }
+                        share_over_eps: { type: number, description: "Доля размеченных запросов с потерей NDCG@10 > ε без бюджета ε (как в живом поиске)" }
+                        margin_index: { type: number }
+                        margin_index_relevant: { type: number }
+                        top1_changed: { type: integer }
+                        top3_changed: { type: integer }
+                        exact_top1_changed: { type: integer }
+                        guards_fired: { type: integer }
+                        guards_by_kind: { type: object, additionalProperties: { type: integer } }
+                        epsilon_rollbacks: { type: integer }
+                        queries_with_shifts: { type: integer }
+                        available: { type: boolean }
+                        affected:
+                          type: array
+                          items:
+                            type: object
+                            properties:
+                              query_id: { type: string }
+                              query: { type: string }
+                              type: { type: string }
+                              ndcg_before: { type: [number, "null"] }
+                              ndcg_after: { type: [number, "null"] }
+                              ndcg_delta: { type: number }
+                              top1_changed: { type: boolean }
+                              top3_changed: { type: boolean }
+                              guards: { type: array, items: { type: string } }
+                              before: { type: array, items: { $ref: "#/components/schemas/MarginItemRef" } }
+                              after: { type: array, items: { $ref: "#/components/schemas/MarginItemRef" } }
+        "422": { $ref: "#/components/responses/Error" }
+        "503": { $ref: "#/components/responses/Error" }
+  /api/margin/simulate/status:
+    get:
+      tags: [Маржа]
+      summary: Прогресс сбора базовой выдачи для симуляции
+      operationId: marginSimulateStatus
+      responses:
+        "200":
+          description: Состояние
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  running: { type: boolean }
+                  done: { type: integer }
+                  total: { type: integer }
 components:
   securitySchemes:
     backofficeBearer:
@@ -668,6 +967,22 @@ components:
               embedder: { type: string, enum: [ok, down, off] }
               time: { type: string, format: date-time }
   schemas:
+    MarginApplied:
+      type: object
+      properties:
+        version: { type: integer }
+        weight: { type: number }
+        version_before: { type: integer }
+        weight_before: { type: number }
+        rolled_back_to: { type: integer }
+    MarginItemRef:
+      type: object
+      properties:
+        product_id: { type: string }
+        title: { type: string }
+        grade: { type: [integer, "null"] }
+        margin: { type: number, description: "Перцентиль маржи в категории (0–1; нет маржи — 0.5)" }
+        moved: { type: integer, description: "+1 — поднялась на позицию, −2 — опустилась на две" }
     Error:
       type: object
       required: [error]

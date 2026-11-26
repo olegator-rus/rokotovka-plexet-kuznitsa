@@ -88,7 +88,9 @@ func TestSearchFeaturesOffSameResults(t *testing.T) {
 	on := importedWith(t, Features{Hardware: true, Companions: true, MarginPolicy: true, Solutions: true})
 	off := importedWith(t, Features{})
 	for _, cfg := range []string{"B0", "B1", "B2", "B3", "live"} {
-		for _, q := range []string{"касперский", "фотошоп", "office 2021", "антивирус на 5 устройств", "dell r740", "notion"} {
+		// «dell r740» — запрос оборудования: с флагами у него появляются чипы модели, фасеты и блок допродажи
+		// (TestHardware*), поэтому здесь только запросы контура поиска.
+		for _, q := range []string{"касперский", "фотошоп", "office 2021", "антивирус на 5 устройств", "notion"} {
 			a, err := on.Search(t.Context(), "r", in.SearchRequest{Query: q, Config: cfg})
 			if err != nil {
 				t.Fatal(err)

@@ -65,6 +65,10 @@ type SearchOptions struct {
 	Rules *domain.RulesSnapshot
 	// NoLog — не писать событие и трассу в журнал (прогон оценки).
 	NoLog bool
+	// Margin — политика маржи поверх действующей (C3, симуляция; margin.go); nil — действующая, только на live.
+	Margin *MarginOverride
+	// MarginProbe — снимок выдачи до политики маржи (симуляция): заполняется, порядок не меняется.
+	MarginProbe *MarginProbe
 }
 
 // rulesFor — словари для конфигурации: B1–B3 — версия 1 (исходные словари каталога), B4 и live (витрина) —
