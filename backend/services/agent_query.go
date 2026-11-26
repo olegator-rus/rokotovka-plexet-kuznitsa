@@ -22,6 +22,9 @@ var errRunBudget = errors.New("бюджет запуска исчерпан")
 // StopAlreadySolved — запрос «Разобрать» действующий поиск уже решает: разбирать нечего.
 const StopAlreadySolved = "already_solved"
 
+// NoteAlreadySolved — заметка кластера, когда действующий поиск уже отвечает на запрос «Разобрать».
+const NoteAlreadySolved = "действующий поиск отвечает точно"
+
 // queryLookbackDays — за сколько дней искать запрос «Разобрать» в журнале (частота, переформулировки).
 const queryLookbackDays = 30
 
@@ -75,10 +78,11 @@ func (rc *runCtx) runQuery(ctx context.Context) error {
 		return err
 	}
 	c := rc.clusters[0]
-	title := fmt.Sprintf("Запрос «%s»: в журнале за %d дней — %d поисков, неудачных %d (пусто %d, переформулировок %d)",
-		query, queryLookbackDays, cq.Freq, cq.Failures, cq.Empty, cq.Reformulated)
+	window := agentWindowPhrase(hold, queryLookbackDays)
+	title := fmt.Sprintf("Запрос «%s»: %s — %d %s, неудачных %d (пусто %d, переформулировок %d)",
+		query, window, cq.Freq, plural(cq.Freq, [3]string{"поиск", "поиска", "поисков"}), cq.Failures, cq.Empty, cq.Reformulated)
 	if !inLog {
-		title = fmt.Sprintf("Запрос «%s»: в журнале за %d дней его нет — разбираю как новый", query, queryLookbackDays)
+		title = fmt.Sprintf("Запрос «%s»: %s его нет — разбираю как новый", query, window)
 	}
 	if len(c.Terms) > 0 {
 		title += "; непонятные поиску слова: " + strings.Join(c.Terms, ", ")
@@ -112,7 +116,7 @@ func (rc *runCtx) runQuery(ctx context.Context) error {
 			rs.mu.Lock()
 			rs.run.StopReason, rs.run.ClustersTotal = StopAlreadySolved, 1
 			rs.mu.Unlock()
-			rc.afterCluster(ctx, c, clusterResult{Outcome: "solved", Diagnosis: "", Note: "действующий поиск отвечает точно"})
+			rc.afterCluster(ctx, c, clusterResult{Outcome: "solved", Diagnosis: "", Note: NoteAlreadySolved})
 			return nil
 		}
 	}
@@ -341,4 +345,31 @@ func (rc *runCtx) catalogTask(ctx context.Context, diagnosis, label, text, key s
 func ownerDative(owner string) string {
 	return map[string]string{RoleProduct: "категорийному менеджеру", RoleContent: "каталогу",
 		RoleEcom: "администратору поиска", RoleHead: "руководителю e-com"}[owner]
+}
+
+// agentWindowPhrase — какую часть журнала видит агент (P8): при отложенной неделе — честные даты окна и недели,
+// иначе — «за N дней». Логику окна не меняет, только описывает holdoutInfo.
+func agentWindowPhrase(h holdoutInfo, days int) string {
+	if !h.Enabled || h.HoldoutFrom == nil || h.HoldoutTo == nil {
+		return fmt.Sprintf("в журнале за %d %s", days, plural(days, [3]string{"день", "дня", "дней"}))
+	}
+	hf, err1 := time.ParseInLocation("2006-01-02", *h.HoldoutFrom, mskZone)
+	ht, err2 := time.ParseInLocation("2006-01-02", *h.HoldoutTo, mskZone)
+	if err1 != nil || err2 != nil {
+		return fmt.Sprintf("в журнале за %d %s", days, plural(days, [3]string{"день", "дня", "дней"}))
+	}
+	week := fmt.Sprintf("неделя %s–%s отложена для проверки и агенту не видна", hf.Format("02.01"), ht.Format("02.01"))
+	from := h.SeenFrom.In(mskZone)
+	var seen string
+	if h.SeenTo.After(hf) {
+		// Окно после отложенной недели (ночной разбор, всплеск).
+		seen = "с " + from.Format("02.01")
+	} else {
+		seen = fmt.Sprintf("с %s по %s", from.Format("02.01"), h.SeenTo.Add(-time.Second).In(mskZone).Format("02.01"))
+	}
+	extra := ""
+	if h.ExcludeTest && h.TestTexts > 0 {
+		extra = "; запросы проверочного набора test тоже скрыты"
+	}
+	return fmt.Sprintf("в части журнала, которую видит агент (%s; %s%s),", seen, week, extra)
 }

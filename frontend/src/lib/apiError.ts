@@ -80,3 +80,17 @@ export function isApiError(e: unknown): e is ApiError {
 
 /** Нужен вход сотрудника (401 от API бэк-офиса). */
 export const isAuthError = (e: ApiError | null | undefined) => e?.status === 401
+
+/**
+ * Текст ошибки для человека: у ошибки проверки (422) конкретная причина лежит в details[].message («Запрос длиннее
+ * 300 символов»), а message конверта общий («Проверьте данные запроса»).
+ */
+export function errorText(e: Pick<ApiError, 'message' | 'fields'>): string {
+  const own = [...new Set((e.fields ?? []).map((f) => f.message.trim()).filter(Boolean))]
+  return own.length ? own.join('. ') : e.message
+}
+
+/** Повтор имеет смысл: нет сети, сервер, таймаут, лимит. Ошибку в данных запроса (400, 422) повтор не исправит. */
+export function isRetryable(e: Pick<ApiError, 'status'>): boolean {
+  return e.status === 0 || e.status >= 500 || e.status === 408 || e.status === 429
+}

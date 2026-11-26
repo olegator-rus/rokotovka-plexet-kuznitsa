@@ -3,12 +3,14 @@
 // Ответ 4xx с текстом сервера показывается как есть (например, пустой или слишком длинный запрос).
 import { computed } from 'vue'
 import { CircleAlert, RotateCcw } from 'lucide-vue-next'
-import type { ApiError } from '@/lib/apiError'
+import { errorText, isRetryable, type ApiError } from '@/lib/apiError'
 
 const props = defineProps<{ error: ApiError }>()
 defineEmits<{ retry: [] }>()
 
 const unavailable = computed(() => props.error.status === 0 || props.error.status >= 500)
+// 422 и прочие ошибки в данных: повтор того же запроса даст то же — вместо «Повторить» подсказка исправить строку.
+const retryable = computed(() => isRetryable(props.error))
 </script>
 
 <template>
@@ -16,11 +18,14 @@ const unavailable = computed(() => props.error.status === 0 || props.error.statu
     <CircleAlert :size="20" aria-hidden="true" class="search-error__icon" />
     <div class="search-error__body">
       <p class="t-h2">{{ unavailable ? 'Поиск временно недоступен' : 'Запрос не выполнен' }}</p>
-      <p class="t-muted">{{ error.message }}</p>
+      <p class="t-muted">{{ errorText(error) }}</p>
+      <p v-if="!retryable" class="t-sm t-muted">
+        Исправьте запрос в строке поиска и найдите снова.
+      </p>
       <p v-if="error.traceId" class="t-xs t-muted">
         Номер запроса для разбора: <span class="t-mono">{{ error.traceId }}</span>
       </p>
-      <div>
+      <div v-if="retryable">
         <button type="button" class="btn btn--secondary" @click="$emit('retry')">
           <RotateCcw :size="16" aria-hidden="true" />
           Повторить

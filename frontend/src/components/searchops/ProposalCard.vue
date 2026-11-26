@@ -37,6 +37,8 @@ import {
   staleReason,
   targetQueryRows,
   ticketLines,
+  zeroFreqCluster,
+  ZERO_FREQ_NOTE,
 } from '@/lib/proposals'
 import { KIND_LABELS, causeView } from '@/lib/causes'
 import { PRIORITY_CAPTION, priorityValue } from '@/lib/queue'
@@ -58,6 +60,9 @@ const status = computed(() => proposalStatus(p.value.status))
 const queries = computed(() => clusterQueries(p.value))
 const shown = computed(() => queries.value.slice(0, QUERIES_SHOWN))
 const more = computed(() => Math.max(0, queries.value.length - QUERIES_SHOWN))
+// Частоты нет ни у одного запроса: у связи блок не нужен, у остальных — пояснение вместо «× 0».
+const noFreq = computed(() => zeroFreqCluster(p.value))
+const showQueries = computed(() => !relation.value || (queries.value.length > 0 && !noFreq.value))
 const ev = computed(() => evaluationLines(p.value.evaluation))
 const ticket = computed(() => isTicket(p.value))
 const checkUrl = computed(() => searchCheckUrl(p.value))
@@ -113,7 +118,8 @@ const runLink = computed(() =>
         class="pcard__demand t-xs t-muted t-num"
         title="Различные сессии, в которых поиск по запросам кластера не удался"
       >
-        {{ lostDemandLabel(p.cluster?.lost_demand) }}
+        {{ lostDemandLabel(p.cluster?.lost_demand)
+        }}<template v-if="noFreq && !p.cluster?.lost_demand"> в окне агента</template>
       </span>
     </header>
 
@@ -126,8 +132,10 @@ const runLink = computed(() =>
       </p>
       <p class="t-xs t-muted">
         <template v-if="p.diagnosis"
-          >Подпричина: {{ diagnosisLabel(p.diagnosis) }} ·
-          <span class="t-mono">{{ p.diagnosis }}</span> · </template
+          >Подпричина:
+          <template v-if="diagnosisLabel(p.diagnosis) !== p.diagnosis"
+            >{{ diagnosisLabel(p.diagnosis) }} · </template
+          ><span class="t-mono">{{ p.diagnosis }}</span> · </template
         ><template v-if="commerce">{{ p.cluster?.label }}</template
         ><template v-else>кластер «{{ p.cluster?.label }}»</template>
       </p>
@@ -148,7 +156,7 @@ const runLink = computed(() =>
     </p>
     <p v-if="p.diagnosis_text" class="pcard__diag">{{ p.diagnosis_text }}</p>
 
-    <section v-if="queries.length || !relation" class="pcard__block" aria-label="Запросы кластера">
+    <section v-if="showQueries" class="pcard__block" aria-label="Запросы кластера">
       <p class="pcard__label">
         Запросы кластера · {{ formatInt(queries.length) }}
         {{ plural(queries.length, ['запрос', 'запроса', 'запросов']) }}
@@ -162,10 +170,11 @@ const runLink = computed(() =>
           >
             {{ q.text }}
           </RouterLink>
-          <span class="t-num t-muted">× {{ formatInt(q.freq) }}</span>
+          <span v-if="!noFreq" class="t-num t-muted">× {{ formatInt(q.freq) }}</span>
         </li>
         <li v-if="more" class="t-muted t-xs">и ещё {{ more }}</li>
       </ul>
+      <p v-if="noFreq" class="t-xs t-muted" data-testid="zero-freq">{{ ZERO_FREQ_NOTE }}</p>
     </section>
 
     <RelationPatchView v-if="relation" :proposal="p" />

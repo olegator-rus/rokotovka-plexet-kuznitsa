@@ -62,25 +62,35 @@ func (s *Services) searchB3(ctx context.Context, requestID string, req in.Search
 
 	// attributes + сущности
 	t = time.Now()
-	attrs := extractAttrs(nr.tokens)
+	negated := negationSpans(nr.tokens, lx, rules)
+	attrs := extractAttrs(maskTokens(nr.tokens, negated))
 	attrs.applyRequest(req)
 	rp := s.newResultsPlan(ctx, req)                              // страница результатов контура выдачи (results.go); флаг выключен — nil
 	hw := s.hardwareParse(ctx, st, nr, &attrs, rp.hwRequest(req)) // оборудование (hardware*.go); флаг выключен — nil
+	for i := range negated {
+		attrs.consumed[i] = true
+	}
 	ent := findEntities(nr, attrs, lx, rules)
 	if !hw.active() {
 		ent.dropPlatform(lx, rules)
 	}
-	ent.applyRemoved(removedSet(req.RemovedChips))
+	removed := removedSet(req.RemovedChips)
+	ent.applyRemoved(removed)
+	negVendors, negFamilies, negLabels := negatedEntities(nr.tokens, negated, lx, rules)
+	negFamilies = hw.withoutHandledNegations(negFamilies, negLabels)
+	ent.applyNegation(negVendors, negFamilies, negLabels, removed)
+	ent.applyAlternatives(lx, rules)
 	hw.applyEntities(&ent)
 	chips, found := attrs.chips(ent, lx)
 	chips, found = hw.chips(chips, found)
+	chips = negationChips(chips, ent, lx)
 	attrs.found = found
 	attrStep := domain.AttributesStep{StepBase: domain.StepBase{Name: domain.StepAttributes, Ms: msSince(t)},
 		Found: found, Unresolved: attrs.unresolved()}
 
 	// route
 	t = time.Now()
-	route, signals := routeSignals(nr, attrs, ent)
+	route, signals := routeSignals(nr.withoutNegatedChanges(negated), attrs, ent)
 	route, signals = hw.route(route, signals, ent)
 	routeStep := domain.RouteStep{StepBase: domain.StepBase{Name: domain.StepRoute}, Route: route, Signals: signals}
 	routeStep.Ms = msSince(t)
@@ -99,13 +109,14 @@ func (s *Services) searchB3(ctx context.Context, requestID string, req in.Search
 			// Разбор — по запросу как набран, без снятых чипов и ответа на уточнение: ключ кэша от них не
 			// зависит, и пересчёт после снятия чипа идёт из кэша за 0 ₽. Снятое покупателем
 			// применяется уже к итогу разбора — иначе модель возвращает условие обратно.
-			rawAttrs := extractAttrs(nr.tokens)
+			rawAttrs := extractAttrs(maskTokens(nr.tokens, negated))
 			guess := rulesGuess(rawAttrs, findEntities(nr, rawAttrs, lx, rules))
 			parsed, err := p.Parse(WithRequestID(ctx, requestID), resp.Normalized, guess, st.segment(req.ClientID))
 			if err != nil {
 				parsed = guess
 			}
 			mergeParsed(parsed, &attrs, &ent, lx)
+			ent.dropNegated()
 			for _, d := range parsed.Dropped {
 				if d.Field == "reference_product" && d.Reason == "not_in_catalog" {
 					ent.absentName = d.Value
@@ -124,6 +135,8 @@ func (s *Services) searchB3(ctx context.Context, requestID string, req in.Search
 			}
 			trace.CostRub = cost
 			chips, found = attrs.chips(ent, lx)
+			chips, found = hw.chips(chips, found)
+			chips = negationChips(chips, ent, lx)
 			attrs.found = found
 			attrStep.Found, attrStep.Unresolved = found, attrs.unresolved()
 		}
@@ -356,6 +369,11 @@ func (s *Services) searchB3(ctx context.Context, requestID string, req in.Search
 				continue
 			}
 			addFamily(f, rel, group)
+		}
+		if !absent && !hw.exactQuery() && hw.targetless() {
+			for _, f := range namedFill(lx, ent, fams) {
+				addFamily(f, relThreshold, group)
+			}
 		}
 	}
 	// Метрика не та у всего названного («касперский на 50 пользователей», а Kaspersky — на устройства): честнее
@@ -708,7 +726,7 @@ func strictFilters(attrs queryAttrs, ent queryEntities) []any {
 	if len(ent.vendors) > 0 && !attrs.analog {
 		f = append(f, map[string]any{"terms": map[string]any{"vendor_id": ent.vendors}})
 	}
-	return f
+	return append(f, negationFilters(ent)...)
 }
 
 // maxComplements — сколько сопутствующих семейств показывать в блоке «С этим покупают».

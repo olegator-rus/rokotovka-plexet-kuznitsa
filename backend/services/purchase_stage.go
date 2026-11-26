@@ -54,7 +54,7 @@ func (s *Services) procurementStage(lx *searchLexicon, query string, tokens []st
 			st.Original = o.FamilyID
 		}
 	}
-	s.applyReestr(lx, resp, attrs.reestrRequired)
+	s.applyReestr(lx, resp, attrs.reestrRequired, attrs.reestrRequired || attrs.analog || attrs.origin == "ru")
 	st.ReestrMoved = len(resp.ReestrUnconfirmed)
 	if resp.Empty != nil && resp.Empty.Supply {
 		name := strings.TrimPrefix(strings.TrimSuffix(resp.Empty.Message, "» нет в каталоге"), "Товара «")

@@ -4,7 +4,7 @@
 // /searchops?tab=failed|runs|queue|memory|changes|policy). «Запустить разбор» → POST /api/agent/runs по периоду →
 // лента запуска. «Разобрать» в строке запроса — запуск на одном запросе (useAnalyseQuery); старый адрес
 // ?tab=runs&q=<запрос> показывает плашку с той же кнопкой.
-import { computed, ref, watch } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { storeToRefs } from 'pinia'
 import { TabsContent, TabsList, TabsRoot, TabsTrigger } from 'reka-ui'
@@ -38,6 +38,54 @@ const tab = computed<Tab>({
   },
   set: (t) => void router.replace({ query: { tab: t } }),
 })
+
+// 360 px: вкладок шесть, видно три — строка прокручивается; край с продолжением гаснет (намёк на прокрутку),
+// выбранная вкладка прокручивается в видимую часть (QA r2 №17).
+const tabList = ref<{ $el: HTMLElement } | null>(null)
+const tabEdge = ref({ left: false, right: false })
+function measureTabs() {
+  const el = tabList.value?.$el
+  if (!el) return
+  tabEdge.value = {
+    left: el.scrollLeft > 2,
+    right: el.scrollLeft + el.clientWidth < el.scrollWidth - 2,
+  }
+}
+function revealActiveTab() {
+  const el = tabList.value?.$el
+  const active = el?.querySelector<HTMLElement>('[data-state="active"]')
+  if (el && active) {
+    // Не под гаснущим краем (48 px): вкладка с бейджем видна целиком.
+    const FADE = 48
+    const box = el.getBoundingClientRect()
+    const r = active.getBoundingClientRect()
+    const left = r.left - box.left + el.scrollLeft
+    const right = left + r.width
+    if (right > el.scrollLeft + el.clientWidth - FADE)
+      el.scrollLeft = Math.min(el.scrollWidth - el.clientWidth, right - el.clientWidth + FADE)
+    else if (left < el.scrollLeft + FADE) el.scrollLeft = Math.max(0, left - FADE)
+  }
+  measureTabs()
+}
+let tabsObserver: ResizeObserver | null = null
+onMounted(() => {
+  const el = tabList.value?.$el
+  if (!el) return
+  el.addEventListener('scroll', measureTabs, { passive: true })
+  if (typeof ResizeObserver !== 'undefined') {
+    tabsObserver = new ResizeObserver(measureTabs)
+    tabsObserver.observe(el)
+  }
+  revealActiveTab()
+  // Шрифт и бейдж очереди меняют ширину вкладок после монтирования — повторить, когда всё встанет.
+  void document.fonts?.ready.then(() => revealActiveTab())
+})
+onBeforeUnmount(() => {
+  tabList.value?.$el?.removeEventListener('scroll', measureTabs)
+  tabsObserver?.disconnect()
+})
+watch(tab, () => void nextTick(revealActiveTab))
+watch(pendingProposals, () => void nextTick(revealActiveTab))
 
 /** Старый адрес «Разобрать» (?tab=runs&q=): плашка с запуском на одном запросе. */
 const askedQuery = computed(() =>
@@ -102,7 +150,15 @@ async function onStart() {
     </header>
 
     <TabsRoot v-model="tab" class="sops__tabs">
-      <TabsList class="tabs" aria-label="Разделы SearchOps">
+      <TabsList
+        ref="tabList"
+        :class="[
+          'tabs',
+          'sops__tablist',
+          { 'is-more-left': tabEdge.left, 'is-more-right': tabEdge.right },
+        ]"
+        aria-label="Разделы SearchOps"
+      >
         <TabsTrigger value="failed" class="tabs__trigger">Запросы без ответа</TabsTrigger>
         <TabsTrigger value="runs" class="tabs__trigger">Запуски</TabsTrigger>
         <TabsTrigger value="queue" class="tabs__trigger">
@@ -183,6 +239,32 @@ async function onStart() {
   display: flex;
   flex-direction: column;
   gap: var(--space-4);
+}
+.sops__tablist {
+  scrollbar-width: none;
+}
+.sops__tablist::-webkit-scrollbar {
+  display: none;
+}
+.sops__tablist.is-more-right {
+  mask-image: linear-gradient(to right, #000 calc(100% - 48px), transparent);
+}
+.sops__tablist.is-more-left {
+  mask-image: linear-gradient(to right, transparent, #000 48px);
+}
+.sops__tablist.is-more-left.is-more-right {
+  mask-image: linear-gradient(
+    to right,
+    transparent,
+    #000 48px,
+    #000 calc(100% - 48px),
+    transparent
+  );
+}
+@media (max-width: 480px) {
+  .sops__tablist > .tabs__trigger {
+    padding: 0 var(--space-2);
+  }
 }
 .sops__asked {
   display: flex;

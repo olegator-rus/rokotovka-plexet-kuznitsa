@@ -25,8 +25,13 @@ export const DIAGNOSIS_LABELS: Record<string, string> = {
   NOISE: 'Шум',
   UNKNOWN: 'Требует ручной проверки',
   ...P2_DIAGNOSIS_LABELS,
+  // Виды предложений, убранные в контуре доводки: остались только в истории (stale, removed_p4).
+  BUNDLE_OPPORTUNITY: 'Комплект (вид убран)',
+  MARGIN_OPPORTUNITY: 'Маржа категории (вид убран)',
+  MISSING_RELATION: 'Не хватает связи (вид убран)',
 }
 
+/** Подпись подпричины; без подписи — сам код (карточка тогда не повторяет его второй раз). */
 export const diagnosisLabel = (d: string) => DIAGNOSIS_LABELS[d] ?? d
 
 /** Статус предложения: цвет только здесь (токены --status-*), рядом всегда подпись. */
@@ -84,6 +89,8 @@ export function rejectReasonLabel(id: string | null | undefined): string {
 
 const STALE_REASONS: Record<string, string> = {
   catalog_changed: 'новый каталог: правка проверялась на прежнем словаре',
+  removed_p4: 'вид предложения убран из продукта (контур доводки)',
+  pre_holdout: 'запуск до разреза журнала: агент видел неделю, отложенную для проверки',
 }
 
 /**
@@ -124,6 +131,16 @@ export const pendingCount = (items: Proposal[]) =>
 export function clusterQueries(p: Pick<Proposal, 'cluster'>): { text: string; freq: number }[] {
   return [...(p.cluster?.queries ?? [])].sort((a, b) => b.freq - a.freq)
 }
+
+/** У всех запросов кластера частота 0 — их нет в части журнала, которую видит агент. */
+export function zeroFreqCluster(p: Pick<Proposal, 'cluster'>): boolean {
+  const qs = p.cluster?.queries ?? []
+  return qs.length > 0 && qs.every((q) => !q.freq)
+}
+
+/** Пояснение к нулям частоты (P9): агент видит журнал без последней недели — она отложена для проверки. */
+export const ZERO_FREQ_NOTE =
+  'Частоты нет: в части журнала, которую видит агент, этих запросов нет (последняя неделя отложена для проверки и агенту не видна)'
 
 /** Суммарная частота запросов кластера. */
 export const clusterFreq = (p: Pick<Proposal, 'cluster'>) =>
@@ -282,6 +299,23 @@ export const AUTHOR_LABELS: Record<string, string> = {
 export const authorLabel = (a: string) => AUTHOR_LABELS[a] ?? a
 
 /** Новые сверху; действующая — по полю active. */
+/** Версия правил — импорт словарей из каталога (сервер не считает для неё разницу). */
+export const isImportVersion = (v: Pick<ConfigVersion, 'source' | 'description'>) =>
+  v.source === 'import' || (v.description ?? '').trim().startsWith('исходные словари')
+
+/** Версия-импорт словами: «… загружено 100 алиасов (было 64)»; без чисел — нейтрально. */
+export function importSummary(
+  v: Pick<ConfigVersion, 'aliases'>,
+  prev?: Pick<ConfigVersion, 'aliases'> | null,
+): string {
+  const n = v.aliases
+  if (n == null) return 'Импорт словарей и правил из каталога'
+  const word = (k: number) => `${formatInt(k)} ${plural(k, ['алиас', 'алиаса', 'алиасов'])}`
+  return prev?.aliases != null
+    ? `Импорт словарей и правил из каталога: загружено ${word(n)} (было ${formatInt(prev.aliases)})`
+    : `Импорт словарей и правил из каталога: загружено ${word(n)}`
+}
+
 export function sortVersions(items: ConfigVersion[]): ConfigVersion[] {
   return [...items].sort((a, b) => b.version - a.version)
 }
@@ -346,20 +380,37 @@ export function ticketLines(p: Pick<Proposal, 'diagnosis' | 'evidence'>): string
   const ev = p.evidence
   const out: string[] = []
   const subs = ev?.substitutes ?? []
+  const cur = ev?.current_search ?? []
+  // Что действующий поиск уже показывает по запросам кластера (названия без повторов, до трёх).
+  const shownNow = [
+    ...new Set(cur.flatMap((c) => (c.empty ? [] : (c.top ?? []).map((t) => t.title)))),
+  ]
+  const shownText = shownNow.slice(0, 3).join('; ') + (shownNow.length > 3 ? ' и др.' : '')
+  let shownSaid = false
   if (subs.length)
     out.push(
       `Показать покупателям замену: ${subs.map((x) => (x.vendor ? `${x.name} (${x.vendor})` : x.name)).join(', ')}`,
     )
-  else if (p.diagnosis === 'ASSORTMENT_GAP')
-    out.push('Решить, брать ли товар в ассортимент: замены в каталоге агент не нашёл')
-  const cur = ev?.current_search ?? []
+  else if (p.diagnosis === 'ASSORTMENT_GAP') {
+    // Замену агент не подтвердил, но поиск может уже показывать близкие позиции — не писать «не нашёл».
+    if (shownNow.length) {
+      out.push(
+        `Решить, брать ли товар в ассортимент. Точного товара нет; сейчас поиск показывает близкие позиции: ${shownText} — агент не подтвердил их как замену`,
+      )
+      shownSaid = true
+    } else out.push('Решить, брать ли товар в ассортимент: замены в каталоге агент не нашёл')
+  }
   if (cur.length) {
     const empty = cur.filter((c) => c.empty).length
-    out.push(
-      empty === cur.length
-        ? `Сейчас поиск отвечает «нет в каталоге» на все ${formatInt(cur.length)} ${qWord(cur.length)} кластера`
-        : `Сейчас поиск отвечает «нет в каталоге» на ${formatInt(empty)} из ${formatInt(cur.length)} ${plural(cur.length, ['запроса', 'запросов', 'запросов'])}`,
-    )
+    if (empty === cur.length)
+      out.push(
+        `Сейчас поиск отвечает «нет в каталоге» на все ${formatInt(cur.length)} ${qWord(cur.length)} кластера`,
+      )
+    else if (empty > 0)
+      out.push(
+        `Сейчас поиск отвечает «нет в каталоге» на ${formatInt(empty)} из ${formatInt(cur.length)} ${plural(cur.length, ['запроса', 'запросов', 'запросов'])}`,
+      )
+    else if (!shownSaid && shownNow.length) out.push(`Сейчас поиск показывает: ${shownText}`)
   }
   const ref = [...(ev?.reformulations ?? [])].sort((a, b) => b.count - a.count)[0]
   if (ref)

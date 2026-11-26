@@ -1,7 +1,14 @@
 // Блок «Месяц» в «Экономике» (src/lib/costMonth.ts).
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { monthScenario, parseRubInput } from '../src/lib/costMonth.ts'
+import {
+  AGENT_RUNS_MAX,
+  SERVER_RUB_MAX,
+  monthScenario,
+  parseAssumption,
+  parseRubInput,
+  runsInHint,
+} from '../src/lib/costMonth.ts'
 
 test('monthScenario: сервер + LLM × запросы + агент × исследования', () => {
   const r = monthScenario({
@@ -63,4 +70,55 @@ test('agentRunCost: среднее по полным запускам, инач�
   ]
   assert.deepEqual(agentRunCost(runs, 19.98), { rub: 31, full: 2 })
   assert.deepEqual(agentRunCost([], 19.98), { rub: 19.98, full: 0 })
+})
+
+test('parseRubInput: hex, экспонента, Infinity, знак, несколько разделителей, сверх предела — null', () => {
+  for (const bad of [
+    '0x10',
+    '1e3',
+    '1e400',
+    'Infinity',
+    '-Infinity',
+    'NaN',
+    '-5000',
+    '+5',
+    '1,5,5',
+    '1.5.5',
+    '7 500,',
+    ',5',
+    '99999999999999999999',
+    String(SERVER_RUB_MAX + 1),
+  ])
+    assert.equal(parseRubInput(bad), null, bad)
+  assert.equal(parseRubInput(String(SERVER_RUB_MAX)), SERVER_RUB_MAX)
+  assert.equal(parseRubInput('0'), 0)
+  assert.equal(parseRubInput('7\u00a0500.25'), 7500.25)
+})
+
+test('parseAssumption: текст ошибки для поля; запуски — целое до предела', () => {
+  const runs = { max: AGENT_RUNS_MAX, integer: true }
+  assert.deepEqual(parseAssumption('30', runs), { ok: true, value: 30 })
+  assert.deepEqual(parseAssumption('1 000', runs), { ok: true, value: 1000 })
+  const err = (raw: string) => {
+    const r = parseAssumption(raw, runs)
+    assert.equal(r.ok, false, raw)
+    return r.ok ? '' : r.error
+  }
+  assert.equal(err(''), 'Введите число')
+  assert.equal(err('   '), 'Введите число')
+  assert.equal(err('-3'), 'Не меньше 0')
+  assert.equal(err('2.5'), 'Целое число')
+  assert.equal(err('2,5'), 'Целое число')
+  assert.match(err('abc'), /Только цифры/)
+  assert.match(err('0x10'), /Только цифры/)
+  assert.match(err('1e3'), /Только цифры/)
+  assert.equal(err('100000000'), 'Не больше 10\u00a0000')
+  const rub = parseAssumption('20 000 000', { max: SERVER_RUB_MAX, unit: '₽' })
+  assert.deepEqual(rub, { ok: false, error: 'Не больше 10\u00a0000\u00a0000 ₽' })
+})
+
+test('runsInHint: число запусков из подсказки сервера', () => {
+  assert.equal(runsInHint('Замер — средняя стоимость завершённых запусков агента (11)'), 11)
+  assert.equal(runsInHint('Замер — без числа'), null)
+  assert.equal(runsInHint(undefined), null)
 })

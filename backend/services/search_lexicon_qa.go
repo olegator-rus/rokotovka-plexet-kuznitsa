@@ -199,13 +199,18 @@ func (lx *searchLexicon) buildCategoryWords(cats []domain.Category) {
 // видеоконференции): ими расширяется текстовый поиск длинного запроса.
 func (lx *searchLexicon) categoryOf(tokens []string) (string, []string) {
 	found := ""
-	var words []string
+	var words, qualified []string
 	for _, t := range tokens {
 		for _, w := range wordsOf(t) {
 			if utf8.RuneCountInString(w) < 4 || lexStopWords[w] || lexServiceWords[w] {
 				continue
 			}
 			c := lx.categoryWords[stemOf(w)]
+			if c == "" && (w == "офис" || w == "office" || strings.HasPrefix(w, "офисн")) && officeSuiteVendors(lx, tokens) {
+				// «отечественный офис» — офисный пакет; «для офиса» (место, где работают) — нет; «kaspersky small
+				// office» — продукт другого раздела.
+				c = lx.categoryWords[stemOf("офисные")]
+			}
 			if c == "" {
 				for _, p := range purposeCategoryStems {
 					if strings.HasPrefix(w, p.stem) {
@@ -216,6 +221,12 @@ func (lx *searchLexicon) categoryOf(tokens []string) (string, []string) {
 						break
 					}
 				}
+			}
+			if c != "" && categoryQualifiers[w] {
+				// «для дома», «для бизнеса» только уточняют названное («антивирус для дома»): сами по себе
+				// категорию не задают — «windows для дома» не антивирус.
+				qualified = append(qualified, c)
+				continue
 			}
 			switch {
 			case c == "":
@@ -228,8 +239,35 @@ func (lx *searchLexicon) categoryOf(tokens []string) (string, []string) {
 			}
 		}
 	}
+	for _, q := range qualified {
+		if found != "" && lx.categoryRoot[q] == lx.categoryRoot[found] && lx.categoryRoot[found] == found {
+			found = q
+		}
+	}
+	if found == "" && len(qualified) == 1 {
+		// «dr.web для бизнеса»: уточнение к названному вендору или продукту из того же раздела.
+		q, root := qualified[0], lx.categoryRoot[qualified[0]]
+		fams := lx.matchFamilies(tokens)
+		for _, v := range lx.matchVendors(tokens, nil) {
+			for _, f := range lx.familyOrder {
+				if lx.familyVendor[f] == v {
+					fams = append(fams, f)
+				}
+			}
+		}
+		for _, f := range fams {
+			if lx.categoryRoot[lx.familyCat[f]] == root {
+				found = q
+				break
+			}
+		}
+	}
 	return found, words
 }
+
+// categoryQualifiers — слова названий категорий, которые уточняют, а не называют («Антивирусы для дома»).
+var categoryQualifiers = setOf("дома", "домашнего", "бизнеса", "бизнес", "малого", "среднего", "крупного",
+	"организаций", "организации", "предприятий", "предприятия", "компании", "компаний", "семьи")
 
 // consumerWords — категория или семейство для дома. Масштаб по числу мест не годится: 1С и САПР продаются
 // по одному рабочему месту, но это не домашние линейки.
@@ -264,4 +302,19 @@ func (lx *searchLexicon) buildScale() {
 		}
 		lx.consumer[f] = home
 	}
+}
+
+// officeSuiteVendors — все вендоры запроса выпускают офисные пакеты (или вендор не назван).
+func officeSuiteVendors(lx *searchLexicon, tokens []string) bool {
+	cat := lx.categoryWords[stemOf("офисные")]
+	for _, v := range lx.matchVendors(tokens, nil) {
+		ok := false
+		for _, f := range lx.familyOrder {
+			ok = ok || lx.familyVendor[f] == v && lx.familyCat[f] == cat
+		}
+		if !ok {
+			return false
+		}
+	}
+	return cat != ""
 }

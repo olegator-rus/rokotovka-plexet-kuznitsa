@@ -53,8 +53,14 @@ const staleDays = computed(() => rel.data.value?.stale_after_days ?? REVIEW_MAX_
 const versions = computed(() =>
   [...(vers.data.value?.items ?? [])].sort((a, b) => b.version - a.version),
 )
-const active = computed(
-  () => vers.data.value?.active ?? rel.data.value?.version ?? versions.value[0]?.version ?? null,
+// active: 0 — ни одна версия истории не действует (каталог переимпортирован с другими связями, сервер ещё не
+// записал версию импорта): не подставлять номер, а сказать об этом (QA r2 №3).
+const active = computed(() => {
+  const a = vers.data.value?.active
+  return typeof a === 'number' && a > 0 ? a : null
+})
+const detached = computed(
+  () => !!vers.data.value && active.value === null && versions.value.length > 0,
 )
 
 // ── Фильтры ──
@@ -172,6 +178,16 @@ const diffWord = (op: string) =>
       Какие связи действуют в блоке «Дополните решение», откуда они и когда проверялись. Принятая
       правка агента или откат — новая версия справочника.
       <template v-if="active">Действует версия {{ active }}.</template>
+    </p>
+    <p
+      v-if="detached"
+      class="panel rels__detached t-sm"
+      role="status"
+      data-testid="relations-detached"
+    >
+      Ни одна версия истории сейчас не действует: действуют связи каталога как импортированы, а
+      история версий с ними не совпадает (каталог загружен заново с другими связями). Откат станет
+      доступен, когда сервер запишет версию импорта.
     </p>
 
     <!-- Справочник -->
@@ -472,6 +488,10 @@ const diffWord = (op: string) =>
   flex-direction: column;
   gap: var(--space-3);
   padding: var(--space-4);
+}
+.rels__detached {
+  padding: var(--space-3) var(--space-4);
+  color: var(--text-2);
 }
 .rels__empty {
   display: flex;

@@ -3,7 +3,7 @@
 // от ночного запуска 03:00 · M от всплеска 14:20». Без DOM: tests/agentRuns.test.ts.
 import type { AgentRun, Proposal } from '@/api/types'
 import type { BudgetAmounts, RunBudget, RunOutcome } from '@/api/typesAgent'
-import { formatCost, formatDecimal, formatInt, plural } from './format.ts'
+import { formatDecimal, formatInt, formatMoney, plural, russianQuotes } from './format.ts'
 
 export const TRIGGERS = [
   { id: 'schedule', label: 'расписание' },
@@ -78,7 +78,8 @@ export function isLegacyRun(run: AgentRun): boolean {
 
 /** План одной строкой: сводка последней редакции; запуск на одном запросе — «Разбор запроса «…»». */
 export function planLine(run: AgentRun): string {
-  const s = run.plan?.summary?.trim()
+  const s = run.plan?.summary ? russianQuotes(run.plan.summary.trim()) : ''
+
   if (s) return run.plan!.revision > 1 ? `${s} (редакция ${run.plan!.revision})` : s
   if (run.query) return `Разбор запроса «${run.query}»`
   return ''
@@ -185,7 +186,8 @@ export function formatRunDuration(ms: number | null): string {
 }
 
 export interface BudgetRow {
-  key: keyof BudgetAmounts
+  /** cluster_calls — лимит вызовов инструментов на кластер (упор в него — stop_reason step_limit). */
+  key: keyof BudgetAmounts | 'cluster_calls'
   label: string
   used: string
   limit: string
@@ -209,7 +211,7 @@ const EXHAUSTED_KEY: Record<string, keyof BudgetAmounts> = {
 }
 
 function fmtAmount(key: keyof BudgetAmounts, v: number): string {
-  if (key === 'cost_rub') return formatCost(v)
+  if (key === 'cost_rub') return formatMoney(v)
   if (key === 'seconds') return formatRunDuration(v * 1000)
   return formatInt(v)
 }
@@ -218,8 +220,41 @@ function fmtAmount(key: keyof BudgetAmounts, v: number): string {
 export function budgetRows(
   budget: RunBudget | null | undefined,
   stopReason?: string | null,
+  run?: Pick<AgentRun, 'limits' | 'episode'> | null,
 ): BudgetRow[] {
   if (!budget?.limits) return []
+  const rows = runBudgetRows(budget, stopReason)
+  const cl = clusterLimitRow(stopReason, run)
+  return cl ? [cl, ...rows] : rows
+}
+
+/**
+ * step_limit — упор в лимит вызовов инструментов на кластер (15), а не в бюджет шагов запуска (80): строка
+ * «Вызовы на кластер «…» 15 из 15» показывает лимит, в который упёрлись.
+ */
+function clusterLimitRow(
+  stopReason: string | null | undefined,
+  run: Pick<AgentRun, 'limits' | 'episode'> | null | undefined,
+): BudgetRow | null {
+  if (stopReason !== 'step_limit') return null
+  const limit = Number(run?.limits?.tool_calls_per_cluster) || 0
+  const hit = (run?.episode?.clusters ?? []).filter((c) => c.outcome === 'limit')
+  if (!limit || !hit.length) return null
+  const used = Math.max(...hit.map((c) => Number(c.tool_calls) || 0))
+  return {
+    key: 'cluster_calls',
+    label:
+      hit.length === 1
+        ? `Вызовы инструментов на кластер «${hit[0]!.label}»`
+        : `Вызовы инструментов на кластер (упёрлись ${formatInt(hit.length)} ${plural(hit.length, ['кластер', 'кластера', 'кластеров'])})`,
+    used: formatInt(used),
+    limit: formatInt(limit),
+    share: Math.min(1, Math.max(0, used / limit)),
+    exhausted: true,
+  }
+}
+
+function runBudgetRows(budget: RunBudget, stopReason?: string | null): BudgetRow[] {
   const used = budget.used ?? { steps: 0, tokens: 0, cost_rub: 0, seconds: 0 }
   const hit =
     EXHAUSTED_KEY[typeof budget.exhausted === 'string' ? budget.exhausted : ''] ??

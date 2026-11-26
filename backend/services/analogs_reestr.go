@@ -41,8 +41,10 @@ func (s *Services) reestrOf(lx *searchLexicon, familyID string) *out.Reestr {
 }
 
 // applyReestr — статус реестра у позиций ПО; при явном требовании реестра неподтверждённые уходят из основного
-// блока в reestr_unconfirmed.
-func (s *Services) applyReestr(lx *searchLexicon, resp *out.SearchResponse, required bool) {
+// блока в reestr_unconfirmed. Когда о реестре и происхождении не спрашивали (relevant = false), показывается
+// только подтверждённая запись: «Не соответствует: зарубежное ПО» у Microsoft Office по запросу «microsoft
+// office» — шум.
+func (s *Services) applyReestr(lx *searchLexicon, resp *out.SearchResponse, required, relevant bool) {
 	main := resp.Items[:0:0]
 	for _, it := range resp.Items {
 		if it.Kind == domain.KindHardware {
@@ -50,6 +52,9 @@ func (s *Services) applyReestr(lx *searchLexicon, resp *out.SearchResponse, requ
 			continue
 		}
 		it.Reestr = s.reestrOf(lx, it.FamilyID)
+		if !relevant && it.Reestr.Status != domain.ReestrConfirmed {
+			it.Reestr = nil
+		}
 		if required && it.Reestr.Status != domain.ReestrConfirmed {
 			resp.ReestrUnconfirmed = append(resp.ReestrUnconfirmed, it)
 			continue

@@ -16,7 +16,8 @@ import { useResource } from '@/composables/useResource'
 import { formatInt } from '@/lib/format'
 import { PROPOSAL_ROLES, PROPOSAL_STATUSES, isTicket, searchCheckUrl } from '@/lib/proposals'
 import { causeView } from '@/lib/causes'
-import { sortQueue } from '@/lib/queue'
+import { isRelationPatch, proposalSubjectDat } from '@/lib/relationProposal'
+import { queueOrderLabel, sortQueue } from '@/lib/queue'
 import { originText, queueBannerLine, queueOrigins } from '@/lib/agentRuns'
 import { useAppStore } from '@/stores/app'
 import DecisionDialogs from './DecisionDialogs.vue'
@@ -68,9 +69,6 @@ watch([status, role], () => void res.load(), { immediate: true })
 
 // Очередь: сначала по оценке приоритета (₽), затем по потерянному спросу.
 const items = computed(() => sortQueue(res.data.value?.items ?? []))
-const hasPriority = computed(() =>
-  items.value.some((p) => typeof (p as { priority_score?: unknown }).priority_score === 'number'),
-)
 
 // ?p=<id> — переход из «Изменений» и «Памяти»: прокрутка к карточке предложения, один раз.
 let focusedProposal = ''
@@ -108,7 +106,15 @@ function onAccepted(p: Proposal, r: ApproveResponse) {
     toast.add({
       tone: 'ok',
       title: 'Задача отправлена владельцу',
-      detail: `${causeView(p).owner} · кластер «${p.cluster?.label}»`,
+      detail: `${causeView(p).owner} · ${isRelationPatch(p) ? '' : 'кластер '}«${p.cluster?.label}»`,
+    })
+    return
+  }
+  if (isRelationPatch(p)) {
+    toast.add({
+      tone: 'ok',
+      title: `Правка связей утверждена · версия справочника связей ${r.config_version}`,
+      detail: 'Связь уже действует в блоке «Дополните решение».',
     })
     return
   }
@@ -132,7 +138,7 @@ function onRejected(p: Proposal) {
   toast.add({
     tone: 'ok',
     title: 'Предложение отклонено',
-    detail: `Причина по кластеру «${p.cluster?.label}» записана в память агента.`,
+    detail: `Причина ${proposalSubjectDat(p)} записана в память агента.`,
   })
 }
 </script>
@@ -144,11 +150,7 @@ function onRejected(p: Proposal) {
       <UiSelect v-model="role" :options="ROLE_OPTIONS" label="Владелец" prefix="Владелец" />
       <span v-if="res.status.value === 'ready'" class="t-sm t-muted queue__count">
         {{ formatInt(items.length) }} ·
-        {{
-          hasPriority
-            ? 'по оценке приоритета (не прогноз), затем по потерянному спросу'
-            : 'по убыванию потерянного спроса'
-        }}
+        {{ queueOrderLabel(items) }}
       </span>
     </div>
 

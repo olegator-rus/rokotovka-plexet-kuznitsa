@@ -536,7 +536,7 @@ func (rc *runCtx) investigatePlan(ctx context.Context, plan *runPlan, open []pla
 		switch r["outcome"] {
 		case "limit":
 			limited++
-		case "unfinished":
+		case "unfinished", OutcomeRepeat:
 			unfinished++
 		}
 	}

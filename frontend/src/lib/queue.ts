@@ -22,6 +22,18 @@ export function sortQueue<T extends WithPriority>(items: T[]): T[] {
   })
 }
 
+/**
+ * Подпись порядка очереди: по чему она на самом деле упорядочена. Если ни у кого нет ни оценки, ни потерянного
+ * спроса — «по убыванию спроса» ничего не значит: порядок по времени, новые сверху.
+ */
+export function queueOrderLabel(items: WithPriority[]): string {
+  if (items.some((p) => num(p.priority_score)))
+    return 'по оценке приоритета (не прогноз), затем по потерянному спросу'
+  if (items.length > 1 && items.every((p) => !(p.cluster?.lost_demand ?? 0)))
+    return 'новые сверху: потерянного спроса ни у одного предложения нет'
+  return 'по убыванию потерянного спроса, при равенстве — новые сверху'
+}
+
 export const PRIORITY_CAPTION = 'оценка приоритета, не прогноз'
 
 /** «69 942 ₽» — число оценки приоритета; нет — null. */

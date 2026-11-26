@@ -79,14 +79,25 @@ export function isBackofficePath(path: string): boolean {
 }
 
 /**
- * Безопасный returnTo: только путь своего сайта. Схема, «//host», «/\host», управляющие символы, сам экран входа и
- * слишком длинная строка — null (открытый редирект через ссылку на вход).
+ * Безопасный returnTo: только путь своего сайта. Схема, «//host», «/\host», управляющие символы, сегменты «.» и «..»,
+ * сам экран входа и слишком длинная строка — null (открытый редирект через ссылку на вход).
  */
 export function safeReturnTo(raw: unknown): string | null {
   if (typeof raw !== 'string' || raw.length === 0 || raw.length > 512) return null
   if (!raw.startsWith('/') || raw.startsWith('//') || raw.startsWith('/\\')) return null
   if (/[\u0000-\u001f\u007f\\]/.test(raw)) return null
   const path = raw.split(/[?#]/)[0] ?? ''
+  // «/search/..//evil.example» браузер схлопывает в «//evil.example»: сегменты «.» и «..» (и в %-кодировке) —
+  // отказ, и путь после нормализации не должен начинаться с «//».
+  let decoded = path
+  try {
+    decoded = decodeURIComponent(path)
+  } catch {
+    return null
+  }
+  if (/(^|\/)\.{1,2}(\/|$)/.test(decoded) || /[\\\u0000-\u001f\u007f]/.test(decoded)) return null
+  if (decoded.startsWith('//') || new URL(raw, 'http://self.invalid').pathname.startsWith('//'))
+    return null
   if (path === LOGIN_PATH || path.startsWith(`${LOGIN_PATH}/`)) return null
   return raw
 }

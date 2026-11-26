@@ -2,6 +2,7 @@ package services
 
 import (
 	"fmt"
+	"slices"
 	"strconv"
 	"strings"
 
@@ -266,7 +267,11 @@ func (a queryAttrs) chips(ent queryEntities, lx *searchLexicon) ([]out.Chip, []d
 		}
 	}
 	if !a.analog {
+		named := lx.matchVendors(ent.entityTokens, nil)
 		for _, v := range ent.vendors {
+			if ent.absentName != "" && !slices.Contains(named, v) {
+				continue // «solidworks»: Autodesk — ближайший вендор для аналогов, покупатель его не называл
+			}
 			add(fieldVendor, v, lx.vendorName[v], true)
 		}
 	}

@@ -127,8 +127,11 @@ test.describe('Бэк-офис П2', () => {
     await shot(page, 'backoffice-searchops-relation-1440')
 
     await card.getByRole('button', { name: 'Утвердить' }).click()
-    const dialog = page.getByRole('dialog', { name: 'Утвердить правку поиска?' })
+    // P10: у правки связей — свой заголовок и «Предложение «…»», не «Кластер «…»».
+    const dialog = page.getByRole('dialog', { name: 'Утвердить правку справочника связей?' })
     await expect(dialog).toContainText('версия справочника связей')
+    await expect(dialog).toContainText('Предложение «')
+    await expect(dialog).not.toContainText('Кластер «')
     await dialog.getByRole('button', { name: 'Отмена' }).click()
   })
 

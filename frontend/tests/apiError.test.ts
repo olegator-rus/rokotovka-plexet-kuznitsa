@@ -4,6 +4,8 @@ import assert from 'node:assert/strict'
 import {
   MSG_AUTH,
   MSG_SERVER,
+  errorText,
+  isRetryable,
   isAuthError,
   MSG_UNKNOWN,
   isApiError,
@@ -53,4 +55,20 @@ test('parseApiError: 401 — понятное «нужен вход сотруд
   assert.ok(isAuthError(e))
   assert.ok(isAuthError(parseApiError(401, '<html>')))
   assert.ok(!isAuthError(parseApiError(403, null)))
+})
+
+test('422: причина из details, повтор не предлагается (QA r2 витрина №10)', () => {
+  const e = parseApiError(422, {
+    error: {
+      code: 'VALIDATION_FAILED',
+      message: 'Проверьте данные запроса',
+      details: [{ field: 'query', code: 'OUT_OF_RANGE', message: 'Запрос длиннее 300 символов' }],
+    },
+  })
+  assert.equal(errorText(e), 'Запрос длиннее 300 символов')
+  assert.equal(isRetryable(e), false)
+  assert.equal(errorText(parseApiError(422, { error: { message: 'Пусто' } })), 'Пусто')
+  assert.equal(isRetryable(networkError()), true)
+  assert.equal(isRetryable(parseApiError(503, null)), true)
+  assert.equal(isRetryable(parseApiError(429, null)), true)
 })

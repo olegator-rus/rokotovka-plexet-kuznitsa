@@ -170,6 +170,8 @@ func (p *hwPlan) condChip(c hwCond) out.Chip {
 		switch {
 		case strings.HasPrefix(foldText(c.Str), "без"):
 			return out.Chip{Field: c.Key, Value: c.Str, Op: c.Op, Label: strings.ToUpper(c.Str[:2]) + c.Str[2:], Strict: true}
+		case c.Str == "true" && c.Op == "not":
+			return out.Chip{Field: c.Key, Value: c.Str, Op: c.Op, Label: "Без " + label, Strict: true}
 		case c.Str == "true":
 			return out.Chip{Field: c.Key, Value: c.Str, Op: c.Op, Label: label, Strict: true}
 		}
@@ -233,7 +235,7 @@ func (p *hwPlan) filters() []any {
 		case "not":
 			not = append(not, rangeQ(field, map[string]any{"gte": c.Value, "lte": c.Value}))
 		default:
-			tol := approxTolerance[c.Key]
+			tol := tolerance(c)
 			f = append(f, rangeQ(field, map[string]any{"gte": c.Value - tol, "lte": c.Value + tol}))
 		}
 	}
@@ -495,13 +497,21 @@ func numOK(c hwCond, v float64) bool {
 	case "not":
 		return v < c.Value-eps || v > c.Value+eps
 	}
-	tol := approxTolerance[c.Key] + eps
+	tol := tolerance(c) + eps
 	return v > c.Value-tol && v < c.Value+tol
 }
 
 // approxTolerance — допуск равенства у характеристик, которые называют округлённо: «монитор 24 дюйма» — это
 // 23,8″, «ноутбук 16 дюймов» — и 15,6″.
-var approxTolerance = map[string]float64{"screen_inch": 0.5}
+var approxTolerance = map[string]float64{"screen_inch": 0.7}
+
+// approxShare — допуск в долях значения: объём диска и мощность ИБП называют круглыми числами («ssd 1 тб» —
+// это и 960 ГБ, «ибп 3 квт» — и 2 700 Вт), а в каталоге — точные.
+var approxShare = map[string]float64{"storage_gb": 0.1, "power_w": 0.12}
+
+func tolerance(c hwCond) float64 {
+	return max(approxTolerance[c.Key], approxShare[c.Key]*c.Value)
+}
 
 // decorate — совместимость позиций с целью запроса, фасеты категории, честная пустая выдача по условиям.
 func (p *hwPlan) decorate(resp *out.SearchResponse) {
@@ -627,3 +637,6 @@ func (p *hwPlan) unitTrace() []hwUnitTrace {
 	}
 	return res
 }
+
+// targetless — запрос оборудования без цели совместимости («память для r740»): там выдачу решает совместимость.
+func (p *hwPlan) targetless() bool { return p == nil || p.target == "" }

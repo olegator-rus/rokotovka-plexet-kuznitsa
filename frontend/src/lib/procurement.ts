@@ -27,6 +27,35 @@ export function hasPurchaseTerms(p: Purchase | null | undefined): p is Purchase 
   return Boolean(p && (p.deal || p.quantity || p.duration_months))
 }
 
+/** Метрики, которые считаются штуками: на них число из запроса делится на размер пакета. */
+const COUNTED_METRICS = new Set(['user', 'device', 'server'])
+
+/**
+ * Сколько позиций купить под число из запроса («на 50 пользователей»). Пакет на N мест (атрибут
+ * license_quantity при той же метрике) — ceil(число / N): CAL на 5 пользователей при 50 — 10 пакетов, пакет на
+ * 10 ПК при 10 — 1. Поштучная позиция — само число. Ядра, организация и пакет другой метрики — 1, покупатель
+ * поправит в спецификации.
+ */
+export function purchaseQuantity(
+  item: Pick<SearchItemBase, 'license_line' | 'attrs'>,
+  quantity: number | null | undefined,
+  metric?: string | null,
+): number {
+  const n = typeof quantity === 'number' && Number.isFinite(quantity) ? Math.round(quantity) : 0
+  if (n <= 0) return 1
+  const a = item.attrs
+  const pack = a?.license_quantity
+  if (
+    a &&
+    typeof pack === 'number' &&
+    pack > 0 &&
+    COUNTED_METRICS.has(a.license_metric) &&
+    (!metric || metric === a.license_metric)
+  )
+    return Math.ceil(n / pack)
+  return isPerUnitLine(item.license_line) ? n : 1
+}
+
 export interface SelectedOffer {
   /** «Продление · 2 года · Стандартный». */
   label: string
@@ -56,7 +85,7 @@ const UNIT_FORMS: Record<string, [string, string, string]> = {
 /**
  * Вариант, с которым открывается карточка-семейство: голова семейства подошла под условия запроса (сервер выбрал
  * её по типу покупки, количеству и сроку). Поштучная позиция умножается на количество из запроса. null — запрос
- * условий не называл, голова не подходит или цены нет.
+ * условий не называл, голова не подходит или цены нет. Пакет на N мест берётся ceil(число / N) раз.
  */
 export function selectedOffer(
   item: SearchItemBase,
@@ -67,14 +96,15 @@ export function selectedOffer(
   const a = item.attrs
   const kind = a?.license_type === 'renewal' ? 'Продление' : purchase.deal_label || 'Новая лицензия'
   const parts = [kind, durationText(a?.duration_months ?? null), a?.edition ?? ''].filter(Boolean)
-  const perUnit = isPerUnitLine(item.license_line)
-  const quantity = perUnit && purchase.quantity ? purchase.quantity : 1
+  const quantity = purchaseQuantity(item, purchase.quantity, purchase.metric)
   const total = item.price_rub * quantity
   const forms = UNIT_FORMS[a?.license_metric ?? purchase.metric ?? ''] ?? ['шт.', 'шт.', 'шт.']
-  const sum =
-    quantity > 1
-      ? `${formatPrice(item.price_rub)} × ${quantity} ${plural(quantity, forms)} = ${formatPrice(total)}`
-      : formatPrice(total)
+  const pack = a && COUNTED_METRICS.has(a.license_metric) ? (a.license_quantity ?? 1) : 1
+  let sum = formatPrice(total)
+  if (quantity > 1 && pack > 1)
+    sum = `${formatPrice(item.price_rub)} × ${quantity} ${plural(quantity, ['пакет', 'пакета', 'пакетов'])} по ${pack} ${plural(pack, forms)} = ${formatPrice(total)}`
+  else if (quantity > 1)
+    sum = `${formatPrice(item.price_rub)} × ${quantity} ${plural(quantity, forms)} = ${formatPrice(total)}`
   return { label: parts.join(' · '), quantity, unitPrice: item.price_rub, total, sum }
 }
 

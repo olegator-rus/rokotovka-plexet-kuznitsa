@@ -7,6 +7,7 @@ import {
   helpHintShown,
   isPerUnitLine,
   parsePurchase,
+  purchaseQuantity,
   purchaseNote,
   reestrTone,
   selectedOffer,
@@ -62,13 +63,85 @@ test('selectedOffer: без условий, без цены, не подходи
   assert.equal(selectedOffer({ ...kes, price_rub: null, price_on_request: true }, s2), null)
 })
 
-test('selectedOffer: пакет на 50 узлов не умножается', () => {
-  const o = selectedOffer(
-    { ...kes, license_line: 'Продление · 50 устройств · 1 год', price_rub: 117000 },
-    s2,
-  )
+test('selectedOffer: пакет на 50 узлов при 30 ПК — один пакет', () => {
+  const pack50 = {
+    ...kes,
+    license_line: 'Продление · 50 устройств · 1 год',
+    price_rub: 117000,
+    attrs: { ...kes.attrs!, license_quantity: 50 },
+  }
+  const o = selectedOffer(pack50, { ...s2, quantity: 30 })
   assert.equal(o?.quantity, 1)
   assert.equal(o?.total, 117000)
+  // 100 ПК — два пакета по 50, а не один на 50 мест.
+  assert.equal(selectedOffer(pack50, s2)?.quantity, 2)
+})
+
+test('selectedOffer: CAL пакетами по 5 при 50 пользователях — 10 пакетов (QA r2 №2)', () => {
+  const cal: SearchItemBase = {
+    ...kes,
+    product_id: 'wscal25-u5',
+    title: 'Microsoft Windows Server 2025 CAL, 5 клиентских лицензий на пользователя',
+    license_line: 'Бессрочная · 5 пользователей',
+    price_rub: 27490,
+    attrs: {
+      edition: 'User CAL',
+      license_type: 'perpetual',
+      license_metric: 'user',
+      license_quantity: 5,
+      duration_months: null,
+      delivery: '',
+      in_reestr: false,
+    },
+  }
+  const p: Purchase = {
+    query: 'windows server 2025 standard на 50 пользователей',
+    quantity: 50,
+    metric: 'user',
+  }
+  const o = selectedOffer(cal, p)
+  assert.ok(o)
+  assert.equal(o.quantity, 10)
+  assert.equal(o.total, 274900)
+  assert.equal(
+    o.sum.replace(/\u00a0/g, ' '),
+    '27 490 ₽ × 10 пакетов по 5 пользователей = 274 900 ₽',
+  )
+  // 52 пользователя — 11 пакетов (55 лицензий), меньше не хватит.
+  assert.equal(selectedOffer(cal, { ...p, quantity: 52 })?.quantity, 11)
+})
+
+test('purchaseQuantity: штуки, пакеты, ядра, другая метрика', () => {
+  const at = (metric: string, q: number | null) => ({
+    edition: '',
+    license_type: 'perpetual',
+    license_metric: metric,
+    license_quantity: q,
+    duration_months: null,
+    delivery: '' as const,
+    in_reestr: false,
+  })
+  // Поштучная — само число.
+  assert.equal(purchaseQuantity({ license_line: '', attrs: at('device', 1) }, 100, 'device'), 100)
+  // Пакет 10 ПК при 10 ПК — один.
+  assert.equal(purchaseQuantity({ license_line: '', attrs: at('device', 10) }, 10, 'device'), 1)
+  // Ядра — не места: 1.
+  assert.equal(
+    purchaseQuantity({ license_line: 'Бессрочная · 16 ядер', attrs: at('core', 16) }, 50, 'user'),
+    1,
+  )
+  // Пакет на устройства при запросе на пользователей — не делим, пакет не поштучный: 1.
+  assert.equal(
+    purchaseQuantity(
+      { license_line: 'Бессрочная · 5 устройств', attrs: at('device', 5) },
+      50,
+      'user',
+    ),
+    1,
+  )
+  // Без атрибутов — по строке лицензии, как раньше.
+  assert.equal(purchaseQuantity({ license_line: 'Подписка · 1 пользователь' }, 7), 7)
+  assert.equal(purchaseQuantity({ license_line: 'Подписка · 1 пользователь' }, 0), 1)
 })
 
 test('isPerUnitLine', () => {

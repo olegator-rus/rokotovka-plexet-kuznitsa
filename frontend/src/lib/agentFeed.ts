@@ -145,6 +145,12 @@ const OUTCOME_LABELS: Record<string, string> = {
   ticket: 'задача человеку — в очереди',
   closed: 'правкой правил не решается',
   rejected: 'гипотезы отклонены — предложения нет',
+  limit: 'не доразобран: упёрся в лимит',
+  solved: 'поиск уже отвечает верно',
+  unfinished: 'не доразобран: модель не завершила разбор',
+  repeat: 'закрыт: агент повторял отклонённый вызов',
+  error: 'сбой при разборе',
+  skipped: 'пропущен',
 }
 
 /** Итог по кластерам из episode.clusters в порядке разбора. */
@@ -321,7 +327,7 @@ export function runStatusLabel(status: string): string {
 const STOP_REASONS: Record<string, string> = {
   user: 'остановлен человеком',
   stopped_by_user: 'остановлен человеком',
-  step_limit: 'достигнут лимит шагов',
+  step_limit: 'достигнут лимит вызовов инструментов на кластер',
   token_limit: 'достигнут лимит токенов',
   timeout: 'истекло время запуска',
   llm_error: 'ошибка модели',

@@ -63,3 +63,28 @@ func TestApplyVerdicts(t *testing.T) {
 		t.Errorf("подпись diagnosis: %q / %q", resp.Problems[8].Diagnosis, resp.Problems[0].Diagnosis)
 	}
 }
+
+// QA r2 №4: упор в лимит, «уже решено» и оборванный разбор — разные подписи, не «закрыто: не решается правкой правил».
+func TestVerdictByNote(t *testing.T) {
+	run, now := uuid.New(), time.Now()
+	cases := []struct{ note, want string }{
+		{"лимит вызовов инструментов", verdictLimit},
+		{"лимит шагов запуска", verdictLimit},
+		{"дневной бюджет LLM исчерпан", verdictLimit},
+		{NoteAlreadySolved, verdictAnswers},
+		{noteUnfinished, verdictStopped},
+		{noteRepeatPrefix + " «Задача владельцу» (нет доказательства)", verdictStopped},
+		{"остановлено: context canceled", verdictStopped},
+		{"не о покупке ПО", verdictClosed},
+	}
+	for _, c := range cases {
+		rc := runCluster(run, now, "x", "investigated", "UNKNOWN", c.note, `[]`)
+		v, ok := verdictFor(&rc)
+		if !ok || v.Code != c.want || v.Label == "" || v.Note != c.note {
+			t.Errorf("%q: %+v, ждали %s", c.note, v, c.want)
+		}
+	}
+	if verdictLabels[verdictLimit] == verdictLabels[verdictClosed] || verdictLabels[verdictStopped] == verdictLabels[verdictClosed] {
+		t.Error("подписи исходов должны различаться")
+	}
+}

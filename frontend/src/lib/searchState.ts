@@ -13,6 +13,11 @@ import { parseFilters, serializeFilter } from './facets.ts'
 
 export const CONFIG_IDS: readonly ConfigId[] = ['live', 'B0', 'B1', 'B2', 'B3', 'B4']
 export const SEARCH_LIMIT = 20
+/**
+ * «Без группировки» карточка — вариант, а не семейство: просим максимум сервера (50, сдвига у API нет), чтобы
+ * «Показать ещё» докрывал варианты из заголовка без новых поисков.
+ */
+export const SEARCH_FLAT_LIMIT = 50
 export const GUEST_CLIENT_ID = 'guest'
 
 export interface SearchState {
@@ -127,9 +132,22 @@ export function serializeSearchState(state: SearchState): Record<string, string 
   return out
 }
 
-/** Новый текст запроса сбрасывает уточнения прошлого: снятые чипы, ответ на вопрос, «как введено». */
+/**
+ * Новый текст запроса сбрасывает уточнения прошлого: снятые чипы, ответ на вопрос, «как введено», фильтры, а
+ * также сортировку и группировку — новый запрос начинается с настроек по умолчанию.
+ */
 export function withQuery(state: SearchState, q: string): SearchState {
-  return { ...state, q: q.trim(), asTyped: false, removed: [], clarify: {}, filters: [] }
+  const next: SearchState = {
+    ...state,
+    q: q.trim(),
+    asTyped: false,
+    removed: [],
+    clarify: {},
+    filters: [],
+  }
+  delete next.sort
+  delete next.group
+  return next
 }
 
 export function withChipRemoved(state: SearchState, chip: ChipRef): SearchState {
@@ -171,7 +189,7 @@ export function buildSearchRequest(state: SearchState, ctx: RequestContext): Sea
     as_typed: state.asTyped,
     removed_chips: state.removed.map((c) => ({ field: c.field, value: c.value })),
     clarify: { ...state.clarify },
-    limit: ctx.limit ?? SEARCH_LIMIT,
+    limit: ctx.limit ?? (state.group === 'none' ? SEARCH_FLAT_LIMIT : SEARCH_LIMIT),
     // Контур коммерции: фасеты — только если выбраны, иначе тело запроса как в контуре поиска.
     ...(state.filters?.length ? { filters: state.filters.map((f) => ({ ...f })) } : {}),
     // Контур выдачи: сортировка и группировка — только не по умолчанию.

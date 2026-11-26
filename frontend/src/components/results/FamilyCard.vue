@@ -5,7 +5,7 @@
 // «Запросить цену» (цены нет). Раскрытие — таблица «редакция — срок — метрика и количество — цена» с действием
 // у каждой строки. Справа — скор, он же «почему здесь» (трасса). Рейтингов, рассрочки и избранного нет.
 import VendorLogo from '@/components/common/VendorLogo.vue'
-import { computed, ref } from 'vue'
+import { computed, nextTick, ref } from 'vue'
 import { Check, ChevronDown, ListPlus, Route } from 'lucide-vue-next'
 import type { Purchase, SearchItem, SearchItemBase } from '@/api/types'
 import CompatBadge from '@/components/search/CompatBadge.vue'
@@ -18,13 +18,14 @@ import {
   durationLabel,
   familyPriceLabel,
   type AttrCell,
+  type NamedAttrs,
 } from '@/lib/resultsView'
 
 const props = defineProps<{
   item: SearchItem
   position: number
   /** Атрибуты, названные в запросе (namedAttrs по чипам). */
-  named: ReadonlySet<string>
+  named: NamedAttrs | ReadonlySet<string>
   selected?: boolean
   inSpec: (productId: string) => boolean
   showCompat?: boolean
@@ -64,6 +65,21 @@ function toggle() {
   if (expanded.value) emit('expand', props.item, props.position)
 }
 
+const root = ref<HTMLElement | null>(null)
+
+/**
+ * В спецификацию (или «Запросить цену» — тоже кладёт позицию с ценой по запросу). Кнопка сменяется пометкой
+ * «В спецификации», фокус переходит на неё, а не в body.
+ */
+async function addToSpec(target: SearchItemBase, place: 'offer' | 'side' | 'row', price = false) {
+  if (price) emit('priceRequest', target, props.position)
+  else emit('spec', target, props.position)
+  await nextTick()
+  root.value
+    ?.querySelector<HTMLElement>(`[data-spec-done="${place}:${target.product_id}"]`)
+    ?.focus()
+}
+
 function rowQuantity(v: SearchItemBase): string {
   const a = v.attrs
   if (!a) return v.license_line || '—'
@@ -74,6 +90,7 @@ function rowQuantity(v: SearchItemBase): string {
 
 <template>
   <article
+    ref="root"
     :class="['fcard', { 'fcard--selected': selected }]"
     :aria-label="item.title"
     :data-product="item.product_id"
@@ -130,7 +147,13 @@ function rowQuantity(v: SearchItemBase): string {
           </p>
           <template v-if="!offerRepeatsSide">
             <p class="t-num">{{ offer.sum }}</p>
-            <span v-if="inSpec(item.product_id)" class="t-xs t-muted" role="status">
+            <span
+              v-if="inSpec(item.product_id)"
+              class="t-xs t-muted"
+              role="status"
+              tabindex="-1"
+              :data-spec-done="`offer:${item.product_id}`"
+            >
               В спецификации
             </span>
             <button
@@ -138,7 +161,7 @@ function rowQuantity(v: SearchItemBase): string {
               type="button"
               class="btn btn--primary btn--sm"
               data-testid="offer-spec"
-              @click="emit('spec', item, position)"
+              @click="addToSpec(item, 'offer')"
             >
               <ListPlus :size="14" aria-hidden="true" /> В спецификацию
             </button>
@@ -166,24 +189,28 @@ function rowQuantity(v: SearchItemBase): string {
           >
             Выбрать лицензию
           </button>
-          <template v-else-if="action === 'spec'">
-            <span v-if="inSpec(item.product_id)" class="btn btn--ghost btn--sm" role="status">
-              <Check :size="14" aria-hidden="true" /> В спецификации
-            </span>
-            <button
-              v-else
-              type="button"
-              class="btn btn--primary btn--sm"
-              @click="emit('spec', item, position)"
-            >
-              <ListPlus :size="14" aria-hidden="true" /> В спецификацию
-            </button>
-          </template>
+          <span
+            v-else-if="inSpec(item.product_id)"
+            class="btn btn--ghost btn--sm"
+            role="status"
+            tabindex="-1"
+            :data-spec-done="`side:${item.product_id}`"
+          >
+            <Check :size="14" aria-hidden="true" /> В спецификации
+          </span>
+          <button
+            v-else-if="action === 'spec'"
+            type="button"
+            class="btn btn--primary btn--sm"
+            @click="addToSpec(item, 'side')"
+          >
+            <ListPlus :size="14" aria-hidden="true" /> В спецификацию
+          </button>
           <button
             v-else
             type="button"
             class="btn btn--secondary btn--sm"
-            @click="emit('priceRequest', item, position)"
+            @click="addToSpec(item, 'side', true)"
           >
             Запросить цену
           </button>
@@ -259,24 +286,29 @@ function rowQuantity(v: SearchItemBase): string {
             <td data-label="Количество">{{ rowQuantity(v) }}</td>
             <td data-label="Цена" class="vtable__num t-num">{{ priceLabel(v) }}</td>
             <td class="vtable__act">
-              <template v-if="isPurchasable(v)">
-                <span v-if="inSpec(v.product_id)" class="t-xs t-muted">В спецификации</span>
-                <button
-                  v-else
-                  type="button"
-                  class="btn btn--secondary btn--sm"
-                  :aria-label="`В спецификацию: ${v.title}`"
-                  @click="emit('spec', v, position)"
-                >
-                  В спецификацию
-                </button>
-              </template>
+              <span
+                v-if="inSpec(v.product_id)"
+                class="t-xs t-muted"
+                tabindex="-1"
+                :data-spec-done="`row:${v.product_id}`"
+              >
+                В спецификации<span class="sr-only">: {{ v.title }}</span>
+              </span>
+              <button
+                v-else-if="isPurchasable(v)"
+                type="button"
+                class="btn btn--secondary btn--sm"
+                :aria-label="`В спецификацию: ${v.title}`"
+                @click="addToSpec(v, 'row')"
+              >
+                В спецификацию
+              </button>
               <button
                 v-else
                 type="button"
                 class="btn btn--ghost btn--sm"
                 :aria-label="`Запросить цену: ${v.title}`"
-                @click="emit('priceRequest', v, position)"
+                @click="addToSpec(v, 'row', true)"
               >
                 Запросить цену
               </button>

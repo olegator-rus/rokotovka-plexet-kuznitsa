@@ -17,13 +17,30 @@ export const SORT_LABELS: Record<ResultsSort, string> = {
 export const RECOMMENDED_NOTE =
   'Порядок учитывает соответствие запросу, доступность и коммерческие факторы; точные совпадения стоят первыми.'
 
-/** «По запросу "антивирус" — 7 продуктов · 32 варианта»; без счётчиков сервера — null (контур коммерции). */
-export function resultsHeading(resp: Pick<SearchResponse, 'query' | 'counts'>): string | null {
+/**
+ * «По запросу "антивирус" — 7 продуктов · 32 варианта»; без счётчиков сервера — null (контур коммерции). shown — сколько
+ * карточек-вариантов видно «Без группировки»: меньше, чем в заголовке, — «· показаны 20», чтобы число не обещало
+ * больше, чем на экране.
+ */
+export function resultsHeading(
+  resp: Pick<SearchResponse, 'query' | 'counts'>,
+  shown?: number,
+): string | null {
   const c = resp.counts
   if (!c) return null
   const products = `${formatInt(c.families)} ${plural(c.families, ['продукт', 'продукта', 'продуктов'])}`
   const variants = `${formatInt(c.variants)} ${plural(c.variants, ['вариант', 'варианта', 'вариантов'])}`
-  return `По запросу «${resp.query}» — ${products} · ${variants}`
+  const part = shown !== undefined && shown < c.variants ? ` · показаны ${formatInt(shown)}` : ''
+  return `По запросу «${resp.query}» — ${products} · ${variants}${part}`
+}
+
+/** «Без группировки» карточки открываются порциями: первая и каждая следующая по «Показать ещё». */
+export const FLAT_PAGE = 20
+
+/** Подпись «Показать ещё 13 вариантов»; 0 — кнопки нет. */
+export function showMoreLabel(rest: number): string {
+  const k = Math.min(rest, FLAT_PAGE)
+  return `Показать ещё ${formatInt(k)} ${plural(k, ['вариант', 'варианта', 'вариантов'])}`
 }
 
 /** Подписи ключей фильтров выдачи (как у фасетов сервера). */
@@ -119,13 +136,39 @@ const CHIP_ATTR: Record<string, string> = {
   origin: 'reestr',
 }
 
-export function namedAttrs(chips: readonly Pick<Chip, 'field'>[]): Set<string> {
-  const out = new Set<string>()
+type NamedChip = Pick<Chip, 'field'> & { value?: string }
+
+/** Атрибуты карточки, названные в запросе: ключ ячейки → чипы, которые его назвали (значение сверяется в attrCells). */
+export type NamedAttrs = ReadonlyMap<string, readonly NamedChip[]>
+
+export function namedAttrs(chips: readonly NamedChip[]): Map<string, NamedChip[]> {
+  const out = new Map<string, NamedChip[]>()
   for (const c of chips) {
     const a = CHIP_ATTR[c.field]
-    if (a) out.add(a)
+    if (a) out.set(a, [...(out.get(a) ?? []), c])
   }
   return out
+}
+
+/** Значение позиции совпадает с названным в запросе: «Срок 1 год» при «на 3 года» не выделяется. */
+function chipMatches(c: NamedChip, attrs: ItemAttrs): boolean {
+  if (c.value === undefined) return true
+  switch (c.field) {
+    case 'license_quantity':
+      return Number(c.value) === attrs.license_quantity
+    case 'license_metric':
+      return c.value === attrs.license_metric
+    case 'license_type':
+      return c.value === attrs.license_type
+    case 'renewal':
+      return (c.value === 'true') === (attrs.license_type === 'renewal')
+    case 'license_duration_months':
+      return Number(c.value) === attrs.duration_months
+    case 'origin':
+      return attrs.in_reestr
+    default:
+      return true
+  }
 }
 
 export function durationLabel(months: number | null): string {
@@ -141,7 +184,7 @@ export function durationLabel(months: number | null): string {
  * Строка атрибутов карточки ПО: редакция, тип (новая / продление), метрика и количество, срок, поставка,
  * реестр. Набор одинаков у всех карточек — отсутствующее значение прочерком, а не пропуском.
  */
-export function attrCells(attrs: ItemAttrs, named: ReadonlySet<string>): AttrCell[] {
+export function attrCells(attrs: ItemAttrs, named: NamedAttrs | ReadonlySet<string>): AttrCell[] {
   const dash = '—'
   let quantity = dash
   if (attrs.license_metric === 'org') quantity = 'На организацию'
@@ -176,7 +219,11 @@ export function attrCells(attrs: ItemAttrs, named: ReadonlySet<string>): AttrCel
       highlight: false,
     },
   ]
-  for (const c of cells) c.highlight = named.has(c.key) && c.value !== dash
+  for (const c of cells) {
+    if (!named.has(c.key) || c.value === dash) continue
+    const by = named instanceof Map ? (named.get(c.key) ?? []) : []
+    c.highlight = by.every((chip: NamedChip) => chipMatches(chip, attrs))
+  }
   return cells
 }
 

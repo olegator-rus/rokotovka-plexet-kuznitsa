@@ -31,7 +31,7 @@ import {
   triggerDetail,
   triggerLabel,
 } from '@/lib/agentRuns'
-import { formatCost, formatDateTime, formatInt, plural } from '@/lib/format'
+import { formatDateTime, formatInt, formatMoney, plural } from '@/lib/format'
 import type { ResourceStatus } from '@/composables/useResource'
 
 const props = defineProps<{
@@ -197,7 +197,7 @@ const nextSchedule = computed(() => {
               <span v-else class="t-muted" title="Запуск до контура автономии: план не записывался">—</span>
             </td>
             <td class="runs__outcome" data-testid="run-outcome">{{ outcomeLine(r) }}</td>
-            <td class="num">{{ formatCost(r.cost_rub) }}</td>
+            <td class="num">{{ formatMoney(r.cost_rub) }}</td>
             <td class="num">{{ formatRunDuration(runDurationMs(r)) }}</td>
           </tr>
         </tbody>

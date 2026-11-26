@@ -189,7 +189,7 @@ test('колонка состояния: вызовы в текущем клас
     runOutcomeLine(run({ clusters_done: 3, proposals_created: 2, tool_calls: 41 })),
     'Разобрано 3 из 5 кластеров · 2 предложения · 41 вызов инструментов',
   )
-  assert.equal(stopReasonLabel('step_limit'), 'достигнут лимит шагов')
+  assert.equal(stopReasonLabel('step_limit'), 'достигнут лимит вызовов инструментов на кластер')
   assert.equal(stopReasonLabel('что-то своё'), 'что-то своё')
   assert.equal(stopReasonLabel(null), null)
   assert.equal(formatDuration('2026-05-27T10:00:00Z', '2026-05-27T10:02:14Z'), '2 мин 14 с')

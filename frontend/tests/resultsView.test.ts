@@ -14,9 +14,11 @@ import {
   namedAttrs,
   refinementFilter,
   resultsHeading,
+  showMoreLabel,
   stableFacetOrder,
 } from '../src/lib/resultsView.ts'
 import {
+  SEARCH_FLAT_LIMIT,
   buildSearchRequest,
   emptyState,
   parseSearchQuery,
@@ -95,7 +97,7 @@ test('строка атрибутов: одинаковый набор, проч
     delivery: '',
     in_reestr: true,
   }
-  const cells = attrCells(attrs, namedAttrs([{ field: 'license_quantity' }]))
+  const cells = attrCells(attrs, namedAttrs([{ field: 'license_quantity', value: '100' }]))
   assert.deepEqual(
     cells.map((c) => c.key),
     ['edition', 'type', 'quantity', 'duration', 'delivery', 'reestr'],
@@ -163,11 +165,68 @@ test('сортировка и группировка: адрес ↔ состо�
   )
   assert.equal('sort' in plain, false)
   assert.equal('group' in plain, false)
-  // «Сбросить фильтры» — не новый запрос; новый запрос сбрасывает фильтры, но не сортировку.
+  // Новый запрос начинается с настроек по умолчанию: фильтры, сортировка и группировка сбрасываются (QA r2 №13).
   const next = withQuery(
     { ...s, filters: [{ key: 'vendor', op: 'eq', value: 'kaspersky' }] },
     'офис',
   )
   assert.deepEqual(next.filters, [])
-  assert.equal(next.sort, 'price_asc')
+  assert.equal(next.sort, undefined)
+  assert.equal(next.group, undefined)
+  assert.deepEqual(serializeSearchState(next), { q: 'офис' })
+})
+
+test('подсветка «названо в запросе» — только при совпадающем значении (QA r2 №9)', () => {
+  const attrs: ItemAttrs = {
+    edition: '',
+    license_type: 'subscription',
+    license_metric: 'user',
+    license_quantity: 1,
+    duration_months: 12,
+    delivery: '',
+    in_reestr: false,
+  }
+  const hl = (chips: { field: string; value: string }[]) =>
+    attrCells(attrs, namedAttrs(chips))
+      .filter((c) => c.highlight)
+      .map((c) => c.key)
+  // «на 3 года» — срок 1 год не выделяется; «на 1 год» — выделяется.
+  assert.deepEqual(hl([{ field: 'license_duration_months', value: '36' }]), [])
+  assert.deepEqual(hl([{ field: 'license_duration_months', value: '12' }]), ['duration'])
+  // «на 10 рабочих мест»: метрика совпала, количество нет — ячейка количества не выделяется.
+  const ten = [
+    { field: 'license_quantity', value: '10' },
+    { field: 'license_metric', value: 'user' },
+  ]
+  assert.deepEqual(hl(ten), [])
+  assert.deepEqual(hl([{ field: 'license_metric', value: 'user' }]), ['quantity'])
+  // «бессрочно» при подписке — тип не выделяется; продление — только у продления.
+  assert.deepEqual(hl([{ field: 'license_type', value: 'perpetual' }]), [])
+  assert.deepEqual(hl([{ field: 'license_type', value: 'subscription' }]), ['type'])
+  assert.deepEqual(hl([{ field: 'renewal', value: 'true' }]), [])
+  // Набор полей «Подходит под запрос» не зависит от значений.
+  assert.equal(namedAttrs(ten).size, 1)
+})
+
+test('«Без группировки»: честный заголовок и «Показать ещё» (QA r2 витрина №3)', () => {
+  const resp = { query: 'касперский', counts: { families: 6, variants: 33 } }
+  assert.equal(
+    resultsHeading(resp, 20),
+    'По запросу «касперский» — 6 продуктов · 33 варианта · показаны 20',
+  )
+  assert.equal(resultsHeading(resp, 33), 'По запросу «касперский» — 6 продуктов · 33 варианта')
+  assert.equal(resultsHeading(resp), 'По запросу «касперский» — 6 продуктов · 33 варианта')
+  assert.equal(showMoreLabel(13), 'Показать ещё 13 вариантов')
+  assert.equal(showMoreLabel(40), 'Показать ещё 20 вариантов')
+  assert.equal(showMoreLabel(1), 'Показать ещё 1 вариант')
+  const flat = buildSearchRequest(
+    { ...emptyState(), q: 'x', group: 'none' },
+    { sessionId: 's', defaultConfig: 'live' },
+  )
+  assert.equal(flat.limit, SEARCH_FLAT_LIMIT)
+  const fam = buildSearchRequest(
+    { ...emptyState(), q: 'x' },
+    { sessionId: 's', defaultConfig: 'live' },
+  )
+  assert.equal(fam.limit, 20)
 })

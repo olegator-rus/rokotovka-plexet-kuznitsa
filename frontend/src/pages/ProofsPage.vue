@@ -2,7 +2,14 @@
 // «Доказательства» («Навигация», S5): вкладки «До / После», «Вклад компонентов», «Стоимость».
 // Раздел открыт гостю (жюри): действия бэк-офиса внутри вкладок видит только сотрудник. Вкладка в адресе:
 // /proofs?tab=compare|contribution|cost; старые /compare и /costs ведут сюда (router).
-import { computed } from 'vue'
+import {
+  type ComponentPublicInstance,
+  computed,
+  nextTick,
+  onMounted,
+  useTemplateRef,
+  watch,
+} from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { TabsContent, TabsList, TabsRoot, TabsTrigger } from 'reka-ui'
 import CompareTab from '@/components/proofs/CompareTab.vue'
@@ -21,6 +28,21 @@ const tab = computed<Tab>({
   },
   set: (t) => void router.replace({ query: { tab: t } }),
 })
+
+// На узком экране список вкладок прокручивается: выбранная («Стоимость» по ссылке) видна целиком.
+const tabsList = useTemplateRef<ComponentPublicInstance>('tabsList')
+function revealActiveTab() {
+  const list = tabsList.value?.$el as HTMLElement | undefined
+  const active = list?.querySelector<HTMLElement>('[data-state="active"]')
+  if (!list || !active || list.scrollWidth <= list.clientWidth) return
+  const l = list.getBoundingClientRect()
+  const a = active.getBoundingClientRect()
+  const pad = 16
+  if (a.right > l.right) list.scrollLeft += a.right - l.right + pad
+  else if (a.left < l.left) list.scrollLeft -= l.left - a.left + pad
+}
+onMounted(revealActiveTab)
+watch(tab, () => void nextTick(revealActiveTab))
 </script>
 
 <template>
@@ -34,7 +56,7 @@ const tab = computed<Tab>({
     </header>
 
     <TabsRoot v-model="tab" class="proofs__tabs">
-      <TabsList class="tabs" aria-label="Разделы доказательств">
+      <TabsList ref="tabsList" class="tabs" aria-label="Разделы доказательств">
         <TabsTrigger value="compare" class="tabs__trigger">До / После</TabsTrigger>
         <TabsTrigger value="contribution" class="tabs__trigger">Вклад компонентов</TabsTrigger>
         <TabsTrigger value="cost" class="tabs__trigger">Стоимость</TabsTrigger>

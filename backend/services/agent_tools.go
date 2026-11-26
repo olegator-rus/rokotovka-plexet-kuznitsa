@@ -106,6 +106,10 @@ func jsonUnmarshal(b []byte, dst any) error {
 func (cr *clusterRun) call(ctx context.Context, call llm.ToolCall) string {
 	a, rs := cr.rc.a, cr.rc.rs
 	name := call.Function.Name
+	key := refusedKey(name, call.Function.Arguments)
+	if msg, ok := cr.refused[key]; ok {
+		return cr.repeatRefused(ctx, name, call.Function.Arguments, msg)
+	}
 	cr.toolCalls++
 	rs.mu.Lock()
 	rs.run.ToolCalls++
@@ -130,6 +134,11 @@ func (cr *clusterRun) call(ctx context.Context, call llm.ToolCall) string {
 		msg := "внутренняя ошибка инструмента"
 		if errors.As(err, &te) {
 			msg = te.msg
+			// Отказ по существу (не сбой): тот же вызов с теми же аргументами больше не выполняется.
+			if cr.refused == nil {
+				cr.refused = map[string]string{}
+			}
+			cr.refused[key] = msg
 		}
 		res = map[string]any{"error": msg}
 		st.Title = label + ": отказ — " + shortText(msg, 160)
@@ -143,6 +152,58 @@ func (cr *clusterRun) call(ctx context.Context, call llm.ToolCall) string {
 		a.step(ctx, rs, ps)
 	}
 	cr.pending = nil
+	return string(toJSON(res))
+}
+
+// maxRefusedRepeats — сколько раз модель может повторить уже отклонённый вызов (тот же инструмент, те же
+// аргументы), прежде чем кластер закроется с итогом «repeat» (QA r2 №2: 14 одинаковых отказов подряд).
+const maxRefusedRepeats = 2
+
+// OutcomeRepeat — итог кластера: модель повторяла отклонённый вызов, кластер закрыт без предложения.
+const OutcomeRepeat = "repeat"
+
+// refusedKey — инструмент и аргументы в каноническом виде (порядок ключей и пробелы не важны).
+func refusedKey(name, raw string) string {
+	var v any
+	if err := json.Unmarshal([]byte(raw), &v); err == nil {
+		if b, err := json.Marshal(v); err == nil {
+			return name + "\x00" + string(b)
+		}
+	}
+	return name + "\x00" + strings.TrimSpace(raw)
+}
+
+// repeatRefused — повтор отклонённого вызова: инструмент не выполняется, модели — что делать дальше; после
+// maxRefusedRepeats повторов кластер закрывается. Вызов не считается в лимит инструментов: он не выполнялся.
+func (cr *clusterRun) repeatRefused(ctx context.Context, name, raw, msg string) string {
+	a, rs := cr.rc.a, cr.rc.rs
+	cr.refusedRepeats++
+	label := toolTitles[name]
+	if label == "" {
+		label = name
+	}
+	id := cr.c.ID
+	tool := name
+	var args any = json.RawMessage(raw)
+	if !json.Valid([]byte(raw)) {
+		args = map[string]any{"raw": shortText(raw, 300)}
+	}
+	res := map[string]any{"error": "этот вызов с теми же аргументами уже отклонён: " + msg +
+		". Повтор не выполняется. Сделай другой шаг (другой инструмент или другие аргументы, например get_search_trace) " +
+		"или заверши кластер вызовом close_cluster.", "repeated": true}
+	title := fmt.Sprintf("%s: повтор отклонённого вызова с теми же аргументами — не выполняю (повтор %d из %d)",
+		label, cr.refusedRepeats, maxRefusedRepeats)
+	closing := cr.refusedRepeats >= maxRefusedRepeats
+	if closing {
+		res["error"] = "этот вызов уже отклонён: " + msg + ". Повторы исчерпаны — кластер закрыт без предложения."
+		title = fmt.Sprintf("%s: повтор отклонённого вызова (%d-й) — кластер закрыт без предложения", label, cr.refusedRepeats)
+	}
+	a.step(ctx, rs, &domain.AgentStep{Kind: domain.StepCheck, ClusterID: &id, Tool: &tool, OK: false,
+		Title: shortText(title, 300), Args: toJSON(args), Result: toJSON(res)})
+	if closing {
+		cr.finish(OutcomeRepeat, diagOr(cr.diagnosis), fmt.Sprintf("%s «%s» (%s)",
+			noteRepeatPrefix, label, shortText(msg, 160)))
+	}
 	return string(toJSON(res))
 }
 

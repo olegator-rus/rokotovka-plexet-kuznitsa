@@ -140,7 +140,7 @@ const columns = computed(() => [
       </button>
     </form>
 
-    <p v-if="summary" class="t-sm t-muted">
+    <p v-if="summary" class="t-sm t-muted oneq__summary">
       Общих позиций {{ summary.common }} · только в {{ left }}: {{ summary.onlyLeft }} · только в
       {{ right }}: {{ summary.onlyRight }}
     </p>
@@ -244,6 +244,9 @@ const columns = computed(() => [
   flex-direction: column;
   gap: var(--space-3);
 }
+.oneq__summary {
+  overflow-wrap: anywhere;
+}
 .oneq__form {
   display: flex;
   gap: var(--space-2);
@@ -264,6 +267,7 @@ const columns = computed(() => [
 .oneq__empty {
   padding: var(--space-4);
   color: var(--text-2);
+  overflow-wrap: anywhere;
 }
 .oneq__cols {
   display: grid;

@@ -16,7 +16,7 @@ import RouteBadge from '@/components/trace/RouteBadge.vue'
 import { useToast } from '@/components/ui/useToast'
 import { useResource } from '@/composables/useResource'
 import { isApiError } from '@/lib/apiError'
-import { agentRunCost } from '@/lib/costMonth'
+import { agentRunCost, runsInHint } from '@/lib/costMonth'
 import { formatCost, formatInt, formatMs, formatPercent, plural } from '@/lib/format'
 import { ROUTE_LABELS, isRoute } from '@/lib/trace'
 import { useAuthStore } from '@/stores/auth'
@@ -56,6 +56,21 @@ const monthAgentRun = computed(() => {
 const monthAgentNote = computed(() => {
   const p = monthParam('agent_run_cost_rub')
   return p && p.source === 'measured' ? p.hint.replace(/^Замер — /, '') : runCostNote.value
+})
+/** Плитка «Запуск агента» и строка «Агент» в «Месяце» — одна база: замер сервера по завершённым запускам. */
+const agentTileSub = computed(() => {
+  const p = monthParam('agent_run_cost_rub')
+  if (p && p.source === 'measured') {
+    const n = runsInHint(p.hint)
+    return n
+      ? `по ${formatInt(n)} ${plural(n, ['завершённому запуску', 'завершённым запускам', 'завершённым запускам'])}`
+      : 'по завершённым запускам'
+  }
+  if (runCost.value.full) return runCostNote.value
+  const all = summary.value?.agent_runs
+  return num(all)
+    ? `по ${formatInt(all)} ${plural(all, ['запуску', 'запускам', 'запускам'])}`
+    : undefined
 })
 const runCostNote = computed(() =>
   runCost.value.full
@@ -120,14 +135,14 @@ const tiles = computed(() => {
       key: 'avg',
       label: 'Средняя стоимость запроса',
       value: num(s.avg_cost_rub) ? formatCost(s.avg_cost_rub) : null,
-      sub: 'онлайн-LLM, без сервера',
+      sub: 'фактическое среднее, без сервера',
       missing: 'запросов ещё не было',
       journal: true,
       explain: () =>
         explain({
           title: 'Средняя стоимость поискового запроса',
           value: num(s.avg_cost_rub) ? formatCost(s.avg_cost_rub) : '—',
-          what: 'Сколько в среднем стоит онлайн-разбор запроса моделью. Сервер — в блоке «Месяц».',
+          what: 'Сколько в среднем стоит онлайн-разбор запроса моделью. Сервер — в блоке «Месяц». В «Месяце» LLM на запрос — прогноз по формуле (доля маршрута D × (1 − доля кэша) × стоимость разбора), поэтому число там чуть другое.',
           how: 'Сумма calculated_cost вызовов модели для поисков / число поисков. Запросы без LLM и из кэша входят с нулём.',
           rows: [requestsRow()],
         }),
@@ -166,27 +181,22 @@ const tiles = computed(() => {
     {
       key: 'agent',
       label: 'Запуск агента',
-      value: num(runCost.value.rub) ? formatCost(runCost.value.rub) : null,
-      sub: runCost.value.full
-        ? runCostNote.value
-        : num(s.agent_runs)
-          ? `по ${formatInt(s.agent_runs)} ${plural(s.agent_runs, ['запуску', 'запускам', 'запускам'])}`
-          : undefined,
+      value: num(monthAgentRun.value) ? formatCost(monthAgentRun.value) : null,
+      sub: agentTileSub.value,
       missing: 'агент SearchOps ещё не запускался',
       journal: true,
       explain: () =>
         explain({
           title: 'Стоимость одного запуска агента',
-          value: num(runCost.value.rub) ? formatCost(runCost.value.rub) : '—',
-          how: 'Сумма стоимости вызовов модели с agent_run_id по завершённым запускам, разобравшим хотя бы один кластер, / число таких запусков. Отладочные и прерванные запуски цифру не занижают.',
+          value: num(monthAgentRun.value) ? formatCost(monthAgentRun.value) : '—',
+          what: 'То же число стоит в «Месяце» в строке «Агент».',
+          how: 'Сумма стоимости вызовов модели с agent_run_id по завершённым запускам / число таких запусков. Отладочные и прерванные запуски цифру не занижают.',
           rows: [
-            ...(runCost.value.full
-              ? [{ label: 'Полных запусков', value: formatInt(runCost.value.full) }]
-              : []),
+            ...(monthAgentNote.value ? [{ label: 'База', value: monthAgentNote.value }] : []),
             ...(num(s.agent_runs)
               ? [
                   {
-                    label: `Все запуски в журнале (${formatInt(s.agent_runs)})`,
+                    label: `Все запуски в журнале (${formatInt(s.agent_runs)}), с прерванными`,
                     value: num(s.agent_run_avg_cost_rub)
                       ? `${formatCost(s.agent_run_avg_cost_rub)} в среднем`
                       : '—',

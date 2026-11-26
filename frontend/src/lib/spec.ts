@@ -3,7 +3,7 @@
 import type { Companion, QuoteOrigin, QuoteRequest } from '@/api/typesP2'
 import type { SearchItemBase } from '@/api/types'
 import { formatPrice, plural } from './format.ts'
-import { parsePurchase, type SpecPurchase } from './procurement.ts'
+import { parsePurchase, purchaseQuantity, type SpecPurchase } from './procurement.ts'
 
 export const SPEC_MAX_QTY = 100000
 
@@ -114,9 +114,22 @@ export function setQuantity(lines: readonly SpecLine[], productId: string, qty: 
 /** Пометка происхождения строки. */
 export function originLabel(line: Pick<SpecLine, 'origin' | 'companion_class'>): string {
   if (line.origin === 'template') return 'из шаблона'
-  if (line.origin === 'companion')
-    return line.companion_class === 'conditional_required' ? 'условно обязательное' : 'дополнение'
+  if (line.origin === 'companion') {
+    if (line.companion_class === 'conditional_required') return 'условно обязательное'
+    // Старшая редакция — замена базовой позиции, а не дополнение к ней.
+    if (line.companion_class === 'upgrade') return 'старшая редакция'
+    return 'дополнение'
+  }
   return 'из поиска'
+}
+
+/**
+ * К какой позиции добавлена строка («к «Сервер …»») или '' — у старшей редакции якоря нет: базовой позиции в
+ * спецификации может не быть, а ссылка на отсутствующую путает.
+ */
+export function anchorOf(line: Pick<SpecLine, 'anchor' | 'companion_class'>): string {
+  if (!line.anchor || line.companion_class === 'upgrade') return ''
+  return line.anchor
 }
 
 export interface SpecSummary {
@@ -161,7 +174,8 @@ export function specText(lines: readonly SpecLine[]): string {
   const rows = lines.map((l, i) => {
     const price = priceModeLabel(l)
     const lic = l.license_line ? ` (${l.license_line})` : ''
-    return `${i + 1}. ${l.title}${lic} × ${l.quantity} — ${price} — ${originLabel(l)}`
+    const anchor = anchorOf(l) ? ` к «${anchorOf(l)}»` : ''
+    return `${i + 1}. ${l.title}${lic} × ${l.quantity} — ${price} — ${originLabel(l)}${anchor}`
   })
   return ['Спецификация', ...rows, summarize(lines).text].join('\n')
 }
@@ -223,17 +237,17 @@ export function parseStored(raw: string | null): SpecLine[] {
 }
 
 /**
- * Количество для позиции из выдачи: число из запроса («на 50 пользователей») — только если лицензия
- * считается поштучно на пользователя или устройство («1 пользователь», «1 устройство»); серверная лицензия
- * на ядра или пакет получает 1 — покупатель поправит в панели.
+ * Количество для позиции из выдачи по числу из запроса («на 50 пользователей», чипы license_quantity и
+ * license_metric): поштучная лицензия — само число, пакет на N мест той же метрики — ceil(число / N), серверная
+ * лицензия на ядра — 1 (покупатель поправит в панели). Правило одно с «Выбрано по запросу» (purchaseQuantity).
  */
 export function quantityForItem(
-  item: Pick<SearchItemBase, 'license_line'>,
+  item: Pick<SearchItemBase, 'license_line' | 'attrs'>,
   chips: readonly { field: string; value: string }[],
 ): number {
   const chip = chips.find((c) => c.field === 'license_quantity')
   const n = chip ? Number(chip.value) : NaN
   if (!Number.isFinite(n) || n <= 0) return 1
-  const perUnit = /(^|[\s·])1\s+(пользовател|устройств|пк|рабоч|компьютер|место)/i
-  return perUnit.test(item.license_line ?? '') ? clampQty(n) : 1
+  const metric = chips.find((c) => c.field === 'license_metric')?.value
+  return clampQty(purchaseQuantity(item, n, metric))
 }

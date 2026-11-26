@@ -4,7 +4,7 @@
 // «Скопировать спецификацию». Пусто — «Добавьте позиции из поиска»; ошибка запроса — позиции сохранены,
 // «Повторить». Сумму не считает сервер — фронт складывает только известные цены из выдачи. Гость оставляет контакт для
 // ответа (покупатель и сотрудник известны по входу).
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import {
   DialogClose,
@@ -28,7 +28,7 @@ import VendorLogo from '@/components/common/VendorLogo.vue'
 import SpecCompanions from '@/components/spec/SpecCompanions.vue'
 import { useToast } from '@/components/ui/useToast'
 import { formatPrice } from '@/lib/format'
-import { hasKnownPrice, originLabel, priceModeLabel, specText } from '@/lib/spec'
+import { anchorOf, hasKnownPrice, originLabel, priceModeLabel, specText } from '@/lib/spec'
 import { purchaseNote } from '@/lib/procurement'
 import { useSpecStore } from '@/stores/spec'
 import { useAuthStore } from '@/stores/auth'
@@ -56,6 +56,13 @@ function requestQuote() {
   void spec.sendQuote()
 }
 const toast = useToast()
+// На узком экране тост встаёт поверх первой строки панели: открытая спецификация уже показывает добавленное.
+watch(
+  () => spec.open,
+  (open) => {
+    if (open) toast.dismissAll()
+  },
+)
 const route = useRoute()
 const router = useRouter()
 
@@ -156,7 +163,7 @@ function startOver() {
                     </p>
                     <p class="t-xs spec-line__origin">
                       <span class="badge">{{ originLabel(l) }}</span>
-                      <span v-if="l.anchor" class="t-muted"> к «{{ l.anchor }}»</span>
+                      <span v-if="anchorOf(l)" class="t-muted"> к «{{ anchorOf(l) }}»</span>
                     </p>
                     <p v-if="l.purchase" class="t-xs t-muted" data-testid="spec-purchase">
                       {{ purchaseNote(l.purchase) }}
@@ -516,6 +523,9 @@ function startOver() {
   font-size: var(--fs-h2);
   line-height: var(--lh-h2);
   font-weight: var(--fw-bold);
+  /* t-num не переносит строку, а итог длинный («… · известная часть от 119 990 ₽», 11-значная сумма). */
+  white-space: normal;
+  overflow-wrap: anywhere;
 }
 .spec-sheet__contact {
   display: flex;

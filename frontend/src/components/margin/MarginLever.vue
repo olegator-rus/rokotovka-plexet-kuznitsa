@@ -59,9 +59,15 @@ const atStop = computed(() => {
       >
         <span class="t-num">{{ weightLabel(p) }}</span>
         <Lock v-if="isLocked(p)" :size="12" aria-hidden="true" />
-        <span v-if="p === active" class="lever__now t-xs">действует</span>
+        <span v-if="p === active" class="lever__now t-xs"
+          ><span class="lever__now-text">действует</span></span
+        >
       </ToggleGroupItem>
     </ToggleGroupRoot>
+    <!-- Узкий экран: в кнопке не помещается слово — точка в кнопке и строка-расшифровка. -->
+    <p class="lever__now-line t-xs t-muted" aria-hidden="true">
+      <span class="lever__dot" /> действует вес {{ weightLabel(active) }}
+    </p>
     <div class="lever__scale t-xs t-muted" aria-hidden="true">
       <span>только соответствие</span><span>больше маржи</span>
     </div>
@@ -127,9 +133,31 @@ const atStop = computed(() => {
 .lever__now {
   line-height: 1;
 }
+.lever__now-line {
+  display: none;
+  align-items: center;
+  gap: var(--space-1);
+}
+.lever__dot {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+}
 @media (max-width: 479px) {
-  .lever__now {
+  .lever__now-text {
     display: none;
+  }
+  .lever__now {
+    display: block;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: currentColor;
+  }
+  .lever__now-line {
+    display: flex;
   }
 }
 .lever__scale {

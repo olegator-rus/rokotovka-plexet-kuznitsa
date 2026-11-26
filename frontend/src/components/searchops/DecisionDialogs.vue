@@ -13,7 +13,7 @@ import { isApiError, MSG_UNKNOWN } from '@/lib/apiError'
 import { REJECT_REASONS, isTicket } from '@/lib/proposals'
 import { buildEvent } from '@/lib/events'
 import { causeView } from '@/lib/causes'
-import { isRelationPatch, relationIds } from '@/lib/relationProposal'
+import { isRelationPatch, proposalSubject, relationIds } from '@/lib/relationProposal'
 import { useAppStore } from '@/stores/app'
 
 const props = defineProps<{
@@ -128,10 +128,16 @@ async function reject() {
 <template>
   <UiDialog
     v-model:open="acceptOpen"
-    :title="ticket ? 'Отправить задачу владельцу?' : 'Утвердить правку поиска?'"
+    :title="
+      ticket
+        ? 'Отправить задачу владельцу?'
+        : relation
+          ? 'Утвердить правку справочника связей?'
+          : 'Утвердить правку поиска?'
+    "
   >
     <div class="decision">
-      <p v-if="target">Кластер «{{ target.proposal.cluster?.label }}».</p>
+      <p v-if="target">{{ proposalSubject(target.proposal) }}.</p>
       <p v-if="ticket">
         Правила поиска не меняются: задача уйдёт владельцу причины — {{ cause?.owner }}.
       </p>
@@ -172,8 +178,8 @@ async function reject() {
   <UiDialog v-model:open="rejectOpen" title="Отклонить предложение?">
     <form id="reject-form" class="decision" @submit.prevent="reject">
       <p v-if="target">
-        Кластер «{{ target.proposal.cluster?.label }}». Причина уйдёт в память агента: похожее он
-        больше не предложит.
+        {{ proposalSubject(target.proposal) }}. Причина уйдёт в память агента: похожее он больше не
+        предложит.
       </p>
       <ToggleGroupRoot
         v-model="reason"

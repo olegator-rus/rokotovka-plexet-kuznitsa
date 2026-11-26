@@ -56,7 +56,7 @@ interface Row {
   causeId: string
   owner: string
   code: string
-  status: { label: string; tone: string | null }
+  status: { label: string; tone: string | null; note?: string }
 }
 
 function statusOf(p: ProblemQuery): Row['status'] {
@@ -64,7 +64,15 @@ function statusOf(p: ProblemQuery): Row['status'] {
     const s = proposalStatus(p.proposal_status)
     return { label: s.label, tone: s.tone }
   }
-  if (p.agent && p.agent.code !== 'unseen') return { label: p.agent.label, tone: null }
+  if (p.agent && p.agent.code !== 'unseen') {
+    // Заметка агента различает исходы под одной подписью: упор в лимит, «поиск уже отвечает», отказ модели.
+    const note = (p.agent.note ?? '').trim()
+    return {
+      label: p.agent.label,
+      tone: null,
+      note: note && note !== p.agent.label ? note : undefined,
+    }
+  }
   return { label: 'не разобран', tone: null }
 }
 
@@ -205,6 +213,9 @@ const { analyse, busy } = useAnalyseQuery()
                 >{{ r.status.label }}</RouterLink
               >
               <span v-else class="t-sm t-muted">{{ r.status.label }}</span>
+              <span v-if="r.status.note" class="failed__note t-xs t-muted">{{
+                r.status.note
+              }}</span>
             </td>
             <td class="failed__act">
               <button
@@ -263,6 +274,11 @@ const { analyse, busy } = useAnalyseQuery()
 }
 .failed__table td:first-child {
   min-width: 11rem;
+}
+.failed__note {
+  display: block;
+  margin-top: 2px;
+  max-width: 28ch;
 }
 .failed__act {
   text-align: right;

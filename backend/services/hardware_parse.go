@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 	"unicode"
+	"unicode/utf8"
 
 	"kuznica/api/domain"
 	"kuznica/api/in"
@@ -386,8 +387,8 @@ func (p *hwPlan) parse(nr normResult, attrs *queryAttrs) {
 					continue
 				}
 			}
-			if v := p.lx.vendorPhrases[at(i+1)]; v != "" {
-				p.vendorNot = append(p.vendorNot, v)
+			if vs := p.lx.matchVendors([]string{at(i + 1)}, nil); len(vs) == 1 {
+				p.vendorNot = append(p.vendorNot, vs[0])
 				p.negations = append(p.negations, t+" "+at(i+1))
 				consume(i, i+2)
 				i++
@@ -509,7 +510,12 @@ func (p *hwPlan) parse(nr normResult, attrs *queryAttrs) {
 			continue
 		}
 		// Голое число в категории: если такое значение есть ровно у одной характеристики категории.
-		if hwCat != "" && !glued && !nt.isRange && !licensed[i] {
+		// После числа — незнакомое слово («2 процессора», «3 ква»): это единица, которой нет в словаре, а не
+		// голое число; иначе «2» станет высотой 2U.
+		nx := at(i + nt.span)
+		unknownUnit := nx != "" && strings.IndexFunc(nx, unicode.IsLetter) >= 0 && !lexStopWords[nx] &&
+			p.hx.categoryOfWord(nx) == "" && len(p.lx.matchVendors([]string{nx}, nil)) == 0
+		if hwCat != "" && !glued && !nt.isRange && !licensed[i] && !unknownUnit {
 			var keys []string
 			for _, k := range p.hx.catAttrs[hwCat] {
 				if p.hx.attrs[k].typ != "number" {
@@ -542,12 +548,20 @@ func (p *hwPlan) parse(nr normResult, attrs *queryAttrs) {
 			if s := enumSynonyms[w]; s != "" {
 				w = s
 			}
+			neg := i > 0 && negWords[tokens[i-1]] && !p.consumed[i-1]
 			for _, ref := range p.hx.enums[w] {
 				if seen[ref.key] || hwCat != "" && !contains(p.hx.catAttrs[hwCat], ref.key) {
 					continue
 				}
 				seen[ref.key] = true
-				conds = append(conds, hwCond{Key: ref.key, Op: "eq", Str: ref.value, Text: t, Source: "query", typ: "enum"})
+				if neg {
+					// «без poe», «не ssd»: значение исключено; слово не идёт в поиск, иначе поднимет то, что исключили.
+					conds = append(conds, hwCond{Key: ref.key, Op: "not", Str: ref.value, Text: tokens[i-1] + " " + t, Source: "query", typ: "enum"})
+					p.negations = append(p.negations, tokens[i-1]+" "+t)
+					consume(i-1, i+1)
+				} else {
+					conds = append(conds, hwCond{Key: ref.key, Op: "eq", Str: ref.value, Text: t, Source: "query", typ: "enum"})
+				}
 				evidence = true
 			}
 		}
@@ -563,7 +577,7 @@ func (p *hwPlan) parse(nr normResult, attrs *queryAttrs) {
 	}
 	multiCat := len(distinct) > 1
 	p.multiCat = multiCat
-	if bestRun != nil && !hasSoftware && !multiCat && (!bestRun.weak || evidence) {
+	if bestRun != nil && !hasSoftware && !multiCat && (!bestRun.weak || evidence || p.weakAlone(tokens, named, attrs, bestRun.start)) {
 		p.category = bestRun.cat
 	}
 
@@ -769,4 +783,47 @@ func (p *hwPlan) applyRemoved(rs []in.RemovedChip) {
 			p.dropCond(r.Field)
 		}
 	}
+}
+
+// softwareContext — слова, с которыми «сервер» — это лицензия или ПО, а не железо.
+var softwareContext = []string{"лиценз", "ос", "операцион", "cal", "кал", "субд", "1с", "windows", "винд", "linux",
+	"линукс", "sql", "терминал", "rds", "почтов", "антивирус", "защит", "бэкап", "резерв", "программ", "софт",
+	"виртуал", "гипервиз", "ядр", "клиент", "доступ"}
+
+// weakAlone — слабое слово («сервер», «серверы dell», «отечественный сервер») без ПО рядом: запрос про железо.
+// «сервер 1с», «лицензия на сервер», «windows server» — ПО: там рядом семейство, слово ПО или метрика лицензии.
+func (p *hwPlan) weakAlone(tokens, named []string, attrs *queryAttrs, at int) bool {
+	if attrs != nil && attrs.consumed[at] {
+		return false // «на сервер» — метрика лицензии
+	}
+	if !strings.HasPrefix(tokens[at], "сервер") && !strings.HasPrefix(tokens[at], "server") {
+		return false // «память» без признака — и оперативка ноутбука, и модуль сервера: решает разбор дальше
+	}
+	for _, t := range tokens {
+		for _, w := range softwareContext {
+			if t == w || utf8.RuneCountInString(w) > 2 && strings.HasPrefix(t, w) {
+				return false
+			}
+		}
+	}
+	if c, _ := p.lx.categoryOf(named); c != "" && !p.hx.hwCats[c] {
+		return false
+	}
+	// Незнакомое слово рядом («скуль сервер 2022», «эскуэль сервер») — скорее название программы, чем железо.
+	for _, t := range named {
+		if utf8.RuneCountInString(t) > 2 && !lexStopWords[t] && !lexServiceWords[t] && !plainAdjective(t) && !knownWord(t, p.lx, nil) {
+			return false
+		}
+	}
+	return true
+}
+
+// plainAdjective — общие слова оценки («новый», «мощный», «недорогой»): не название программы.
+func plainAdjective(t string) bool {
+	for _, st := range []string{"нов", "мощн", "недорог", "дешев", "дешёв", "хорош", "надежн", "надёжн", "быстр", "простой", "бу", "б/у", "современ"} {
+		if strings.HasPrefix(t, st) {
+			return true
+		}
+	}
+	return false
 }

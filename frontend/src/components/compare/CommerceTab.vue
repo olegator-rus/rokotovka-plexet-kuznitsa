@@ -30,6 +30,11 @@ const res = useResource((opts) => getCommerceEval(opts))
 void res.load()
 
 const data = computed(() => res.data.value)
+/** «: 120 запросов» сразу за именем набора, без пробела перед двоеточием. */
+const setSize = computed(() => {
+  const n = data.value?.queries
+  return n ? `: ${formatInt(n)} ${plural(n, ['запрос', 'запроса', 'запросов'])}` : ''
+})
 const ladder = computed(() => sortLadder(data.value?.ladder ?? []))
 const cols = computed(() => ladderColumns(ladder.value))
 const ready = (r: (typeof ladder.value)[number]) => ladderReady(r, data.value?.ready)
@@ -111,10 +116,7 @@ function explainMetric(key: CommerceMetricKey) {
     <template v-else-if="data">
       <div class="com__lead">
         <p class="t-sm">
-          Набор <strong>{{ data.set ?? 'p2' }}</strong><template v-if="data.queries">
-            : {{ formatInt(data.queries) }}
-            {{ plural(data.queries, ['запрос', 'запроса', 'запросов']) }}</template
-          >
+          Набор <strong>{{ data.set ?? 'p2' }}</strong>{{ setSize }}
           — лицензии, парт-номера, характеристики, совместимость, комплекты и негативные примеры.
           Каждая ступень добавляет один компонент.
         </p>

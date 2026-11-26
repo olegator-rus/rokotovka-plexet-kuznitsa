@@ -184,7 +184,7 @@ func TestReestrStates(t *testing.T) {
 		t.Errorf("label %q", got)
 	}
 	resp := &out.SearchResponse{Items: []out.SearchItem{{FamilyID: "myoffice"}, {FamilyID: "r7"}}, Total: 2}
-	s.applyReestr(lx, resp, true)
+	s.applyReestr(lx, resp, true, true)
 	if len(resp.Items) != 1 || resp.Items[0].FamilyID != "myoffice" || len(resp.ReestrUnconfirmed) != 1 || resp.Total != 1 {
 		t.Fatalf("из реестра: items %+v, unconfirmed %+v, total %d", resp.Items, resp.ReestrUnconfirmed, resp.Total)
 	}

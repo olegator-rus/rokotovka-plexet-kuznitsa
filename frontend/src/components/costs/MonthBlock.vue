@@ -2,10 +2,16 @@
 // Блок «Месяц»: два сценария объёма. LLM и агент — из замеров сервера, сервер и число
 // исследований агента — допущения, их можно поправить прямо здесь (пометка «допущение»).
 // Без замера строка честно пустая, итог помечен «без …».
-import { computed, reactive } from 'vue'
+import { computed, reactive, watch } from 'vue'
 import type { Explanation } from '@/components/common/ExplainDialog.vue'
-import { monthScenario, parseRubInput } from '@/lib/costMonth'
-import { formatCost, formatInt, formatRub } from '@/lib/format'
+import {
+  AGENT_RUNS_MAX,
+  SERVER_RUB_MAX,
+  type AssumptionParse,
+  monthScenario,
+  parseAssumption,
+} from '@/lib/costMonth'
+import { formatCost, formatInt, formatRub, plural } from '@/lib/format'
 
 const props = defineProps<{
   llmPerRequestRub: number | null
@@ -18,11 +24,14 @@ const emit = defineEmits<{ explain: [e: Explanation] }>()
 
 // Допущения по умолчанию — docs/COSTS.md: сервер 4 vCPU / 16 ГБ ≈ 7 500 ₽ при 20 тыс. запросов и
 // 8 vCPU / 32 ГБ ≈ 15 000 ₽ при 200 тыс.; запусков агента — раз в день (30) и 4 раза в день (120).
+// serverOk / runsOk — последнее верное значение поля: мусор в поле итог не пересчитывает.
 const scenarios = reactive([
   {
     requests: 20_000,
     server: '7 500',
     runs: '30',
+    serverOk: 7500,
+    runsOk: 30,
     serverNote: '4 vCPU / 16 ГБ',
     runsNote: 'раз в день',
   },
@@ -30,26 +39,58 @@ const scenarios = reactive([
     requests: 200_000,
     server: '15 000',
     runs: '120',
+    serverOk: 15_000,
+    runsOk: 120,
     serverNote: '8 vCPU / 32 ГБ',
     runsNote: '4 раза в день',
   },
 ])
 
+const parsed = computed(() =>
+  scenarios.map((s) => ({
+    server: parseAssumption(s.server, { max: SERVER_RUB_MAX, unit: '₽' }),
+    runs: parseAssumption(s.runs, { max: AGENT_RUNS_MAX, integer: true }),
+  })),
+)
+watch(parsed, (list) =>
+  list.forEach((p, i) => {
+    const s = scenarios[i]
+    if (!s) return
+    if (p.server.ok) s.serverOk = p.server.value
+    if (p.runs.ok) s.runsOk = p.runs.value
+  }),
+)
+const valueOr = (p: AssumptionParse | undefined, last: number) => (p?.ok ? p.value : last)
+const errorOf = (p: AssumptionParse | undefined) => (p && !p.ok ? p.error : null)
+
+/** Значения, по которым считается сценарий: верный ввод или последнее верное. */
+const used = computed(() =>
+  scenarios.map((s, i) => ({
+    server: valueOr(parsed.value[i]?.server, s.serverOk),
+    runs: valueOr(parsed.value[i]?.runs, s.runsOk),
+    stale: !parsed.value[i]?.server.ok || !parsed.value[i]?.runs.ok,
+  })),
+)
+
 const results = computed(() =>
-  scenarios.map((s) =>
+  scenarios.map((s, i) =>
     monthScenario({
       requests: s.requests,
-      serverRub: parseRubInput(s.server) ?? 0,
+      serverRub: used.value[i]?.server ?? 0,
       llmPerRequestRub: props.llmPerRequestRub,
       agentRunRub: props.agentRunRub,
-      agentRuns: parseRubInput(s.runs) ?? 0,
+      agentRuns: used.value[i]?.runs ?? 0,
     }),
   ),
 )
 
+const runsLabel = (n: number) => `${formatInt(n)} ${plural(n, ['запуск', 'запуска', 'запусков'])}`
+
 function explainTotal(i: number) {
   const s = scenarios[i]
   const r = results.value[i]
+  const u = used.value[i]
+  if (!s || !r || !u) return
   emit('explain', {
     title: `Месяц при ${formatInt(s.requests)} запросов`,
     value: formatRub(r.total),
@@ -64,14 +105,17 @@ function explainTotal(i: number) {
             : `${formatCost(props.llmPerRequestRub ?? 0)} × ${formatInt(s.requests)} = ${formatRub(r.llm)}`,
       },
       {
-        label: `Агент, ${s.runs} запусков (допущение: ${s.runsNote})`,
+        label: `Агент, ${runsLabel(u.runs)} (допущение: ${s.runsNote})`,
         value:
           r.agent === null
             ? 'нет замера'
-            : `${formatCost(props.agentRunRub ?? 0)} × ${s.runs} = ${formatRub(r.agent)}`,
+            : `${formatCost(props.agentRunRub ?? 0)} × ${formatInt(u.runs)} = ${formatRub(r.agent)}`,
       },
       ...(props.agentRunNote ? [{ label: 'Стоимость запуска', value: props.agentRunNote }] : []),
       { label: 'На запрос', value: r.perRequest === null ? '—' : formatCost(r.perRequest) },
+      ...(u.stale
+        ? [{ label: 'В поле ошибка', value: 'посчитано по последнему верному значению' }]
+        : []),
     ],
     source: `GET /api/costs · прайс ${props.pricingVersion}`,
   })
@@ -107,8 +151,19 @@ function explainTotal(i: number) {
                     inputmode="decimal"
                     class="month__input"
                     :aria-label="`Сервер в месяц, рублей, при ${formatInt(s.requests)} запросов`"
+                    :aria-invalid="errorOf(parsed[i]?.server) ? 'true' : undefined"
+                    :aria-describedby="
+                      errorOf(parsed[i]?.server) ? `month-server-err-${i}` : undefined
+                    "
                   />
                   <span aria-hidden="true">₽</span>
+                </span>
+                <span
+                  v-if="errorOf(parsed[i]?.server)"
+                  :id="`month-server-err-${i}`"
+                  class="month__error t-xs"
+                >
+                  {{ errorOf(parsed[i]?.server) }}
                 </span>
                 <span class="t-xs t-muted">{{ s.serverNote }}</span>
               </div>
@@ -116,7 +171,13 @@ function explainTotal(i: number) {
           </tr>
           <tr>
             <th scope="row">
-              <span class="month__row">Онлайн-LLM <span class="t-xs t-muted">замер</span></span>
+              <span class="month__row">
+                Онлайн-LLM <span class="t-xs t-muted">замер</span>
+                <span v-if="llmPerRequestRub !== null" class="t-xs t-muted">
+                  {{ formatCost(llmPerRequestRub) }} на запрос по формуле (доли D и кэша), в плитке
+                  — фактическое среднее
+                </span>
+              </span>
             </th>
             <td v-for="(r, i) in results" :key="i" class="num">
               <span :class="{ 't-muted': r.llm === null }">
@@ -147,8 +208,17 @@ function explainTotal(i: number) {
                     inputmode="numeric"
                     class="month__input month__input--sm"
                     :aria-label="`Запусков агента в месяц при ${formatInt(scenarios[i].requests)} запросов, допущение`"
+                    :aria-invalid="errorOf(parsed[i]?.runs) ? 'true' : undefined"
+                    :aria-describedby="errorOf(parsed[i]?.runs) ? `month-runs-err-${i}` : undefined"
                   />
                   <span class="t-xs t-muted" aria-hidden="true">запусков</span>
+                </span>
+                <span
+                  v-if="errorOf(parsed[i]?.runs)"
+                  :id="`month-runs-err-${i}`"
+                  class="month__error t-xs"
+                >
+                  {{ errorOf(parsed[i]?.runs) }}
                 </span>
                 <span class="t-xs t-muted">{{ scenarios[i].runsNote }}</span>
               </div>
@@ -167,6 +237,7 @@ function explainTotal(i: number) {
                   {{ formatRub(r.total) }}
                 </button>
                 <span v-if="r.partial" class="t-xs t-muted">без строк «нет замера»</span>
+                <span v-if="used[i]?.stale" class="t-xs t-muted"> по прежним значениям </span>
               </div>
             </td>
           </tr>
@@ -234,6 +305,15 @@ function explainTotal(i: number) {
 }
 .month__input--sm {
   width: 4.5rem;
+}
+.month__input[aria-invalid='true'] {
+  border-color: var(--danger);
+  box-shadow: inset 0 0 0 1px var(--danger);
+}
+.month__error {
+  max-width: 11rem;
+  color: var(--danger);
+  text-align: right;
 }
 .month__total th,
 .month__total td {

@@ -26,7 +26,6 @@ defineProps<{ trace: Trace }>()
       <dt>Разбор</dt>
       <dd>
         {{ parseSourceLabel(trace.parse_source) }}
-        <span class="t-mono t-muted">{{ trace.parse_source }}</span>
         <span v-if="intentFallback(trace)" class="t-xs t-muted trace-summary__why">
           {{ intentFallback(trace) }}
         </span>

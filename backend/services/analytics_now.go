@@ -34,6 +34,8 @@ const (
 	verdictProposal = "proposal"
 	verdictAnswers  = "answers"
 	verdictClosed   = "closed"
+	verdictLimit    = "limit"
+	verdictStopped  = "stopped"
 	verdictNoOffer  = "no_offer"
 	verdictEarlier  = "earlier"
 	verdictQueued   = "queued"
@@ -45,6 +47,8 @@ var verdictLabels = map[string]string{
 	verdictProposal: "есть предложение агента",
 	verdictAnswers:  "поиск уже отвечает",
 	verdictClosed:   "закрыто: не решается правкой правил",
+	verdictLimit:    "не доразобрано: агент упёрся в лимит",
+	verdictStopped:  "не доразобрано: агент не дошёл до итога",
 	verdictNoOffer:  "спрос без предложения",
 	verdictEarlier:  "разобран раньше (память агента)",
 	verdictQueued:   "агент видел, но не дошёл",
@@ -68,6 +72,12 @@ func verdictFor(c *repositories.RunCluster) (out.AgentVerdict, bool) {
 		v.Code = verdictAnswers
 	case c.Status == "investigated" && (c.Diagnosis == "ASSORTMENT_GAP" || c.Diagnosis == "SUBSTITUTE_AVAILABLE"):
 		v.Code = verdictNoOffer
+	case c.Status == "investigated" && c.Note == NoteAlreadySolved:
+		v.Code = verdictAnswers
+	case c.Status == "investigated" && noteIsLimit(c.Note):
+		v.Code = verdictLimit
+	case c.Status == "investigated" && noteIsStopped(c.Note):
+		v.Code = verdictStopped
 	case c.Status == "investigated":
 		v.Code = verdictClosed
 	default:
@@ -75,6 +85,27 @@ func verdictFor(c *repositories.RunCluster) (out.AgentVerdict, bool) {
 		return withLabel(v), false
 	}
 	return withLabel(v), true
+}
+
+// noteIsLimit — кластер закрыт упором в лимит (вызовов на кластер, бюджет запуска, дневной бюджет LLM): итог
+// кластера (outcome) в issue_clusters не хранится, его выдаёт заметка, которую пишет цикл агента (agent_loop.go).
+func noteIsLimit(note string) bool {
+	if note == "лимит вызовов инструментов" || note == "дневной бюджет LLM исчерпан" {
+		return true
+	}
+	for _, l := range budgetLabels {
+		if note == l+" запуска" {
+			return true
+		}
+	}
+	return false
+}
+
+// noteIsStopped — разбор оборвался без итога: модель не вызвала завершающий инструмент, сбой модели, отмена,
+// повтор отклонённого вызова.
+func noteIsStopped(note string) bool {
+	return note == noteUnfinished || note == "сбой модели" || strings.HasPrefix(note, "остановлено:") ||
+		strings.HasPrefix(note, noteRepeatPrefix)
 }
 
 func withLabel(v out.AgentVerdict) out.AgentVerdict {

@@ -223,6 +223,10 @@ type relationChain struct {
 	Max      int
 	Stale    bool
 	Versions []domain.ConfigVersion // не архивные версии этой цепочки, новые сверху
+	// Reimported — каталог той же версии переимпортирован с другими связями (QA r2 №3): цепочка остаётся живой,
+	// новые связи каталога ждут записи версией import поверх неё (ReloadRelations); Prev — связи последней версии.
+	Reimported bool
+	Prev       []relationDoc
 }
 
 // relationsBaseline — связи каталога как импортированы: из базы, иначе из источника.
@@ -276,9 +280,7 @@ func (s *Services) relationChain(ctx context.Context) (*relationChain, error) {
 		return ch, nil
 	}
 	first := live[len(live)-1]
-	var fb relationsBody
-	_ = json.Unmarshal(first.Rules, &fb)
-	if first.CatalogVersion != cv || relationsFingerprint(fb.Relations) != relationsFingerprint(base) {
+	if first.CatalogVersion != cv {
 		ch.Stale = true
 		return ch, nil
 	}
@@ -286,8 +288,40 @@ func (s *Services) relationChain(ctx context.Context) (*relationChain, error) {
 	if err := json.Unmarshal(live[0].Rules, &ab); err != nil {
 		return nil, fmt.Errorf("версия связей %d не разбирается: %w", live[0].Version, err)
 	}
+	// Связи каталога сверяются с последним импортом цепочки, а не с первой версией: переимпорт того же каталога
+	// с другими связями (mock-2 с новыми связями) — новая версия import поверх цепочки, а не потеря истории.
+	imp := first
+	for _, v := range live {
+		if v.Source == "import" && v.Author == "system" {
+			imp = v
+			break
+		}
+	}
+	var ib relationsBody
+	_ = json.Unmarshal(imp.Rules, &ib)
+	if relationsFingerprint(ib.Relations) != relationsFingerprint(base) {
+		ch.Reimported, ch.Prev, ch.Versions = true, ab.Relations, live
+		return ch, nil
+	}
 	ch.Active, ch.Version, ch.Materialized, ch.Versions = ab.Relations, live[0].Version, true, live
 	return ch, nil
+}
+
+// materializeImport — переимпорт с другими связями: записать связи каталога версией import поверх живой цепочки
+// (разница — с прежней действующей версией). После записи версия действует, откат к прежним доступен.
+func (s *Services) materializeImport(ctx context.Context, ch *relationChain) error {
+	st := s.relStore()
+	if st == nil || !ch.Reimported {
+		return nil
+	}
+	v := relationVersion(ch.Max+1, ch.CatalogVersion, "import", "system",
+		"Справочник связей каталога "+ch.CatalogVersion+" (переимпорт)", nil, ch.Prev, ch.Base)
+	if err := st.ApplyRelationsChange(ctx, &repositories.RelationsChange{Base: ch.Max, Versions: []*domain.ConfigVersion{v}}); err != nil {
+		return err
+	}
+	ch.Max, ch.Version, ch.Materialized, ch.Reimported, ch.Active = v.Version, v.Version, true, false, ch.Base
+	ch.Versions = append([]domain.ConfigVersion{*v}, ch.Versions...)
+	return nil
 }
 
 // applyRelationsOverlay — действующие связи в справочники в памяти (поиск видит их сразу).
@@ -316,6 +350,14 @@ func (s *Services) ReloadRelations(ctx context.Context) {
 	if err != nil {
 		zap.L().Warn("справочник связей: версии не прочитаны", zap.Error(err))
 		return
+	}
+	if ch.Reimported {
+		if err := s.materializeImport(ctx, ch); err != nil {
+			zap.L().Warn("справочник связей: версия переимпорта не записана", zap.Error(err))
+			return
+		}
+		zap.L().Info("справочник связей: переимпорт каталога — новая версия", zap.Int("version", ch.Version),
+			zap.Int("relations", len(ch.Active)))
 	}
 	if ch.Materialized && len(ch.Versions) > 1 {
 		s.applyRelationsOverlay(ch.Active)
@@ -545,8 +587,12 @@ func (s *Services) commitRelations(ctx context.Context, ch *relationChain, next 
 	n := ch.Max + 1
 	prev := ch.Active
 	if !ch.Materialized {
+		comment, basePrev := "Справочник связей каталога "+ch.CatalogVersion, []relationDoc(nil)
+		if ch.Reimported {
+			comment, basePrev = comment+" (переимпорт)", ch.Prev
+		}
 		change.Versions = append(change.Versions, relationVersion(n, ch.CatalogVersion, "import", "system",
-			"Справочник связей каталога "+ch.CatalogVersion, nil, nil, ch.Base))
+			comment, nil, basePrev, ch.Base))
 		n++
 		prev = ch.Base
 	}

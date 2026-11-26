@@ -22,7 +22,7 @@ import {
   segmentByCluster,
   stopReasonLabel,
 } from '@/lib/agentFeed'
-import { formatDateTime, formatInt, formatRub, plural } from '@/lib/format'
+import { formatDateTime, formatInt, formatMoney, plural, russianQuotes } from '@/lib/format'
 import { diagnosisLabel, effectLine } from '@/lib/proposals'
 import { budgetRows, isLegacyRun, outcomeLine, triggerDetail, triggerLabel } from '@/lib/agentRuns'
 import { useAppStore } from '@/stores/app'
@@ -65,7 +65,7 @@ function toCluster(id: string) {
 const stopReason = computed(() => stopReasonLabel(run.value?.stop_reason))
 const legacy = computed(() => !!run.value && isLegacyRun(run.value))
 const plan = computed(() => run.value?.plan ?? null)
-const budget = computed(() => budgetRows(run.value?.budget, run.value?.stop_reason))
+const budget = computed(() => budgetRows(run.value?.budget, run.value?.stop_reason, run.value))
 const unprocessed = computed(() => run.value?.unprocessed ?? [])
 const title = computed(() => {
   const r = run.value
@@ -218,6 +218,7 @@ onBeforeUnmount(() => window.clearInterval(clock))
       v-else-if="status === 'error' && error"
       :error="error"
       :title="error.status === 404 ? 'Запуск не найден' : 'Запуск не загрузился'"
+      :back="{ label: 'Все запуски', to: { path: '/searchops', query: { tab: 'runs' } } }"
       @retry="reload()"
     />
 
@@ -236,14 +237,14 @@ onBeforeUnmount(() => window.clearInterval(clock))
               }}</span
             >
           </p>
-          <p>{{ plan.summary }}</p>
-          <p v-if="plan.change" class="t-sm t-muted">Изменение: {{ plan.change }}</p>
+          <p>{{ russianQuotes(plan.summary) }}</p>
+          <p v-if="plan.change" class="t-sm t-muted">Изменение: {{ russianQuotes(plan.change) }}</p>
           <ol v-if="plan.clusters?.length" class="run__plan-list t-sm">
             <li v-for="c in plan.clusters" :key="c.cluster_id">
               <button type="button" class="link" @click="toCluster(c.cluster_id)">
                 {{ c.label }}
               </button>
-              <span v-if="c.why" class="t-muted"> — {{ c.why }}</span>
+              <span v-if="c.why" class="t-muted"> — {{ russianQuotes(c.why) }}</span>
             </li>
           </ol>
           <p v-if="plan.dropped?.length" class="t-xs t-muted">
@@ -354,7 +355,7 @@ onBeforeUnmount(() => window.clearInterval(clock))
           <p class="t-sm">
             Стоимость запуска:
             <RouterLink to="/proofs?tab=cost" class="num-btn">{{
-              formatRub(run.cost_rub)
+              formatMoney(run.cost_rub)
             }}</RouterLink>
             <template v-if="run.proposals_created">
               ·

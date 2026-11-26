@@ -570,7 +570,16 @@ export interface ProblemQuery {
 }
 
 export type AgentVerdictCode =
-  'proposal' | 'answers' | 'closed' | 'no_offer' | 'earlier' | 'queued' | 'mostly_ok' | 'unseen'
+  | 'proposal'
+  | 'answers'
+  | 'closed'
+  | 'limit'
+  | 'stopped'
+  | 'no_offer'
+  | 'earlier'
+  | 'queued'
+  | 'mostly_ok'
+  | 'unseen'
 
 export interface AgentVerdict {
   code: AgentVerdictCode | string

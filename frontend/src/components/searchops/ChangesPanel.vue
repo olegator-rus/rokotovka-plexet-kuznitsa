@@ -20,7 +20,14 @@ import { isApiError, MSG_UNKNOWN } from '@/lib/apiError'
 import { AREA, denyMessage } from '@/lib/auth'
 import { useAuthStore } from '@/stores/auth'
 import { formatDateTime } from '@/lib/format'
-import { authorLabel, effectLine, sortVersions, versionDescription } from '@/lib/proposals'
+import {
+  authorLabel,
+  effectLine,
+  importSummary,
+  isImportVersion,
+  sortVersions,
+  versionDescription,
+} from '@/lib/proposals'
 import { useAppStore } from '@/stores/app'
 
 const app = useAppStore()
@@ -59,6 +66,11 @@ const comment = ref('')
 
 /** Эффект версии одной строкой: до правки, обещание прогона, факт на действующих правилах. */
 const effectOf = (v: ConfigVersion) => effectLine(v.effect)
+/** Предыдущая версия по номеру (список отсортирован по убыванию). */
+const prevOf = (v: ConfigVersion) => versions.value.find((x) => x.version < v.version) ?? null
+const hasDiff = (v: ConfigVersion) => !!(v.diff?.add?.length || v.diff?.remove?.length)
+// Импорт: сервер не считает разницу — пишем, что загружено, а не «разница пуста»; эффекта агента у импорта нет.
+const importOnly = (v: ConfigVersion) => isImportVersion(v) && !hasDiff(v)
 
 /** Откатить версию N = вернуть правила, действовавшие до неё (N−1). */
 const rollbackTo = computed(() => (target.value ? target.value.version - 1 : null))
@@ -193,9 +205,14 @@ async function confirmRollback() {
                   >{{ rollbackDeny }}</span
                 >
               </header>
-              <p v-if="v.description && v.version > 1">{{ versionDescription(v) }}</p>
+              <p v-if="v.description && v.version > 1 && !importOnly(v)">
+                {{ versionDescription(v) }}
+              </p>
+              <p v-if="v.version > 1 && importOnly(v)" class="t-sm" data-testid="import-summary">
+                {{ importSummary(v, prevOf(v)) }}
+              </p>
               <PatchDiff
-                v-if="v.version > 1"
+                v-else-if="v.version > 1"
                 :patch="v.diff"
                 empty="Разница с предыдущей версией пуста"
               />
@@ -230,7 +247,7 @@ async function confirmRollback() {
                   </li>
                 </ul>
               </div>
-              <p v-else-if="v.version > 1" class="t-xs t-muted">
+              <p v-else-if="v.version > 1 && !isImportVersion(v)" class="t-xs t-muted">
                 Эффект появится после следующего запуска агента: он сравнит метрики целевого
                 кластера.
               </p>

@@ -57,6 +57,25 @@ test('safeReturnTo: только свой путь, не экран входа',
   assert.equal(safeReturnTo('/' + 'a'.repeat(600)), null)
 })
 
+test('safeReturnTo: «..» и «.» в пути, в том числе закодированные, — null; после нормализации не «//»', () => {
+  for (const bad of [
+    '/search/..//evil.example',
+    '/search/../..//evil.example',
+    '/./evil.example',
+    '/search/%2e%2e//evil.example',
+    '/search/%2E%2E/%2Fevil.example',
+    '/a/..',
+    '/%2F%2Fevil.example',
+    '/%5Cevil.example',
+    '/%E0%A4%A',
+  ])
+    assert.equal(safeReturnTo(bad), null, bad)
+  assert.equal(safeReturnTo('/search?q=a..b'), '/search?q=a..b')
+  assert.equal(safeReturnTo('/search?q=../..//x'), '/search?q=../..//x')
+  assert.equal(safeReturnTo('/help#a..b'), '/help#a..b')
+  assert.equal(afterLogin('head', '/search/..//evil.example'), '/searchops')
+})
+
 test('afterLogin: returnTo, если роли туда можно; иначе стартовый экран', () => {
   assert.equal(afterLogin('ecom', '/changes'), '/changes')
   assert.equal(afterLogin('buyer', '/analytics'), '/search')

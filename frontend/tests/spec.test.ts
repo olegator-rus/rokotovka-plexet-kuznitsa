@@ -7,6 +7,7 @@ import {
   clampQty,
   lineFromCompanion,
   lineFromItem,
+  anchorOf,
   originLabel,
   parseStored,
   priceModeLabel,
@@ -111,6 +112,31 @@ test('пометка происхождения', () => {
     'условно обязательное',
   )
   assert.equal(originLabel({ origin: 'companion', companion_class: 'complement' }), 'дополнение')
+  // Старшая редакция — своя пометка и без ссылки на базовую позицию, которой может не быть (QA r2 №12).
+  assert.equal(originLabel({ origin: 'companion', companion_class: 'upgrade' }), 'старшая редакция')
+  assert.equal(anchorOf({ anchor: 'Windows Server 2025 Standard', companion_class: 'upgrade' }), '')
+  assert.equal(anchorOf({ anchor: 'Сервер', companion_class: 'complement' }), 'Сервер')
+  assert.equal(anchorOf({ companion_class: 'complement' }), '')
+})
+
+test('текст для копирования: у дополнения — к какой позиции (QA r2 №15)', () => {
+  const text = sp(
+    specText([
+      lineFromItem(item('Сервер', { license_line: '', price_rub: 689000 }), 1),
+      lineFromCompanion(
+        companion('Память', { class: 'complement', license_line: '' }),
+        1,
+        'Сервер',
+      ),
+      lineFromCompanion(
+        companion('Datacenter', { class: 'upgrade', license_line: '' }),
+        1,
+        'Standard',
+      ),
+    ]),
+  )
+  assert.match(text, /\n2\. Память × 1 — 3 000 ₽ — дополнение к «Сервер»\n/)
+  assert.match(text, /\n3\. Datacenter × 1 — 3 000 ₽ — старшая редакция\n/)
 })
 
 test('тело POST /api/quotes', () => {
@@ -163,4 +189,30 @@ test('количество из запроса — только для пошт�
   assert.equal(quantityForItem({ license_line: 'Бессрочная · 16 ядер' }, chips), 1)
   assert.equal(quantityForItem({ license_line: 'Подписка · 10 устройств' }, chips), 1)
   assert.equal(quantityForItem({ license_line: 'Подписка · 1 пользователь' }, []), 1)
+})
+
+test('количество из запроса для пакета — ceil(число / размер пакета) (QA r2 №2)', () => {
+  const chips = [
+    { field: 'license_quantity', value: '50' },
+    { field: 'license_metric', value: 'user' },
+  ]
+  const cal = {
+    license_line: 'Бессрочная · 5 пользователей',
+    attrs: {
+      edition: 'User CAL',
+      license_type: 'perpetual',
+      license_metric: 'user',
+      license_quantity: 5,
+      duration_months: null,
+      delivery: '' as const,
+      in_reestr: false,
+    },
+  }
+  assert.equal(quantityForItem(cal, chips), 10)
+  const cores = {
+    ...cal,
+    license_line: 'Бессрочная · 16 ядер',
+    attrs: { ...cal.attrs, license_metric: 'core', license_quantity: 16 },
+  }
+  assert.equal(quantityForItem(cores, chips), 1)
 })

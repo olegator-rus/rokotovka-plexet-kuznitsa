@@ -173,7 +173,8 @@ test.describe('Поиск', () => {
     expect(again.trace.cost_rub).toBe(0)
 
     const panel = tracePanel(page)
-    await expect(panel.getByRole('definition').filter({ hasText: 'cache' })).toBeVisible()
+    // Подпись источника разбора — только по-русски (QA r2 №15).
+    await expect(panel.getByRole('definition').filter({ hasText: /^\s*кэш(\s|$)/ })).toBeVisible()
     await expect(panel.getByRole('definition').filter({ hasText: /^0\s₽$/ })).toBeVisible()
   })
 })

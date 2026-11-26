@@ -829,6 +829,7 @@ const popularCache = vueRef<Sugg[] | null>(null)
           spellcheck="false"
           autofocus
           aria-label="Поиск по каталогу"
+          maxlength="300"
           aria-autocomplete="list"
           :aria-expanded="visible"
           :aria-controls="listId"

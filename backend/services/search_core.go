@@ -143,6 +143,11 @@ type queryEntities struct {
 	parsedFamily string
 	// entityTokens — значимые слова запроса и полные слова недописанных: по ним ищутся семейства.
 	entityTokens []string
+	// vendorNot, familyNot — исключённые словами «не/без/кроме» (search_negation.go).
+	vendorNot []string
+	familyNot []string
+	// familyNotLabel — исключённое семейство → слова запроса, которыми оно исключено (подпись чипа).
+	familyNotLabel map[string]string
 }
 
 // nonProductStems — вопросы не о товаре: документы, доставка, оплата, заказ.
@@ -373,6 +378,9 @@ func routeSignals(nr normResult, attrs queryAttrs, ent queryEntities) (string, [
 	}
 	found := 0
 	for _, f := range attrs.found {
+		if f.Field == fieldVendorNot || f.Field == fieldFamilyNot {
+			continue // исключение не делает категорийный запрос точным: «антивирус не касперский» — маршрут C
+		}
 		if f.Field != fieldCategory || !ent.categoryByWords {
 			found++
 		}
@@ -503,6 +511,14 @@ func mergeParsed(in domain.Intent, attrs *queryAttrs, ent *queryEntities, lx *se
 	for _, c := range in.Constraints {
 		if c.Field == domain.FieldOrigin && len(ent.vendors) > 0 {
 			continue // происхождение задаёт названный вендор (см. выше)
+		}
+		if c.Field == domain.FieldLicenseMetric && attrs.metric == "" && attrs.quantity > 0 && attrs.metricWord != "" {
+			// «10 рабочих мест» правила нарочно оставили без метрики: рабочее место — и устройство (десктопный
+			// Р7), и пользователь (облачный). Строгая метрика модели отсекла бы одно из двух — только предпочтение.
+			if metricForms[c.Value][0] != "" {
+				attrs.metricPref = c.Value
+			}
+			continue
 		}
 		mergeConstraint(c, attrs)
 	}

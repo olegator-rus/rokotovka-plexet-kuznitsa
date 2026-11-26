@@ -83,6 +83,13 @@ export const CAUSES: readonly Cause[] = [
   },
 ]
 
+/** Виды предложений, убранные в контуре доводки: причины у них нет (не «шум»). */
+const REMOVED_CODES = new Set(['BUNDLE_OPPORTUNITY', 'MARGIN_OPPORTUNITY', 'MISSING_RELATION'])
+export const REMOVED_LABEL = 'Вид предложения убран из продукта'
+
+/** Подпись причины для диагноза UNKNOWN. */
+export const UNKNOWN_LABEL = 'Причина не установлена — требует ручной проверки'
+
 export const KIND_LABELS: Record<CauseKind, string> = {
   search_fix: 'Правка поиска',
   owner_task: 'Задача владельцу',
@@ -129,9 +136,13 @@ export function causeView(p: CauseInput): CauseView {
   const c = fromServer ?? fromCode ?? (server ? null : byId.get('noise')!)
   const kind: CauseKind =
     p.action === 'ticket' ? 'owner_task' : p.action ? 'search_fix' : (c?.kind ?? 'owner_task')
+  // UNKNOWN — агент не установил причину (упёрся в лимит, оборвался): это не «шум», а ручная проверка — так же,
+  // как в ленте запуска (lib/proposals.ts DIAGNOSIS_LABELS). Группа фильтра остаётся «Шум или недостаточно данных».
+  const code = (p.diagnosis ?? '').trim().toUpperCase()
+  const unknown = code === 'UNKNOWN' && c?.id === 'noise'
   return {
     cause: c,
-    label: c?.label ?? server,
+    label: REMOVED_CODES.has(code) ? REMOVED_LABEL : unknown ? UNKNOWN_LABEL : (c?.label ?? server),
     role: c?.role ?? 'head',
     owner:
       (p.owner_label ?? '').trim() || displayOwner(p.owner) || c?.owner || 'Руководитель e-com',

@@ -39,6 +39,13 @@ function remove(id: number) {
   if (i >= 0) toastState.items.splice(i, 1)
 }
 
+/** Закрыть все видимые тосты (открылась спецификация — «Добавлено…» с «Открыть» больше не нужно). */
+function dismissAll() {
+  for (const t of toastState.items) t.open = false
+  const ids = toastState.items.map((t) => t.id)
+  setTimeout(() => ids.forEach(remove), 300)
+}
+
 export function useToast() {
-  return { add, remove }
+  return { add, remove, dismissAll }
 }

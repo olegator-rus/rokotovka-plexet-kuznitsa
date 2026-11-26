@@ -19,6 +19,20 @@ import {
 
 export const isRelationPatch = (p: Pick<Proposal, 'action'>) => p.action === 'relation_patch'
 
+/**
+ * О чём предложение — для диалогов и тостов (P10): у правки связей нет кластера запросов, её подпись — «Связь …».
+ */
+export function proposalSubject(p: Pick<Proposal, 'action' | 'cluster'>): string {
+  const label = p.cluster?.label ?? ''
+  return isRelationPatch(p) ? `Предложение «${label}»` : `Кластер «${label}»`
+}
+
+/** То же в косвенном падеже: «по предложению «…»» / «по кластеру «…»». */
+export function proposalSubjectDat(p: Pick<Proposal, 'action' | 'cluster'>): string {
+  const label = p.cluster?.label ?? ''
+  return isRelationPatch(p) ? `по предложению «${label}»` : `по кластеру «${label}»`
+}
+
 /** Диагнозы контура коммерции — для словаря DIAGNOSIS_LABELS. */
 export const P2_DIAGNOSIS_LABELS: Record<string, string> = {
   BROKEN_RELATION: 'Сломанная связь',

@@ -2,7 +2,7 @@
 // Экран «Поиск». Адрес — единственный источник состояния запроса
 // (lib/searchState.ts): строка, конфигурация, клиент, уточнения и открытая трасса. Любое изменение
 // адреса, кроме трассы, — новый POST /api/search; прошлый запрос отменяется.
-import { computed, ref, shallowRef, watch } from 'vue'
+import { computed, nextTick, ref, shallowRef, watch } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useRoute, useRouter } from 'vue-router'
 import { DialogContent, DialogOverlay, DialogPortal, DialogRoot, DialogTitle } from 'reka-ui'
@@ -44,7 +44,13 @@ import RefinementChips from '@/components/results/RefinementChips.vue'
 import ResultsFacets from '@/components/results/ResultsFacets.vue'
 import ResultsToolbar from '@/components/results/ResultsToolbar.vue'
 import type { Refinement, ResultsGroup, ResultsSort } from '@/api/typesResults'
-import { namedAttrs, refinementFilter, resultsHeading } from '@/lib/resultsView'
+import {
+  FLAT_PAGE,
+  namedAttrs,
+  refinementFilter,
+  resultsHeading,
+  showMoreLabel,
+} from '@/lib/resultsView'
 import { newIntentId } from '@/lib/panel'
 import UiSwitch from '@/components/ui/UiSwitch.vue'
 import { useToast } from '@/components/ui/useToast'
@@ -211,7 +217,34 @@ watch(clientId, (id) => {
     void go({ ...state.value, client: id === GUEST_CLIENT_ID ? null : id }, 'replace')
 })
 
-const blocks = computed(() => splitResults(response.value))
+// «Без группировки» сервер отдаёт до 50 вариантов (SEARCH_FLAT_LIMIT), экран открывает их порциями по FLAT_PAGE.
+const flatShown = ref(FLAT_PAGE)
+watch(response, () => (flatShown.value = FLAT_PAGE))
+const flatOn = computed(() => resultsOn.value && response.value?.group === 'none')
+const flatRest = computed(() =>
+  flatOn.value ? Math.max(0, (response.value?.items.length ?? 0) - flatShown.value) : 0,
+)
+const flatVisible = computed(() =>
+  flatOn.value ? Math.min(flatShown.value, response.value?.items.length ?? 0) : undefined,
+)
+const shownResponse = computed(() => {
+  const r = response.value
+  if (!r || !flatRest.value) return r
+  return { ...r, items: r.items.slice(0, flatShown.value) }
+})
+async function showMore() {
+  const first = response.value?.items[flatShown.value]
+  flatShown.value += FLAT_PAGE
+  await nextTick()
+  // Фокус — на первую открывшуюся карточку: с клавиатуры не нужно идти от начала списка.
+  const card = first
+    ? document.querySelector<HTMLElement>(`article[data-product="${CSS.escape(first.product_id)}"]`)
+    : null
+  if (!card) return
+  card.tabIndex = -1
+  card.focus()
+}
+const blocks = computed(() => splitResults(shownResponse.value))
 const titles = computed<Record<string, string>>(() => {
   const out: Record<string, string> = {}
   for (const it of response.value?.items ?? []) {
@@ -581,7 +614,32 @@ const ACTION_TOAST: Record<ItemAction, string> = {
   price_request: 'Запрос цены записан',
 }
 
+/**
+ * «Запросить цену» у позиции без цены: позиция ложится в спецификацию с пометкой «Цена по запросу», цену назовёт
+ * КП — тот же путь, что у старшей редакции по запросу. Событие price_request пишется как раньше.
+ */
+function onPriceRequest(target: SearchItemBase, position: number) {
+  spec.add(
+    lineFromItem(
+      target,
+      quantityForItem(target, response.value?.chips ?? []),
+      specPurchase(response.value?.purchase),
+    ),
+  )
+  trackQuiet('price_request', { productId: target.product_id, position })
+  toast.add({
+    tone: 'ok',
+    title: 'Добавлено в спецификацию — цена по запросу',
+    detail: `${target.title}. Цену назовёт менеджер в КП.`,
+    action: openSpecAction(),
+  })
+}
+
 function onAction(type: ItemAction, target: SearchItemBase, position: number) {
+  if (type === 'price_request') {
+    onPriceRequest(target, position)
+    return
+  }
   track(type, { productId: target.product_id, position })
     .then(() =>
       toast.add({
@@ -703,7 +761,7 @@ async function onSupply() {
             Ответ справки по запросу «{{ response.query }}»
           </h2>
           <h2 v-else-if="resultsOn" class="search-page__heading" role="status">
-            {{ resultsHeading(response) }}
+            {{ resultsHeading(response, flatVisible) }}
             <span v-if="response.trace?.total_ms != null" class="t-sm t-muted">
               · {{ formatMs(response.trace.total_ms) }}
             </span>
@@ -873,7 +931,7 @@ async function onSupply() {
                     :purchase="response.purchase"
                     @expand="onVariantExpand"
                     @spec="onSpecTarget"
-                    @price-request="(t, pos) => onAction('price_request', t, pos)"
+                    @price-request="onPriceRequest"
                     @why="onWhy"
                   >
                     <RequiredLine
@@ -934,7 +992,7 @@ async function onSupply() {
                     :purchase="response.purchase"
                     @expand="onVariantExpand"
                     @spec="onSpecTarget"
-                    @price-request="(t, pos) => onAction('price_request', t, pos)"
+                    @price-request="onPriceRequest"
                     @why="onWhy"
                   >
                     <RequiredLine
@@ -998,7 +1056,7 @@ async function onSupply() {
                       :show-compat="hardwareOn"
                       @expand="onVariantExpand"
                       @spec="onSpecTarget"
-                      @price-request="(t, pos) => onAction('price_request', t, pos)"
+                      @price-request="onPriceRequest"
                       @why="onWhy"
                     />
                     <ResultCard
@@ -1045,7 +1103,7 @@ async function onSupply() {
                       :show-compat="hardwareOn"
                       @expand="onVariantExpand"
                       @spec="onSpecTarget"
-                      @price-request="(t, pos) => onAction('price_request', t, pos)"
+                      @price-request="onPriceRequest"
                       @why="onWhy"
                     />
                     <ResultCard
@@ -1063,6 +1121,12 @@ async function onSupply() {
                   </li>
                 </ol>
               </section>
+
+              <div v-if="flatRest" class="search-page__more">
+                <button type="button" class="btn btn--secondary" @click="showMore">
+                  {{ showMoreLabel(flatRest) }}
+                </button>
+              </div>
 
               <section
                 v-if="reestrUnconfirmed.length"
@@ -1084,7 +1148,7 @@ async function onSupply() {
                       :in-spec="inSpec"
                       @expand="onVariantExpand"
                       @spec="onSpecTarget"
-                      @price-request="(t, pos) => onAction('price_request', t, pos)"
+                      @price-request="onPriceRequest"
                       @why="onWhy"
                     />
                   </li>
@@ -1315,6 +1379,10 @@ async function onSupply() {
     overflow-y: auto;
     overscroll-behavior: contain;
   }
+}
+.search-page__more {
+  display: flex;
+  justify-content: center;
 }
 .search-page__section {
   display: flex;

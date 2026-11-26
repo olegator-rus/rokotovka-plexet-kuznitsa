@@ -53,6 +53,22 @@ export function formatCost(rub: number): string {
   return `${trimmed}${NBSP}₽`
 }
 
+/**
+ * Деньги в таблицах и сводках (запуски агента): всегда копейки, два знака — «6,66 ₽», «0,18 ₽»; меньше копейки —
+ * «< 0,01 ₽»; ровно 0 — «0 ₽». formatCost с четырьмя знаками — для цены одного вызова модели.
+ */
+export function formatMoney(rub: number): string {
+  if (!Number.isFinite(rub)) return ''
+  if (rub === 0) return `0${NBSP}₽`
+  if (Math.abs(rub) < 0.01) return `<${NBSP}0,01${NBSP}₽`
+  return `${formatDecimal(rub, 2)}${NBSP}₽`
+}
+
+/** Прямые кавычки текста модели → «ёлочки»: "антивирус" → «антивирус». Непарная кавычка остаётся. */
+export function russianQuotes(text: string): string {
+  return text.replace(/"([^"\n]*)"/g, '«$1»')
+}
+
 /** Скор 0..1 → «0,82». */
 export function formatScore(n: number): string {
   if (!Number.isFinite(n)) return ''

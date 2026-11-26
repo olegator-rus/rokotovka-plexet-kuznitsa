@@ -123,6 +123,16 @@ const visible = computed(
   display: flex;
   align-items: flex-start;
   gap: var(--space-2);
+  min-width: 0;
+}
+/* Длинное слово без пробелов (запрос до 300 символов) переносится внутри экрана, а не раздвигает страницу. */
+.understanding__line > span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.understanding__line .link {
+  overflow-wrap: anywhere;
+  text-align: start;
 }
 .understanding__icon {
   flex: none;

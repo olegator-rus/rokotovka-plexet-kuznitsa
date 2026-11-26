@@ -171,21 +171,23 @@ test.describe("Произвольный ввод жюри: витрина не �
   test("запрос длиннее 300 символов — сообщение, а не пустая страница", async ({
     page,
   }) => {
+    // Поле ввода ограничено 300 символами: набранное длиннее обрезается, поиск идёт.
     await openSearch(page);
     const box = searchBox(page);
     await box.click();
     await box.fill("антивирус ".repeat(35));
+    expect((await box.inputValue()).length).toBeLessThanOrEqual(300);
+    // По ссылке поле не участвует: сервер отвечает 422, экран показывает его причину.
+    const long = "антивирус ".repeat(35).trim();
     const [resp] = await Promise.all([
       page.waitForResponse(
         (r) =>
           r.url().endsWith("/api/search") && r.request().method() === "POST",
       ),
-      box.press("Enter"),
+      page.goto(`/search?q=${encodeURIComponent(long)}`),
     ]);
     expect(resp.status()).toBeLessThan(500);
-    await expect(
-      page.getByText(/длиннее 300|Проверьте данные запроса/).first(),
-    ).toBeVisible();
+    await expect(page.getByText(/длиннее 300/).first()).toBeVisible();
   });
 
   test("360 px: длинный запрос из эмодзи и ПДн не даёт горизонтальной прокрутки", async ({

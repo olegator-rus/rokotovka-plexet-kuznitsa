@@ -58,11 +58,14 @@ type clusterRun struct {
 	foundBy map[string]bool
 	// unknownHinted — модель уже получила отказ закрыть кластер как UNKNOWN при доказанном отсутствии товара.
 	unknownHinted bool
-	finished      bool
-	result        clusterResult
-	tried         []map[string]any
-	pending       []*domain.AgentStep
-	evidence      map[string]any
+	// refused — отклонённые вызовы (инструмент + аргументы → причина); refusedRepeats — сколько раз модель их повторила.
+	refused        map[string]string
+	refusedRepeats int
+	finished       bool
+	result         clusterResult
+	tried          []map[string]any
+	pending        []*domain.AgentStep
+	evidence       map[string]any
 }
 
 // sandboxPatch — гипотеза: правка в песочнице и её прогон.
@@ -96,7 +99,10 @@ func (rc *runCtx) investigate(ctx context.Context, c *failedCluster) clusterResu
 	a, rs := rc.a, rc.rs
 	id := c.ID
 	a.step(ctx, rs, &domain.AgentStep{Kind: domain.StepThought, ClusterID: &id, OK: true,
-		Title:  fmt.Sprintf("Кластер «%s»: %d запросов, потерянный спрос — %.0f сессий с неудачным поиском (%d неудачных поисков)", c.Label, len(c.Queries), c.LostDemand, c.Failures),
+		Title: fmt.Sprintf("Кластер «%s»: %d %s, потерянный спрос — %.0f %s с неудачным поиском (%d %s)", c.Label,
+			len(c.Queries), plural(len(c.Queries), [3]string{"запрос", "запроса", "запросов"}),
+			c.LostDemand, plural(int(c.LostDemand), [3]string{"сессия", "сессии", "сессий"}),
+			c.Failures, plural(c.Failures, [3]string{"неудачный поиск", "неудачных поиска", "неудачных поисков"})),
 		Result: toJSON(map[string]any{"queries": compactQueries(c.Queries), "terms": c.Terms})})
 	// Память кластера — всегда шаг ленты (агент читает её до исследования).
 	t := time.Now()
@@ -166,7 +172,7 @@ func (rc *runCtx) investigate(ctx context.Context, c *failedCluster) clusterResu
 			nudges++
 			if nudges > 2 {
 				// Не «закрыт»: кластер остался без итога, в эпизоде и сводке запуска это видно.
-				cr.finish("unfinished", diagOr(cr.diagnosis), "модель не вызвала завершающий инструмент")
+				cr.finish("unfinished", diagOr(cr.diagnosis), noteUnfinished)
 				break
 			}
 			// Текст без вызова в историю не кладём: модель начинает подражать ему и дальше пишет вызовы текстом.
@@ -199,6 +205,12 @@ func (rc *runCtx) investigate(ctx context.Context, c *failedCluster) clusterResu
 	cr.result.Hypotheses, cr.result.Rejected, cr.result.ToolCalls = cr.hypotheses, cr.rejected, cr.toolCalls
 	return cr.result
 }
+
+// noteUnfinished — заметка кластера: модель не вызвала завершающий инструмент.
+const noteUnfinished = "модель не вызвала завершающий инструмент"
+
+// noteRepeatPrefix — начало заметки кластера, закрытого из-за повторов отклонённого вызова.
+const noteRepeatPrefix = "агент повторял отклонённый вызов"
 
 // finish — итог кластера.
 func (cr *clusterRun) finish(outcome, diagnosis, note string) {

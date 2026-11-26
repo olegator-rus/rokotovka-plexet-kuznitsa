@@ -12,7 +12,7 @@ import {
   isRunActive,
   runStatusLabel,
 } from '@/lib/agentFeed'
-import { formatCost, formatInt } from '@/lib/format'
+import { formatInt, formatMoney } from '@/lib/format'
 
 const props = defineProps<{
   run: AgentRun
@@ -81,8 +81,8 @@ const transportLabel = computed(() =>
           <RouterLink
             to="/proofs?tab=cost"
             class="num-btn"
-            :aria-label="`Стоимость ${formatCost(run.cost_rub)}: журнал вызовов в «Доказательствах»`"
-            >{{ formatCost(run.cost_rub) }}</RouterLink
+            :aria-label="`Стоимость ${formatMoney(run.cost_rub)}: журнал вызовов в «Доказательствах»`"
+            >{{ formatMoney(run.cost_rub) }}</RouterLink
           >
         </dd>
       </div>
