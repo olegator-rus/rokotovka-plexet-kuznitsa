@@ -35,6 +35,7 @@ const SOURCES: Record<string, [string, RegExp]> = {
   ],
   edgeMaxGram: ['services/search_index.go', /"edge_ngram", "min_gram": 2, "max_gram": (\d+)\}/],
   embeddingDim: ['services/search_index.go', /embeddingDim = (\d+)/],
+  embedAllMax: ['services/catalog_import.go', /embedAllMax = ([\d_]+)/],
   hnswM: ['services/search_index.go', /"m": (\d+), "ef_construction"/],
   hnswEfConstruction: ['services/search_index.go', /"ef_construction": (\d+)/],
   modelCacheSize: ['config/config.go', /defaultModelCacheSize = (\d+)/],
@@ -52,6 +53,16 @@ const SOURCES: Record<string, [string, RegExp]> = {
   rerankTop: ['services/search_rerank.go', /rerankTop = (\d+)/],
   rerankDescRunes: ['services/search_rerank.go', /rerankDescRunes = (\d+)/],
   rerankWeight: ['config/config.go', /const defaultRerankWeight = ([\d.]+)/],
+  fitExactQuantity: ['services/rank.go', /case q == a\.quantity:\s+score \+= (\d+)/],
+  fitCoversQuantity: ['services/rank.go', /case quantityOK\(d, a\.quantity\):\s+score \+= (\d+)/],
+  fitMetric: ['services/rank.go', /if \*d\.LicenseMetric == a\.metric \{\s+score \+= (\d+)/],
+  fitLicenseType: ['services/rank.go', /if d\.LicenseType == a\.licType \{\s+score \+= (\d+)/],
+  fitDuration: ['services/rank.go', /\*d\.LicenseDuration == a\.duration \{\s+score \+= (\d+)/],
+  // score++ — одно очко: в коде нет числа, поэтому «++» читается как 1.
+  fitNewLicense: [
+    'services/rank.go',
+    /d\.LicenseType != domain\.LicenseUpgrade \{\s+score(\+\+) \/\/ без «продлить»/,
+  ],
   wRelevance: ['services/rank.go', /businessWeights = map\[string\]float64\{"relevance": ([\d.]+)/],
   wPopularity: ['services/rank.go', /businessWeights = .*"popularity": ([\d.]+)/],
   wMargin: ['services/rank.go', /businessWeights = .*"margin": ([\d.]+)/],
@@ -119,7 +130,7 @@ for (const [key, [file, re]] of Object.entries(SOURCES)) {
   test(`${key} = ${file}`, () => {
     const m = go(file).match(re)
     assert.ok(m?.[1], `в ${file} не найдено ${re}`)
-    const want = Number(m[1].replace(/_/g, ''))
+    const want = m[1] === '++' ? 1 : Number(m[1].replace(/_/g, ''))
     assert.equal(THEORY_PARAMS[key as keyof typeof THEORY_PARAMS], want, `${key}: в коде ${want}`)
   })
 }
@@ -134,6 +145,13 @@ test('поля и веса BM25 = search_query.go', () => {
   assert.ok(m?.[1])
   const fields = [...m[1].matchAll(/"([^"]+)"/g)].map((x) => x[1])
   assert.deepEqual([...THEORY_PARAMS.bm25Fields], fields)
+})
+
+test('поля и веса BM25 полного пути = search_query.go', () => {
+  const m = go('services/search_query.go').match(/var b3Fields = \[\]string\{([^}]+)\}/)
+  assert.ok(m?.[1])
+  const fields = [...m[1].matchAll(/"([^"]+)"/g)].map((x) => x[1])
+  assert.deepEqual([...THEORY_PARAMS.b3Fields], fields)
 })
 
 test('веса бизнес-слоя в сумме дают 1', () => {

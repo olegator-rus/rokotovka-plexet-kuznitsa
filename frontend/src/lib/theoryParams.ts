@@ -38,9 +38,24 @@ export const THEORY_PARAMS = {
     'description',
     'attributes',
   ],
+  // Поля текстовой ветки полного пути (B3) — на фиде заказчика название семейства весит больше названия позиции.
+  b3Fields: [
+    'title.exact^5',
+    'title.ru^3',
+    'title.ngram',
+    'family_name^4',
+    'family_name.exact^5',
+    'aliases^2',
+    'vendor^2',
+    'sku^5',
+    'category_path',
+    'description',
+    'attributes',
+  ],
 
-  // Векторы (search_index.go, config/config.go)
+  // Векторы (search_index.go, catalog_import.go, config/config.go)
   embeddingDim: 1024,
+  embedAllMax: 20_000, // больше позиций в каталоге — вектор по одному на семейство
   hnswM: 16,
   hnswEfConstruction: 128,
   modelCacheSize: 4096,
@@ -62,6 +77,14 @@ export const THEORY_PARAMS = {
   rerankTop: 10,
   rerankDescRunes: 300,
   rerankWeight: 0.45,
+
+  // Голова семейства: очки соответствия варианта условиям запроса (rank.go, fit)
+  fitExactQuantity: 8, // ровно запрошенное количество
+  fitCoversQuantity: 6, // закрывает количество ступенью, поштучно или пакетами
+  fitMetric: 4, // та же метрика (устройство, пользователь, ядро)
+  fitLicenseType: 3, // названный тип лицензии
+  fitDuration: 2, // названный срок
+  fitNewLicense: 1, // в запросе нет «продлить» — новая лицензия, а не продление или переход
 
   // Бизнес-слой (rank.go)
   wRelevance: 0.8,

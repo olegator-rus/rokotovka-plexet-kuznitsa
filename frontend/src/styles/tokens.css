@@ -117,6 +117,9 @@
   --lh-h2: 1.5rem;
   --fs-body: 0.875rem;
   --lh-body: 1.25rem;
+  /* Чтение длинного текста («Теоретические основы») */
+  --fs-reading: 0.9375rem;
+  --lh-reading: 1.6;
   --fs-sm: 0.8125rem;
   --lh-sm: 1.125rem;
   --fs-xs: 0.75rem;

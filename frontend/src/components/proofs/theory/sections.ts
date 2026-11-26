@@ -15,6 +15,7 @@ export const THEORY_PARTS: readonly TheoryPart[] = [
   {
     title: 'Общая картина',
     sections: [
+      { id: 'example', title: 'Один запрос от ввода до выдачи' },
       { id: 'overview', title: 'Из чего состоит решение' },
       { id: 'pipeline', title: 'Все шаги запроса по порядку' },
     ],

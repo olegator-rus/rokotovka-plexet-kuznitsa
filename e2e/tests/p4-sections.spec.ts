@@ -107,9 +107,9 @@ test.describe('Контур доводки: три раздела', () => {
     const toc = page.getByRole('navigation', { name: 'Содержание' })
     await expect(toc).toBeVisible()
     const items = toc.getByRole('button')
-    await expect(items).toHaveCount(21)
+    await expect(items).toHaveCount(22)
     // Каждой строке содержания — раздел с тем же заголовком.
-    await expect(page.getByRole('heading', { level: 3 })).toHaveCount(22) // 21 раздел + «Содержание»
+    await expect(page.getByRole('heading', { level: 3 })).toHaveCount(23) // 22 раздела + «Содержание»
     const target = page.getByRole('heading', { level: 3, name: 'Слияние RRF: из двух списков — один' })
     await expect(target).not.toBeInViewport()
     await toc.getByRole('button', { name: 'Слияние RRF: из двух списков — один' }).click()

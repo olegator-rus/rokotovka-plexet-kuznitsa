@@ -1,23 +1,25 @@
 <script setup lang="ts">
-// «Доказательства» → «Теоретические основы» (tab=theory): как устроено решение и на каких методах держится
-// поиск — от нормализации до выдачи, агент SearchOps, как меряется качество и стоимость. Текст статичный,
-// в API не ходит. Параметры алгоритмов — из lib/theoryParams.ts (тест сверяет их с Go-кодом); чисел качества
-// и денег здесь нет — только ссылки на соседние вкладки. Схемы — блоки на токенах (theory/Theory*.vue).
+// «Доказательства» → «Теоретические основы» (tab=theory): разбор одного запроса, как устроено решение и на
+// каких методах держится поиск — от нормализации до выдачи, агент SearchOps, как меряется качество и стоимость.
+// Текст статичный, в API не ходит. Параметры алгоритмов — из lib/theoryParams.ts (тест сверяет их с Go-кодом);
+// наблюдения на стенде и разбор агента подписаны датой и каталогом. Схемы — блоки на токенах (theory/Theory*.vue).
 // Содержание прокручивает к разделу, адрес не меняет: вкладка остаётся на tab=theory. Якорь #theory-<id> в
 // адресе при открытии прокручивает к разделу (ссылка на раздел снаружи).
 import { nextTick, onMounted, useTemplateRef } from 'vue'
 import { useRoute } from 'vue-router'
 import { ArrowUp } from 'lucide-vue-next'
 import TheoryAgent from './theory/TheoryAgent.vue'
+import TheoryExample from './theory/TheoryExample.vue'
 import TheoryOverview from './theory/TheoryOverview.vue'
 import TheoryProof from './theory/TheoryProof.vue'
 import TheoryRanking from './theory/TheoryRanking.vue'
 import TheoryRetrieval from './theory/TheoryRetrieval.vue'
+import TheoryToc from './theory/TheoryToc.vue'
 import TheoryUnderstanding from './theory/TheoryUnderstanding.vue'
 import { THEORY_PARTS, anchorOf } from './theory/sections'
 
 const route = useRoute()
-const toc = useTemplateRef<HTMLElement>('toc')
+const toc = useTemplateRef<InstanceType<typeof TheoryToc>>('toc')
 
 function go(id: string) {
   const el = document.getElementById(anchorOf(id))
@@ -27,8 +29,9 @@ function go(id: string) {
 }
 
 function toToc() {
-  toc.value?.scrollIntoView({ block: 'start' })
-  toc.value?.querySelector<HTMLElement>('button')?.focus({ preventScroll: true })
+  const el = toc.value?.$el as HTMLElement | undefined
+  el?.scrollIntoView({ block: 'start' })
+  el?.querySelector<HTMLElement>('button')?.focus({ preventScroll: true })
 }
 
 onMounted(async () => {
@@ -42,13 +45,15 @@ onMounted(async () => {
 <template>
   <article class="theory">
     <p class="theory__lead">
-      Здесь описано, что поиск делает с запросом от ввода до выдачи и почему, как агент SearchOps
-      разбирает неудачные запросы и как мы проверяем результат. В конце большинства разделов есть
-      ссылки на запрос с трассой: на экране «Поиск» видно, как шаг сработал на самом деле.
+      Здесь описано, как поиск помогает покупателю выбрать товар и вариант лицензии: что он делает с
+      запросом от ввода до выдачи и почему. Дальше — как агент SearchOps разбирает неудачные запросы
+      и как мы проверяем результат. Поиск работает на фиде магазина store.softline.ru. В конце
+      большинства разделов есть ссылки на запрос с трассой: на экране «Поиск» видно, как шаг
+      сработал на самом деле.
     </p>
     <div class="theory__kinds">
-      <p class="t-sm t-muted">Числа на вкладке трёх видов:</p>
-      <ul class="theory__kinds-list t-sm" role="list">
+      <p class="theory__kinds-title">Числа на вкладке четырёх видов</p>
+      <ul class="theory__kinds-list" role="list">
         <li>
           <span class="badge">настройка</span> пороги, лимиты и веса из кода, так же помечены
           формулы. Тест сверяет эти числа с константами бэкенда, поэтому они совпадают с тем, что
@@ -59,34 +64,29 @@ onMounted(async () => {
           арифметику формулы. Это не выдача поиска.
         </li>
         <li>
-          <span class="badge">результат прогона</span> качество, скорость и деньги. Здесь их нет:
-          они на вкладках «Метрики», «Вклад компонентов» и «Стоимость».
+          <span class="badge">наблюдение на стенде</span> что поиск ответил на конкретный запрос,
+          когда писался раздел. Ссылка «с трассой» рядом покажет текущий ответ.
+        </li>
+        <li>
+          <span class="badge">результат прогона</span> качество, скорость и деньги — на вкладках
+          «Метрики», «Вклад компонентов» и «Стоимость». Здесь из прогонов только один разбор агента
+          в разделе SearchOps. Прогоны оценки и агента пока шли на mock-каталоге, и это подписано
+          рядом с каждым числом.
         </li>
       </ul>
     </div>
 
-    <nav ref="toc" class="theory__toc panel" aria-labelledby="theory-toc-title">
-      <h3 id="theory-toc-title" class="theory__toc-title">Содержание</h3>
-      <div class="theory__toc-parts">
-        <div v-for="(part, pi) in THEORY_PARTS" :key="part.title" class="theory__toc-part">
-          <p class="theory__toc-part-title">{{ pi + 1 }}. {{ part.title }}</p>
-          <ol class="theory__toc-list" role="list">
-            <li v-for="s in part.sections" :key="s.id">
-              <button type="button" class="theory__toc-link" @click="go(s.id)">
-                {{ s.title }}
-              </button>
-            </li>
-          </ol>
-        </div>
-      </div>
-    </nav>
+    <TheoryToc ref="toc" @go="go" />
 
     <template v-for="(part, pi) in THEORY_PARTS" :key="part.title">
       <div class="theory__part">
         <p class="theory__part-title">
           <span class="t-num">{{ pi + 1 }}</span> {{ part.title }}
         </p>
-        <TheoryOverview v-if="pi === 0" />
+        <template v-if="pi === 0">
+          <TheoryExample />
+          <TheoryOverview />
+        </template>
         <template v-else-if="pi === 1">
           <TheoryUnderstanding />
           <TheoryRetrieval />
@@ -109,77 +109,47 @@ onMounted(async () => {
   gap: var(--space-6);
   min-width: 0;
 }
+/* Длинный текст на всю ширину колонки: на широком экране кегль и интерлиньяж крупнее. */
+@media (min-width: 768px) {
+  .theory {
+    font-size: var(--fs-reading);
+    line-height: var(--lh-reading);
+  }
+}
 .theory__lead {
-  max-width: 72ch;
   margin: 0;
 }
 .theory__kinds {
   display: flex;
   flex-direction: column;
-  gap: var(--space-2);
-  max-width: 72ch;
+  gap: var(--space-3);
+  container-type: inline-size;
 }
-.theory__kinds p {
-  margin: 0;
+.theory .theory__kinds-title {
+  font-weight: var(--fw-bold);
 }
-.theory__kinds-list {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-1);
+.theory .theory__kinds-list {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-3);
   margin: 0;
   padding: 0;
   list-style: none;
 }
-.theory__toc {
-  padding: var(--space-4);
-  scroll-margin-top: calc(var(--header-actual, var(--header-h)) + var(--space-4));
+.theory__kinds-list li {
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-card);
+  background: var(--surface-2);
 }
-.theory__toc-title {
-  margin: 0 0 var(--space-3);
-  font-size: var(--fs-h2);
-  line-height: var(--lh-h2);
-  font-weight: var(--fw-bold);
+.theory__kinds-list .badge {
+  display: table;
+  margin-bottom: var(--space-2);
+  background: var(--surface);
 }
-.theory__toc-parts {
-  column-gap: var(--space-8);
-}
-.theory__toc-part + .theory__toc-part {
-  margin-top: var(--space-4);
-}
-.theory__toc-list li {
-  break-inside: avoid;
-}
-.theory__toc-part-title {
-  margin: 0 0 var(--space-1);
-  break-after: avoid;
-  color: var(--text-3);
-  font-size: var(--fs-xs);
-  font-weight: var(--fw-bold);
-}
-.theory__toc-list {
-  display: flex;
-  flex-direction: column;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-.theory__toc-link {
-  display: block;
-  width: 100%;
-  min-height: 2rem;
-  padding: var(--space-1) 0;
-  border: 0;
-  background: none;
-  color: var(--text);
-  font: inherit;
-  font-size: var(--fs-sm);
-  text-align: left;
-  cursor: pointer;
-}
-.theory__toc-link:hover {
-  color: var(--accent);
-  text-decoration: underline;
-  text-underline-offset: 3px;
+@container (min-width: 38rem) {
+  .theory .theory__kinds-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 .theory__part {
   display: flex;
@@ -205,12 +175,6 @@ onMounted(async () => {
   align-self: flex-start;
   color: var(--text-2);
 }
-
-@media (min-width: 768px) {
-  .theory__toc-parts {
-    columns: 2;
-  }
-}
 </style>
 
 <style>
@@ -219,10 +183,7 @@ onMounted(async () => {
 .theory ul {
   margin: 0;
 }
-.theory-section > p,
-.theory-section > ul {
-  max-width: 72ch;
-}
+/* Одна ширина на всё: текст, списки, таблицы и схемы занимают колонку целиком. */
 .theory-section ul {
   display: flex;
   flex-direction: column;
