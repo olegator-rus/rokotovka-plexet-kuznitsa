@@ -260,3 +260,84 @@ func TestP63PriceComparisonOnePairSameConditions(t *testing.T) {
 		t.Fatalf("сравнение разных продуктов: %q", c.Text)
 	}
 }
+
+func TestP63MergeSameTitle(t *testing.T) {
+	items := []out.SearchItem{
+		{ProductID: "1", FamilyID: "offer-1", Vendor: "DEPO", Title: "Rack-сервер DEPO Storm 3470E2A"},
+		{ProductID: "2", FamilyID: "offer-2", Vendor: "DEPO", Title: "Rack-сервер DEPO Storm 3470U1A"},
+		{ProductID: "3", FamilyID: "offer-3", Vendor: "DEPO", Title: "Rack-сервер DEPO Storm 3470E2A"},
+	}
+	got := mergeSameTitle(items)
+	if len(got) != 2 || len(got[0].Variants) != 1 || got[0].Variants[0].ProductID != "3" {
+		t.Fatalf("одинаковые модели — одна карточка с вариантом: %+v", got)
+	}
+}
+
+func TestP63YearIsNotQuantity(t *testing.T) {
+	a := extractAttrs([]string{"windows", "server", "2022", "лицензия"})
+	if a.quantity != 0 {
+		t.Fatalf("2022 в «windows server 2022 лицензия» — год, а не %d мест", a.quantity)
+	}
+	if a := extractAttrs([]string{"на", "2000", "пользователей"}); a.quantity != 2000 {
+		t.Fatalf("«на 2000 пользователей» — количество, получено %d", a.quantity)
+	}
+	if lic, _, _ := licenseFromText("Microsoft Windows Server Datacenter 2022 (лицензия Single OLV 2 License)"); lic.Quantity != nil && *lic.Quantity == 2022 {
+		t.Fatal("в названии позиции год стал количеством")
+	}
+}
+
+func TestP63GibberishHasNoServiceTarget(t *testing.T) {
+	e := queryEntities{nonProduct: true, significant: 1, unknown: []string{"asdfgh"}}
+	if !gibberish(e, []string{"asdfgh"}) {
+		t.Fatal("asdfgh — бессмыслица")
+	}
+	if gibberish(queryEntities{nonProduct: true, significant: 1, unknown: []string{"упд"}}, []string{"упд"}) {
+		t.Fatal("«упд» — сервисный вопрос, а не бессмыслица")
+	}
+	var e2 queryEntities
+	e2.markHowTo([]string{"как", "продлить", "лицензию"}, queryAttrs{})
+	if !e2.nonProduct {
+		t.Fatal("«как продлить лицензию» без названного продукта — сервисный вопрос")
+	}
+	e3 := queryEntities{vendors: []string{"kaspersky"}}
+	e3.markHowTo([]string{"как", "продлить", "касперский"}, queryAttrs{})
+	if e3.nonProduct {
+		t.Fatal("«как продлить касперский» — о товаре")
+	}
+}
+
+func TestP63SKUNeighbours(t *testing.T) {
+	rc, fams := p63kaspersky(t)
+	var sku indexDoc
+	var items []out.SearchItem
+	for _, fh := range fams {
+		for _, d := range fh.heads {
+			items = append(items, rc.toItem(&familyHit{id: fh.id, head: d, heads: []indexDoc{d}, fits: map[string]bool{d.ProductID: true}}))
+			if d.ProductID == "k1" {
+				sku = d
+			}
+		}
+	}
+	// Ещё четыре позиции семейства SKU: соседи по ступени.
+	for i, tier := range []int{150, 250, 500, 1000} {
+		d := sku
+		d.ProductID = "k1-" + strings.Repeat("x", i+1)
+		mn := tier
+		d.LicenseTierMin = &mn
+		rc.lx.docs[d.ProductID] = d
+		items = append(items, out.SearchItem{ProductID: d.ProductID, FamilyID: d.FamilyID, Title: d.Title})
+	}
+	got := trimSKUFamily(rc.lx, items, sku)
+	same := 0
+	for _, it := range got {
+		if it.FamilyID == sku.FamilyID {
+			same++
+		}
+	}
+	if got[0].ProductID != "k1" && same != 4 {
+		t.Fatalf("SKU и три соседа отдельными карточками: первая %s, карточек семейства %d", got[0].ProductID, same)
+	}
+	if same != 4 {
+		t.Fatalf("карточек семейства SKU %d, нужно 4", same)
+	}
+}

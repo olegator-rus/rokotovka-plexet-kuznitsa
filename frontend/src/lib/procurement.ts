@@ -4,6 +4,7 @@
 import type { Purchase, Reestr, SearchItemBase, SearchResponse } from '@/api/types'
 import { formatPrice, isPositivePrice, plural } from './format.ts'
 import { kindFromLine, LICENSE_KIND_LABELS } from './license.ts'
+import { hasTier, perPlaceLabel, tierLabel } from './offerNotes.ts'
 
 /** Параметры закупки строки спецификации — уходят в заявку КП вместе с исходным запросом. */
 export interface SpecPurchase {
@@ -38,12 +39,14 @@ const COUNTED_METRICS = new Set(['user', 'device', 'server'])
  * поправит в спецификации.
  */
 export function purchaseQuantity(
-  item: Pick<SearchItemBase, 'license_line' | 'attrs'>,
+  item: Pick<SearchItemBase, 'license_line' | 'attrs' | 'tier_min'>,
   quantity: number | null | undefined,
   metric?: string | null,
 ): number {
   const n = typeof quantity === 'number' && Number.isFinite(quantity) ? Math.round(quantity) : 0
   if (n <= 0) return 1
+  // ступень количества («100–149») — цена за одно место, берётся столько мест, сколько назвал запрос.
+  if (hasTier(item)) return n
   const a = item.attrs
   const pack = a?.license_quantity
   if (
@@ -99,13 +102,20 @@ export function selectedOffer(
     LICENSE_KIND_LABELS[item.license_kind ?? ''] ||
     kindFromLine(item.license_line) ||
     (a?.license_type === 'renewal' ? 'Продление' : purchase.deal_label || 'Новая лицензия')
-  const parts = [kind, durationText(a?.duration_months ?? null), a?.edition ?? ''].filter(Boolean)
+  const tier = hasTier(item)
+  const metric = a?.license_metric || purchase.metric || ''
+  const forms = UNIT_FORMS[metric] ?? ['шт.', 'шт.', 'шт.']
+  const step = tier ? `ступень ${tierLabel(item)} ${forms[2]}` : ''
+  const parts = [kind, durationText(a?.duration_months ?? null), a?.edition ?? '', step].filter(
+    Boolean,
+  )
   const quantity = purchaseQuantity(item, purchase.quantity, purchase.metric)
   const total = item.price_rub * quantity
-  const forms = UNIT_FORMS[a?.license_metric ?? purchase.metric ?? ''] ?? ['шт.', 'шт.', 'шт.']
-  const pack = a && COUNTED_METRICS.has(a.license_metric) ? (a.license_quantity ?? 1) : 1
+  const pack = !tier && a && COUNTED_METRICS.has(a.license_metric) ? (a.license_quantity ?? 1) : 1
   let sum = formatPrice(total)
-  if (quantity > 1 && pack > 1)
+  if (tier)
+    sum = `${formatPrice(item.price_rub)} ${perPlaceLabel(metric)} × ${quantity} ${plural(quantity, forms)} = ${formatPrice(total)}`
+  else if (quantity > 1 && pack > 1)
     sum = `${formatPrice(item.price_rub)} × ${quantity} ${plural(quantity, ['пакет', 'пакета', 'пакетов'])} по ${pack} ${plural(pack, forms)} = ${formatPrice(total)}`
   else if (quantity > 1)
     sum = `${formatPrice(item.price_rub)} × ${quantity} ${plural(quantity, forms)} = ${formatPrice(total)}`

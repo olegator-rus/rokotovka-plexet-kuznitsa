@@ -93,6 +93,11 @@ func (s *Services) searchB3(ctx context.Context, requestID string, req in.Search
 	t = time.Now()
 	route, signals := routeSignals(nr.withoutNegatedChanges(negated), attrs, ent)
 	route, signals = hw.route(route, signals, ent)
+	if route == domain.RouteIntent && len(signals) == 1 && signals[0] == "long_query" && hasKnownSKU(lx, nr.tokens) {
+		// Полное название позиции из подсказки («Microsoft Windows 11 Pro FQC-10572, электронный ключ»): артикул
+		// каталога в запросе — модель не нужна, его найдёт текст и точный артикул.
+		route, signals = domain.RouteNormalized, []string{signalSKUInTitle}
+	}
 	if ent.intent != nil {
 		signals = append(signals, signalCategoryIntent)
 	}
@@ -599,7 +604,7 @@ func (s *Services) searchB3(ctx context.Context, requestID string, req in.Search
 	// Контур фида: цель ответа, лестница «минимум 4 товара», поля карточки и счётчики (search_ladder.go).
 	ansStep := answerStage(answerInput{rc: rc, words: queryWords(nr.tokens, attrs.consumed), fams: foundFams,
 		exactDoc: exactDocMatcher(nr.tokens, hw), category: ent.category, limit: limit, storefront: !opts.NoLog,
-		fallbackOff: s.noFallbackBlock, serviceLike: ent.noise || ent.nonProduct}, resp, trace)
+		fallbackOff: s.noFallbackBlock, serviceLike: ent.noise || ent.nonProduct, filterCategory: filterCategoryOf(req)}, resp, trace)
 	// допродажа и акции на фиде — после цели ответа (upsell_feed.go); на mock шага нет.
 	var upsellStep *UpsellStep
 	if s.featuresFor(ctx).Companions {
@@ -884,4 +889,38 @@ func (n *normResult) restoreSKUs(lx *searchLexicon) {
 		n.tokens[i] = want
 		n.protected[want] = true
 	}
+}
+
+// filterCategoryOf — категория из фильтра панели {"key": "category", "op": "eq"}; "" — не выбрана или их несколько.
+func filterCategoryOf(req in.SearchRequest) string {
+	cat := ""
+	for _, f := range req.Filters {
+		if f.Key != facetCategory || f.Op != "" && f.Op != refOpEq {
+			continue
+		}
+		v, ok := f.Value.(string)
+		if !ok || cat != "" {
+			return ""
+		}
+		cat = v
+	}
+	return cat
+}
+
+// signalSKUInTitle — сигнал маршрута: длинный запрос содержит артикул каталога (полное название позиции).
+const signalSKUInTitle = "sku_in_title"
+
+// hasKnownSKU — среди слов запроса есть артикул каталога (однозначный).
+func hasKnownSKU(lx *searchLexicon, tokens []string) bool {
+	if lx == nil {
+		return false
+	}
+	for _, t := range tokens {
+		if hasDigit(t) {
+			if want, ok := lx.skuCompact[strings.ToLower(normalizeMPN(t))]; ok && want != "" {
+				return true
+			}
+		}
+	}
+	return false
 }

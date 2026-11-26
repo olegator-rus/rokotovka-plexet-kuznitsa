@@ -1,12 +1,12 @@
 // Панель контура выдачи и страница результатов на ЖИВОМ API (без подмен): то, что отдаёт /api/suggest и POST /api/search
-// на демо-каталоге mock. Скриншоты 1440/360 — artifacts/screens/p3/live-*.png. Демо-состояние не меняется
+// на фиде store.softline.ru (контур фида). Скриншоты 1440/360 — artifacts/screens/p3/live-*.png. Демо-состояние не меняется
 // (спецификация — в localStorage браузера теста).
 import type { Page, Request } from '@playwright/test'
 import { expect, openSearch, searchBox, test } from './fixtures'
 
 const SCREENS = '../artifacts/screens/p3'
-// Точный парт-номер сервера Dell R740 из демо-каталога: к нему есть проверенные связи (память, диски, сервис).
-const EXACT_MPN = 'PER740-2S4210R-64G'
+// Точный артикул позиции фида (Kaspersky Endpoint Security для бизнеса Стандартный, 413710): одна карточка.
+const EXACT_MPN = 'KL4863RATFS'
 
 const listbox = (page: Page) => page.getByRole('listbox', { name: 'Подсказки поиска' })
 const badges = (page: Page) => page.getByRole('group', { name: 'Уточнения запроса' })
@@ -45,10 +45,11 @@ for (const vp of [
       await openSearch(page)
       await typeQuery(page, 'kasp')
       const list = listbox(page)
-      await expect(list.getByRole('option', { name: 'kaspersky', exact: true })).toBeVisible()
-      await expect(badges(page).getByRole('button', { name: 'Уточнить: для дома' })).toBeVisible()
+      // Фид: подсказки — линейки Kaspersky из шаблонов каталога, бейджи — уточнения по виду и количеству лицензий.
+      await expect(list.getByRole('option', { name: 'Kaspersky Standard', exact: true })).toBeVisible()
+      await expect(badges(page).getByRole('button', { name: 'Уточнить: продление' })).toBeVisible()
       const labels = await badgeLabels(page)
-      expect(labels).toEqual(expect.arrayContaining(['для дома', 'продление']))
+      expect(labels).toEqual(expect.arrayContaining(['продление']))
       const suggestions = (await list.getByRole('option').allTextContents()).map((t) => t.trim().toLowerCase())
       for (const l of labels) {
         expect(
@@ -69,7 +70,7 @@ for (const vp of [
       await shot(page, `live-layout-${vp.tag}`)
     })
 
-    test('точный артикул → одна карточка, без бейджей; пустая строка — рекомендации от спецификации', async ({
+    test('точный артикул → одна карточка, без бейджей, «В спецификацию» прямо из подсказки', async ({
       page,
     }) => {
       await openSearch(page)
@@ -82,11 +83,12 @@ for (const vp of [
 
       await list.getByRole('option', { name: /^В спецификацию:/ }).click()
       await expect(page.getByText('Добавлено в спецификацию').first()).toBeVisible()
+      await expect(page.getByRole('button', { name: /^Спецификация, позиций: 1/ })).toBeVisible()
+      // «К вашей спецификации» строится по справочнику связей; на фиде его нет — блок скрыт.
       await searchBox(page).fill('')
       await searchBox(page).click()
-      await expect(listbox(page).getByText('К вашей спецификации')).toBeVisible()
+      await expect(listbox(page).getByText('К вашей спецификации')).toHaveCount(0)
       await noOverflow(page)
-      await shot(page, `live-empty-recs-${vp.tag}`)
     })
 
     test('«антивирус» → страница результатов: заголовок со счётчиками, чипы-уточнения, фасеты', async ({

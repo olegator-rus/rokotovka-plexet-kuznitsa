@@ -390,9 +390,17 @@ func otherMeanings(lx *searchLexicon, ci *categoryIntent, word string) []meaning
 			}
 		}
 	}
+	// Категория, названная словом, — уточнение «весь раздел»: hits — её семейства, которые можно купить (столько
+	// карточек покажет фильтр по ней), а не совпавшие по названию (count — по разделам, у подкатегории всегда 0).
+	inCat := map[string]int{}
+	for _, f := range lx.familyOrder {
+		if c := lx.familyCat[f]; byName[c] && lx.familyBuyable(f) {
+			inCat[c]++
+		}
+	}
 	var ms []meaning
 	for id := range byName {
-		ms = append(ms, meaning{id: id, families: max(count[id], 1), byName: true})
+		ms = append(ms, meaning{id: id, families: max(inCat[id], 1), byName: true})
 	}
 	for id, n := range count {
 		if !byName[id] && n >= minMeaningFamilies {

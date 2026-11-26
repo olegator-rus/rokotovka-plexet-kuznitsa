@@ -21,6 +21,7 @@ import type {
 } from '@/api/types'
 import type { Companion, SearchFilter, Upgrade } from '@/api/typesP2'
 import CompanionsBlock from '@/components/search/CompanionsBlock.vue'
+import ComparisonLine from '@/components/results/ComparisonLine.vue'
 import FacetsPanel from '@/components/search/FacetsPanel.vue'
 import RequiredLine from '@/components/search/RequiredLine.vue'
 import ManagerDialog from '@/components/search/ManagerDialog.vue'
@@ -84,6 +85,7 @@ import { useAppStore } from '@/stores/app'
 import { useSpecStore } from '@/stores/spec'
 import {
   blockItems,
+  blockTitle,
   featureOn,
   firstImpression,
   hasConditional,
@@ -436,6 +438,10 @@ const companionItems = computed(() => {
   const inCard = (companionAnchor.value?.required ?? []).map((c) => c.product_id)
   return blockItems(response.value?.companions, inCard)
 })
+/** Заголовок блока из ответа фида (§16.7); нет поля (mock) — '' и прежний «Дополните решение к …». */
+const companionTitle = computed(() =>
+  response.value?.companions?.title ? blockTitle(response.value.companions) : '',
+)
 const companionAnchorTitle = computed(
   () => companionAnchor.value?.title ?? response.value?.items[0]?.title ?? '',
 )
@@ -1048,6 +1054,7 @@ async function onSupply() {
                   @reset="onFiltersReset"
                 />
               </template>
+              <ComparisonLine :comparison="response.comparison" />
               <template v-if="matchMode">
                 <template v-for="(g, gi) in matchGroups" :key="g.type">
                   <p
@@ -1120,6 +1127,7 @@ async function onSupply() {
                       v-if="gi === 0 && companionItems.length"
                       :items="companionItems"
                       :anchor="companionAnchorTitle"
+                      :title="companionTitle"
                       @open="onCompanionOpen"
                       @add="onCompanionAdd"
                       @search="submit"
@@ -1184,6 +1192,7 @@ async function onSupply() {
                   v-if="companionItems.length"
                   :items="companionItems"
                   :anchor="companionAnchorTitle"
+                  :title="companionTitle"
                   @open="onCompanionOpen"
                   @add="onCompanionAdd"
                   @search="submit"

@@ -10,6 +10,8 @@ import { RouterLink } from 'vue-router'
 import { Check, ChevronDown, ExternalLink, ListPlus, Route } from 'lucide-vue-next'
 import type { Purchase, SearchItem, SearchItemBase } from '@/api/types'
 import CompatBadge from '@/components/search/CompatBadge.vue'
+import PromoLine from '@/components/results/PromoLine.vue'
+import { hasTier, perPlaceLabel } from '@/lib/offerNotes'
 import { formatScore } from '@/lib/format'
 import { reestrTone, selectedOffer } from '@/lib/procurement'
 import { productHref } from '@/lib/product'
@@ -54,6 +56,12 @@ const action = computed(() => cardAction(props.item, variants.value.length))
 // Контур фида: «от N ₽» / старая цена и скидка / «Цена по запросу»; 0 ₽ не выводится.
 const price = computed(() => cardPrice(props.item, variants.value.length))
 const store = computed(() => storeLink(props.item))
+// у позиции со ступенью количества цена — за одно место («3 070,80 ₽ за узел»).
+const perPlace = computed(() =>
+  hasTier(props.item) && price.value.state === 'priced'
+    ? perPlaceLabel(props.item.attrs?.license_metric || props.purchase?.metric)
+    : '',
+)
 const isAlternative = computed(() => props.item.match_type === 'alternative')
 // Одна позиция на одно место: цена и «В спецификацию» уже справа — в блоке выбранного не повторяем.
 const offerRepeatsSide = computed(() => action.value === 'spec' && offer.value?.quantity === 1)
@@ -172,6 +180,7 @@ function rowQuantity(v: SearchItemBase): string {
             {{ item.reestr.label }}
           </span>
         </p>
+        <PromoLine :promos="item.promos" />
         <p v-if="item.analog_note" class="fcard__note t-xs t-muted">{{ item.analog_note }}</p>
         <p v-if="isAlternative" class="fcard__alt t-xs" data-testid="alternative-note">
           {{ ALTERNATIVE_NOTE }}
@@ -230,6 +239,9 @@ function rowQuantity(v: SearchItemBase): string {
             <span class="sr-only">Старая цена </span>{{ price.old }}
           </s>
           {{ price.label }}
+          <span v-if="perPlace" class="fcard__unit t-xs" data-testid="per-place">{{
+            perPlace
+          }}</span>
         </p>
         <div class="fcard__actions">
           <button
@@ -393,6 +405,11 @@ function rowQuantity(v: SearchItemBase): string {
 .fcard__discount {
   --tone: var(--status-accepted);
   --tone-bg: var(--status-accepted-bg);
+}
+.fcard__unit {
+  display: block;
+  color: var(--text-2);
+  font-weight: var(--fw-regular);
 }
 .fcard__old {
   margin-right: var(--space-1);

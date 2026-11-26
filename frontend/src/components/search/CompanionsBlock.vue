@@ -1,17 +1,21 @@
 <script setup lang="ts">
-// «Дополните решение к …»: под топом выдачи, не над ней. По решению владельца
-// Блок выделен как одна карточка «Рекомендуем» (прежнее правило «без выделения» отменено); позиции
-// внутри равны между собой: у каждой подпись класса, строка «почему» и иконка основания; ничего не выбрано
-// заранее. Пусто — компонент не рисуется вовсе (решает страница).
-import { Check, Plus, ShieldQuestion, Sparkles } from 'lucide-vue-next'
+// «Дополните решение» (контура фида §5): под топом выдачи, не над ней. По решению
+// владельца блок выделен как одна карточка «Рекомендуем»; позиции внутри равны между собой: у каждой
+// подпись класса, бейдж уровня основания (A — по документу вендора, B — из каталога, C — проверьте
+// совместимость), строка «почему» и источник; у уровня A — ссылка на документ в новой вкладке. Заголовок — из
+// `companions.title`. Ничего не выбрано заранее. Пусто — компонент не рисуется вовсе (решает страница).
+import { Check, ExternalLink, FileText, Plus, ShieldQuestion, Sparkles } from 'lucide-vue-next'
 import VendorLogo from '@/components/common/VendorLogo.vue'
 import type { Companion } from '@/api/typesP2'
 import CompanionSource from '@/components/search/CompanionSource.vue'
-import { classLabel } from '@/lib/companions'
+import PromoLine from '@/components/results/PromoLine.vue'
+import { BLOCK_TITLE, classLabel, evidenceView, reasonText } from '@/lib/companions'
 import { priceModeLabel } from '@/lib/spec'
 import { useSpecStore } from '@/stores/spec'
 
-defineProps<{ items: Companion[]; anchor: string }>()
+// title — заголовок из ответа фида (§16.7): тогда якорь отдельной строкой под ним. Без title (справочник
+// связей mock) — прежний заголовок «Дополните решение к <якорь>».
+defineProps<{ items: Companion[]; anchor: string; title?: string }>()
 const emit = defineEmits<{
   open: [item: Companion, index: number]
   add: [item: Companion, index: number]
@@ -25,15 +29,35 @@ const spec = useSpecStore()
   <section class="cmp" aria-labelledby="cmp-title">
     <header class="cmp__head">
       <p class="cmp__ribbon t-xs"><Sparkles :size="14" aria-hidden="true" /> Рекомендуем</p>
-      <h2 id="cmp-title" class="t-h2">Дополните решение к {{ anchor }}</h2>
+      <template v-if="title">
+        <h2 id="cmp-title" class="t-h2">{{ title }}</h2>
+        <p v-if="anchor" class="cmp__anchor t-sm">к {{ anchor }}</p>
+      </template>
+      <h2 v-else id="cmp-title" class="t-h2">{{ BLOCK_TITLE }} к {{ anchor }}</h2>
     </header>
     <ul class="cmp__list">
       <li v-for="(c, i) in items" :key="c.product_id">
-        <div class="cmp-card" role="group" :aria-label="c.title">
+        <div
+          class="cmp-card"
+          role="group"
+          :aria-label="c.title"
+          data-testid="companion"
+          :data-evidence="evidenceView(c)?.level ?? ''"
+        >
           <VendorLogo :vendor="c.vendor" class="cmp-card__logo" />
           <div class="cmp-card__main">
             <p class="cmp-card__class t-xs">
               <span class="badge">{{ classLabel(c) }}</span>
+              <span
+                v-if="evidenceView(c)"
+                :class="['cmp-ev', `cmp-ev--${evidenceView(c)?.level}`]"
+                data-testid="evidence-badge"
+                :title="`Уровень основания ${evidenceView(c)?.level}`"
+              >
+                <span class="cmp-ev__level" aria-hidden="true">{{ evidenceView(c)?.level }}</span>
+                <span class="sr-only">Основание:</span>
+                {{ evidenceView(c)?.tag }}
+              </span>
               <span v-if="c.category" class="t-muted">{{ c.category }}</span>
             </p>
             <h3 class="cmp-card__title">
@@ -44,13 +68,34 @@ const spec = useSpecStore()
             <p class="t-sm t-muted">
               {{ c.vendor }}<template v-if="c.license_line"> · {{ c.license_line }}</template>
             </p>
-            <p v-if="c.reason" class="t-sm cmp-card__why">{{ c.reason }}</p>
-            <p v-if="c.compatibility === 'unknown'" class="t-xs cmp-card__unknown">
+            <p v-if="reasonText(c)" class="t-sm cmp-card__why" data-testid="companion-reason">
+              {{ reasonText(c) }}
+            </p>
+            <PromoLine :promos="c.promos" />
+            <p
+              v-if="c.compatibility === 'unknown' && evidenceView(c)?.level !== 'C'"
+              class="t-xs cmp-card__unknown"
+            >
               <ShieldQuestion :size="12" aria-hidden="true" />
               Совместимость не подтверждена — уточните у менеджера
             </p>
             <p class="cmp-card__foot">
-              <CompanionSource :source="c.source" :url="c.source_url" />
+              <a
+                v-if="evidenceView(c)?.docUrl"
+                class="link t-xs cmp-card__doc"
+                :href="evidenceView(c)?.docUrl"
+                target="_blank"
+                rel="noopener noreferrer"
+                data-testid="evidence-doc"
+              >
+                <FileText :size="12" aria-hidden="true" />
+                Открыть документ
+                <ExternalLink :size="11" aria-hidden="true" />
+                <span class="sr-only"
+                  >: {{ evidenceView(c)?.docTitle }} (откроется в новой вкладке)</span
+                >
+              </a>
+              <CompanionSource v-else :source="c.source" :url="c.source_url" />
               <button
                 v-if="c.category"
                 type="button"
@@ -114,6 +159,42 @@ const spec = useSpecStore()
 .cmp__head h2 {
   margin: 0;
   overflow-wrap: anywhere;
+}
+.cmp__anchor {
+  margin: calc(-1 * var(--space-1)) 0 0;
+  color: var(--text-2);
+  overflow-wrap: anywhere;
+}
+/* Уровень основания — ненавязчиво: буква в кружке и подпись мелким текстом, без заливки цветом. */
+.cmp-ev {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  color: var(--text-2);
+  white-space: nowrap;
+}
+.cmp-ev__level {
+  display: inline-grid;
+  place-items: center;
+  width: 1.25rem;
+  height: 1.25rem;
+  border: var(--border-w) solid var(--border-control);
+  border-radius: 50%;
+  font-size: var(--fs-xs);
+  line-height: 1;
+  font-weight: var(--fw-bold);
+}
+.cmp-ev--A .cmp-ev__level {
+  border-color: var(--status-accepted);
+  color: var(--status-accepted);
+}
+.cmp-ev--C .cmp-ev__level {
+  border-style: dashed;
+}
+.cmp-card__doc {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
 }
 .cmp__list {
   display: flex;

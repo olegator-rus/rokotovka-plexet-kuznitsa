@@ -30,27 +30,66 @@ test.describe('QA: поиск', () => {
     }
   })
 
-  test('B2: «win» — Windows и подсказка, а не «нет в каталоге»', async ({ page }) => {
+  test('B2: «win» — товары и без «нет в каталоге»', async ({ page }) => {
+    // Фид: «win» — короткое слово; в выдаче позиции с WIN в названии, а не честное «нет».
     await openSearch(page)
     const body = await search(page, 'win')
     expect(body.total).toBeGreaterThan(0)
     expect(body.empty ?? null).toBeNull()
-    await expect(resultCards(page).first()).toContainText('Windows')
-    await expect(understanding(page)).toContainText('Возможно, вы искали')
+    await expect(resultCards(page).first()).toContainText(/win/i)
     await expect(page.getByRole('heading', { name: /нет в каталоге/ })).toHaveCount(0)
   })
 
-  test('M3: «касперский на 1000 пк бессрочно» — первой бизнес-линейка', async ({ page }) => {
+  test('M3: «касперский на 1000 пк бессрочно» — первой бизнес-линейка, условия в строке разбора', async ({
+    page,
+  }) => {
     await openSearch(page)
-    await search(page, 'касперский на 1000 пк бессрочно')
-    await expect(resultCards(page).first()).toContainText(/Endpoint Security|Small Office Security/)
+    const body = await search(page, 'касперский на 1000 пк бессрочно')
+    for (const [field, value] of [
+      ['vendor', 'kaspersky'],
+      ['license_quantity', '1000'],
+      ['license_type', 'perpetual'],
+    ])
+      expect(body.chips.some((c) => c.field === field && c.value === value), field).toBe(true)
+    await expect(resultCards(page).first()).toContainText(/Endpoint Security/)
   })
 
-  test('M4: «видеоконференции российские на 50 человек» — категория и TrueConf', async ({ page }) => {
+  test('M4: «видеоконференции российские на 50 человек» — условия поняты, честное «нет» с подбором', async ({
+    page,
+  }) => {
+    // На фиде нет ПО видеосвязи, проходящего все условия (отечественное и на 50 пользователей), — честное «нет»
+    // с предложением поставки и блоком «Популярное в наличии», а не пустая страница.
     await openSearch(page)
-    const body = await search(page, 'видеоконференции российские на 50 человек')
-    expect(body.chips.some((c) => c.field === 'category' && c.value === 'videoconf')).toBe(true)
-    await expect(resultCards(page).first()).toContainText('TrueConf')
+    const body = (await search(page, 'видеоконференции российские на 50 человек')) as Awaited<
+      ReturnType<typeof search>
+    > & { empty?: { supply?: boolean } }
+    expect(body.chips.some((c) => c.field === 'license_quantity' && c.value === '50')).toBe(true)
+    expect(body.chips.some((c) => c.field === 'origin' && c.value === 'ru')).toBe(true)
+    expect(body.total).toBe(0)
+    expect(body.empty?.supply).toBe(true)
+    await expect(page.locator('[data-match-group="fallback"]').getByRole('article').first()).toBeVisible()
+  })
+
+  test('M6: шум хвоста отсекается с причиной, разметка — честное «нет»', async ({ page }) => {
+    await openSearch(page)
+    const win = await search(page, 'винда 11 про')
+    expect(win.items.some((i) => /Acrobat|Zoom/.test(i.title))).toBe(false)
+    // Хвост чужих категорий и вендоров в выдаче не остаётся: всё найденное — категория первой позиции или её
+    // вендор (карточки «Популярное в наличии» — не найденное, их нет при цели-категории); отсечённое — в трассе.
+    const top = win.items[0]
+    expect(top?.title).toMatch(/Windows 11/)
+    const found = (win.items as { category?: string; vendor?: string; match_type?: string }[]).filter(
+      (i) => i.match_type !== 'fallback',
+    )
+    expect(found.every((i) => i.category === top.category || i.vendor === top.vendor)).toBe(true)
+    expect((win.trace.rejected ?? []).length).toBeGreaterThan(0)
+    expect(win.trace.rejected?.every((r) => r.reason.length > 0)).toBe(true)
+
+    // Разметка: найденного нет (total 0), ниже — только «Популярное в наличии» (fallback).
+    const noise = await search(page, '<script>alert(1)</script>')
+    expect(noise.total).toBe(0)
+    await expect(page.locator('[data-match-group="exact"]')).toHaveCount(0)
+    await expect(page.locator('[data-match-group]:not([data-match-group="fallback"])')).toHaveCount(0)
   })
 
   test('M5: «акад лт» — AutoCAD LT как найденный товар, без «нет в каталоге» и «Аналог»', async ({
@@ -62,22 +101,5 @@ test.describe('QA: поиск', () => {
     const first = resultCards(page).first()
     await expect(first).toContainText('AutoCAD LT')
     await expect(first.getByText('Аналог', { exact: true })).toHaveCount(0)
-  })
-
-  test('M6: шум хвоста отсекается с причиной, разметка — честное «нет»', async ({ page }) => {
-    await openSearch(page)
-    const win = await search(page, 'винда 11 про')
-    expect(win.items.some((i) => /Acrobat|Zoom/.test(i.title))).toBe(false)
-    // Хвост чужих категорий и вендоров в выдаче не остаётся: всё показанное — категория первой позиции или её
-    // вендор; отсечённое — в трассе с причиной (какой шаг отсёк, зависит от каталога: порог, векторы или хвост).
-    const top = win.items[0]
-    expect(top?.title).toMatch(/Windows 11/)
-    expect(win.items.every((i) => i.category === top.category || i.vendor === top.vendor)).toBe(true)
-    expect((win.trace.rejected ?? []).length).toBeGreaterThan(0)
-    expect(win.trace.rejected?.every((r) => r.reason.length > 0)).toBe(true)
-
-    const noise = await search(page, '<script>alert(1)</script>')
-    expect(noise.total).toBe(0)
-    await expect(resultCards(page)).toHaveCount(0)
   })
 })

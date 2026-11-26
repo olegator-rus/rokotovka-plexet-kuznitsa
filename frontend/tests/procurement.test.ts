@@ -15,6 +15,8 @@ import {
   supplyShown,
 } from '../src/lib/procurement.ts'
 
+const NBSP = '\u00a0'
+
 const kes: SearchItemBase = {
   product_id: 'kes-std-ren24',
   family_id: 'kaspersky-endpoint-security',
@@ -54,6 +56,30 @@ test('selectedOffer: продление на 2 года × 100 узлов', () =
   assert.equal(o.quantity, 100)
   assert.equal(o.total, 429000)
   assert.match(o.sum, /× 100 устройств =/)
+})
+
+test('selectedOffer: ступень 100–149 — цена за узел × 100, а не один пакет (S3)', () => {
+  const tiered: SearchItemBase = {
+    ...kes,
+    product_id: '413720',
+    license_line: 'Продление · 100 устройств · 2 года',
+    price_rub: 3070.8,
+    attrs: { ...kes.attrs!, edition: '', license_quantity: 100 },
+    tier_min: 100,
+    tier_max: 149,
+  }
+  const o = selectedOffer(tiered, s2)
+  assert.ok(o)
+  assert.equal(o.quantity, 100)
+  assert.equal(o.total, 307080)
+  assert.equal(o.label, 'Продление · 2 года · ступень 100–149 устройств')
+  assert.equal(o.sum, `3${NBSP}070,80${NBSP}₽ за узел × 100 устройств = 307${NBSP}080${NBSP}₽`)
+  // Без ступени тот же пакет «на 100 устройств» — один пакет.
+  assert.equal(
+    selectedOffer({ ...tiered, tier_min: undefined, tier_max: undefined }, s2)?.total,
+    3070.8,
+  )
+  assert.equal(purchaseQuantity(tiered, 120, 'device'), 120)
 })
 
 test('selectedOffer: без условий, без цены, не подходит — null', () => {

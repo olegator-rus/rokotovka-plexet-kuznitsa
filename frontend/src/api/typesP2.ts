@@ -41,9 +41,34 @@ export interface Companion {
   /** «Проверьте необходимость», «Совместимо с …», «Дополняет решение», «Старшая редакция», «Продление и поддержка». */
   label: string
   upgrade_adds: string[]
+  /** §16.7 (фид): основание рекомендации — уровень A (документ вендора), B (каталог), C (не подтверждено). */
+  evidence?: CompanionEvidence | null
+  offer_url?: string | null
+  family_url?: string | null
+  promos?: Promo[] | null
+}
+
+export type EvidenceLevel = 'A' | 'B' | 'C'
+
+export interface CompanionEvidence {
+  level: EvidenceLevel | string
+  kind: 'compat_document' | 'license_kind' | 'sku_platform' | 'vendor_ecosystem' | string
+  title: string
+  url: string
+  doc_number: string
+}
+
+/** §16.7: действующая акция у позиции — «Акция: …, условия по ссылке»; срок не приходит и не выводится. */
+export interface Promo {
+  id: string
+  title: string
+  text: string
+  url: string
 }
 
 export interface CompanionBlock {
+  /** §16.7: заголовок блока (настройка UPSELL_BLOCK_TITLE); нет — «Дополните решение». */
+  title?: string | null
   anchor: { product_id: string; family_id: string; confidence: 'high' | 'medium' | string }
   items: Companion[]
 }

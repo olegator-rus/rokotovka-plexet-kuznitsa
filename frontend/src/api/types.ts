@@ -10,6 +10,7 @@ import type {
   ItemKind,
   P2EventType,
   PriceMode,
+  Promo,
   SearchFilter,
   Solution,
   Upgrade,
@@ -154,6 +155,11 @@ export interface SearchItemBase {
   badges?: ItemBadge[] | null
   explain?: string | null
   family_title?: string | null
+  /** ступень количества — price_rub за одно место, итог = price_rub × число мест; нет поля — цена за пакет. */
+  tier_min?: number | null
+  tier_max?: number | null
+  /** §16.7: действующие акции позиции. */
+  promos?: Promo[] | null
 }
 
 /** Ступень лестницы «минимум 4 товара». */
@@ -278,7 +284,28 @@ export interface SearchResponse {
   fallback_note?: string | null
   /** §16.6: чипы производителей при цели-категории и равенстве вендоров (формат Refinement, field vendor). */
   clarifications?: Refinement[] | null
+  /** (): строка сравнения цены за место пары редакций; нет — сравнивать нечего. */
+  comparison?: Comparison | null
   trace: Trace
+}
+
+export interface ComparisonItem {
+  product_id: string
+  family_id: string
+  /** Различающаяся часть названия семейства («Стандартный»). */
+  name: string
+  title: string
+  per_place_rub: number
+}
+
+export interface Comparison {
+  /** «При этих условиях Стандартный на 31% дешевле, чем Расширенный, за узел». */
+  text: string
+  /** Пара: дешевле — первой. */
+  items: ComparisonItem[]
+  /** «Продление · 2 года · 100–149 устройств · для коммерческих организаций». */
+  conditions: string
+  percent: number
 }
 
 export interface Complement {

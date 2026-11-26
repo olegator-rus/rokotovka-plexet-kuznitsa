@@ -4,6 +4,7 @@ import (
 	"math"
 	"sort"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 
@@ -77,6 +78,8 @@ type answerInput struct {
 	// fallbackOff — SEARCH_FALLBACK_BLOCK=off: под сервисным запросом и бессмыслицей блока нет.
 	fallbackOff bool
 	serviceLike bool // сервисный запрос или бессмыслица
+	// filterCategory — категория, выбранная фильтром панели (уточнение «Серверное ПО»): цель и уточнения — по ней.
+	filterCategory string
 }
 
 // answerStage — цель, лестница, карточки и счётчики; пишет в resp и trace.
@@ -84,6 +87,19 @@ func answerStage(in answerInput, resp *out.SearchResponse, trace *domain.Trace) 
 	t := time.Now()
 	rc := in.rc
 	dec := selectTarget(targetInput{rc: rc, words: in.words, fams: in.fams, exactDoc: in.exactDoc, category: in.category, help: resp.Help})
+	// Фильтр категории из панели: цель — эта категория, её семейства — точные, уточнения — по вендорам выдачи.
+	if c := in.filterCategory; c != "" && rc.lx.categoryName[c] != "" && dec.skuDoc == nil {
+		dec.target = categoryTarget(rc, c, "выбран фильтр категории")
+		dec.clarify, dec.lead = true, ""
+		dec.families = map[string]bool{}
+	}
+	catTarget := ""
+	if dec.target != nil && dec.target.Type == out.TargetCategory {
+		catTarget = in.filterCategory
+		if catTarget == "" {
+			catTarget = in.category
+		}
+	}
 	resp.Target = dec.target
 	step := AnswerStep{StepBase: domain.StepBase{Name: StepAnswer}, BrandOnly: dec.brandOnly, Covering: dec.covering,
 		CoverageMiss: dec.coverageMiss, Words: in.words}
@@ -112,6 +128,10 @@ func answerStage(in answerInput, resp *out.SearchResponse, trace *domain.Trace) 
 			it.MatchType, it.Explain = out.MatchExact, explainSKU
 		case dec.skuDoc != nil && it.FamilyID == dec.skuDoc.FamilyID:
 			it.MatchType, it.Explain = out.MatchVariant, explainVariant
+		case dec.skuDoc != nil && it.Group != domain.GroupAnalog:
+			// Назван точный артикул (в том числе полным названием из подсказки): другие семейства того же
+			// производителя — не точное совпадение, а похожее; первым остаётся SKU.
+			it.MatchType, it.Explain = out.MatchRelated, explainRelated
 		case rc.sideKind(it.ProductID) && (dec.target == nil || dec.target.Type != out.TargetFamily || !dec.families[it.FamilyID]):
 			// Курс, техподдержка или модуль, о которых не просили, — не точное совпадение, а похожее.
 			it.MatchType, it.Explain = out.MatchRelated, explainSide
@@ -120,6 +140,9 @@ func answerStage(in answerInput, resp *out.SearchResponse, trace *domain.Trace) 
 			if len(rc.ent.vendors) > 0 && !dec.families[it.FamilyID] {
 				it.Explain = explainVendor
 			}
+		case catTarget != "" && it.Group != domain.GroupAnalog && inCategory(rc.lx, it.ProductID, catTarget):
+			// Совпадение с категорией по намерению («сервер» → «Rack-серверы») — точное совпадение с целью.
+			it.MatchType, it.Explain = out.MatchExact, "товар категории «"+rc.lx.categoryName[catTarget]+"»"
 		case it.Group == domain.GroupAnalog:
 			it.MatchType, it.Explain = out.MatchRelated, explainAnalog
 		default:
@@ -175,6 +198,7 @@ func answerStage(in answerInput, resp *out.SearchResponse, trace *domain.Trace) 
 		})
 	}
 
+	resp.Items = mergeSameTitle(resp.Items) // «Rack-сервер DEPO Storm 3470E2A» трижды — одна карточка
 	shown := map[string]bool{}
 	for _, it := range resp.Items {
 		shown[it.FamilyID] = true
@@ -249,6 +273,35 @@ func expandSKU(rc rankCtx, items []out.SearchItem, fh *familyHit, sku indexDoc) 
 	res := append([]out.SearchItem{}, items[:at]...)
 	res = append(res, cards...)
 	return append(res, items[at+1:]...)
+}
+
+// mergeSameTitle — карточки с одинаковым названием у одного вендора (у оборудования каждый оффер — своё семейство,
+// а фид повторяет модель под разными id): первая остаётся, остальные — её вложенные варианты.
+func mergeSameTitle(items []out.SearchItem) []out.SearchItem {
+	at := map[string]int{}
+	res := make([]out.SearchItem, 0, len(items))
+	for _, it := range items {
+		k := it.Vendor + "\x00" + strings.ToLower(strings.TrimSpace(it.Title))
+		if i, ok := at[k]; ok && it.Title != "" {
+			v := it
+			nested := v.Variants
+			v.Variants, v.MatchType, v.Explain = nil, "", ""
+			res[i].Variants = append(append(res[i].Variants, v), nested...)
+			continue
+		}
+		at[k] = len(res)
+		res = append(res, it)
+	}
+	return res
+}
+
+// inCategory — позиция из этой категории (сама категория позиции, категория второго уровня или раздел).
+func inCategory(lx *searchLexicon, pid, cat string) bool {
+	d, ok := lx.docs[pid]
+	if !ok {
+		return false
+	}
+	return d.CategoryID == cat || docCat2(d) == cat || contains(d.CategoryIDs, cat)
 }
 
 // insertAfterFirst — блок карточек сразу под первой.

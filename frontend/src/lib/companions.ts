@@ -1,7 +1,13 @@
 // Допродажа и совместимость на витрине («Правила блока»). Без DOM:
 // tests/companions.test.ts. Решает сервер: что показать и в каком классе; фронт подписывает и отбирает
 // только по флагам и по выбору покупателя («уже есть», RDS).
-import type { Companion, CompanionBlock, Features, ItemCompatibility } from '@/api/typesP2'
+import type {
+  Companion,
+  CompanionBlock,
+  EvidenceLevel,
+  Features,
+  ItemCompatibility,
+} from '@/api/typesP2'
 
 export const CLASS_LABELS: Record<string, string> = {
   conditional_required: 'Проверьте необходимость',
@@ -34,8 +40,9 @@ export function featureOn(features: Partial<Features> | null | undefined, key: k
 
 /**
  * Позиции блока «Дополните решение» к показу: несовместимые — никогда; то, что уже стоит строкой условно
- * обязательного в карточке якоря, в блоке не повторяется; не больше 4. Пусто — блок скрыт целиком
- * (без добора популярными).
+ * обязательного в карточке якоря, в блоке не повторяется; не больше 4 из справочника связей (mock) и не больше 6
+ * на фиде (§16.7: там позиции несут `evidence`, лимиты по видам основания ставит сервер). Пусто — блок скрыт
+ * целиком (без добора популярными).
  */
 export function blockItems(
   block: CompanionBlock | null | undefined,
@@ -44,8 +51,64 @@ export function blockItems(
   const items = (block?.items ?? []).filter(
     (c) => c.compatibility !== 'incompatible' && !inCard.includes(c.product_id),
   )
-  return items.slice(0, 4)
+  const feed = items.some((c) => c.evidence)
+  return items.slice(0, feed ? 6 : 4)
 }
+
+export const BLOCK_TITLE = 'Дополните решение'
+
+/** Заголовок блока — из `companions.title`; «Часто покупают вместе» не пишем: заказов в данных нет (§16.7). */
+export function blockTitle(block: Pick<CompanionBlock, 'title'> | null | undefined): string {
+  const t = block?.title?.trim() ?? ''
+  return t && !/часто\s+(покупа|бер)/i.test(t) ? t : BLOCK_TITLE
+}
+
+/** Уровень основания: подпись бейджа без жаргона. */
+export const EVIDENCE_TAGS: Record<EvidenceLevel, string> = {
+  A: 'по документу вендора',
+  B: 'из каталога',
+  C: 'проверьте совместимость',
+}
+
+export interface EvidenceView {
+  level: EvidenceLevel
+  /** «по документу вендора» / «из каталога» / «проверьте совместимость». */
+  tag: string
+  /** Ссылка на документ — только у уровня A и только http(s). */
+  docUrl: string
+  /** Что за документ — для подсказки и экранного диктора. */
+  docTitle: string
+}
+
+const safeHttp = (u: string | null | undefined) =>
+  /^https?:\/\//i.test(u ?? '') ? (u as string) : ''
+
+/** Основание позиции: объект `evidence` (фид), иначе прежнее `evidence_level`; уровня нет — null. */
+export function evidenceView(
+  c: Pick<Companion, 'evidence' | 'evidence_level' | 'source_url'>,
+): EvidenceView | null {
+  const level = (c.evidence?.level || c.evidence_level || '').trim().toUpperCase()
+  if (level !== 'A' && level !== 'B' && level !== 'C') return null
+  const docUrl = level === 'A' ? safeHttp(c.evidence?.url || c.source_url) : ''
+  return {
+    level,
+    tag: EVIDENCE_TAGS[level],
+    docUrl,
+    docTitle: noDates(c.evidence?.title ?? '') || 'документ вендора',
+  }
+}
+
+/** Даты в интерфейсе не пишем: «… № 29073/2025 от 23.01.2025» → «… № 29073/2025». */
+export function noDates(text: string): string {
+  return text
+    .replace(/\s*(?:от|до)?\s*\b\d{1,2}\.\d{1,2}\.\d{4}(?:\s*г\.?)?/gi, '')
+    .replace(/\s*(?:от|до)?\s*\b\d{4}-\d{2}-\d{2}\b/gi, '')
+    .replace(/\s{2,}/g, ' ')
+    .trim()
+}
+
+/** Строка «почему» под карточкой блока: причина сервера без дат. */
+export const reasonText = (c: Pick<Companion, 'reason'>) => noDates(c.reason ?? '')
 
 /** Условие «RDS планируется»: такие позиции строки появляются только после переключателя. */
 export function isRdsCompanion(c: Pick<Companion, 'conditions'>): boolean {
