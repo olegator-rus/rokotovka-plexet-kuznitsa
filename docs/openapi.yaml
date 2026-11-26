@@ -1770,6 +1770,8 @@ components:
         available: { type: boolean, description: "Контур фида: в наличии по фиду; нет поля — источник наличие не сообщает" }
         old_price_rub: { type: number, description: "Контур фида: прежняя цена из фида; скидка — при old_price_rub > price_rub > 0" }
         license_kind: { type: string, enum: [base, renewal, upgrade, migration, support, module, course, other], description: "Контур фида: вид позиции по типу лицензии" }
+        tier_min: { type: integer, description: "ступень цены за единицу «от N»: price_rub — за одно место, итог = price_rub × число мест; нет поля — ступени нет (цена за пакет)" }
+        tier_max: { type: [integer, "null"], description: "верхняя граница ступени; нет поля при tier_min — «от N и больше»" }
         match_type:
           type: string
           enum: [exact, variant, related, alternative, fallback]
@@ -1849,6 +1851,10 @@ components:
             quantity: { type: [integer, "null"] }
             duration_months: { type: [integer, "null"], description: "null — бессрочная" }
             edition: { type: string }
+            kind: { type: string, enum: [base, renewal, upgrade, migration, support, module, course, other], description: "вид позиции по типу лицензии фида; в mock нет" }
+            org_type: { type: string, description: "commercial | academic | government | nonprofit | home; в mock нет" }
+            tier_min: { type: integer, description: "ступень цены за единицу «от N»" }
+            tier_max: { type: [integer, "null"], description: "верхняя граница ступени" }
         price_rub: { type: [number, "null"] }
         price_on_request: { type: boolean }
         price_mode: { type: string, enum: [fixed, from, quote_required, customer_specific, unavailable] }
@@ -2123,6 +2129,27 @@ components:
           type: array
           description: "Контур фида: уточняющие чипы (формат Refinement, field=vendor) при равенстве семейств разных вендоров или общем слове-категории; [] — нет"
           items: { $ref: "#/components/schemas/Refinement" }
+        comparison:
+          type: object
+          description: |
+            строка сравнения цены за место — одна пара редакций одной линейки среди
+            точных карточек при совпадении категории, вида и типа лицензии, типа организации, срока, ступени и метрики.
+            Без «лучше», «самый выгодный» и без дат. Нет поля — сравнивать нечего.
+          properties:
+            text: { type: string, description: "«При этих условиях Стандартный на 31% дешевле, чем Расширенный, за узел»" }
+            conditions: { type: string, description: "«Продление · 2 года · 100–149 устройств · для коммерческих организаций»" }
+            percent: { type: integer }
+            items:
+              type: array
+              description: "Пара: дешевле — первой"
+              items:
+                type: object
+                properties:
+                  product_id: { type: string }
+                  family_id: { type: string }
+                  name: { type: string, description: "Различающаяся часть названия семейства («Стандартный»)" }
+                  title: { type: string }
+                  per_place_rub: { type: number }
         trace: { $ref: "#/components/schemas/Trace" }
     HelpAnswer:
       type: object

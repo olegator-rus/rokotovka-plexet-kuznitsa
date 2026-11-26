@@ -59,6 +59,11 @@ aliases:
 # старте, переимпорт не нужен. Путь — от base_dir.
 lexicon: ../lexicon.csv
 
+# Допродажа: совместимость с первичным документом (уровень A/C) и акции раздела /specials/ —
+# читаются API при старте, переимпорт не нужен. Пути — от base_dir.
+compat_docs: ../compat_docs.csv
+promos: ../promos.csv
+
 # URL семейств (group_id → страница семейства на сайте) — собирает scripts/data/softline_family_urls.py.
 # Файла нет — URL семейства пустой, импорт пишет предупреждение.
 family_urls:

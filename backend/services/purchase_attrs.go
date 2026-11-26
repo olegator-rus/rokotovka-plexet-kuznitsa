@@ -311,3 +311,41 @@ func (rc rankCtx) offerHiddenInFusion(d indexDoc) (bool, string) {
 	}
 	return rc.offerHidden(d)
 }
+
+// onlyOrgHidden — вариант скрыт только потому, что он фида под тип организации, которого запрос не называет
+// (остальные условия — вид сделки, метрика, вендор — он проходит).
+func (rc rankCtx) onlyOrgHidden(d indexDoc) bool {
+	if hidden, _ := rc.feedOrgHidden(d); !hidden {
+		return false
+	}
+	saved := d.LicenseOrgType
+	d.LicenseOrgType = ""
+	reason, _ := rc.rejectReason(d)
+	d.LicenseOrgType = saved
+	return reason == ""
+}
+
+// namesFamily — семейство названо в запросе: целиком, разбором или словами названия.
+func (rc rankCtx) namesFamily(fid string) bool {
+	return contains(rc.ent.named, fid) || rc.ent.parsedFamily == fid || contains(rc.ent.families, fid)
+}
+
+// orgOnlyNote — оговорка к карточке, у семейства которой все варианты — под один тип организации, а запрос его
+// не называет: «только для госучреждений». "" — оговорки нет.
+func (rc rankCtx) orgOnlyNote(fh *familyHit) string {
+	if fh == nil || rc.attrs.org != "" {
+		return ""
+	}
+	org := ""
+	for _, d := range fh.heads {
+		o := feedOrg[d.LicenseOrgType]
+		if o == "" || org != "" && o != org {
+			return ""
+		}
+		org = o
+	}
+	if org == "" {
+		return ""
+	}
+	return "в каталоге — только для: " + strings.ToLower(orgLabels[org])
+}

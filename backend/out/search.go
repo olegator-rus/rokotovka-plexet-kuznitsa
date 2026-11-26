@@ -47,9 +47,30 @@ type SearchResponse struct {
 	// Контур фида: цель ответа — первый кликабельный элемент (null — цели нет: бессмыслица,
 	// B0–B2); уточняющие чипы при равенстве семейств разных вендоров или общем слове-категории ([] — нет).
 	// Счётчики семейств, SKU и карточек по match_type — в Counts (всегда, не только при FEATURE_RESULTS_V3).
-	Target         *Target       `json:"target"`
-	Clarifications []Refinement  `json:"clarifications"`
-	Trace          *domain.Trace `json:"trace"`
+	Target         *Target      `json:"target"`
+	Clarifications []Refinement `json:"clarifications"`
+	// строка сравнения цены за место — одна пара точных карточек при совпадении класса, вида
+	// лицензии, типа организации, срока и ступени количества; nil — сравнивать нечего.
+	Comparison *PriceComparison `json:"comparison,omitempty"`
+	Trace      *domain.Trace    `json:"trace"`
+}
+
+// PriceComparison — «При этих условиях Стандартный на 31% дешевле, чем Расширенный, за узел». Без оценок «лучше»
+// и «самый выгодный» и без дат; условия — те, при которых сравнение верно.
+type PriceComparison struct {
+	Text       string           `json:"text"`
+	Items      []ComparisonItem `json:"items"`
+	Conditions string           `json:"conditions"`
+	Percent    int              `json:"percent"`
+}
+
+// ComparisonItem — позиция пары: дешевле — первой.
+type ComparisonItem struct {
+	ProductID   string  `json:"product_id"`
+	FamilyID    string  `json:"family_id"`
+	Name        string  `json:"name"`
+	Title       string  `json:"title"`
+	PerPlaceRub float64 `json:"per_place_rub"`
 }
 
 // Типы цели ответа.
@@ -171,6 +192,10 @@ type SearchItem struct {
 	Available   *bool    `json:"available,omitempty"`
 	OldPriceRub *float64 `json:"old_price_rub,omitempty"`
 	LicenseKind string   `json:"license_kind,omitempty"`
+	// ступень цены за единицу («от 100 до 149 узлов»: price_rub — за одно место, итог = цена × число мест);
+	// tier_max null при tier_min — «от N и больше». Без ступени поля не выводятся.
+	TierMin *int `json:"tier_min,omitempty"`
+	TierMax *int `json:"tier_max,omitempty"`
 	// Контур фида: ступень лестницы, состояние цены, цена «от» (минимум среди позиций семейства,
 	// которые можно купить сейчас и которые проходят условия запроса; null — таких нет), подписи («Скидка N%» по
 	// old_price_rub) и строка «почему здесь». У вложенных вариантов не заполняются.
@@ -179,6 +204,8 @@ type SearchItem struct {
 	PriceFrom  *float64 `json:"price_from,omitempty"`
 	Badges     []string `json:"badges,omitempty"`
 	Explain    string   `json:"explain,omitempty"`
+	// Promos — действующие акции магазина на семейство или позицию (upsell_feed.go).
+	Promos []ItemPromo `json:"promos,omitempty"`
 }
 
 // ItemCompatibility — совместимость позиции с моделью из запроса.
@@ -209,10 +236,38 @@ type Companion struct {
 	SuggestedQuantity *int     `json:"suggested_quantity"`
 	Label             string   `json:"label"`
 	UpgradeAdds       []string `json:"upgrade_adds"`
+	// Контур фида (фид): основание карточки — уровень A|B|C, вид, документ; страницы позиции и семейства;
+	// акции магазина. В mock не заполняются и не выводятся.
+	Evidence  *CompanionEvidence `json:"evidence,omitempty"`
+	OfferURL  string             `json:"offer_url,omitempty"`
+	FamilyURL string             `json:"family_url,omitempty"`
+	Promos    []ItemPromo        `json:"promos,omitempty"`
 }
 
-// CompanionBlock — «Дополните решение»: якорь и 2–4 компаньона.
+// CompanionEvidence — основание карточки «Дополните решение»: A — документ вендора о совместимости,
+// B — каталог (тип лицензии, название SKU, экосистема вендора), C — та же задача, совместимость не подтверждена.
+// Kind: compat_document | license_kind | sku_platform | vendor_ecosystem | same_task. Дата документа не выводится.
+type CompanionEvidence struct {
+	Level     string `json:"level"`
+	Kind      string `json:"kind"`
+	Title     string `json:"title"`
+	URL       string `json:"url"`
+	DocNumber string `json:"doc_number"`
+}
+
+// ItemPromo — акция магазина на карточке: строка «Акция: …, условия по ссылке» и ссылка на страницу
+// акции. Только с подтверждённым сроком; срок не выводится.
+type ItemPromo struct {
+	ID    string `json:"id"`
+	Title string `json:"title"`
+	Text  string `json:"text"`
+	URL   string `json:"url"`
+}
+
+// CompanionBlock — «Дополните решение»: якорь и 2–4 компаньона (на фиде — до 6). Title — заголовок блока
+// (настройка UPSELL_BLOCK_TITLE, по умолчанию «Дополните решение»); пусто — фронт пишет свой.
 type CompanionBlock struct {
+	Title  string          `json:"title,omitempty"`
 	Anchor CompanionAnchor `json:"anchor"`
 	Items  []Companion     `json:"items"`
 }

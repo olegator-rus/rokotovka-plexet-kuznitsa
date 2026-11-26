@@ -160,6 +160,19 @@ type queryEntities struct {
 var nonProductStems = []string{"документ", "акт", "сверк", "упд", "реквизит", "счет", "счёт", "доставк", "оплат",
 	"заказ", "накладн", "договор", "возврат"}
 
+// howToWords — первое слово вопроса «как сделать» («как продлить лицензию», «где скачать дистрибутив»).
+var howToWords = setOf("как", "где", "почему", "зачем", "куда", "когда")
+
+// markHowTo — вопрос «как/где …» без названного продукта, вендора и категории — сервисный: это вопрос менеджеру или
+// справке, а не поиск товара («как продлить лицензию» не должно давать FastReport по слову «продление»).
+func (e *queryEntities) markHowTo(tokens []string, attrs queryAttrs) {
+	if len(tokens) < 2 || !howToWords[tokens[0]] || len(e.vendors) > 0 || len(e.families) > 0 || len(e.named) > 0 ||
+		e.category != "" || attrs.analog {
+		return
+	}
+	e.nonProduct = true
+}
+
 func isNonProductWord(w string) bool {
 	for _, s := range nonProductStems {
 		if strings.HasPrefix(w, s) && (len([]rune(w)) <= len([]rune(s))+4) {
@@ -240,7 +253,8 @@ func findEntities(nr normResult, attrs queryAttrs, lx *searchLexicon, rules *sea
 			}
 		}
 	}
-	if e.category == "" {
+	if e.category == "" && !e.nonProduct {
+		// Слово вопроса не о товаре («доставка») категорией не становится: «Контроллер доставки приложений» — не то.
 		e.category, e.purposeWords = lx.categoryOf(entityTokens)
 		e.categoryByWords = e.category != ""
 	}
@@ -267,6 +281,7 @@ func findEntities(nr normResult, attrs queryAttrs, lx *searchLexicon, rules *sea
 			}
 		}
 	}
+	e.markHowTo(nr.tokens, attrs)
 	return e
 }
 

@@ -252,8 +252,10 @@ func TestP6LadderAlternativeWhenOnlyOnRequest(t *testing.T) {
 	fams := p6fams(t, rc, domain.GroupExact, "f-kes")
 	resp := p6resp(rc, fams)
 	step := answerStage(answerInput{rc: rc, words: []string{"kaspersky", "endpoint", "security"}, fams: fams, storefront: true}, resp, &domain.Trace{})
-	if step.Alternatives == 0 {
-		t.Fatal("точное только по запросу — нужен блок «Можно купить сейчас»")
+	// назначение (редакция) Kaspersky Endpoint Security в названиях не определяется — «любой антивирус с
+	// ценой» не подставляется; серверный случай — TestP63AlternativesSameClassAndPurpose.
+	if step.Alternatives != 0 {
+		t.Fatalf("назначение не определено, а добавлено %d альтернатив", step.Alternatives)
 	}
 	for _, it := range resp.Items {
 		if it.MatchType == out.MatchAlternative && (it.PriceState != out.PricePriced || it.Category != resp.Items[0].Category) {

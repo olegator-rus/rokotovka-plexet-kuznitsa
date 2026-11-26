@@ -32,6 +32,9 @@ type targetDecision struct {
 	coverageMiss string
 	// clarify — вендоры для уточняющих чипов (равенство между вендорами, общее слово-категория).
 	clarify bool
+	// lead — главный продукт линейки среди равных семейств (не клиентская лицензия, стандартная редакция,
+	// ближайшая версия): первая карточка, когда цель — вендор или вендор + категория. leadNote — оговорка к ней.
+	lead, leadNote string
 }
 
 // targetInput — что нужно выбору цели.
@@ -235,6 +238,9 @@ func (rc rankCtx) categoryQuery(words []string, cat string) bool {
 func selectTarget(in targetInput) targetDecision {
 	rc := in.rc
 	dec := targetDecision{families: map[string]bool{}}
+	if rc.ent.nonProduct && gibberish(rc.ent, in.words) && in.help == nil {
+		return dec // бессмыслица («asdfgh»): цели нет, даже если разбор модели назвал её «не о товаре»
+	}
 	if rc.ent.nonProduct || in.help != nil && in.help.Mode == HelpModeAnswer {
 		t := &out.Target{Type: out.TargetService, Title: "Помощь менеджера", Reason: "запрос не о товаре"}
 		if in.help != nil {
@@ -272,13 +278,37 @@ func selectTarget(in targetInput) targetDecision {
 	// 1. Совпадение с названием семейства (или вендора).
 	brand := rc.brandVendor(in.words, in.fams)
 	dec.brandOnly = brand != ""
-	var covering []string
-	for _, fh := range in.fams {
-		if fh.group == domain.GroupAnalog {
-			continue
+	coverWith := func(words []string) []string {
+		var res []string
+		for _, fh := range in.fams {
+			if fh.group != domain.GroupAnalog && rc.covers(fh.id, words, dec.brandOnly) {
+				res = append(res, fh.id)
+			}
 		}
-		if rc.covers(fh.id, in.words, dec.brandOnly) {
-			covering = append(covering, fh.id)
+		return res
+	}
+	covering := coverWith(in.words)
+	// Названной версии в каталоге нет («windows server 2025»): продукт — по словам без номера версии, первым —
+	// ближайшая версия самого продукта, а не первое по релевантности (клиентская лицензия — допродажа).
+	var wantVersions []string
+	if len(covering) == 0 && !dec.brandOnly {
+		var plain []string
+		for _, w := range in.words {
+			if isVersionWord(w) {
+				wantVersions = append(wantVersions, w)
+			} else {
+				plain = append(plain, w)
+			}
+		}
+		if len(wantVersions) > 0 && len(plain) > 0 {
+			if c := coverWith(plain); len(c) > 0 {
+				covering, in.words = c, plain
+				dec.leadNote = "названной версии в каталоге нет — показана ближайшая"
+			} else {
+				wantVersions = nil
+			}
+		} else {
+			wantVersions = nil
 		}
 	}
 	if brand != "" {
@@ -335,15 +365,26 @@ func selectTarget(in targetInput) targetDecision {
 		vendors[rc.lx.familyVendor[f]] = true
 		cats[docCat2(byID[f].head)] = true
 	}
+	lead := rc.mainOfLine(covering, byID, wantVersions)
 	if len(vendors) == 1 && len(covering) < lineMin && !dec.brandOnly {
 		// Два равных семейства — ещё не линейка: первое по релевантности, второе — сразу под ним.
-		return familyTarget(rc, dec, byID[covering[0]], "совпадение с названием семейства, первое по релевантности")
+		first := covering[0]
+		if lead != "" {
+			first = lead
+		}
+		return familyTarget(rc, dec, byID[first], "совпадение с названием семейства, первое по релевантности")
+	}
+	if len(vendors) == 1 && lead != "" && !dec.brandOnly && !anyBuyable(covering, byID) {
+		// Вся линейка только по запросу («windows server»): страница вендора с категорией купить ничего не даёт —
+		// цель и первая карточка — главный продукт (: «Запросить цену» у Windows Server Standard).
+		return familyTarget(rc, dec, byID[lead], "линейка только по запросу — главный продукт линейки")
 	}
 	if len(vendors) == 1 {
 		v := rc.lx.familyVendor[covering[0]]
 		for _, f := range covering {
 			dec.families[f] = true
 		}
+		dec.lead = lead
 		if len(cats) == 1 && !dec.brandOnly {
 			return vendorCategoryTarget(rc, dec, v, byID[covering[0]].head)
 		}
@@ -465,6 +506,7 @@ func (rc rankCtx) leads(fid string, words []string) bool {
 			names = append(names, w)
 		}
 	}
+	names = rc.withoutTypePrefix(fid, names)
 	i := 0
 	for _, w := range words {
 		if rc.ent.vendorTokens[w] || wordMatch(w, vendor) {
@@ -508,4 +550,148 @@ func ownerShare(rc rankCtx, ids []string, vendor string) int {
 		}
 	}
 	return n
+}
+
+// withoutTypePrefix — слова названия без начального слова-типа из названия категории семейства: «Операционная
+// система Microsoft Windows Server Standard» в «Операционных системах Windows» начинается с «windows server».
+func (rc rankCtx) withoutTypePrefix(fid string, names []string) []string {
+	cat := rc.lx.familyCat[fid]
+	catWords := wordsOf(rc.lx.categoryName[cat])
+	if root := rc.lx.categoryRoot[cat]; root != "" && root != cat {
+		catWords = append(catWords, wordsOf(rc.lx.categoryName[root])...)
+	}
+	i := 0
+	for i < len(names)-1 {
+		typeWord := false
+		for _, c := range catWords {
+			if utf8.RuneCountInString(c) >= 5 && sameStem(names[i], c) {
+				typeWord = true
+				break
+			}
+		}
+		if !typeWord {
+			break
+		}
+		i++
+	}
+	return names[i:]
+}
+
+// accessLicenseWords — слово названия семейства, по которому это клиентская лицензия доступа к продукту (CAL), а не
+// сам продукт: она — допродажа к нему и первой в линейке не встаёт.
+var accessLicenseWords = setOf("cal", "cals")
+
+// defaultEditionStems — начало слова стандартной редакции: среди равных редакций линейки она первая.
+var defaultEditionStems = []string{"standard", "стандарт"}
+
+// isVersionWord — слово запроса — номер версии или года выпуска («2025», «2019»).
+func isVersionWord(w string) bool {
+	if utf8.RuneCountInString(w) != 4 || !(strings.HasPrefix(w, "19") || strings.HasPrefix(w, "20")) {
+		return false
+	}
+	for _, r := range w {
+		if r < '0' || r > '9' {
+			return false
+		}
+	}
+	return true
+}
+
+// familyVersion — номер версии семейства: из названия семейства, иначе из названия головы. 0 — не указан.
+func (rc rankCtx) familyVersion(fh *familyHit) int {
+	for _, s := range []string{rc.lx.familyName[fh.id], fh.head.Title} {
+		for _, w := range wordsOf(s) {
+			if isVersionWord(w) {
+				n := 0
+				for _, r := range w {
+					n = n*10 + int(r-'0')
+				}
+				return n
+			}
+		}
+	}
+	return 0
+}
+
+// mainOfLine — главный продукт среди равных семейств одного вендора: не клиентская лицензия; если названа версия,
+// которой нет, — ближайшая по номеру; иначе стандартная редакция. "" — признаки семейства не различают (порядок
+// остаётся по релевантности).
+func (rc rankCtx) mainOfLine(ids []string, byID map[string]*familyHit, wantVersions []string) string {
+	if len(ids) < 2 && len(wantVersions) == 0 {
+		return ""
+	}
+	decided := false
+	cands := keepIf(ids, func(f string) bool {
+		for _, w := range wordsOf(rc.lx.familyName[f]) {
+			if accessLicenseWords[w] {
+				return false
+			}
+		}
+		return true
+	})
+	if len(cands) < len(ids) {
+		decided = true
+	}
+	if len(wantVersions) > 0 {
+		want := 0
+		for _, r := range wantVersions[0] {
+			want = want*10 + int(r-'0')
+		}
+		best, bestD := "", 1<<30
+		for _, f := range cands {
+			v := rc.familyVersion(byID[f])
+			if v == 0 {
+				continue
+			}
+			d := want - v
+			if d < 0 {
+				d = -d
+			}
+			if d < bestD {
+				best, bestD = f, d
+			}
+		}
+		if best != "" {
+			return best
+		}
+	}
+	for _, f := range cands {
+		for _, w := range wordsOf(rc.lx.familyName[f]) {
+			for _, st := range defaultEditionStems {
+				if strings.HasPrefix(w, st) {
+					return f
+				}
+			}
+		}
+	}
+	if decided || len(wantVersions) > 0 {
+		return cands[0]
+	}
+	return ""
+}
+
+// anyBuyable — у одного из семейств есть позиция, которую можно купить сейчас.
+func anyBuyable(ids []string, byID map[string]*familyHit) bool {
+	for _, f := range ids {
+		if famBuyable(byID[f]) {
+			return true
+		}
+	}
+	return false
+}
+
+// gibberish — все значимые слова запроса неизвестны каталогу и словарю, и среди них нет слова сервисного вопроса.
+func gibberish(e queryEntities, words []string) bool {
+	if e.noise {
+		return true
+	}
+	if e.significant == 0 || len(e.unknown) < e.significant {
+		return false
+	}
+	for _, w := range words {
+		if isNonProductWord(w) || howToWords[w] {
+			return false
+		}
+	}
+	return true
 }

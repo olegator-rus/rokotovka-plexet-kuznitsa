@@ -29,6 +29,10 @@ var licenseNoise = setOf("лицензия", "лицензии", "лицензи
 	"электронный", "электронной", "ключ", "esd", "box", "коробочная", "коробка", "версия", "поставка", "подписка",
 	"подписку", "бессрочная", "бессрочно", "бессрочной", "продление", "продления")
 
+// yearLike — число похоже на год выпуска или версию («Windows Server Datacenter 2022 (лицензия …)»): в названии
+// позиции это не количество мест.
+func yearLike(n int) bool { return n >= 1990 && n <= 2039 }
+
 // titleTokens — слова названия: нижний регистр, ё → е, разделители — всё, кроме букв и цифр.
 func titleTokens(s string) []string {
 	s = strings.ReplaceAll(strings.ToLower(s), "ё", "е")
@@ -47,7 +51,7 @@ func licenseFromText(text string) (domain.License, map[int]bool, []string) {
 		}
 		return tokens[i]
 	}
-	if a.quantity > 0 {
+	if a.quantity > 0 && !yearLike(a.quantity) {
 		q := a.quantity
 		lic.Quantity = &q
 		if a.metric != "" {

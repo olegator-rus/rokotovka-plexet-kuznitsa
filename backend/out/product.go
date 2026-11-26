@@ -53,6 +53,12 @@ type ProductLicense struct {
 	Quantity       *int    `json:"quantity"`
 	DurationMonths *int    `json:"duration_months"`
 	Edition        string  `json:"edition"`
+	// вид позиции по типу лицензии фида (base | renewal | upgrade | migration | support | module | course |
+	// other), тип организации и ступень цены за единицу; в mock пусто и не выводится.
+	Kind    string `json:"kind,omitempty"`
+	OrgType string `json:"org_type,omitempty"`
+	TierMin *int   `json:"tier_min,omitempty"`
+	TierMax *int   `json:"tier_max,omitempty"`
 }
 
 // ProductAttr — атрибут позиции: подпись даёт сервер, значение — строкой.

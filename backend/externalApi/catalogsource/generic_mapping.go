@@ -52,6 +52,10 @@ type Mapping struct {
 	// Lexicon — словарь понимания запросов (CSV: alias, canonical, kind, target, target_id, basis, note; контур фида):
 	// читается при старте API, а не импортом — правка словаря не требует переимпорта. Пусто — словаря нет.
 	Lexicon string `yaml:"lexicon"`
+	// CompatDocs, Promos — допродажа контура фида (CSV, upsell.go): совместимость с первичным документом и акции
+	// магазина; читаются при старте API, как lexicon. Пусто — справочника нет.
+	CompatDocs string `yaml:"compat_docs"`
+	Promos     string `yaml:"promos"`
 	// Synthetic — что в данных придумано ("margin", "orders") → плашка «Синтетические данные».
 	Synthetic []string `yaml:"synthetic"`
 

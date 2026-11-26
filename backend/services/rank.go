@@ -237,6 +237,9 @@ type familyHit struct {
 	// выше позиций, которые закрывают количество поштучно. Условие «учтено строго» — и в порядке выдачи.
 	// Для одного места не действует: поштучная лицензия на 1 место — то же самое.
 	exactQty int
+	// core — основная линейка вендора в запросе «вендор + условия» (search_vendor_core.go): 3 — редакция линейки, 2 — общий продукт
+	// основной категории, 1 — специализированный, 0 — остальное.
+	core int
 }
 
 // buildFamily — семейство из всех его позиций: недопустимые уходят в отказы, лучшая по соответствию —
@@ -251,14 +254,26 @@ func (rc rankCtx) buildFamily(fid string, rel float64, rejected *[]domain.Reject
 		ok  bool
 	}
 	var ok []scored
+	var orgOnly []indexDoc
 	for _, pid := range rc.lx.families[fid] {
 		d := rc.lx.docs[pid]
 		if reason, detail := rc.rejectReason(d); reason != "" {
 			addRejected(rejected, d.ProductID, reason, detail)
+			if reason == rejectOffer && rc.onlyOrgHidden(d) {
+				orgOnly = append(orgOnly, d)
+			}
 			continue
 		}
 		f, full := rc.fit(d)
 		ok = append(ok, scored{d, f, full})
+	}
+	if len(ok) == 0 && len(orgOnly) > 0 && len(orgOnly) == len(rc.lx.families[fid]) && rc.namesFamily(fid) {
+		// названный продукт продаётся только под тип организации (Windows Server Standard — только для
+		// госучреждений): он не скрывается, а показывается с этой оговоркой (orgOnlyNote) — по запросу.
+		for _, d := range orgOnly {
+			f, full := rc.fit(d)
+			ok = append(ok, scored{d, f, full})
+		}
 	}
 	if len(ok) == 0 {
 		return nil
@@ -603,6 +618,9 @@ func sortFamilies(fs []*familyHit) {
 		if fs[i].scale != fs[j].scale {
 			return fs[i].scale > fs[j].scale
 		}
+		if fs[i].core != fs[j].core {
+			return fs[i].core > fs[j].core
+		}
 		if fs[i].exactQty != fs[j].exactQty {
 			return fs[i].exactQty > fs[j].exactQty
 		}
@@ -624,7 +642,7 @@ func (rc rankCtx) toItem(fh *familyHit) out.SearchItem {
 			Final:           fh.final,
 			Kind:            docKind(d), MPN: d.MPNRaw, PriceMode: docPriceMode(d), Required: []out.Companion{},
 			OfferURL: d.OfferURL, FamilyURL: d.FamilyURL, VendorURL: d.VendorURL, Available: d.Available,
-			OldPriceRub: d.OldPriceRub, LicenseKind: d.LicenseKind,
+			OldPriceRub: d.OldPriceRub, LicenseKind: d.LicenseKind, TierMin: d.LicenseTierMin, TierMax: d.LicenseTierMax,
 		}
 	}
 	it := mk(fh.head)

@@ -137,6 +137,9 @@ func extractAttrs(tokens []string) queryAttrs {
 				i++
 				continue
 			}
+			if yearLike(num) && at(i-1) != "на" {
+				continue // «windows server 2022 лицензия», «office 2019»: год выпуска, а не число мест
+			}
 			if m, ok := metricOf(next); ok && !(m == domain.MetricServer && at(i-1) != "на") {
 				a.setQuantity(num, m, next, i, i+1)
 				a.consume(tokens, i-1, "на")

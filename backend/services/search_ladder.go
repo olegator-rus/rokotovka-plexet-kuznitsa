@@ -128,12 +128,30 @@ func answerStage(in answerInput, resp *out.SearchResponse, trace *domain.Trace) 
 	}
 	if dec.skuDoc != nil && resp.Group != GroupNone {
 		resp.Items = expandSKU(rc, resp.Items, byID[dec.skuDoc.FamilyID], *dec.skuDoc)
+	} else if dec.skuDoc != nil {
+		resp.Items = trimSKUFamily(rc.lx, resp.Items, *dec.skuDoc) // плоская выдача: SKU и три соседа (search_sku_neighbours.go)
 	}
 	// Семейство цели — первой карточкой: цель и первый товар не расходятся.
 	lead := ""
 	if dec.target != nil && dec.skuDoc == nil && len(dec.families) == 1 {
 		for f := range dec.families {
 			lead = f
+		}
+	}
+	if dec.lead != "" && dec.families[dec.lead] {
+		lead = dec.lead // главный продукт линейки (search_target.go mainOfLine)
+	}
+	// Оговорки к карточке: продукт только под тип организации; названной версии нет — ближайшая.
+	for i := range resp.Items {
+		it := &resp.Items[i]
+		if it.MatchType != out.MatchExact {
+			continue
+		}
+		if note := rc.orgOnlyNote(byID[it.FamilyID]); note != "" {
+			it.Explain += "; " + note
+		}
+		if dec.leadNote != "" && it.FamilyID == lead {
+			it.Explain += "; " + dec.leadNote
 		}
 	}
 	// Ступени по порядку, семейство цели — первым в своей ступени.
@@ -165,7 +183,7 @@ func answerStage(in answerInput, resp *out.SearchResponse, trace *domain.Trace) 
 	if in.storefront && !in.serviceLike {
 		alts := alternatives(rc, resp.Items, shown)
 		step.Alternatives = len(alts)
-		resp.Items = append(resp.Items, alts...)
+		resp.Items = insertAfterFirst(resp.Items, alts) // сразу под названным продуктом
 	}
 	// 5: «Популярное в наличии» — шаги 1–4 дали меньше четырёх семейств.
 	if in.storefront && len(shown) < ladderMin {
@@ -183,6 +201,7 @@ func answerStage(in answerInput, resp *out.SearchResponse, trace *domain.Trace) 
 		}
 	}
 	finishCards(resp)
+	resp.Comparison = priceComparison(rc.lx, resp.Items) // строка сравнения цены за место (search_comparison.go)
 	if dec.clarify {
 		resp.Clarifications = vendorClarifications(resp)
 	}
@@ -232,6 +251,17 @@ func expandSKU(rc rankCtx, items []out.SearchItem, fh *familyHit, sku indexDoc) 
 	return append(res, items[at+1:]...)
 }
 
+// insertAfterFirst — блок карточек сразу под первой.
+func insertAfterFirst(items, block []out.SearchItem) []out.SearchItem {
+	if len(block) == 0 || len(items) == 0 {
+		return append(items, block...)
+	}
+	res := make([]out.SearchItem, 0, len(items)+len(block))
+	res = append(res, items[0])
+	res = append(res, block...)
+	return append(res, items[1:]...)
+}
+
 // cardOf — карточка семейства с заданной головой и вложенными вариантами.
 func (rc rankCtx) cardOf(fh *familyHit, head indexDoc, variants []indexDoc) out.SearchItem {
 	c := *fh
@@ -240,8 +270,8 @@ func (rc rankCtx) cardOf(fh *familyHit, head indexDoc, variants []indexDoc) out.
 	return rc.toItem(&c)
 }
 
-// alternatives — «Можно купить сейчас» (простой вариант до): ни одну точную карточку нельзя купить
-// сразу — семейства той же категории второго уровня, голова которых подходит под условия запроса и продаётся с ценой.
+// alternatives — «Можно купить сейчас»: ни одну точную карточку нельзя купить сразу — семейства того же класса и
+// назначения, голова которых подходит под условия запроса и продаётся с ценой.
 func alternatives(rc rankCtx, items []out.SearchItem, shown map[string]bool) []out.SearchItem {
 	var exact []out.SearchItem
 	for _, it := range items {
@@ -262,13 +292,8 @@ func alternatives(rc rankCtx, items []out.SearchItem, shown map[string]bool) []o
 			}
 		}
 	}
-	d, ok := rc.lx.docs[exact[0].ProductID]
-	if !ok {
-		return nil
-	}
-	cat := docCat2(d)
-	return pickFamilies(rc, shown, maxAlternatives, func(fid string) bool { return famCat2(rc.lx, fid) == cat }, false,
-		domain.GroupAnalog, out.MatchAlternative, explainAlternative)
+	// та же категория второго уровня (или соседняя того же типа) и то же назначение (search_alternatives.go).
+	return purposeAlternatives(rc, exact[0], shown, maxAlternatives)
 }
 
 // fallback — «Популярное в наличии»: семейства в наличии с ценой из категорий второго уровня показанных карточек,

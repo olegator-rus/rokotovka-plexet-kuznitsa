@@ -76,6 +76,9 @@ type Config struct {
 	Features Features
 	// Auth — вход по ролям AUTH_*, DEMO_LOGIN_BUTTONS (auth.go).
 	Auth AuthConfig
+	// UpsellTitle — UPSELL_BLOCK_TITLE: заголовок блока допродажи; по умолчанию «Дополните решение» («Часто покупают
+	// вместе» — только когда в данных появятся заказы).
+	UpsellTitle string
 }
 
 func (c Config) IsProduction() bool { return c.AppEnv == EnvProduction }
@@ -91,6 +94,7 @@ func Load() (Config, error) {
 		DataSource:     strings.ToLower(env("DATA_SOURCE", DataSourceMock)),
 		DataMapping:    env("DATA_MAPPING", ""),
 		IndexAlias:     env("INDEX_ALIAS", ""),
+		UpsellTitle:    env("UPSELL_BLOCK_TITLE", "Дополните решение"),
 	}
 	var problems []string
 	var err error

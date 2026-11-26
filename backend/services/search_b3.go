@@ -168,8 +168,10 @@ func (s *Services) searchB3(ctx context.Context, requestID string, req in.Search
 			words = append(words, w)
 		}
 	}
+	vendorOnlyText := false // только вендор и условия покупки («касперский на 10 пк»): BM25 семейства вендора не различает
 	if len(words) == 0 {
 		words, vendorWords = vendorWords, nil
+		vendorOnlyText = len(words) > 0 && (attrs.quantity > 0 || attrs.renewal || attrs.duration > 0)
 	}
 	if attrs.renewal {
 		vendorWords = append(vendorWords, "продление") // продление — фильтр; слово только усиливает
@@ -218,6 +220,15 @@ func (s *Services) searchB3(ctx context.Context, requestID string, req in.Search
 			filters = append(strictFilters(attrs, ent), hw.filters()...)
 			bm = s.lexicalB3(ctx, text, expansions, b3MinMatch, filters)
 		}
+	}
+	if vendorOnlyText && ent.intent == nil {
+		// Назван только вендор: его офферы по тексту равны, и места кандидатов занимают семейства с сотнями
+		// офферов — ранги BM25 переводятся в ранги семейств (search_family_pool.go).
+		mm := b3MinMatch
+		if bm.step.Mode == "multi_match_any" {
+			mm = "1"
+		}
+		bm = s.familyDeep(ctx, bm25QueryB3(text, expansions, mm, candidatesTop, filters), bm)
 	}
 	s.exactRetrieve(ctx, hw, filters)
 	dn := <-denseCh
@@ -384,6 +395,11 @@ func (s *Services) searchB3(ctx context.Context, requestID string, req in.Search
 			if !ok {
 				continue
 			}
+			if rel < relThreshold && vendorOnlyText && contains(ent.vendors, lx.familyVendor[f]) {
+				// назван только вендор — его семейства по тексту равны, порог по рангу их не различает;
+				// допустимость решают условия покупки (buildFamily), порядок — основная линейка (markVendorCore).
+				rel = relThreshold
+			}
 			if rel < relThreshold {
 				for _, pid := range lx.families[f] {
 					if _, retrieved := fusedByID[pid]; retrieved {
@@ -429,6 +445,7 @@ func (s *Services) searchB3(ctx context.Context, requestID string, req in.Search
 		rc.score(fh)
 	}
 	cq.regroup(fams)
+	rc.markVendorCore(fams) // «касперский на 100 пк»: основная линейка вендора выше (search_vendor_core.go)
 	sortFamilies(fams)
 	fams = rc.dropTail(fams, &trace.Rejected)
 	if absent && len(fams) > 5 {
@@ -583,8 +600,16 @@ func (s *Services) searchB3(ctx context.Context, requestID string, req in.Search
 	ansStep := answerStage(answerInput{rc: rc, words: queryWords(nr.tokens, attrs.consumed), fams: foundFams,
 		exactDoc: exactDocMatcher(nr.tokens, hw), category: ent.category, limit: limit, storefront: !opts.NoLog,
 		fallbackOff: s.noFallbackBlock, serviceLike: ent.noise || ent.nonProduct}, resp, trace)
+	// допродажа и акции на фиде — после цели ответа (upsell_feed.go); на mock шага нет.
+	var upsellStep *UpsellStep
+	if s.featuresFor(ctx).Companions {
+		upsellStep = s.feedUpsellStage(st.lex, attrs.analog, resp)
+	}
 	if hwStep := hw.step(); hwStep != nil {
 		trace.Steps = append(trace.Steps, hwStep)
+	}
+	if upsellStep != nil {
+		trace.Steps = append(trace.Steps, upsellStep)
 	}
 	if companionsStep != nil {
 		trace.Steps = append(trace.Steps, companionsStep)

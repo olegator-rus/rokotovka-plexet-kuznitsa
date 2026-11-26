@@ -55,6 +55,9 @@ type Services struct {
 	features Features
 	// noFallbackBlock — SEARCH_FALLBACK_BLOCK=off: без «Популярного в наличии» под сервисным запросом и бессмыслицей.
 	noFallbackBlock bool
+	// upsellTitle — заголовок блока допродажи; upsell — справочники допродажи контура фида (upsell_data.go).
+	upsellTitle string
+	upsell      upsellState
 	// procurement — справка и реестр контура доводки из файлов источника (help_index.go, analogs_reestr.go).
 	procurement procurementCache
 }
@@ -99,6 +102,8 @@ type Options struct {
 	// NoFallbackBlock — без блока «Популярное в наличии» под сервисным запросом и бессмыслицей (SEARCH_FALLBACK_BLOCK=off,
 	// search_ladder.go). Нулевое значение — блок есть: так по умолчанию и в тестах.
 	NoFallbackBlock bool
+	// UpsellTitle — заголовок блока допродажи (UPSELL_BLOCK_TITLE); пусто — «Дополните решение».
+	UpsellTitle string
 }
 
 // NewServices — граф сервисов. repos == nil — API без базы: health отдаёт db: down, поиск не пишет журнал.
@@ -125,6 +130,7 @@ func NewServices(repos *repositories.Repos, opts Options) *Services {
 		judge:           opts.JudgeModel,
 		features:        opts.Features,
 		noFallbackBlock: opts.NoFallbackBlock,
+		upsellTitle:     opts.UpsellTitle,
 	}
 	var load func(context.Context, time.Time) (float64, error)
 	if repos.Enabled() {
