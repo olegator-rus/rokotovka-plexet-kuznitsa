@@ -97,6 +97,10 @@ func (s *Services) LoadCatalogState(ctx context.Context) {
 	s.loadCatalogState(ctx)
 	s.LoadLexicon(ctx)
 	s.LoadUpsellData(ctx)
+	if st := s.catalog.Load(); st != nil && st.lex != nil {
+		// Индекс допродажи — заранее: первая подсказка не должна ждать его сборки (бюджет товарной секции 150 мс).
+		go s.upsellIndexFor(st.lex)
+	}
 	if _, err := s.indexInfo(ctx); err != nil {
 		zap.L().Warn("индекс поиска не прочитан — make import?", zap.Error(err))
 	}

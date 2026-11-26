@@ -267,14 +267,14 @@ func (s *Services) SuggestPanel(ctx context.Context, requestID string, req Sugge
 				}
 				// Цель алиаса — вендор или категория: семейства берутся из каталога целиком (в первые кандидаты
 				// текстового поиска главное семейство вендора может не попасть); термин — текстовым поиском.
-				if cr := completionFamilies(lx, comp); cr != nil {
+				if cr := completionFamilies(lx, comp, s.upsellIndexFor(lx).classOf); cr != nil {
 					return mergeInstant(cr, r), nil
 				}
 				cr, cerr := s.instantProducts(c, lx, compText, "", pct)
 				if cerr != nil {
 					return r, nil // дополнение не посчиталось — секция по набранному
 				}
-				return mergeInstant(orderCompletion(lx, cr, comp.cats, ""), r), nil
+				return mergeInstant(orderCompletion(lx, cr, comp.cats, "", s.upsellIndexFor(lx).classOf), r), nil
 			}
 			var r *instantResult
 			var err error

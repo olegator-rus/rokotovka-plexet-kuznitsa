@@ -61,3 +61,35 @@ func TestRankPanelVendors(t *testing.T) {
 		t.Fatalf("вендор дополнения словаря — первым: %+v", got)
 	}
 }
+
+func TestOrderCompletionPrefersClassedLine(t *testing.T) {
+	f := newFx()
+	fam := func(fid, name string, offers int, price float64) {
+		for i := 0; i < offers; i++ {
+			f.add(indexDoc{ProductID: fid + "-" + string(rune('a'+i%26)) + string(rune('a'+i/26)), FamilyID: fid,
+				FamilyName: name, VendorID: "kaspersky", Vendor: "Kaspersky", CategoryID: "av", Title: name,
+				LicenseKind: domain.LicenseKindBase, PriceRub: ptr(price + float64(i))})
+		}
+	}
+	fam("shd", "Kaspersky Security для систем хранения данных", 30, 476)
+	fam("ksos", "Kaspersky Small Office Security", 5, 991)
+	fam("kes-std", "Kaspersky Endpoint Security для бизнеса Стандартный", 10, 684)
+	fam("kes-ext", "Kaspersky Endpoint Security для бизнеса Расширенный", 10, 991)
+	fam("kes-cloud", "Kaspersky Endpoint Security Cloud", 12, 2022)
+	classOf := func(fid string) string {
+		if fid == "shd" {
+			return "" // узкий продукт: класса в таблице допродажи нет
+		}
+		return "antivirus"
+	}
+	r := completionFamilies(f.lx, completion{text: "kaspersky", vendor: "kaspersky"}, classOf)
+	if r == nil || len(r.families) != 5 {
+		t.Fatalf("семейства вендора: %+v", r)
+	}
+	if r.families[0].id != "kes-std" {
+		t.Fatalf("первым — самая широкая линейка с классом, внутри — дешевле вход: %s", r.families[0].id)
+	}
+	if r.families[len(r.families)-1].id != "shd" {
+		t.Fatalf("без класса — после семейств с классом, хоть позиций и больше: %s", r.families[len(r.families)-1].id)
+	}
+}

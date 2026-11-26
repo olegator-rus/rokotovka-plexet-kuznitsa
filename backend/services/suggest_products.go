@@ -434,8 +434,8 @@ func vendorWeight(lx *searchLexicon, vendor string) int {
 }
 
 // completionFamilies — семейства цели алиаса-вендора или алиаса-категории прямо из каталога (позиции с ценой есть);
-// nil — цель алиаса термин.
-func completionFamilies(lx *searchLexicon, c completion) *instantResult {
+// nil — цель алиаса термин. classOf — класс семейства в таблице допродажи ("" — нет; nil — классы не учитываются).
+func completionFamilies(lx *searchLexicon, c completion, classOf func(string) string) *instantResult {
 	if c.vendor == "" && len(c.cats) == 0 {
 		return nil
 	}
@@ -463,14 +463,31 @@ func completionFamilies(lx *searchLexicon, c completion) *instantResult {
 	if len(r.families) == 0 {
 		return nil
 	}
-	return orderCompletion(lx, r, c.cats, c.text)
+	return orderCompletion(lx, r, c.cats, c.text, classOf)
 }
 
-// orderCompletion — семейства дополнения словаря: только категории цели алиаса (если она — категория), затем точные,
-// те, что можно купить сейчас, название содержит текст дополнения («office» → Microsoft Office, а не Workspad),
-// продукты раньше курсов и техподдержки, главная категория вендора (где больше его позиций с ценой), шире линейка (позиций
-// с ценой), релевантность. «касп» → антивирусы Kaspersky, а не курс; «аст» → Astra Linux SE, а не DCImanager.
-func orderCompletion(lx *searchLexicon, r *instantResult, cats []string, text string) *instantResult {
+// lineKey — линейка семейства: первые три слова названия («kaspersky endpoint security» — Стандартный, Расширенный,
+// Расширенный Плюс и Cloud).
+func lineKey(name string) string {
+	var ws []string
+	for _, w := range wordsOf(name) {
+		if w != "для" && w != "и" && w != "на" { // «Kaspersky Security для СХД» и «… для почтовых серверов» — разные линейки
+			ws = append(ws, w)
+		}
+	}
+	if len(ws) > 3 {
+		ws = ws[:3]
+	}
+	return strings.Join(ws, " ")
+}
+
+// orderCompletion — семейства дополнения словаря: только категории цели алиаса (если она — категория), затем точные;
+// те, что можно купить сейчас; название содержит текст дополнения («office» → Microsoft Office, а не Workspad);
+// продукты раньше курсов и техподдержки; семейство с классом в таблице допродажи (основной продукт: антивирус, ОС,
+// СКЗИ) раньше узкого без класса (Kaspersky Security для СХД); шире линейка (позиций с ценой у семейств линейки);
+// внутри линейки — меньшая цена входа; главная категория вендора по числу семейств; релевантность.
+// «касп» → Kaspersky Endpoint Security для бизнеса, «аст» → Astra Linux SE.
+func orderCompletion(lx *searchLexicon, r *instantResult, cats []string, text string, classOf func(string) string) *instantResult {
 	if r == nil {
 		return nil
 	}
@@ -482,12 +499,22 @@ func orderCompletion(lx *searchLexicon, r *instantResult, cats []string, text st
 		}
 		fs = append(fs, f)
 	}
-	n, named, catCount := map[string]int{}, map[string]bool{}, map[string]int{}
+	n, named, classed := map[string]int{}, map[string]bool{}, map[string]bool{}
+	minPrice := map[string]float64{}
+	line, catFams := map[string]int{}, map[string]int{}
 	words := wordsOf(text)
 	for _, f := range fs {
 		for _, pid := range lx.families[f.id] {
-			if docBuyPrice(lx.docs[pid]) != nil {
-				n[f.id]++
+			d := lx.docs[pid]
+			p := docBuyPrice(d)
+			if p == nil {
+				continue
+			}
+			n[f.id]++
+			if d.LicenseKind == domain.LicenseKindBase || d.LicenseKind == "" {
+				if cur, ok := minPrice[f.id]; !ok || *p < cur {
+					minPrice[f.id] = *p
+				}
 			}
 		}
 		name := foldText(lx.familyName[f.id])
@@ -495,16 +522,27 @@ func orderCompletion(lx *searchLexicon, r *instantResult, cats []string, text st
 		for _, w := range words {
 			named[f.id] = named[f.id] && containsWord(name, w)
 		}
+		classed[f.id] = classOf != nil && classOf(f.id) != ""
 	}
 	for _, f := range fs {
-		catCount[lx.familyCat[f.id]] += n[f.id] // вес категории — позиций с ценой у семейств вендора в ней
+		line[lineKey(lx.familyName[f.id])] += n[f.id]
+		if n[f.id] > 0 {
+			catFams[lx.familyCat[f.id]]++
+		}
 	}
 	product := func(f instantFamily) bool {
 		k := f.head.LicenseKind
 		return k != domain.LicenseKindCourse && k != domain.LicenseKindSupport
 	}
+	price := func(id string) float64 {
+		if p, ok := minPrice[id]; ok {
+			return p
+		}
+		return math.MaxFloat64
+	}
 	sort.SliceStable(fs, func(i, j int) bool {
 		a, b := fs[i], fs[j]
+		la, lb := lineKey(lx.familyName[a.id]), lineKey(lx.familyName[b.id])
 		switch {
 		case a.exact != b.exact:
 			return a.exact
@@ -514,8 +552,14 @@ func orderCompletion(lx *searchLexicon, r *instantResult, cats []string, text st
 			return named[a.id]
 		case product(a) != product(b):
 			return product(a)
-		case catCount[lx.familyCat[a.id]] != catCount[lx.familyCat[b.id]]:
-			return catCount[lx.familyCat[a.id]] > catCount[lx.familyCat[b.id]]
+		case classed[a.id] != classed[b.id]:
+			return classed[a.id]
+		case line[la] != line[lb]:
+			return line[la] > line[lb]
+		case la == lb && price(a.id) != price(b.id):
+			return price(a.id) < price(b.id)
+		case catFams[lx.familyCat[a.id]] != catFams[lx.familyCat[b.id]]:
+			return catFams[lx.familyCat[a.id]] > catFams[lx.familyCat[b.id]]
 		case n[a.id] != n[b.id]:
 			return n[a.id] > n[b.id]
 		}
