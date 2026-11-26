@@ -715,6 +715,28 @@ def planted_md(stats, n_orders, relations, lrules, products, rules):
     return "\n".join(lines) + "\n"
 
 
+# Разметка контура поиска для новых позиций (пулинг): CAL 2025 и RDS CAL 2025 — тот же ответ, что их аналоги 2022 в запросах
+# контура поиска, иначе замороженный test штрафует поиск за верную позицию, которой не было при разметке. Явный год 2022 в
+# запросе — не выше 2 (подходящая альтернатива); артикул — не выше 1. Остальные новые позиции к запросам контура поиска
+# не относятся (0 по умолчанию). Хэш заморозки считается без этих оценок (validate.py, POOLED_P2).
+POOLED_P2 = {"wscal25-u1": "wscal-u1", "wscal25-d1": "wscal-d1", "wscal25-u5": "wscal-u5", "wscal25-d5": "wscal-d5",
+             "rdscal25-u1": "wscal-rds", "rdscal25-d1": "wscal-rds"}
+
+
+def pool_p1_judgments(queries):
+    for q in queries:
+        j = q["judgments"]
+        for new, old in POOLED_P2.items():
+            if old not in j or new in j:
+                continue
+            g = j[old]
+            if q["type"] == "sku":
+                g = min(g, 1)
+            elif "2022" in q["text"]:
+                g = min(g, 2)
+            j[new] = g
+
+
 # ------------------------------------------------------------------ точка входа
 def extend(seed, start, days, weighted, products, vendors, cats_list, relations, clients, queries, events, aliases,
            legacy_cls):
@@ -730,6 +752,7 @@ def extend(seed, start, days, weighted, products, vendors, cats_list, relations,
     products += new
     rules = build_compat(products)
     rels, _ = build_relations(relations)
+    pool_p1_judgments(queries)
     p2q = build_queries(products, rules, len(queries) + 1)
     queries += p2q
     cats = {c["id"]: c for c in cats_list}

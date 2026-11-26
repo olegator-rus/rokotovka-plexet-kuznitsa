@@ -1453,7 +1453,13 @@
       "wscal-d1": 1,
       "wscal-u5": 1,
       "wscal-d5": 1,
-      "wscal-rds": 1
+      "wscal-rds": 1,
+      "wscal25-u1": 1,
+      "wscal25-d1": 1,
+      "wscal25-u5": 1,
+      "wscal25-d5": 1,
+      "rdscal25-u1": 1,
+      "rdscal25-d1": 1
     },
     "absent": false,
     "notes": "точное название; версия строгая: 2025 не подходит",
@@ -1492,7 +1498,13 @@
       "wscal-rds": 3,
       "ws22-std16": 1,
       "ws22-std2": 1,
-      "ws22-dc16": 1
+      "ws22-dc16": 1,
+      "wscal25-u1": 3,
+      "wscal25-d1": 3,
+      "wscal25-u5": 3,
+      "wscal25-d5": 3,
+      "rdscal25-u1": 3,
+      "rdscal25-d1": 3
     },
     "absent": false,
     "notes": "точное название",
@@ -1511,7 +1523,13 @@
       "wscal-u5": 3,
       "wscal-d1": 1,
       "wscal-d5": 1,
-      "wscal-rds": 1
+      "wscal-rds": 1,
+      "wscal25-u1": 2,
+      "wscal25-d1": 1,
+      "wscal25-u5": 2,
+      "wscal25-d5": 1,
+      "rdscal25-u1": 1,
+      "rdscal25-d1": 1
     },
     "absent": false,
     "notes": "условия лицензии",
@@ -1530,7 +1548,13 @@
       "wscal-u1": 1,
       "wscal-d1": 1,
       "wscal-u5": 1,
-      "wscal-d5": 1
+      "wscal-d5": 1,
+      "wscal25-u1": 1,
+      "wscal25-d1": 1,
+      "wscal25-u5": 1,
+      "wscal25-d5": 1,
+      "rdscal25-u1": 3,
+      "rdscal25-d1": 3
     },
     "absent": false,
     "notes": "точное название",
@@ -4082,7 +4106,13 @@
       "wscal-d1": 1,
       "wscal-u5": 1,
       "wscal-d5": 1,
-      "wscal-rds": 1
+      "wscal-rds": 1,
+      "wscal25-u1": 1,
+      "wscal25-d1": 1,
+      "wscal25-u5": 1,
+      "wscal25-d5": 1,
+      "rdscal25-u1": 1,
+      "rdscal25-d1": 1
     },
     "absent": false,
     "notes": "артикул",

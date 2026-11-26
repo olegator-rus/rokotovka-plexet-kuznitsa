@@ -279,7 +279,9 @@ def check_queries(data, by_id, clients, vendors, cats, r):
         r.check(bool(terms), f"absent {cl}: не задан term")
         for term in terms:
             r.check(term.lower() not in ctext, f"absent {cl}: «{term}» встречается в каталоге")
-    sha = hashlib.sha256(json.dumps([(q["id"], q["text"], q["set"], q["judgments"]) for q in queries],
+    pooled = {"wscal25-u1", "wscal25-d1", "wscal25-u5", "wscal25-d5", "rdscal25-u1", "rdscal25-d1"}  # gen_mock_p2.POOLED_P2
+    sha = hashlib.sha256(json.dumps([(q["id"], q["text"], q["set"], {k: v for k, v in q["judgments"].items()
+                                                                     if k not in pooled}) for q in queries],
                                     ensure_ascii=False, sort_keys=True).encode()).hexdigest()
     r.check(sha == P1_QUERIES_SHA, "queries: запросы контура поиска (id, text, set, judgments) изменились — test заморожен")
     return all_queries
