@@ -99,7 +99,17 @@ func (p *intentService) PromptVersion() string { return p.prompt.Version }
 
 // Parse — domain.IntentParser. Ошибка не возвращается никогда: сбой модели или схемы — rulesGuess с
 // Source=rules и причиной в FallbackReason; деньги, потраченные на неудачные попытки, — в LLM.
+//
+// Текст запроса сначала маскируется (pii.go): модель, ключ кэша и строка кэша видят метки вместо телефона, почты,
+// ИНН; число замен — в разборе и в трассе.
 func (p *intentService) Parse(ctx context.Context, normalized string, rulesGuess domain.Intent, clientSegment string) (domain.Intent, error) {
+	normalized, masked := maskPII(normalized)
+	res, err := p.parseMasked(ctx, normalized, rulesGuess, clientSegment)
+	res.PIIMasked = masked
+	return res, err
+}
+
+func (p *intentService) parseMasked(ctx context.Context, normalized string, rulesGuess domain.Intent, clientSegment string) (domain.Intent, error) {
 	rules := rulesGuess
 	rules.Source = domain.ParseRules
 	rules.LLM = nil
@@ -400,7 +410,8 @@ func IntentTrace(in domain.Intent, ms float64) (domain.IntentStep, *domain.Trace
 			"constraints": intentNonNilConstraints(in.Constraints), "preferences": intentNonNilConstraints(in.Preferences),
 			"unresolved": intentNonNilStrings(in.Unresolved),
 		},
-		Dropped: append([]domain.DroppedField{}, in.Dropped...),
+		Dropped:   append([]domain.DroppedField{}, in.Dropped...),
+		PIIMasked: in.PIIMasked,
 	}
 	if in.LLM == nil {
 		return step, nil, 0

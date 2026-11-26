@@ -60,6 +60,9 @@ type searchLexicon struct {
 	familyCap map[string]int
 	// consumer — домашняя линейка: категория или семейство «для дома», либо лицензии только на 1–3 устройства.
 	consumer map[string]bool
+	// skuCompact — артикул без разделителей и регистра → артикул как в каталоге после foldText («fqc10572» →
+	// «fqc-10572»); только артикулы с разделителем и только однозначные (restoreSKUs в search_b3.go).
+	skuCompact map[string]string
 }
 
 // familyLink — связанное семейство и пояснение связи из справочника.
@@ -101,7 +104,7 @@ func setOf(words ...string) map[string]bool {
 // newSearchLexicon — словарь из снимка каталога.
 func newSearchLexicon(s *domain.CatalogSnapshot) *searchLexicon {
 	lx := &searchLexicon{
-		core: map[string]int{}, known: map[string]bool{}, docs: map[string]indexDoc{},
+		core: map[string]int{}, known: map[string]bool{}, docs: map[string]indexDoc{}, skuCompact: map[string]string{},
 		families: map[string][]string{}, familyName: map[string]string{}, familyVendor: map[string]string{},
 		familyCat: map[string]string{}, familyWords: map[string]map[string]bool{}, idf: map[string]float64{},
 		vendorName: map[string]string{}, vendorPhrases: map[string]string{}, categoryName: map[string]string{},
@@ -175,6 +178,7 @@ func newSearchLexicon(s *domain.CatalogSnapshot) *searchLexicon {
 			lx.familyWords[d.FamilyID] = ws
 		}
 		lx.families[d.FamilyID] = append(lx.families[d.FamilyID], d.ProductID)
+		lx.addSKU(d.SKU)
 		addCore(d.Title + " " + d.FamilyName + " " + d.LicenseEdition)
 		for _, w := range wordsOf(d.Description + " " + d.Attributes + " " + d.CategoryPath) {
 			lx.known[w] = true
@@ -200,6 +204,11 @@ func newSearchLexicon(s *domain.CatalogSnapshot) *searchLexicon {
 	lx.buildTranslit()
 	lx.buildCategoryWords(s.Categories)
 	lx.buildScale()
+	for k, v := range lx.skuCompact {
+		if v == "" {
+			delete(lx.skuCompact, k) // два артикула с одним сжатым видом — не угадываем
+		}
+	}
 	return lx
 }
 
@@ -386,3 +395,17 @@ func (lx *searchLexicon) matchVendors(tokens []string, rules *searchRules) []str
 
 // isPerUnit — позиция продаётся поштучно: нужное число лицензий указывается при заказе.
 func isPerUnit(d indexDoc) bool { return strings.Contains(d.Attributes, "purchase: поштучно") }
+
+// addSKU — артикул с разделителем («FQC-10572») в словарь сжатых артикулов; повтор сжатого вида — "" (неоднозначно).
+func (lx *searchLexicon) addSKU(sku string) {
+	folded := foldText(strings.TrimSpace(sku))
+	compact := strings.ToLower(normalizeMPN(sku))
+	if compact == folded || len(compact) < 6 || strings.ContainsAny(folded, " ") {
+		return
+	}
+	if prev, ok := lx.skuCompact[compact]; ok && prev != folded {
+		lx.skuCompact[compact] = ""
+		return
+	}
+	lx.skuCompact[compact] = folded
+}

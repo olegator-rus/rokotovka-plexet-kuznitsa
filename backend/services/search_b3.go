@@ -53,6 +53,7 @@ func (s *Services) searchB3(ctx context.Context, requestID string, req in.Search
 	// normalize
 	t := time.Now()
 	nr := normalizeFull(req.Query, lx, rules, req.AsTyped)
+	nr.restoreSKUs(lx)
 	resp.Normalized = nr.normalized()
 	if c := nr.correction; c != nil {
 		resp.Correction = &out.Correction{From: c.from, To: c.to, Confidence: c.confidence, Applied: c.applied}
@@ -729,4 +730,28 @@ func absentSubstitutes(lx *searchLexicon, ent queryEntities) []string {
 		}
 	}
 	return out
+}
+
+// changeSKU — артикул, набранный без дефиса или слитно («fqc10572»), восстановлен по каталогу («fqc-10572»).
+const changeSKU = "sku"
+
+// restoreSKUs — токен, который без разделителей и регистра совпадает ровно с одним артикулом каталога, заменяется
+// артикулом как в каталоге: дальше его находит точное поле sku и маршрут A. Набранное как есть (as_typed) — тоже:
+// это не исправление слова, а другой вид записи того же кода.
+func (n *normResult) restoreSKUs(lx *searchLexicon) {
+	if lx == nil || len(lx.skuCompact) == 0 {
+		return
+	}
+	for i, t := range n.tokens {
+		if !hasDigit(t) {
+			continue
+		}
+		want, ok := lx.skuCompact[strings.ToLower(normalizeMPN(t))]
+		if !ok || want == t {
+			continue
+		}
+		n.changes = append(n.changes, domain.Change{Kind: changeSKU, From: t, To: want})
+		n.tokens[i] = want
+		n.protected[want] = true
+	}
 }

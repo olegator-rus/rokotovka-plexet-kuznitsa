@@ -46,6 +46,9 @@ type Intent struct {
 	// FallbackReason — почему разбор остался на правилах (llm_off | llm_not_configured | llm_error |
 	// schema_error | catalog_not_loaded); пусто — разобран моделью или взят из кэша.
 	FallbackReason string `json:"fallback_reason,omitempty"`
+	// PIIMasked — сколько фрагментов с персональными данными (телефон, почта, ИНН…) замаскировано в тексте запроса
+	// до ключа кэша и вызова модели; 0 — не было.
+	PIIMasked int `json:"pii_masked,omitempty"`
 }
 
 // AttrConstraint — условие на атрибут. Field: license_quantity | license_metric | license_type |
@@ -87,6 +90,8 @@ type IntentStep struct {
 	Source  string         `json:"source,omitempty"` // rules | cache | llm
 	Fields  map[string]any `json:"fields"`
 	Dropped []DroppedField `json:"dropped"`
+	// PIIMasked — «замаскировано: N»: фрагменты с ПДн, заменённые метками до кэша и модели (omitempty — не было).
+	PIIMasked int `json:"pii_masked,omitempty"`
 }
 
 // TraceLLM — trace.llm: вызов модели в трассе поиска.

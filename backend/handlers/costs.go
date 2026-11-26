@@ -27,6 +27,21 @@ func (h *Handler) Costs(c *fiber.Ctx) error {
 	return c.JSON(res)
 }
 
+// CostsSummary — GET /api/costs/summary?server_rub_20k=&…: открытая сводка стоимости (гость, «Доказательства →
+// Стоимость»): цена запроса по маршрутам и средняя, доля без LLM, кэш, месячные сценарии — без журнала вызовов.
+func (h *Handler) CostsSummary(c *fiber.Ctx) error {
+	var bad []errs.FieldError
+	monthly := monthlyParams(c, &bad)
+	if len(bad) > 0 {
+		return errs.NewValidationError(errs.MsgInvalidFields).WithDetails(bad...)
+	}
+	res, err := h.services.Costs(c.UserContext(), services.CostsRequest{Monthly: monthly, NoCalls: true})
+	if err != nil {
+		return err
+	}
+	return c.JSON(res)
+}
+
 // CostsExport — GET /api/costs/export: данные расчёта стоимости (замеры, допущения, сценарии, прайс) в CSV
 // для шаблона организатора. Допущения — те же параметры, что у /api/costs.
 func (h *Handler) CostsExport(c *fiber.Ctx) error {

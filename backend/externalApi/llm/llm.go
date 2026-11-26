@@ -1,5 +1,6 @@
 // Package llm — клиент OpenAI-совместимого /chat/completions (Yandex AI Studio, Alice AI LLM Flash).
-// Только вызов: промптов, разбора намерения и учёта стоимости здесь нет — это services.
+// Только вызов и маскирование ПДн перед отправкой (pii.go): промптов, разбора намерения и учёта стоимости здесь
+// нет — это services.
 //
 // Ключ живёт только в поле клиента и в заголовке Authorization; в ошибки, лог и тело ответа не попадает.
 package llm
@@ -92,6 +93,8 @@ type Response struct {
 	Message      Message
 	FinishReason string
 	Usage        Usage
+	// PIIMasked — сколько фрагментов с персональными данными замаскировано в запросе перед отправкой (MaskPII).
+	PIIMasked int
 }
 
 // Error — модель ответила не 2xx. Body — начало тела без ключа (ключ в тело не возвращается).
@@ -152,6 +155,9 @@ func (c *Client) Chat(ctx context.Context, req Request) (*Response, error) {
 	if req.MaxTokens < MinMaxTokens {
 		req.MaxTokens = MinMaxTokens
 	}
+	// Граница процесса: ПДн из текста (телефон, почта, ИНН…) во внешнюю модель не уходят (pii.go).
+	var masked int
+	req.Messages, masked = maskMessages(req.Messages)
 	body, err := json.Marshal(req)
 	if err != nil {
 		return nil, err
@@ -199,7 +205,7 @@ func (c *Client) Chat(ctx context.Context, req Request) (*Response, error) {
 	}
 	ch := parsed.Choices[0]
 	uniqueToolCallIDs(ch.Message.ToolCalls)
-	return &Response{Message: ch.Message, FinishReason: ch.FinishReason, Usage: parsed.Usage}, nil
+	return &Response{Message: ch.Message, FinishReason: ch.FinishReason, Usage: parsed.Usage, PIIMasked: masked}, nil
 }
 
 // uniqueToolCallIDs — Alice AI LLM даёт вызову id, равный имени инструмента: два вызова одного инструмента

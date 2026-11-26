@@ -103,8 +103,10 @@ func (rc *runCtx) investigate(ctx context.Context, c *failedCluster) clusterResu
 	title := "Память: прошлых решений по кластеру нет"
 	if len(cr.memory) > 0 {
 		h := cr.memory[0]
-		title = fmt.Sprintf("Память: предложение по «%s» — %s %s, причина: %s%s; эту правку не повторяю",
-			h.Label, statusLabel(h.Status), h.At.Format("02.01"), rejectLabels[h.Reason], commentSuffix(h.Comment))
+		title = fmt.Sprintf("Память: предложение по «%s» — %s %s", h.Label, statusLabel(h.Status), h.At.Format("02.01"))
+		if h.Status == domain.ProposalRejected {
+			title += fmt.Sprintf(", причина: %s%s; эту правку не повторяю", rejectLabels[h.Reason], commentSuffix(h.Comment))
+		}
 	}
 	tool := "get_previous_decisions"
 	a.step(ctx, rs, &domain.AgentStep{Kind: domain.StepMemoryRead, ClusterID: &id, Tool: &tool, OK: true, Title: title,

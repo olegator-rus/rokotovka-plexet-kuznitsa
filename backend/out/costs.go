@@ -10,6 +10,8 @@ type Costs struct {
 	Summary CostsSummary `json:"summary"`
 	Routes  []CostsRoute `json:"routes"`
 	Calls   CostsCalls   `json:"calls"`
+	// JournalHidden — открытая сводка (GET /api/costs/summary): журнал вызовов только сотруднику, calls пуст.
+	JournalHidden bool `json:"journal_hidden,omitempty"`
 	// Monthly — месячные сценарии 20 и 200 тыс. запросов.
 	Monthly CostsMonthly `json:"monthly"`
 }

@@ -19,8 +19,9 @@ import (
 
 // Память агента контура автономии: три слоя с записью «откуда».
 //   - решения — decisions (принятые, отклонённые, откаченные предложения и снятия «не предлагать» с причиной человека);
-//   - «не предлагать» — memory_suppress: отказ человека и условие возврата (рост неудачных поисков кластера вдвое,
-//     не меньше чем на 3, или новая версия каталога — новые доказательства), текущее значение условия;
+//   - «не предлагать» — memory_suppress: отказ человека и условие возврата (после отказа неудачных поисков кластера
+//     набралось не меньше, чем при отказе, и не меньше 3, или новая версия каталога — новые доказательства), текущее
+//     значение условия;
 //   - эпизоды — memory_episodes: итог разбора кластера и эффект принятой правки («помогло», «без эффекта»,
 //     «навредило»).
 // Записи создают только решения человека (отказ, снятие) и настоящие запуски агента.
@@ -35,8 +36,10 @@ const (
 // effectCheckMax — сколько последних принятых правок проверяет ночной запуск.
 const effectCheckMax = 5
 
-// returnFailures — порог условия возврата: неудачных поисков вдвое больше, чем при отказе, и не меньше чем на 3.
-func returnFailures(at int) int { return max(2*at, at+3) }
+// returnFailures — порог условия возврата: после отказа неудачных поисков кластера набралось не меньше, чем человек
+// видел при отказе (и не меньше 3) — проблема вернулась с той же силой. Поиски до отказа не считаются: их человек уже
+// видел.
+func returnFailures(at int) int { return max(at, 3) }
 
 // queriesFailures — неудачных поисков в запросах кластера предложения.
 func queriesFailures(raw domain.JSONB) int {
@@ -127,15 +130,33 @@ func (rc *runCtx) suppressFor(ctx context.Context, proposalID string) *domain.Me
 	return &rc.suppress[len(rc.suppress)-1]
 }
 
-// returnCondition — наступило ли условие возврата для кластера сейчас.
-func (rc *runCtx) returnCondition(m *domain.MemorySuppress, c *failedCluster) (bool, string) {
-	if c.Failures >= m.ReturnFailures {
-		return true, fmt.Sprintf("неудачных поисков стало %d (при отказе %d, порог возврата %d)", c.Failures, m.FailuresAt, m.ReturnFailures)
+// failuresAfter — неудачных поисков запросов кластера после момента at (в пределах окна запуска).
+func (rc *runCtx) failuresAfter(ctx context.Context, c *failedCluster, at time.Time) int {
+	since := maxTime(at, rc.statsSince())
+	st, err := rc.a.s.windowStats(ctx, since, rc.a.s.now())
+	if err != nil {
+		zap.L().Warn("память: неудачи после отказа не посчитаны", zap.Error(err))
+		return 0
+	}
+	n := 0
+	for _, q := range c.Queries {
+		if x := st.byText[q.Text]; x != nil {
+			n += x.Empty + x.Reformulated + x.NoClick
+		}
+	}
+	return n
+}
+
+// returnCondition — наступило ли условие возврата для кластера сейчас; cur — текущее значение (неудач после отказа).
+func (rc *runCtx) returnCondition(ctx context.Context, m *domain.MemorySuppress, c *failedCluster) (bool, string, int) {
+	cur := rc.failuresAfter(ctx, c, m.DecidedAt)
+	if cur >= m.ReturnFailures {
+		return true, fmt.Sprintf("после отказа неудачных поисков %d (при отказе было %d, порог возврата %d)", cur, m.FailuresAt, m.ReturnFailures), cur
 	}
 	if m.CatalogAt != "" && rc.catalogVersion != "" && m.CatalogAt != rc.catalogVersion {
-		return true, fmt.Sprintf("новая версия каталога: %s (при отказе %s) — могли появиться товары", rc.catalogVersion, m.CatalogAt)
+		return true, fmt.Sprintf("новая версия каталога: %s (при отказе %s) — могли появиться товары", rc.catalogVersion, m.CatalogAt), cur
 	}
-	return false, ""
+	return false, "", cur
 }
 
 // saveSuppressCheck — текущее значение условия в запись.
@@ -194,7 +215,7 @@ func (rc *runCtx) memorySkip(ctx context.Context, c *failedCluster, force bool) 
 			continue
 		}
 		ref := map[string]any{"suppress_id": m.ID.String(), "proposal_id": m.ProposalID.String(),
-			"source_run_id": m.SourceRunID.String(), "return_failures": m.ReturnFailures, "current_failures": c.Failures}
+			"source_run_id": m.SourceRunID.String(), "return_failures": m.ReturnFailures}
 		why := fmt.Sprintf("отклонено %s, причина «%s»%s", m.DecidedAt.In(mskZone).Format("02.01"), rejectLabels[m.Reason], commentSuffix(m.Comment))
 		switch {
 		case m.Status == domain.SuppressRemoved:
@@ -205,8 +226,12 @@ func (rc *runCtx) memorySkip(ctx context.Context, c *failedCluster, force bool) 
 			step(domain.StepMemoryRead, fmt.Sprintf("Читаю память → «%s»: %s — кластер разбираю, отклонённую правку не повторю", c.Label, why), ref)
 			continue
 		}
-		met, what := rc.returnCondition(m, c)
-		rc.saveSuppressCheck(ctx, m, c.Failures)
+		met, what, cur := rc.returnCondition(ctx, m, c)
+		ref["current_failures"] = cur
+		if !met && m.Status == domain.SuppressLifted {
+			m.Status, m.LiftedRunID, m.LiftedWhat = domain.SuppressActive, nil, ""
+		}
+		rc.saveSuppressCheck(ctx, m, cur)
 		if met {
 			if m.Status != domain.SuppressLifted {
 				rid := rc.rs.run.ID
@@ -218,7 +243,7 @@ func (rc *runCtx) memorySkip(ctx context.Context, c *failedCluster, force bool) 
 			step(domain.StepMemoryRead, fmt.Sprintf("Читаю память → «%s»: %s; условие возврата наступило — %s. Предлагаю снова", c.Label, why, what), ref)
 			continue
 		}
-		cond := fmt.Sprintf("неудачных поисков %d, вернусь при %d или новой версии каталога", c.Failures, m.ReturnFailures)
+		cond := fmt.Sprintf("после отказа неудачных поисков %d, вернусь при %d или новой версии каталога", cur, m.ReturnFailures)
 		if force {
 			step(domain.StepMemoryRead, fmt.Sprintf("Читаю память → «%s»: %s; условия возврата не наступили (%s). Запуск вручную — разбираю, отклонённую правку не повторю",
 				c.Label, why, cond), ref)
@@ -657,7 +682,7 @@ func suppressView(m *domain.MemorySuppress) out.MemorySuppress {
 	if m.Comment != "" {
 		why += ": " + m.Comment
 	}
-	cond := fmt.Sprintf("неудачных поисков кластера станет не меньше %d (при отказе %d) или выйдет новая версия каталога", m.ReturnFailures, m.FailuresAt)
+	cond := fmt.Sprintf("после отказа наберётся не меньше %d неудачных поисков кластера (при отказе было %d) или выйдет новая версия каталога", m.ReturnFailures, m.FailuresAt)
 	if m.Scope == domain.SuppressScopePatch {
 		cond = "кластер разбирается; эта правка не повторяется, пока человек не снимет запись"
 	}

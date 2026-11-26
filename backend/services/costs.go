@@ -26,6 +26,9 @@ var routesOrder = []string{domain.RouteExact, domain.RouteNormalized, domain.Rou
 type CostsRequest struct {
 	Limit, Offset int
 	Monthly       MonthlyParams
+	// NoCalls — открытая сводка (GET /api/costs/summary, гость): без журнала вызовов — в нём тексты запросов
+	// покупателей и номера трасс. calls = {total:0, items:[]}, journal_hidden = true.
+	NoCalls bool
 }
 
 // Costs — GET /api/costs?limit=&offset=&server_rub_20k=&server_rub_200k=&agent_runs_month=&agent_runs_month_200k=.
@@ -55,9 +58,12 @@ func (s *Services) Costs(ctx context.Context, req CostsRequest) (*out.Costs, err
 	if err != nil {
 		return nil, err
 	}
-	calls, total, err := s.repos.ListLLMUsage(ctx, limit, offset)
-	if err != nil {
-		return nil, err
+	var calls []domain.LLMUsage
+	var total int64
+	if !req.NoCalls {
+		if calls, total, err = s.repos.ListLLMUsage(ctx, limit, offset); err != nil {
+			return nil, err
+		}
 	}
 
 	res := &out.Costs{
@@ -65,6 +71,9 @@ func (s *Services) Costs(ctx context.Context, req CostsRequest) (*out.Costs, err
 		Pricing: out.CostsPricing{Version: PricingVersion, Date: PricingDate, Currency: "RUB", Prices: []out.CostsPrice{}},
 		Routes:  []out.CostsRoute{},
 		Calls:   out.CostsCalls{Total: total, Limit: limit, Offset: offset, Items: []out.CostsCall{}},
+	}
+	if req.NoCalls {
+		res.Calls.Limit, res.Calls.Offset, res.JournalHidden = 0, 0, true
 	}
 	for _, p := range modelPrices {
 		res.Pricing.Prices = append(res.Pricing.Prices, out.CostsPrice{Model: p.Model, Input: p.Input, Output: p.Output})

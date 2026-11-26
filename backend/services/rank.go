@@ -221,8 +221,9 @@ type familyHit struct {
 	final   float64
 	parts   domain.ScoreParts
 	context float64
-	// tier — ступень внутри группы: 2 — семейство названо в запросе, 1 — путь продления названного семейства
-	// (relations renewal), 0 — остальное (вендор назван, название совпало частично).
+	// tier — ступень внутри группы: 3 — названо целиком среди нескольких названных (fullNamed), 2 — семейство
+	// названо в запросе, 1 — путь продления названного семейства (relations renewal), 0 — остальное (вендор назван,
+	// название совпало частично).
 	tier int
 	// signals — почему семейство стоит выше (в трассу).
 	signals []string
@@ -304,6 +305,9 @@ func (rc rankCtx) assignGroup(fh *familyHit) {
 	if rc.business && rc.lx.consumer[fh.id] {
 		fh.scale = 0
 		fh.signals = append(fh.signals, signalConsumerScale)
+	} else if rc.siblingCategory(fh.id) {
+		fh.scale = 0
+		fh.signals = append(fh.signals, signalSiblingCategory)
 	}
 	named := rc.exactNamed(fh.id)
 	switch {
@@ -343,7 +347,42 @@ const (
 	signalRenewalPath = "renewal_path"
 	// signalConsumerScale — домашняя линейка ниже бизнес-линеек: количество от 10 или клиент-организация.
 	signalConsumerScale = "consumer_scale"
+	// signalSiblingCategory — соседняя подкатегория ниже названной словами («dr.web для бизнеса»: Security Space
+	// из «Антивирус для дома» ниже Enterprise Security Suite из «Антивирус для бизнеса»).
+	signalSiblingCategory = "sibling_category"
+	// signalFullName — названо целиком среди нескольких названных: «windows server 2025» — сервер выше
+	// «Windows Server 2025 CAL», у которой в запросе нет слова «cal».
+	signalFullName = "full_name"
 )
+
+// siblingCategory — категория названа словами запроса (мягкое условие), а семейство — из другой подкатегории того же
+// корня. Такое семейство остаётся в выдаче, но ниже семейств названной подкатегории внутри своей ступени.
+func (rc rankCtx) siblingCategory(fid string) bool {
+	want := rc.ent.category
+	if !rc.ent.categoryByWords || want == "" {
+		return false
+	}
+	got := rc.lx.familyCat[fid]
+	if got == "" || got == want {
+		return false
+	}
+	root := rc.lx.categoryRoot[want]
+	return root != "" && root != want && rc.lx.categoryRoot[got] == root
+}
+
+// fullNamed — среди нескольких семейств, названных в запросе, это названо целиком (все значимые слова названия
+// есть в запросе), а хотя бы одно другое — нет: у него в названии есть слово, которого в запросе нет.
+func (rc rankCtx) fullNamed(fid string) bool {
+	if len(rc.ent.named) < 2 || rc.lx.familyCoverage(fid, rc.ent.entityTokens) < 1-1e-9 {
+		return false
+	}
+	for _, f := range rc.ent.named {
+		if f != fid && rc.lx.familyCoverage(f, rc.ent.entityTokens) < 1-1e-9 {
+			return true
+		}
+	}
+	return false
+}
 
 // tierOf — ступень семейства внутри группы. Семейство, названное в запросе целиком («kaspersky internet
 // security продление»), стоит выше семейств того же вендора, у которых совпала только часть названия
@@ -355,6 +394,9 @@ func (rc rankCtx) tierOf(fid string) (int, []string) {
 		return 0, nil
 	}
 	if contains(rc.ent.named, fid) {
+		if rc.fullNamed(fid) {
+			return 3, []string{signalNamedFamily, signalFullName}
+		}
 		return 2, []string{signalNamedFamily}
 	}
 	if rc.attrs.renewal {

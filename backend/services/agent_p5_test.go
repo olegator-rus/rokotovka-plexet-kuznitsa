@@ -92,7 +92,7 @@ func TestP5SuppressReturnCondition(t *testing.T) {
 		in.RejectRequest{Reason: domain.RejectOther, Comment: "бесплатных версий не продаём"}); err != nil {
 		t.Fatal(err)
 	}
-	if len(ms.suppress) != 1 || ms.suppress[0].FailuresAt != 3 || ms.suppress[0].ReturnFailures != 6 ||
+	if len(ms.suppress) != 1 || ms.suppress[0].FailuresAt != 3 || ms.suppress[0].ReturnFailures != 3 ||
 		ms.suppress[0].Scope != domain.SuppressScopeCluster || ms.suppress[0].SourceRunID.String() != r1.RunID {
 		t.Fatalf("запись «не предлагать»: %+v", ms.suppress)
 	}
@@ -110,14 +110,17 @@ func TestP5SuppressReturnCondition(t *testing.T) {
 	if v.Outcome.SkippedMemory != 1 {
 		t.Fatalf("итог: пропущено по памяти 1: %+v", v.Outcome)
 	}
-	if ms.suppress[0].CurrentFailures != 3 || ms.suppress[0].CheckedRunID == nil {
+	if ms.suppress[0].CurrentFailures != 0 || ms.suppress[0].CheckedRunID == nil {
 		t.Fatalf("текущее значение условия: %+v", ms.suppress[0])
 	}
 
-	// Частота выросла (3 → 6 неудачных поисков): условие наступило — агент предлагает снова, «что изменилось».
+	// После отказа — ещё 3 неудачных поиска (столько же, сколько при отказе): условие наступило — агент предлагает
+	// снова, «что изменилось». Поиски до отказа не считаются.
 	ms.mu.Lock()
-	ms.searches = append(ms.searches, emptySearches("кис", 3, time.Now().Add(-10*time.Hour))...)
+	ms.searches = append(ms.searches, emptySearches("кис", 3, time.Now().Add(-3*time.Minute))...)
 	ms.mu.Unlock()
+	s.now = func() time.Time { return time.Now().Add(5 * time.Minute) }
+	ms.suppress[0].DecidedAt = time.Now().Add(-4 * time.Minute)
 	model.turns = kisPatchTurns()
 	r3, _ := s.StartAgentRun(t.Context(), in.AgentRunRequest{MaxClusters: 1})
 	run = waitRun(t, s, r3.RunID)
@@ -456,5 +459,24 @@ func TestP5RetryLockPool(t *testing.T) {
 func TestP5Priority(t *testing.T) {
 	if priority(10, 5, false) != 5 || priority(10, 5, true) != 10 || priority(4, 8, false) != 4 {
 		t.Fatal("приоритет")
+	}
+}
+
+// Короткое окно (всплеск) при разрезе журнала: границы отложенной недели — по историческому журналу, а не по живым
+// поискам окна; живой трафик после недели виден.
+func TestP5SpikeWindowSeesLiveAfterHoldout(t *testing.T) {
+	s, ms := agentEnv(t, &scriptModel{})
+	now := time.Now()
+	hist := emptySearches("старый запрос", 3, now.Add(-10*24*time.Hour))
+	for i := range hist {
+		hist[i].Source = "mock_log"
+	}
+	ms.searches = append(hist, emptySearches("скетчап", 9, now.Add(-30*time.Minute))...)
+	stats, info, err := s.agentQueryStatsSince(t.Context(), now.Add(-time.Hour), HoldoutOptions{Enabled: true})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if q := stats.byText["скетчап"]; q == nil || q.Empty != 9 || info.HoldoutFrom == nil {
+		t.Fatalf("живые поиски окна после отложенной недели видны: %+v %+v", stats.byText, info)
 	}
 }

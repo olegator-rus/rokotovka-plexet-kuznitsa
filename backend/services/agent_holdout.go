@@ -24,6 +24,9 @@ import (
 // holdoutDefaultDays — длина отложенного окна.
 const holdoutDefaultDays = 7
 
+// holdoutSpanLookback — насколько раньше окна запуска искать последний исторический поиск для границ отложенной недели.
+const holdoutSpanLookback = 60 * 24 * time.Hour
+
 // HoldoutOptions — разрез журнала для агента. Нулевое значение — разреза нет (тесты на своих журналах).
 type HoldoutOptions struct {
 	// Enabled — агент не видит журнал с начала отложенного окна.
@@ -172,7 +175,9 @@ func (s *Services) agentQueryStatsSince(ctx context.Context, since time.Time, h 
 		}
 		return stats, info, nil
 	}
-	searches, err := st.SearchEventsSince(ctx, since)
+	// Границы отложенной недели — по журналу шире окна: у короткого окна (всплеск за час) своих исторических
+	// поисков нет, и неделя иначе считалась бы от живых.
+	all, err := st.SearchEventsSince(ctx, since.Add(-holdoutSpanLookback))
 	if err != nil {
 		return nil, info, err
 	}
@@ -180,10 +185,10 @@ func (s *Services) agentQueryStatsSince(ctx context.Context, since time.Time, h 
 	if err != nil {
 		return nil, info, err
 	}
-	searches = filterSince(searches, since)
+	searches := filterSince(all, since)
 	behavior = filterBehaviorSince(behavior, since)
 	if h.Enabled {
-		from, to := s.holdoutRange(h, searches)
+		from, to := s.holdoutRange(h, all)
 		f, t := from.In(mskZone).Format("2006-01-02"), to.Add(-time.Second).In(mskZone).Format("2006-01-02")
 		info.HoldoutFrom, info.HoldoutTo, info.SeenTo = &f, &t, from.UTC()
 		if !since.Before(from) {
@@ -236,7 +241,7 @@ func (s *Services) agentQueryStatsSQL(ctx context.Context, sq agentStatsSQL, sin
 	info *holdoutInfo) (*queryStats, error) {
 	until := time.Date(9999, 1, 1, 0, 0, 0, 0, time.UTC)
 	if h.Enabled {
-		span, err := sq.SearchSpanSince(ctx, since)
+		span, err := sq.SearchSpanSince(ctx, since.Add(-holdoutSpanLookback))
 		if err != nil {
 			return nil, err
 		}

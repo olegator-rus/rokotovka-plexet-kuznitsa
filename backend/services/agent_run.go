@@ -465,6 +465,17 @@ func (rc *runCtx) investigatePlan(ctx context.Context, plan *runPlan, open []pla
 				break
 			}
 		}
+		if dup := rc.sameRunProposal(ctx, c); dup != "" {
+			// По похожему кластеру этот же запуск уже положил предложение (кандидаты отбирались до него).
+			id := c.ID
+			a.step(ctx, rs, &domain.AgentStep{Kind: domain.StepMemorySkip, ClusterID: &id, OK: true,
+				Title: fmt.Sprintf("Читаю память → кластер «%s» пропускаю: в этом запуске по похожему кластеру уже есть %s", c.Label, dup)})
+			rc.replan(ctx, fmt.Sprintf("«%s» совпал с уже разобранным в этом запуске — не разбираю повторно", c.Label), []planItem{item}, nil)
+			rs.mu.Lock()
+			rc.outcome.SkippedMemory++
+			rs.mu.Unlock()
+			continue
+		}
 		if owner, ok := a.lockCluster(rs.run.ID, c.Key); !ok {
 			// Защита от одновременных запусков на одних кластерах: кластер разбирает другой запуск.
 			var add []planItem
@@ -536,6 +547,25 @@ func (rc *runCtx) investigatePlan(ctx context.Context, plan *runPlan, open []pla
 	}
 	rs.mu.Unlock()
 	return nil
+}
+
+// sameRunProposal — предложение этого запуска по кластеру, совпавшему с c (ключ, термин, транслит, вектор).
+func (rc *runCtx) sameRunProposal(ctx context.Context, c *failedCluster) string {
+	mine := map[string]bool{}
+	for _, p := range rc.proposals {
+		if p.RunID == rc.rs.run.ID && p.Status == domain.ProposalPending {
+			mine[p.ID.String()] = true
+		}
+	}
+	if len(mine) == 0 {
+		return ""
+	}
+	for _, h := range rc.memoryFor(ctx, c.Key, c.Terms) {
+		if h.Kind == "proposal" && mine[h.ProposalID] {
+			return fmt.Sprintf("предложение %s по «%s»", h.Diagnosis, h.Label)
+		}
+	}
+	return ""
 }
 
 // afterCluster — итог кластера: строка кластера, эпизод, счётчики.

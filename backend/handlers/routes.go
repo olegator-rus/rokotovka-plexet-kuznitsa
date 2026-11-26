@@ -29,6 +29,7 @@ func RegisterRoutes(app *fiber.App, h *Handler) {
 	api.Post("/events", h.Events)
 	api.Post("/catalog/import", h.ImportCatalog)
 	api.Get("/costs", h.Costs)
+	api.Get("/costs/summary", h.CostsSummary)
 	api.Get("/costs/export", h.CostsExport)
 	api.Get("/traces/:request_id", h.Trace)
 	api.Get("/evaluations", h.Evaluations)
