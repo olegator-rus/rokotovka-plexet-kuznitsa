@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1
 # Контекст сборки — корень репозитория (deploy/docker-compose.yml: context ..).
-# Версия образа соответствует backend/go.mod (go 1.25.0).
-FROM golang:1.25-alpine AS build
+# Версия образа соответствует backend/go.mod (go 1.27.4).
+FROM golang:1.27.4-alpine AS build
 WORKDIR /src
 RUN apk add --no-cache git ca-certificates tzdata
 COPY backend/go.mod backend/go.sum ./

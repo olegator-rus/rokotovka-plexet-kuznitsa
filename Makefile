@@ -1,7 +1,7 @@
 # Makefile — обвязка. Цели описываются через `## `: help собирается из этих строк.
 SHELL := /bin/bash
 
-# go.mod требует Go 1.25; на машине может стоять старее — тулчейн докачается сам.
+# go.mod требует Go 1.27; на машине может стоять старее — тулчейн докачается сам.
 export GOTOOLCHAIN := auto
 
 COMPOSE := docker compose -f deploy/docker-compose.yml --env-file .env

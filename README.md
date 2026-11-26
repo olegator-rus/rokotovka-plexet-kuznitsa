@@ -63,15 +63,15 @@ B0 — реконструкция исходной проблемы, а не т�
 ## Стек
 | Часть | Что |
 | --- | --- |
-| API | Go 1.25, Fiber v2, GORM + pgx, zap |
+| API | Go 1.27, Fiber v2, GORM + pgx, zap |
 | Поиск | OpenSearch 3.9 (BM25, kNN), RRF в коде на Go |
 | Эмбеддинги и реранкер | BAAI/bge-m3, BAAI/bge-reranker-v2-m3 — TEI-совместимый HTTP (`ml/`) |
 | LLM | Yandex AI Studio: Alice AI LLM Flash, резерв Qwen3.6 35B |
-| База | PostgreSQL 16: события, трассы, кэш разборов, учёт вызовов LLM, версии правил, прогоны оценки |
+| База | PostgreSQL 19: события, трассы, кэш разборов, учёт вызовов LLM, версии правил, прогоны оценки |
 | Фронт | Vue 3.5, TypeScript, Vite, reka-ui, Tailwind CSS 4, Pinia, Vue Router, Lucide, Inter |
 
 ## Запуск локально
-Нужны Go (тулчейн 1.25 докачается сам), Node 22 с pnpm, Docker, Python 3.13 (для `ml/`).
+Нужны Go (тулчейн 1.27 докачается сам), Node 22 с pnpm, Docker, Python 3.13 (для `ml/`).
 
 ```bash
 make env       # deploy/.env.dev и backend/.env (ключ AI Studio вписать в LLM_API_KEY / LLM_FOLDER_ID)

@@ -1,13 +1,14 @@
 services:
   db:
-    image: postgres:16-alpine
+    image: postgres:19-alpine
     restart: unless-stopped
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-kuznica}
       POSTGRES_USER: ${POSTGRES_USER:-kuznica}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+    # PostgreSQL 18+: данные в /var/lib/postgresql/<major>/docker, том монтируется на /var/lib/postgresql.
     volumes:
-      - pgdata:/var/lib/postgresql/data
+      - pgdata:/var/lib/postgresql
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-kuznica} -d ${POSTGRES_DB:-kuznica}"]
       interval: 10s

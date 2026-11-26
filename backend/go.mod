@@ -1,6 +1,6 @@
 module kuznica/api
 
-go 1.25.0
+go 1.27.4
 
 require (
 	github.com/gofiber/contrib/fiberzap/v2 v2.1.6

@@ -7,7 +7,7 @@ name: kuznica-dev
 
 services:
   db:
-    image: postgres:16-alpine
+    image: postgres:19-alpine
     environment:
       POSTGRES_DB: kuznica
       POSTGRES_USER: kuznica
@@ -15,8 +15,9 @@ services:
       POSTGRES_PASSWORD: ${DEV_DB_PASSWORD:?нет deploy/.env.dev — выполните make env}
     # 5441: 5432 — системный, 5435–5440 заняты соседними проектами. Только loopback.
     ports: ["127.0.0.1:5441:5432"]
+    # PostgreSQL 18+: данные в /var/lib/postgresql/<major>/docker, том монтируется на /var/lib/postgresql.
     volumes:
-      - kuznica_dev_pgdata:/var/lib/postgresql/data
+      - kuznica_dev_pg19:/var/lib/postgresql
     mem_limit: 512m
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U kuznica -d kuznica"]
@@ -50,5 +51,5 @@ services:
       start_period: 30s
 
 volumes:
-  kuznica_dev_pgdata:
+  kuznica_dev_pg19:
   kuznica_dev_osdata:
