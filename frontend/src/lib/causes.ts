@@ -8,6 +8,7 @@ export type CauseId =
   | 'content_gap'
   | 'not_in_catalog'
   | 'on_request_only'
+  | 'kb_missing'
   | 'relation_rule'
   | 'non_product'
   | 'noise'
@@ -66,6 +67,15 @@ export const CAUSES: readonly Cause[] = [
     role: 'content',
     kind: 'owner_task',
     codes: ['ON_REQUEST_ONLY'],
+  },
+  {
+    // подбор не ответил — в базе знаний нет факта. Причину ставит событие подбора, а не агент.
+    id: 'kb_missing',
+    label: 'Нет факта в базе знаний',
+    owner: 'Категорийный и лицензионный менеджер',
+    role: 'product',
+    kind: 'owner_task',
+    codes: ['KB_MISSING_FACT'],
   },
   {
     id: 'relation_rule',

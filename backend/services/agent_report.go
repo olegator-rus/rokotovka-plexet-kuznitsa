@@ -269,7 +269,29 @@ func (s *Services) SearchOpsReport(ctx context.Context, days int) (*out.SearchOp
 	for _, d := range reportSectionDefs {
 		res.Sections = append(res.Sections, *sections[d.code])
 	}
+	res.Guide = s.reportGuide(ctx, days, verdicts)
 	return res, nil
+}
+
+// reportGuide — «Вопросы, на которые подбор не ответил»: пробелы подбора и задачи агента по ним. Ошибка
+// журнала подбора отчёт не роняет — раздела просто нет.
+func (s *Services) reportGuide(ctx context.Context, days int, verdicts map[string]verdictPick) *out.ReportGuide {
+	rep, err := s.GuideGaps(ctx, days)
+	if err != nil || rep == nil {
+		return nil
+	}
+	g := &out.ReportGuide{Title: rep.Title, Cause: rep.Cause, Total: rep.Total, Rows: []out.ReportGuideRow{},
+		Hint: "Покупатель спросил подбор, а ответа не нашлось. Если в базе знаний нет факта — это задача владельцу причины " +
+			"«" + rep.Cause.Label + "», а не правка поиска."}
+	for _, r := range rep.Rows {
+		row := out.ReportGuideRow{Code: r.Code, Label: r.Label, Question: r.Question, Count: r.Count, Families: r.Families,
+			KBMissing: r.Code == gapMissingFact}
+		if v, ok := verdicts[foldQuery(r.Question)]; ok {
+			row.Agent, row.Proposal = v.verdict, v.proposal
+		}
+		g.Rows = append(g.Rows, row)
+	}
+	return g
 }
 
 // reportRow — строка запроса: исходы и происхождение.

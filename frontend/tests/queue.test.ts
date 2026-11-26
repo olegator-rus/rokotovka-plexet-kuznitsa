@@ -38,8 +38,8 @@ test('sortQueue: оценка приоритета по убыванию, зат
   )
 })
 
-test('причины: 8 штук, каждый код диагноза — ровно в одной, владельцы — четыре роли', () => {
-  assert.equal(CAUSES.length, 8)
+test('причины: 9 штук, каждый код диагноза — ровно в одной, владельцы — четыре роли', () => {
+  assert.equal(CAUSES.length, 9)
   const codes = CAUSES.flatMap((c) => c.codes)
   assert.equal(new Set(codes).size, codes.length)
   assert.equal(causeOfCode('ALIAS_GAP')?.owner, 'Администратор поиска')
@@ -48,6 +48,8 @@ test('причины: 8 штук, каждый код диагноза — ро�
   // Контур фида: «найдено, но только по запросу» — задача каталогу, не правка поиска.
   assert.equal(causeOfCode('ON_REQUEST_ONLY')?.label, 'Найдено, но только по запросу')
   assert.equal(causeOfCode('ON_REQUEST_ONLY')?.kind, 'owner_task')
+  // «нет факта в базе знаний» — задача категорийному менеджеру.
+  assert.equal(causeOfCode('KB_MISSING_FACT')?.owner, 'Категорийный и лицензионный менеджер')
   assert.equal(causeOfCode('MARGIN_OPPORTUNITY'), null)
   // Четыре роли-владельца: владелец — роль сотрудника, а не отдельная должность.
   assert.equal(OWNER_OPTIONS.length, 4)

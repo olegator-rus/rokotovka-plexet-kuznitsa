@@ -73,6 +73,8 @@ var Diagnoses = []string{DiagAliasGap, DiagTypo, DiagAssortmentGap, DiagSubstitu
 const (
 	RunModeSearch   = "search"
 	RunModeCommerce = "commerce"
+	// RunModeGaps — пробелы подбора (контур подбора): кластеры kb_missing и задачи владельцу кодом, без модели.
+	RunModeGaps = "gaps"
 )
 
 // Статусы предложения.

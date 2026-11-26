@@ -16,6 +16,9 @@ type SearchOpsReport struct {
 	// раздел не определяется. Отдельно от разделов, с кнопкой «Разобрать».
 	Pending   []ReportRow `json:"pending"`
 	CheckedAt time.Time   `json:"checked_at"`
+	// Guide — «Вопросы, на которые подбор не ответил»: пробелы подбора из GET /api/guide/gaps и что по ним
+	// сделал агент; nil — подбора нет или журнал недоступен.
+	Guide *ReportGuide `json:"guide,omitempty"`
 	// Truncated — неудачных запросов больше, чем проверено действующим поиском (ReportProbeLimit).
 	Truncated bool `json:"truncated,omitempty"`
 }
@@ -96,4 +99,26 @@ type ReportProposal struct {
 	Diagnosis string `json:"diagnosis"`
 	RunID     string `json:"run_id"`
 	ClusterID string `json:"cluster_id,omitempty"`
+}
+
+// ReportGuide — пробелы подбора в отчёте SearchOps.
+type ReportGuide struct {
+	Title string           `json:"title"`
+	Hint  string           `json:"hint"`
+	Cause GuideGapCause    `json:"cause"`
+	Total int              `json:"total"`
+	Rows  []ReportGuideRow `json:"rows"`
+}
+
+// ReportGuideRow — вопрос, на который подбор не ответил: событие, сколько раз, о каком продукте, чего не хватило.
+type ReportGuideRow struct {
+	Code     string           `json:"code"`
+	Label    string           `json:"label"`
+	Question string           `json:"question"`
+	Count    int              `json:"count"`
+	Families []GuideGapFamily `json:"families"`
+	// KBMissing — причина kb_missing (событие missing_fact): по такому вопросу агент создаёт задачу владельцу.
+	KBMissing bool            `json:"kb_missing"`
+	Agent     *AgentVerdict   `json:"agent,omitempty"`
+	Proposal  *ReportProposal `json:"proposal,omitempty"`
 }

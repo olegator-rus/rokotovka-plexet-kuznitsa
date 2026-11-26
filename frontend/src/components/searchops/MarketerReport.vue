@@ -4,11 +4,20 @@
 // Строка раскрывается в ленту шагов агента по этому запросу (ReportRowFeed). Поток подписан: тестовый, три слоя,
 // частоты модельные. Данные — GET /api/agent/report; раздел и доказательство считает сервер. Рублей и дат нет.
 import { computed, ref } from 'vue'
-import { ChevronDown, CircleHelp, PackageX, SearchX, SpellCheck, Store } from 'lucide-vue-next'
+import {
+  ChevronDown,
+  CircleHelp,
+  MessageCircleQuestion,
+  PackageX,
+  SearchX,
+  SpellCheck,
+  Store,
+} from 'lucide-vue-next'
 import type { Component } from 'vue'
 import { getReport } from '@/api/agent'
 import type { ReportRow, ReportSection } from '@/api/typesReport'
 import BlockError from '@/components/common/BlockError.vue'
+import ReportGuideGaps from '@/components/searchops/ReportGuideGaps.vue'
 import ReportRowFeed from '@/components/searchops/ReportRowFeed.vue'
 import { useResource } from '@/composables/useResource'
 import { formatInt, plural } from '@/lib/format'
@@ -121,6 +130,11 @@ const queriesWord = (n: number) => plural(n, ['запрос', 'запроса', 
           <span class="mrep__nav-title">{{ sec.title }}</span>
           <strong class="t-num">{{ sec.rows.length }}</strong>
         </button>
+        <button v-if="report.guide" type="button" class="mrep__nav-item" @click="jump('guide')">
+          <MessageCircleQuestion :size="16" aria-hidden="true" />
+          <span class="mrep__nav-title">{{ report.guide.title }}</span>
+          <strong class="t-num">{{ report.guide.rows.length }}</strong>
+        </button>
       </nav>
 
       <div v-if="!failedTotal" class="panel mrep__empty">
@@ -189,6 +203,12 @@ const queriesWord = (n: number) => plural(n, ['запрос', 'запроса', 
         </button>
       </section>
 
+      <ReportGuideGaps
+        v-if="report.guide"
+        :guide="report.guide"
+        :days="report.days"
+        @reload="res.load({ quiet: true })"
+      />
       <section
         v-if="pendingRows.length"
         class="panel mrep__sec mrep__pending"
@@ -315,7 +335,7 @@ const queriesWord = (n: number) => plural(n, ['запрос', 'запроса', 
 }
 .mrep__nav {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
   gap: var(--space-2);
 }
 .mrep__nav-item {

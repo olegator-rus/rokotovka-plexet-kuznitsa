@@ -220,8 +220,11 @@ func (s *Services) StartAgentRun(ctx context.Context, req in.AgentRunRequest) (*
 	if mode == "" {
 		mode = domain.RunModeSearch
 	}
-	if mode != domain.RunModeSearch && mode != domain.RunModeCommerce {
-		bad = append(bad, errs.FieldError{Field: "mode", Code: errs.CodeInvalidFormat, Message: "Режим — search или commerce"})
+	if mode != domain.RunModeSearch && mode != domain.RunModeCommerce && mode != domain.RunModeGaps {
+		bad = append(bad, errs.FieldError{Field: "mode", Code: errs.CodeInvalidFormat, Message: "Режим — search, commerce или gaps"})
+	}
+	if mode == domain.RunModeGaps && trigger != domain.TriggerManual {
+		bad = append(bad, errs.FieldError{Field: "mode", Code: errs.CodeInvalidFormat, Message: "Пробелы подбора — только manual"})
 	}
 	query := strings.Join(strings.Fields(req.Query), " ")
 	if query != "" {

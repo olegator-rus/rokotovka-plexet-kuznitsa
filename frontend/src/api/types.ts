@@ -913,6 +913,8 @@ export type AgentRunRequest =
   | { days: number; max_clusters: number; trigger: 'manual' | 'schedule' }
   /** Контур автономии: запуск на одном запросе («Разобрать»), триггер manual. */
   | { query: string }
+  /** пробелы подбора — кластеры kb_missing и задачи владельцу кодом, без модели. */
+  | { mode: 'gaps'; trigger: 'manual'; days: number; max_clusters: number }
 
 export type ProposalStatus = 'pending' | 'accepted' | 'rejected' | 'rolled_back' | 'stale'
 export type ProposalRole = 'ecom' | 'product' | 'content'
@@ -928,6 +930,7 @@ export type Diagnosis =
   | 'NOISE'
   | 'UNKNOWN'
   | 'ON_REQUEST_ONLY'
+  | 'KB_MISSING_FACT'
 
 export interface RulePatchItem {
   kind: string

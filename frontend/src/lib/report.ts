@@ -1,7 +1,7 @@
 // Отчёт SearchOps для маркетолога (контур фида): подписи и раскрытие строки в ленту шагов
 // агента. Без DOM: tests/report.test.ts.
 import type { AgentStep } from '@/api/types'
-import type { ReportRow } from '@/api/typesReport'
+import type { ReportGuideRow, ReportRow } from '@/api/typesReport'
 import { rejectedHypotheses, stepView, type StepView } from './agentFeed.ts'
 
 /** Происхождение запроса коротко — чип у строки. */
@@ -44,7 +44,7 @@ export function hasFeed(row: ReportRow): boolean {
 }
 
 /** Адрес ленты запуска с прокруткой к кластеру строки. */
-export function runLink(row: ReportRow): string | null {
+export function runLink(row: Pick<ReportRow, 'agent'>): string | null {
   const a = row.agent
   if (!a?.run_id) return null
   const q = a.cluster_id ? `?cluster=${encodeURIComponent(a.cluster_id)}` : ''
@@ -80,4 +80,22 @@ export function rowSteps(steps: AgentStep[], clusterId: string): StepView[] {
 /** «12 неудачных из 16» — модельная частота. */
 export function failLine(row: Pick<ReportRow, 'failures' | 'freq'>): string {
   return `${row.failures} из ${row.freq}`
+}
+
+/** Строка «вопрос подбору»: чего не хватило и что сделано. */
+export function guideStatus(row: ReportGuideRow): RowStatus {
+  const p = row.proposal
+  if (p?.status === 'pending') return { label: 'задача ждёт владельца', tone: 'status-pending' }
+  if (p?.status === 'accepted') return { label: 'задача принята', tone: 'status-accepted' }
+  if (row.kb_missing) return { label: 'задачи ещё нет', tone: null }
+  return { label: 'правкой базы не решается', tone: null }
+}
+
+/** Кнопка «Создать задачу каталогу»: только для причины kb_missing и только пока задачи нет. */
+export const canCreateGapTask = (row: ReportGuideRow) => row.kb_missing && !row.proposal
+
+/** Продукты вопроса одной строкой. */
+export function guideProducts(row: ReportGuideRow): string {
+  const t = row.families.map((f) => f.title || f.family_id).filter(Boolean)
+  return t.length ? t.join(', ') : 'продукт не определён'
 }

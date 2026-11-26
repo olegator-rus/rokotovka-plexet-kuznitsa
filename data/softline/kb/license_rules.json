@@ -21,6 +21,24 @@
     "source_kind": "vendor",
     "fetch_method": "webfetch_pdf_pdftotext",
     "source_date": "2026-10-02"
+   },
+   {
+    "source_url": "https://cryptopro.ru/sites/default/files/docs/csp/50r3/%D0%96%D0%A2%D0%AF%D0%98.00101-03%2090%2001.%20%D0%9E%D0%BF%D0%B8%D1%81%D0%B0%D0%BD%D0%B8%D0%B5%20%D1%80%D0%B5%D0%B0%D0%BB%D0%B8%D0%B7%D0%B0%D1%86%D0%B8%D0%B8.pdf",
+    "source_section": "ЖТЯИ.00101-03 90 01, «Клиентская и серверная лицензии»",
+    "excerpt": "Лицензии на рабочее место недействительны на серверных ОС.",
+    "source_kind": "vendor",
+    "fetch_method": "external_manual",
+    "source_date": null,
+    "provenance": "вторая машина, ручной сбор"
+   },
+   {
+    "source_url": "https://cryptopro.ru/products/csp/compare",
+    "source_section": "Сравнение версий, «Поддерживаемые операционные системы», примечание",
+    "excerpt": "необходима серверная лицензия CSP.",
+    "source_kind": "vendor",
+    "fetch_method": "external_manual",
+    "source_date": null,
+    "provenance": "вторая машина, ручной сбор"
    }
   ],
   "status": "verified_agent",
@@ -31,7 +49,7 @@
   "used_in": [
    "D2"
   ],
-  "change": null
+  "change": "Подтверждено тремя документами вендора: прайс (поз. 1), ЖТЯИ.00101-03 90 01, страница сравнения версий (вторая машина)."
  },
  {
   "id": "cryptopro_tls_separate",
@@ -65,6 +83,33 @@
     "source_kind": "vendor",
     "fetch_method": "webfetch_pdf_pdftotext",
     "source_date": "2026-10-02"
+   },
+   {
+    "source_url": "https://cryptopro.ru/sites/default/files/docs/price.pdf",
+    "source_section": "Прайс-лист, с. 2 PDF, поз. 4, примечание",
+    "excerpt": "данная лицензия не предоставляет право использования TLS-сервера в среде серверных ОС, отличных от Windows.",
+    "source_kind": "vendor",
+    "fetch_method": "external_manual",
+    "source_date": "2026-10-02",
+    "provenance": "вторая машина, ручной сбор"
+   },
+   {
+    "source_url": "https://cryptopro.ru/sites/default/files/public/faq/%D0%98%D0%BD%D1%81%D1%82%D1%80%D1%83%D0%BA%D1%86%D0%B8%D1%8F%20%D0%BF%D0%BE%20%D0%BE%D1%84%D0%BE%D1%80%D0%BC%D0%BB%D0%B5%D0%BD%D0%B8%D1%8E%20%D0%B7%D0%B0%D0%BA%D0%B0%D0%B7%D0%BE%D0%B2.pdf",
+    "source_section": "Форма заказа CSP, рис. 3, примечание к серверной лицензии",
+    "excerpt": "Для использования TLS-сервера необходимо приобретать Лицензию на право использования СКЗИ \"КриптоПро CSP\" версии 5.0 TLS-сервер",
+    "source_kind": "vendor",
+    "fetch_method": "external_manual",
+    "source_date": null,
+    "provenance": "вторая машина, ручной сбор"
+   },
+   {
+    "source_url": "https://cryptopro.ru/sites/default/files/docs/Webinar_CryptoPro_po_Cifrovomu_rublyu.pdf",
+    "source_section": "Ценообразование КриптоПро CSP 4.0 и 5.0, п. 6",
+    "excerpt": "для TLS-сервера по количеству одновременных подключений (для всех ОС кроме Windows)",
+    "source_kind": "vendor",
+    "fetch_method": "external_manual",
+    "source_date": null,
+    "provenance": "вторая машина, ручной сбор"
    }
   ],
   "status": "verified_agent",
@@ -75,7 +120,7 @@
   "used_in": [
    "D2"
   ],
-  "change": "Было: любой TLS-сервер → семейство 385280. Источник ограничивает правило серверными ОС, отличными от Windows; для Windows прайс прямо не говорит — правило не применять, ответ «уточним в запросе КП». Требование теперь — область действия оффера tls_server (см. offer_scope.jsonl): TLS-лицензии КС3 для Astra/Альт лежат в семействе 22268 (офферы 458219–458222), не в 385280."
+  "change": "Было: любой TLS-сервер → семейство 385280. Источник ограничивает правило серверными ОС, отличными от Windows; для Windows прайс прямо не говорит — правило не применять, ответ «уточним в запросе КП». Требование теперь — область действия оффера tls_server (см. offer_scope.jsonl): TLS-лицензии КС3 для Astra/Альт лежат в семействе 22268 (офферы 458219–458222), не в 385280. Подтверждено двумя независимыми документами вендора: прайс-лист (поз. 4) и форма заказа CSP (рис. 3); исключение Windows — ещё и ценообразование, п. 6. Покрывает ли серверная лицензия на Windows любые TLS-сценарии — не сказано, правило на Windows не применять."
  },
  {
   "id": "cyberbackup_linux_is_server",
@@ -152,9 +197,18 @@
    "variant": "Орел"
   },
   "note": "Только для систем без информации, требующей защиты; уровень система сама не выбирает",
-  "message": "«Орёл» — для систем, где нет информации, требующей защиты",
-  "source": "https://store.softline.ru/astralinux/astra-linux-special-edition/",
+  "message": "«Орёл» — только для систем, где нет информации, подлежащей защите по законодательству РФ",
+  "source": "https://astra.ru/upload/iblock/01b/2ldoagra5p3g8aj259cbxjtvositwgdc/politika-litsenzirovaniya_v8.7.pdf",
   "sources": [
+   {
+    "source_url": "https://astra.ru/upload/iblock/01b/2ldoagra5p3g8aj259cbxjtvositwgdc/politika-litsenzirovaniya_v8.7.pdf",
+    "source_section": "Ред. 8.7, вариант лицензирования «Орел», РУСБ.10015-10",
+    "excerpt": "исключительно в системах, не обрабатывающих информацию, подлежащую защите в соответствии с законодательством Российской Федерации.",
+    "source_kind": "vendor",
+    "fetch_method": "external_manual",
+    "source_date": "2026-06-10",
+    "provenance": "вторая машина, ручной сбор"
+   },
    {
     "source_url": "https://store.softline.ru/astralinux/astra-linux-special-edition/",
     "source_section": "Описание: Редакция «ОРЕЛ»",
@@ -172,7 +226,7 @@
   "used_in": [
    "D3"
   ],
-  "change": "Источник заменён: политика лицензирования на astra.ru с этой машины не открылась (таймаут), правило подтверждено текстом страницы магазина. Сверить с политикой вендора, когда откроется."
+  "change": "Основной источник — политика лицензирования ред. 8.7 от 10.06.2026 (вторая машина); страница магазина — подтверждение. Последняя ли это редакция — не проверено (указатель документов Astra не открылся)."
  },
  {
   "id": "astra_ws_server_separate",
@@ -190,8 +244,44 @@
    "separate_lines": true
   },
   "message": "Рабочие станции и серверы лицензируются отдельно",
-  "source": "https://store.softline.ru/astralinux/astra-linux-special-edition/",
+  "source": "https://astra.ru/upload/iblock/0af/shl7x9gun3nycjq09fe8gi6w8lk59cni/Leaflet_Astra_Linux_0226.pdf",
   "sources": [
+   {
+    "source_url": "https://astra.ru/upload/iblock/0af/shl7x9gun3nycjq09fe8gi6w8lk59cni/Leaflet_Astra_Linux_0226.pdf",
+    "source_section": "Виды лицензий",
+    "excerpt": "Рабочая станция Сервер",
+    "source_kind": "vendor",
+    "fetch_method": "external_manual",
+    "source_date": null,
+    "provenance": "вторая машина, ручной сбор"
+   },
+   {
+    "source_url": "https://astra.ru/upload/iblock/01b/2ldoagra5p3g8aj259cbxjtvositwgdc/politika-litsenzirovaniya_v8.7.pdf",
+    "source_section": "Ред. 8.7, глоссарий, «Сервер»",
+    "excerpt": "выделенное физическое или виртуальное устройство",
+    "source_kind": "vendor",
+    "fetch_method": "external_manual",
+    "source_date": "2026-06-10",
+    "provenance": "вторая машина, ручной сбор"
+   },
+   {
+    "source_url": "https://astra.ru/upload/iblock/698/58oe6julfvap3m0gjlvxpfv2st9jzamk/ASTRA-LINUX-SERVER_Klientskaya_22.04.2025.pdf",
+    "source_section": "Лицензирование Astra Linux Server, слайд 14, физический сервер",
+    "excerpt": "лицензия покрывает до 2 сокетов.",
+    "source_kind": "vendor",
+    "fetch_method": "external_manual",
+    "source_date": null,
+    "provenance": "вторая машина, ручной сбор"
+   },
+   {
+    "source_url": "https://astra.ru/upload/iblock/d5f/0rx9jtb16l3v9sj6pzp6gsvabachf0zr/Buklet-Astra-Linux-Server_elektronnyi_-format.pdf",
+    "source_section": "Лицензирование Astra Linux Server, «Виртуальный сервер», с. 8",
+    "excerpt": "на 1 виртуальную машину",
+    "source_kind": "vendor",
+    "fetch_method": "external_manual",
+    "source_date": null,
+    "provenance": "вторая машина, ручной сбор"
+   },
    {
     "source_url": "https://store.softline.ru/astralinux/astra-linux-special-edition/",
     "source_section": "Описание: лицензирование",
@@ -217,7 +307,7 @@
   "used_in": [
    "D3"
   ],
-  "change": "Источник заменён на страницу магазина (политика вендора не открылась). Объект лицензии — атрибут оффера «Назначение»."
+  "change": "Основной источник — документы вендора (листовка, ред. 8.7 глоссарий, презентация и буклет Astra Linux Server); магазин — подтверждение."
  },
  {
   "id": "m365_business_max_300",
@@ -388,5 +478,106 @@
    "D1"
   ],
   "change": "Правило каталога. Единица продажи — sale_units.jsonl."
+ },
+ {
+  "id": "astra_workstation_protected_db",
+  "vendor": "astralinux",
+  "family_ids": [
+   "121231"
+  ],
+  "when": {
+   "object": "workstation",
+   "uses": "protected_dbms"
+  },
+  "require": {
+   "cores_max": 8,
+   "remote_requests_from_other_devices": false
+  },
+  "message": "На рабочей станции встроенная защищённая СУБД — только локально: до 8 ядер, без запросов с других устройств",
+  "source": "https://astra.ru/upload/iblock/f3c/b08z2b1nw349ong2v1enr4fkdfzku4ee/politika-litsenzirovaniya_v8.5.pdf",
+  "sources": [
+   {
+    "source_url": "https://astra.ru/upload/iblock/f3c/b08z2b1nw349ong2v1enr4fkdfzku4ee/politika-litsenzirovaniya_v8.5.pdf",
+    "source_section": "Лицензия на рабочую станцию, абзац о модуле «Защищенная СУБД»",
+    "excerpt": "Не допускается обработка сетевых запросов Пользователей и/или программных решений с разных устройств",
+    "source_kind": "vendor",
+    "fetch_method": "external_manual",
+    "source_date": "2025-11-10",
+    "provenance": "вторая машина, ручной сбор"
+   },
+   {
+    "source_url": "https://astra.ru/upload/iblock/f3c/b08z2b1nw349ong2v1enr4fkdfzku4ee/politika-litsenzirovaniya_v8.5.pdf",
+    "source_section": "Лицензия на рабочую станцию, абзац о модуле «Защищенная СУБД»",
+    "excerpt": "8 (восемь) физических или виртуальных ядер.",
+    "source_kind": "vendor",
+    "fetch_method": "external_manual",
+    "source_date": "2025-11-10",
+    "provenance": "вторая машина, ручной сбор"
+   },
+   {
+    "source_url": "https://astra.ru/upload/iblock/d5f/0rx9jtb16l3v9sj6pzp6gsvabachf0zr/Buklet-Astra-Linux-Server_elektronnyi_-format.pdf",
+    "source_section": "Лицензирование ЗСУБД",
+    "excerpt": "1 физическое или виртуальное ядро",
+    "source_kind": "vendor",
+    "fetch_method": "external_manual",
+    "source_date": null,
+    "provenance": "вторая машина, ручной сбор"
+   }
+  ],
+  "status": "verified_agent",
+  "checked_at": "",
+  "checked_by": "agent:second-machine",
+  "reviewed_by": null,
+  "reviewed_at": null,
+  "used_in": [],
+  "provenance": "вторая машина, ручной сбор",
+  "change": "Новое. Фрагменты — из ред. 8.5; license-rules.md: «сверено с ред. 8.7». Правило только про встроенный модуль «Защищенная СУБД»; требует ли любая СУБД на ПК серверной ОС — не сказано, это не применять."
+ },
+ {
+  "id": "astra_support_basic_extended_smb",
+  "vendor": "astralinux",
+  "family_ids": [
+   "121231"
+  ],
+  "when": {
+   "support_level": [
+    "Базовая",
+    "Расширенная"
+   ]
+  },
+  "require": {
+   "org_size": "Малый и средний бизнес",
+   "object": "workstation",
+   "arch": "x86-64"
+  },
+  "message": "Техподдержка «Базовая» и «Расширенная» — только для МСП с лицензией на рабочую станцию x86-64",
+  "source": "https://astra.ru/upload/iblock/01b/2ldoagra5p3g8aj259cbxjtvositwgdc/politika-litsenzirovaniya_v8.7.pdf",
+  "sources": [
+   {
+    "source_url": "https://astra.ru/upload/iblock/01b/2ldoagra5p3g8aj259cbxjtvositwgdc/politika-litsenzirovaniya_v8.7.pdf",
+    "source_section": "Ред. 8.7, «Сертификаты», абзац о субъектах малого и среднего бизнеса",
+    "excerpt": "уровень «Базовый» или уровень «Расширенный»",
+    "source_kind": "vendor",
+    "fetch_method": "external_manual",
+    "source_date": "2026-06-10",
+    "provenance": "вторая машина, ручной сбор"
+   },
+   {
+    "source_url": "https://store.softline.ru/astralinux/astra-linux-special-edition/",
+    "source_section": "Конфигуратор, шаг «Выберите уровень техподдержки»",
+    "excerpt": "Базовая — Только для субъектов МСБ с лицензиями на рабочие станции (Орел, Воронеж). … Расширенная — Только для субъектов МСБ (рабочие станции Орел, Воронеж).",
+    "source_kind": "store",
+    "fetch_method": "curl",
+    "source_date": null
+   }
+  ],
+  "status": "verified_agent",
+  "checked_at": "",
+  "checked_by": "agent:second-machine",
+  "reviewed_by": null,
+  "reviewed_at": null,
+  "used_in": [],
+  "provenance": "вторая машина, ручной сбор",
+  "change": "Новое. Ред. 8.7, «Сертификаты». В фиде все 20 офферов «Базовая»/«Расширенная» — рабочая станция, МСБ, Орел или Воронеж; условие соблюдено."
  }
 ]

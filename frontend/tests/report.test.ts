@@ -3,7 +3,18 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 import type { AgentStep } from '../src/api/types.ts'
 import type { ReportRow } from '../src/api/typesReport.ts'
-import { failLine, hasFeed, layerShort, rowStatus, rowSteps, runLink } from '../src/lib/report.ts'
+import {
+  canCreateGapTask,
+  failLine,
+  guideProducts,
+  guideStatus,
+  hasFeed,
+  layerShort,
+  rowStatus,
+  rowSteps,
+  runLink,
+} from '../src/lib/report.ts'
+import type { ReportGuideRow } from '../src/api/typesReport.ts'
 
 function row(over: Partial<ReportRow> = {}): ReportRow {
   return {
@@ -108,4 +119,34 @@ test('подписи', () => {
   assert.equal(layerShort('synthetic'), 'синтетика')
   assert.equal(layerShort('x'), 'x')
   assert.equal(failLine({ failures: 12, freq: 16 }), '12 из 16')
+})
+
+test('вопросы подбору: задачу можно создать только для «нет факта» и только пока её нет', () => {
+  const gap: ReportGuideRow = {
+    code: 'missing_fact',
+    label: 'Нет факта в базе знаний',
+    question: 'кибер бэкап поддерживает ленточные библиотеки?',
+    count: 3,
+    families: [{ family_id: '173614', title: 'Кибер Бэкап Стандартная редакция' }],
+    kb_missing: true,
+  }
+  assert.equal(canCreateGapTask(gap), true)
+  assert.equal(guideStatus(gap).label, 'задачи ещё нет')
+  assert.equal(guideProducts(gap), 'Кибер Бэкап Стандартная редакция')
+  const withTask = {
+    ...gap,
+    proposal: {
+      id: 'p',
+      status: 'pending',
+      action: 'ticket',
+      diagnosis: 'KB_MISSING_FACT',
+      run_id: 'r',
+    },
+  }
+  assert.equal(canCreateGapTask(withTask), false)
+  assert.equal(guideStatus(withTask).label, 'задача ждёт владельца')
+  const offer = { ...gap, code: 'no_matching_offer', kb_missing: false, families: [] }
+  assert.equal(canCreateGapTask(offer), false)
+  assert.equal(guideStatus(offer).label, 'правкой базы не решается')
+  assert.equal(guideProducts(offer), 'продукт не определён')
 })

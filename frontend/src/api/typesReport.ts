@@ -67,4 +67,26 @@ export interface SearchOpsReport {
   pending: ReportRow[]
   checked_at: string
   truncated?: boolean
+  /** «Вопросы, на которые подбор не ответил». */
+  guide?: ReportGuide
+}
+
+export interface ReportGuideRow {
+  code: string
+  label: string
+  question: string
+  count: number
+  families: { family_id: string; title: string }[]
+  /** Причина kb_missing (нет факта в базе знаний): по вопросу создаётся задача владельцу. */
+  kb_missing: boolean
+  agent?: AgentVerdict
+  proposal?: ReportProposal
+}
+
+export interface ReportGuide {
+  title: string
+  hint: string
+  cause: { code: string; label: string; owner: string; owner_label: string }
+  total: number
+  rows: ReportGuideRow[]
 }

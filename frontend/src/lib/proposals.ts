@@ -23,6 +23,7 @@ export const DIAGNOSIS_LABELS: Record<string, string> = {
   CONSTRAINT_CONFLICT: 'Такой лицензии не существует',
   NON_PRODUCT: 'Нетоварный запрос',
   ON_REQUEST_ONLY: 'Найдено, но только по запросу',
+  KB_MISSING_FACT: 'Подбор не ответил: нет факта в базе знаний',
   NOISE: 'Шум',
   UNKNOWN: 'Требует ручной проверки',
   ...P2_DIAGNOSIS_LABELS,

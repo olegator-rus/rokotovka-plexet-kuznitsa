@@ -138,3 +138,21 @@ func TestAgentOnRequestOnlyTicket(t *testing.T) {
 		t.Fatal("причина «найдено, но только по запросу»")
 	}
 }
+
+// Пробелы подбора: причину kb_missing ставит событие подбора, модель выбрать её не может.
+func TestGapKeysAndModelCannotSetKBMissing(t *testing.T) {
+	if gapKey("Кибер Бэкап  поддерживает ЛЕНТЫ?") != gapKey("кибер бэкап поддерживает ленты?") {
+		t.Fatal("ключ пробела — нормализованный вопрос")
+	}
+	if !strings.HasPrefix(gapPatchKey("x y"), "ticket:"+domain.DiagKBMissingFact+":kb:") {
+		t.Fatalf("ключ памяти задачи: %s", gapPatchKey("x y"))
+	}
+	for _, tool := range agentTools() {
+		if strings.Contains(string(tool.Function.Parameters), domain.DiagKBMissingFact) {
+			t.Fatalf("инструмент %s даёт модели диагноз %s", tool.Function.Name, domain.DiagKBMissingFact)
+		}
+	}
+	if CauseOf(domain.DiagKBMissingFact).Code != CauseKBMissing || CauseOf(domain.DiagKBMissingFact).Owner != RoleProduct {
+		t.Fatal("причина kb_missing, владелец — категорийный и лицензионный менеджер")
+	}
+}

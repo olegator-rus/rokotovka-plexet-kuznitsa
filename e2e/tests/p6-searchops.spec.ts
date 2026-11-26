@@ -21,6 +21,7 @@ async function noOverflow(page: Page, name: string) {
   expect(overflow, `${name}: горизонтальная прокрутка`).toBeLessThanOrEqual(0)
 }
 
+const GUIDE = 'Вопросы, на которые подбор не ответил'
 const RUN = '01b00000-0000-7000-8000-000000000001'
 const CLUSTER = '01b00000-0000-7000-8000-0000000000c1'
 
@@ -166,6 +167,35 @@ const REPORT = {
   ],
   pending: [],
   checked_at: '2025-07-03T00:00:00Z',
+  guide: {
+    title: GUIDE,
+    hint: 'Покупатель спросил подбор, а ответа не нашлось.',
+    cause: {
+      code: 'kb_missing',
+      label: 'Нет факта в базе знаний',
+      owner: 'product',
+      owner_label: 'Категорийный и лицензионный менеджер',
+    },
+    total: 5,
+    rows: [
+      {
+        code: 'missing_fact',
+        label: 'Нет факта в базе знаний',
+        question: 'кибер бэкап стандартная поддерживает ленточные библиотеки?',
+        count: 3,
+        families: [{ family_id: '173614', title: 'Кибер Бэкап Стандартная редакция' }],
+        kb_missing: true,
+      },
+      {
+        code: 'no_matching_offer',
+        label: 'Нет оффера под условия',
+        question: 'мтс линк для вебинара на 150 человек',
+        count: 2,
+        families: [{ family_id: '447242', title: 'МТС Линк Стандарт' }],
+        kb_missing: false,
+      },
+    ],
+  },
 }
 
 const STEPS = [
@@ -242,7 +272,7 @@ test.describe('Контур фида: отчёт SearchOps для маркето
       page.getByText('Тестовый поток: запросы заказчика, прогоны сайта, синтетика из каталога'),
     ).toBeVisible()
     await expect(page.getByText(/Частоты модельные/)).toBeVisible()
-    await expect(page.getByRole('heading', { level: 3 })).toHaveText(SECTIONS)
+    await expect(page.getByRole('heading', { level: 3 })).toHaveText([...SECTIONS, GUIDE])
     const panel = page.locator('.mrep')
     await expect(panel).not.toContainText('₽')
     await expect(panel).not.toContainText(/\d{2}\.\d{2}\.\d{4}/)
@@ -274,6 +304,35 @@ test.describe('Контур фида: отчёт SearchOps для маркето
       'href',
       `/searchops/runs/${RUN}?cluster=${CLUSTER}`,
     )
+
+    // вопросы, на которые подбор не ответил — вопрос, сколько раз, продукт, чего не хватило; задача — только
+    // для «нет факта в базе знаний» (запуск агента mode=gaps, без модели).
+    const guide = page.locator('[data-section="guide"]')
+    await expect(guide).toContainText(
+      '«кибер бэкап стандартная поддерживает ленточные библиотеки?»',
+    )
+    await expect(guide).toContainText('3 раза')
+    await expect(guide).toContainText('Кибер Бэкап Стандартная редакция')
+    await expect(guide).toContainText('Не хватило: Нет факта в базе знаний')
+    await expect(guide).toContainText('владелец: Категорийный и лицензионный менеджер')
+    await expect(guide.getByRole('button', { name: 'Создать задачу каталогу' })).toHaveCount(1)
+    let body: unknown = null
+    await page.route('**/api/agent/runs', async (r) => {
+      if (r.request().method() !== 'POST') return r.fallback()
+      body = r.request().postDataJSON()
+      await r.fulfill({ status: 202, json: { run_id: 'gaps-run' } })
+    })
+    await page.route('**/api/agent/runs/gaps-run', (r) =>
+      r.fulfill({
+        json: {
+          run: { id: 'gaps-run', status: 'done', summary: 'Разобрано пробелов подбора: 1' },
+          steps: [],
+        },
+      }),
+    )
+    await guide.getByRole('button', { name: 'Создать задачу каталогу' }).click()
+    await expect(page.getByText('Задачи по пробелам подбора созданы').first()).toBeVisible()
+    expect(body).toEqual({ mode: 'gaps', trigger: 'manual', days: 7, max_clusters: 1 })
   })
 
   test('живой отчёт: разделы на месте, без горизонтальной прокрутки на 360 и 1440', async ({
@@ -291,6 +350,7 @@ test.describe('Контур фида: отчёт SearchOps для маркето
       await expect(failed).toBeHidden()
       await expect(page.getByRole('heading', { level: 3 })).toHaveText(
         SECTIONS.concat(
+          (await page.getByRole('heading', { level: 3, name: GUIDE }).count()) ? [GUIDE] : [],
           (await page.getByRole('heading', { level: 3, name: 'Ещё не разобраны' }).count())
             ? ['Ещё не разобраны']
             : [],
@@ -304,6 +364,8 @@ test.describe('Контур фида: отчёт SearchOps для маркето
           fullPage: w === 1440,
         })
         await page.screenshot({ path: `${SHOTS}/report-${w}-screen.png` })
+        const guide = page.locator('[data-section="guide"]')
+        if (await guide.count()) await guide.screenshot({ path: `${SHOTS}/report-guide-${w}.png` })
       }
     }
   })

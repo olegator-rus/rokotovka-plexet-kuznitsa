@@ -70,6 +70,8 @@ func (a *agentService) execute(ctx context.Context, rs *runState) {
 		err, unit = rc.runCatalogChange(ctx), "находок"
 	case rs.run.Mode == domain.RunModeCommerce:
 		err, unit = rc.runCommerce(ctx), "находок"
+	case rs.run.Mode == domain.RunModeGaps:
+		err, unit = rc.runGaps(ctx), "пробелов подбора"
 	case rs.spec.Query != "":
 		err = rc.runQuery(ctx)
 	default:
@@ -264,6 +266,10 @@ func (rc *runCtx) run(ctx context.Context) error {
 	// 1. Эффект ранее принятых правок (ночной разбор и разбор по периоду вручную; не всплеск).
 	if rs.run.Trigger != domain.TriggerSpike {
 		rc.effectCheck(ctx)
+		// 1а. Пробелы подбора: кластеры kb_missing кодом — причину ставит событие подбора, а не модель.
+		if gerr := rc.gapsStep(ctx); gerr != nil && ctx.Err() == nil {
+			zap.L().Warn("агент: пробелы подбора не разобраны", zap.Error(gerr))
+		}
 	}
 
 	// 2. Неудачные запросы за окно.
