@@ -12,7 +12,10 @@ defineProps<{ original: AnalogOriginal }>()
     <span class="t-muted">Вы искали:</span>
     <strong>{{ original.family_name }}</strong>
     <span class="t-muted">· {{ original.vendor }}</span>
-    <span v-if="original.price_from_rub != null" class="t-muted t-num">
+    <span
+      v-if="original.price_from_rub != null && original.price_from_rub > 0"
+      class="t-muted t-num"
+    >
       · от {{ formatPrice(original.price_from_rub) }}
     </span>
     <span v-if="original.reestr" class="badge">{{ original.reestr.label }}</span>

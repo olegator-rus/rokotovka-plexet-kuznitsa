@@ -2,7 +2,7 @@
 // копирования, тело POST /api/quotes, хранение. Без DOM: tests/spec.test.ts.
 import type { Companion, QuoteOrigin, QuoteRequest } from '@/api/typesP2'
 import type { SearchItemBase } from '@/api/types'
-import { formatPrice, plural } from './format.ts'
+import { formatPrice, isPositivePrice, plural } from './format.ts'
 import { parsePurchase, purchaseQuantity, type SpecPurchase } from './procurement.ts'
 
 export const SPEC_MAX_QTY = 100000
@@ -35,9 +35,7 @@ export function priceModeOf(item: Pick<SearchItemBase, 'price_on_request' | 'pri
 /** Цена известна (её можно сложить в итог): fixed или «от», и число есть. */
 export function hasKnownPrice(line: Pick<SpecLine, 'price_rub' | 'price_mode'>): boolean {
   return (
-    (line.price_mode === 'fixed' || line.price_mode === 'from') &&
-    typeof line.price_rub === 'number' &&
-    Number.isFinite(line.price_rub)
+    (line.price_mode === 'fixed' || line.price_mode === 'from') && isPositivePrice(line.price_rub)
   )
 }
 

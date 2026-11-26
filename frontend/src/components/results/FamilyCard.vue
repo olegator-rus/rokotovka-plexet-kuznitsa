@@ -7,18 +7,19 @@
 import VendorLogo from '@/components/common/VendorLogo.vue'
 import { computed, nextTick, ref } from 'vue'
 import { RouterLink } from 'vue-router'
-import { Check, ChevronDown, ListPlus, Route } from 'lucide-vue-next'
+import { Check, ChevronDown, ExternalLink, ListPlus, Route } from 'lucide-vue-next'
 import type { Purchase, SearchItem, SearchItemBase } from '@/api/types'
 import CompatBadge from '@/components/search/CompatBadge.vue'
 import { formatScore } from '@/lib/format'
 import { reestrTone, selectedOffer } from '@/lib/procurement'
 import { productHref } from '@/lib/product'
 import { isPurchasable, otherVariants, priceLabel } from '@/lib/license'
+import { ALTERNATIVE_NOTE, cardPrice, storeLink } from '@/lib/matchGroups'
+import { SHOWCASE } from '@/lib/showcase'
 import {
   attrCells,
   cardAction,
   durationLabel,
-  familyPriceLabel,
   type AttrCell,
   type NamedAttrs,
 } from '@/lib/resultsView'
@@ -50,6 +51,10 @@ const expanded = ref(false)
 const offer = computed(() => selectedOffer(props.item, props.purchase))
 const variants = computed(() => otherVariants(props.item))
 const action = computed(() => cardAction(props.item, variants.value.length))
+// Контур фида: «от N ₽» / старая цена и скидка / «Цена по запросу»; 0 ₽ не выводится.
+const price = computed(() => cardPrice(props.item, variants.value.length))
+const store = computed(() => storeLink(props.item))
+const isAlternative = computed(() => props.item.match_type === 'alternative')
 // Одна позиция на одно место: цена и «В спецификацию» уже справа — в блоке выбранного не повторяем.
 const offerRepeatsSide = computed(() => action.value === 'spec' && offer.value?.quantity === 1)
 const isSoftware = computed(
@@ -143,8 +148,20 @@ function rowQuantity(v: SearchItemBase): string {
 
         <p class="fcard__badges">
           <span v-if="item.matches_query && named.size" class="badge">Подходит под запрос</span>
-          <span v-if="item.group === 'analog'" class="badge badge--strong">Аналог</span>
-          <span v-if="item.purchased_before" class="badge badge--strong">
+          <span v-if="item.group === 'analog' && !item.match_type" class="badge badge--strong">
+            Аналог
+          </span>
+          <span
+            v-if="price.discount"
+            class="badge badge--tone fcard__discount"
+            data-testid="discount-badge"
+          >
+            {{ price.discount }}
+          </span>
+          <span
+            v-if="SHOWCASE.personalization && item.purchased_before"
+            class="badge badge--strong"
+          >
             Вы покупали этот продукт
           </span>
           <span
@@ -156,6 +173,25 @@ function rowQuantity(v: SearchItemBase): string {
           </span>
         </p>
         <p v-if="item.analog_note" class="fcard__note t-xs t-muted">{{ item.analog_note }}</p>
+        <p v-if="isAlternative" class="fcard__alt t-xs" data-testid="alternative-note">
+          {{ ALTERNATIVE_NOTE }}
+        </p>
+        <p v-if="item.explain" class="fcard__note t-xs t-muted" data-testid="item-explain">
+          {{ item.explain }}
+        </p>
+        <p v-if="store" class="fcard__store t-xs">
+          <a
+            :href="store.url"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="fcard__store-link"
+            data-testid="store-link"
+          >
+            {{ store.kind === 'family' ? 'Все варианты на сайте' : 'На сайте' }}
+            <ExternalLink :size="12" aria-hidden="true" />
+            <span class="sr-only"> (откроется в новой вкладке)</span>
+          </a>
+        </p>
         <div v-if="offer" class="fcard__offer t-sm" data-testid="selected-offer">
           <p>
             <span class="t-muted">Выбрано по запросу:</span>&nbsp;<strong>{{ offer.label }}</strong>
@@ -186,12 +222,14 @@ function rowQuantity(v: SearchItemBase): string {
 
       <div class="fcard__side">
         <p
-          :class="[
-            'fcard__price t-num',
-            { 'fcard__price--request': !isPurchasable(item) && !variants.length },
-          ]"
+          :class="['fcard__price t-num', { 'fcard__price--request': price.state === 'on_request' }]"
+          data-testid="card-price"
+          :data-price-state="price.state"
         >
-          {{ familyPriceLabel(item, variants.length) }}
+          <s v-if="price.old" class="fcard__old t-sm" data-testid="old-price">
+            <span class="sr-only">Старая цена </span>{{ price.old }}
+          </s>
+          {{ price.label }}
         </p>
         <div class="fcard__actions">
           <button
@@ -338,6 +376,34 @@ function rowQuantity(v: SearchItemBase): string {
 <style scoped>
 .fcard__note {
   margin: var(--space-1) 0 0;
+}
+.fcard__alt {
+  margin: var(--space-1) 0 0;
+  padding-left: var(--space-2);
+  border-left: 2px solid var(--border-control);
+  color: var(--text-2);
+}
+.fcard__store {
+  margin: 0;
+}
+.fcard__store-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--text-2);
+  text-underline-offset: 3px;
+}
+.fcard__store-link:hover {
+  color: var(--text);
+}
+.fcard__discount {
+  --tone: var(--status-accepted);
+  --tone-bg: var(--status-accepted-bg);
+}
+.fcard__old {
+  margin-right: var(--space-1);
+  color: var(--text-2);
+  font-weight: var(--fw-regular);
 }
 .fcard__offer {
   display: flex;

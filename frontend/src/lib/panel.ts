@@ -541,9 +541,11 @@ export function panelPrice(
   fmt: (n: number) => string,
 ): string {
   if (p.price_mode === 'unavailable') return 'Нет в наличии'
+  // Нулевая цена — «по запросу», «0 ₽» не выводится.
   if (
     p.price_from_rub === null ||
     p.price_from_rub === undefined ||
+    !(p.price_from_rub > 0) ||
     p.price_mode === 'quote_required'
   )
     return 'Цена по запросу'

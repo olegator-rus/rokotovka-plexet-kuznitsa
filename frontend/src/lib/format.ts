@@ -29,9 +29,17 @@ export function formatDecimal(n: number, digits = 2): string {
   return frac === undefined ? sign + intPart : `${sign}${intPart},${frac}`
 }
 
-/** Цена в рублях: 12990 → «12 990 ₽»; null — пустая строка (вызывающий пишет «Цена по запросу»). */
+/** Цена есть и больше нуля. Нулевая цена в фиде значит «по запросу» — как цена не показывается. */
+export function isPositivePrice(rub: number | null | undefined): rub is number {
+  return typeof rub === 'number' && Number.isFinite(rub) && rub > 0
+}
+
+/**
+ * Цена в рублях: 12990 → «12 990 ₽»; null, 0 и отрицательное — пустая строка (вызывающий пишет «Цена по запросу»):
+ * «0 ₽» на экран не выводится нигде.
+ */
 export function formatPrice(rub: number | null | undefined): string {
-  if (rub === null || rub === undefined || !Number.isFinite(rub)) return ''
+  if (!isPositivePrice(rub)) return ''
   const whole = Number.isInteger(rub)
   return `${whole ? formatInt(rub) : formatDecimal(rub, 2)}${NBSP}₽`
 }

@@ -3,7 +3,8 @@
 import type { Chip, SearchItemBase, SearchResponse } from '@/api/types'
 import type { Facet, SearchFilter } from '@/api/typesP2'
 import type { ItemAttrs, Refinement, ResultsSort } from '@/api/typesResults'
-import { formatInt, formatPrice, plural } from './format.ts'
+import { formatInt, formatPrice, isPositivePrice, plural } from './format.ts'
+import { isPurchasable } from './license.ts'
 
 export const SORT_LABELS: Record<ResultsSort, string> = {
   recommended: 'Рекомендуемые',
@@ -29,8 +30,11 @@ export function resultsHeading(
   const c = resp.counts
   if (!c) return null
   const products = `${formatInt(c.families)} ${plural(c.families, ['продукт', 'продукта', 'продуктов'])}`
-  const variants = `${formatInt(c.variants)} ${plural(c.variants, ['вариант', 'варианта', 'вариантов'])}`
-  const part = shown !== undefined && shown < c.variants ? ` · показаны ${formatInt(shown)}` : ''
+  // Контур фида: `skus` вместо `variants`; нет ни того ни другого — только продукты.
+  const n = c.variants ?? c.skus
+  if (n === undefined || n === null) return `По запросу «${resp.query}» — ${products}`
+  const variants = `${formatInt(n)} ${plural(n, ['вариант', 'варианта', 'вариантов'])}`
+  const part = shown !== undefined && shown < n ? ` · показаны ${formatInt(shown)}` : ''
   return `По запросу «${resp.query}» — ${products} · ${variants}${part}`
 }
 
@@ -231,16 +235,18 @@ export function attrCells(attrs: ItemAttrs, named: NamedAttrs | ReadonlySet<stri
 export type CardAction = 'choose' | 'spec' | 'price_request'
 
 export function cardAction(item: SearchItemBase, variantsCount: number): CardAction {
+  // Контур фида: семейство целиком по запросу — «Запросить цену», варианты открываются строкой ниже.
+  if (item.price_state === 'on_request') return 'price_request'
   if (variantsCount > 0) return 'choose'
-  if (item.price_on_request || item.price_rub === null) return 'price_request'
+  if (!isPurchasable(item)) return 'price_request'
   return 'spec'
 }
 
 /** Цена карточки семейства: «от N ₽», если у вариантов разные цены; у позиции — точная или «Цена по запросу». */
 export function familyPriceLabel(item: SearchItemBase, variantsCount: number): string {
   const from = item.price_from_rub
-  if (variantsCount > 0 && from !== undefined && from !== null) return `от ${formatPrice(from)}`
-  if (item.price_on_request || item.price_rub === null) return 'Цена по запросу'
+  if (variantsCount > 0 && isPositivePrice(from)) return `от ${formatPrice(from)}`
+  if (!isPurchasable(item)) return 'Цена по запросу'
   return formatPrice(item.price_rub)
 }
 

@@ -22,6 +22,7 @@ import type {
 import { useMediaQuery } from '@/composables/useMediaQuery'
 import { buildEvent, type EventFields } from '@/lib/events'
 import { formatInt, formatPrice } from '@/lib/format'
+import { SHOWCASE } from '@/lib/showcase'
 import {
   DESKTOP_LIMITS,
   GROUP_LABELS,
@@ -135,7 +136,12 @@ const showSkeleton = computed(
     skeleton.value &&
     (productsStale.value || !products.value.length || Boolean(view.value?.partial)),
 )
-const recsShown = computed(() => (recs.value?.items?.length ? recs.value : null))
+// Контур фида: подборка «по просмотренному» — персонализация по истории; на узкой витрине скрыта.
+const recsShown = computed(() =>
+  recs.value?.items?.length && (SHOWCASE.personalization || recs.value.basis !== 'viewed')
+    ? recs.value
+    : null,
+)
 
 const options = computed<PanelOption[]>(() =>
   buildOptions({
@@ -1170,9 +1176,11 @@ const popularCache = vueRef<Sugg[] | null>(null)
               >
                 <span class="sp__rec-title t-sm">{{ c.title }}</span>
                 <span class="sp__rec-meta t-xs t-muted">
-                  <strong v-if="c.price_rub != null" class="sp__rec-price t-num">{{
-                    formatPrice(c.price_rub)
-                  }}</strong>
+                  <strong
+                    v-if="c.price_rub != null && c.price_rub > 0"
+                    class="sp__rec-price t-num"
+                    >{{ formatPrice(c.price_rub) }}</strong
+                  >
                   <!-- Основание «по категории» уже названо над блоком — под позицией не повторяем. -->
                   <span v-if="recsShown.basis !== 'category_popular' && (c.label || c.reason)">{{
                     c.label || c.reason

@@ -2,7 +2,7 @@
 // Сервер присылает готовую строку «Подписка · 10 устройств · 1 год» (`license_line`);
 // фронт делит её на части для показа и упорядочивает варианты внутри раскрытой карточки.
 import type { SearchItem, SearchItemBase } from '@/api/types'
-import { formatPrice } from './format.ts'
+import { formatPrice, isPositivePrice } from './format.ts'
 
 export const LICENSE_SEPARATOR = ' · '
 
@@ -22,19 +22,26 @@ export function joinLicenseParts(parts: string[]): string {
 
 /** Цена для показа: «12 990 ₽» или «Цена по запросу». */
 export function priceLabel(
-  item: Pick<SearchItemBase, 'price_rub' | 'price_on_request'> & { price_mode?: string },
+  item: Pick<SearchItemBase, 'price_rub' | 'price_on_request'> & {
+    price_mode?: string
+    price_state?: string | null
+  },
 ): string {
   // Контур коммерции: «от …» и «Нет в наличии» по price_mode; без поля — как в контуре поиска.
   if (item.price_mode === 'unavailable') return 'Нет в наличии'
-  if (item.price_on_request || item.price_rub === null) return 'Цена по запросу'
+  if (!isPurchasable(item)) return 'Цена по запросу'
   return item.price_mode === 'from'
     ? `от ${formatPrice(item.price_rub)}`
     : formatPrice(item.price_rub)
 }
 
 /** Можно положить в корзину: цена известна. Иначе действие — «Запросить цену». */
-export function isPurchasable(item: Pick<SearchItemBase, 'price_rub' | 'price_on_request'>) {
-  return !item.price_on_request && item.price_rub !== null
+export function isPurchasable(
+  item: Pick<SearchItemBase, 'price_rub' | 'price_on_request'> & { price_state?: string | null },
+): boolean {
+  // Контур фида: нулевая цена — «по запросу»; price_state сервера главнее.
+  if (item.price_state === 'on_request') return false
+  return !item.price_on_request && isPositivePrice(item.price_rub)
 }
 
 /**

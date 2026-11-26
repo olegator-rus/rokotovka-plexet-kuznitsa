@@ -68,7 +68,7 @@ function add(c: Companion, index: number) {
       <span class="spec-cmp__text">
         <span class="t-sm spec-cmp__title">{{ c.title }}</span>
         <span class="t-xs t-muted">
-          <strong v-if="c.price_rub != null" class="spec-cmp__price t-num">
+          <strong v-if="c.price_rub != null && c.price_rub > 0" class="spec-cmp__price t-num">
             {{ priceModeLabel({ price_rub: c.price_rub, price_mode: c.price_mode || 'fixed' }) }}
           </strong>
           {{ lowerFirst(classLabel(c)) }}

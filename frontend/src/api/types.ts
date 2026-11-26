@@ -140,6 +140,45 @@ export interface SearchItemBase {
   /** Контур доводки (§12.6): статус реестра семейства; строка отличий аналога отсутствующего товара. */
   reestr?: Reestr | null
   analog_note?: string
+  /** Контур фида (§16.4): ссылки на store.softline.ru, наличие, старая цена, тип лицензии. */
+  offer_url?: string | null
+  family_url?: string | null
+  vendor_url?: string | null
+  available?: boolean | null
+  old_price_rub?: number | null
+  license_kind?: string | null
+  /** Контур фида: ступень лестницы, состояние цены, цена «от», бейджи, пояснение. */
+  match_type?: MatchType | string | null
+  price_state?: PriceState | string | null
+  price_from?: number | null
+  badges?: ItemBadge[] | null
+  explain?: string | null
+  family_title?: string | null
+}
+
+/** Ступень лестницы «минимум 4 товара». */
+export type MatchType = 'exact' | 'variant' | 'related' | 'alternative' | 'fallback'
+/** Состояние цены карточки. */
+export type PriceState = 'priced' | 'on_request'
+/** Бейдж карточки: строка или объект; форма объекта у сервера не закреплена — читаются известные поля. */
+export type ItemBadge =
+  | string
+  | {
+      type?: string
+      kind?: string
+      label?: string
+      text?: string
+      percent?: number
+      discount_pct?: number
+    }
+
+/** Цель запроса — первый кликабельный элемент выдачи. */
+export type TargetType = 'sku' | 'family' | 'vendor' | 'vendor_category' | 'category' | 'service'
+export interface SearchTarget {
+  type: TargetType | string
+  url: string
+  title: string
+  reason?: string
 }
 
 export interface SearchItem extends SearchItemBase {
@@ -234,6 +273,9 @@ export interface SearchResponse {
   help?: HelpAnswer
   analog_original?: AnalogOriginal
   reestr_unconfirmed?: SearchItem[]
+  /** Контур фида: цель, пояснение над «Популярное в наличии». */
+  target?: SearchTarget | null
+  fallback_note?: string | null
   trace: Trace
 }
 

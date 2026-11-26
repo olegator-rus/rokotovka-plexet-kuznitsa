@@ -3,6 +3,7 @@
 // лицензии, пометки «Аналог» / «Вы покупали», цена или «Цена по запросу», действия. Справа — скор,
 // он же «почему здесь»: открывает трассу этой позиции. Раскрытие показывает другие лицензии семейства,
 // подходящая под запрос — первой и с пометкой.
+import { SHOWCASE } from '@/lib/showcase'
 import VendorLogo from '@/components/common/VendorLogo.vue'
 import { computed, ref } from 'vue'
 import { RouterLink } from 'vue-router'
@@ -95,7 +96,10 @@ function toggle() {
         <p class="result__license t-sm">
           <span>{{ license || 'Условия лицензии не указаны' }}</span>
           <span v-if="item.group === 'analog'" class="badge badge--strong">Аналог</span>
-          <span v-if="item.purchased_before" class="badge badge--strong">
+          <span
+            v-if="SHOWCASE.personalization && item.purchased_before"
+            class="badge badge--strong"
+          >
             Вы покупали этот продукт
           </span>
         </p>

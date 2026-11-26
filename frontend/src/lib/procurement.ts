@@ -2,7 +2,7 @@
 // для спецификации и заявки, статус реестра, ответ справки, поставка отсутствующего. Без DOM:
 // tests/procurement.test.ts.
 import type { Purchase, Reestr, SearchItemBase, SearchResponse } from '@/api/types'
-import { formatPrice, plural } from './format.ts'
+import { formatPrice, isPositivePrice, plural } from './format.ts'
 
 /** Параметры закупки строки спецификации — уходят в заявку КП вместе с исходным запросом. */
 export interface SpecPurchase {
@@ -92,7 +92,7 @@ export function selectedOffer(
   purchase: Purchase | null | undefined,
 ): SelectedOffer | null {
   if (!hasPurchaseTerms(purchase) || !item.matches_query) return null
-  if (item.price_on_request || item.price_rub === null) return null
+  if (item.price_on_request || !isPositivePrice(item.price_rub)) return null
   const a = item.attrs
   const kind = a?.license_type === 'renewal' ? 'Продление' : purchase.deal_label || 'Новая лицензия'
   const parts = [kind, durationText(a?.duration_months ?? null), a?.edition ?? ''].filter(Boolean)

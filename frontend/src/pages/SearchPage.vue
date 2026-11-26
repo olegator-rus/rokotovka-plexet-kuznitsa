@@ -43,6 +43,15 @@ import HelpAnswer from '@/components/results/HelpAnswer.vue'
 import RefinementChips from '@/components/results/RefinementChips.vue'
 import ResultsFacets from '@/components/results/ResultsFacets.vue'
 import ResultsToolbar from '@/components/results/ResultsToolbar.vue'
+import TargetCard from '@/components/results/TargetCard.vue'
+import {
+  FALLBACK_NOTE,
+  fallbackLead,
+  groupByMatchType,
+  hasMatchTypes,
+  targetView,
+} from '@/lib/matchGroups'
+import { SHOWCASE } from '@/lib/showcase'
 import type { Refinement, ResultsGroup, ResultsSort } from '@/api/typesResults'
 import {
   FLAT_PAGE,
@@ -276,7 +285,10 @@ const facets = computed(() =>
 )
 // ── закупка под задачу и старшая редакция ──
 const solutionsOn = computed(() => featureOn(features.value, 'solutions'))
-const solution = computed(() => (solutionsOn.value ? (response.value?.solution ?? null) : null))
+// Контур фида: шаблоны решений на узкой витрине скрыты флагом, код на месте.
+const solution = computed(() =>
+  solutionsOn.value && SHOWCASE.solutionTemplates ? (response.value?.solution ?? null) : null,
+)
 const upgrade = computed(() => (solutionsOn.value ? (response.value?.upgrade ?? null) : null))
 const upgradeBase = computed(
   () =>
@@ -431,6 +443,29 @@ const requiredOf = (item: SearchItem) => (companionsOn.value ? (item.required ??
 const conditionalNote = computed(
   () => hardwareOn.value && hasConditional(response.value?.items ?? []),
 )
+// ── Контур фида: цель и группы по ступени лестницы. Без match_type — раскладка контура выдачи. ──
+const target = computed(() => targetView(response.value?.target))
+const matchMode = computed(() => hasMatchTypes(shownResponse.value?.items))
+const matchGroups = computed(() =>
+  matchMode.value ? groupByMatchType([...blocks.value.main, ...blocks.value.analogs]) : [],
+)
+const fallbackText = computed(() => fallbackLead(response.value))
+/** Заголовок: только «Популярное в наличии» — по запросу ничего не нашлось, число популярного не выдаётся за найденное. */
+const headingText = computed(() => {
+  const r = response.value
+  if (!r) return ''
+  if (matchMode.value && matchGroups.value.every((g) => g.type === 'fallback'))
+    return r.target?.type === 'service' && target.value
+      ? `По запросу «${r.query}» — раздел магазина`
+      : `По запросу «${r.query}» ничего не нашлось`
+  return resultsHeading(r, flatVisible.value)
+})
+/** Пустой результат контура фида: в ответе есть «Популярное в наличии» — пояснение стоит над ним, без панели «нет». */
+const absentPanel = computed(
+  () =>
+    (blocks.value.absent || blocks.value.nothing) && !(matchMode.value && matchGroups.value.length),
+)
+
 /** Блок «Дополните решение» встаёт после третьего результата основной выдачи. */
 const BLOCK_AFTER = 3
 const mainTop = computed(() => blocks.value.main.slice(0, BLOCK_AFTER))
@@ -754,7 +789,7 @@ async function onSupply() {
             Ответ справки по запросу «{{ response.query }}»
           </h2>
           <h2 v-else-if="resultsOn" class="search-page__heading" role="status">
-            {{ resultsHeading(response, flatVisible) }}
+            {{ headingText }}
             <span v-if="response.trace?.total_ms != null" class="t-sm t-muted">
               · {{ formatMs(response.trace.total_ms) }}
             </span>
@@ -762,6 +797,8 @@ async function onSupply() {
           <p v-else class="search-page__found t-sm t-muted t-num" role="status">
             {{ formatFound(response.total, response.trace?.total_ms) }} · {{ response.config }}
           </p>
+
+          <TargetCard v-if="target && !helpShown" :target="target" />
 
           <UnderstandingBar
             :response="response"
@@ -803,7 +840,7 @@ async function onSupply() {
             @open="onHelpOpen"
           />
 
-          <section v-else-if="blocks.absent || blocks.nothing" class="panel search-page__absent">
+          <section v-else-if="absentPanel" class="panel search-page__absent">
             <h2 class="t-h2">
               {{
                 blocks.absent
@@ -911,121 +948,199 @@ async function onSupply() {
                   @reset="onFiltersReset"
                 />
               </template>
-              <ol v-if="mainTop.length" class="search-page__list" aria-label="Результаты">
-                <li v-for="p in mainTop" :key="p.item.product_id">
-                  <FamilyCard
-                    v-if="resultsOn"
-                    :item="p.item"
-                    :position="p.position"
-                    :named="named"
-                    :selected="state.trace && selected === p.item.product_id"
-                    :in-spec="inSpec"
-                    :show-compat="hardwareOn"
-                    :purchase="response.purchase"
-                    :request-id="response.request_id"
-                    @expand="onVariantExpand"
-                    @spec="onSpecTarget"
-                    @price-request="onPriceRequest"
-                    @why="onWhy"
-                    @product="onProductOpen"
+              <template v-if="matchMode">
+                <template v-for="(g, gi) in matchGroups" :key="g.type">
+                  <p
+                    v-if="g.type === 'fallback' && fallbackText"
+                    :class="['mgroup__lead', { 'mgroup__lead--after': gi > 0 }]"
+                    role="status"
+                    data-testid="fallback-lead"
                   >
-                    <RequiredLine
-                      v-if="requiredOf(p.item).length"
-                      :required="requiredOf(p.item)"
-                      :anchor-id="p.item.product_id"
-                      :anchor-title="p.item.title"
-                      :request-id="response.request_id"
-                    />
-                  </FamilyCard>
-                  <ResultCard
-                    v-else
-                    :item="p.item"
-                    :position="p.position"
-                    :selected="state.trace && selected === p.item.product_id"
-                    :in-spec="spec.has(p.item.product_id)"
-                    :show-compat="hardwareOn"
-                    :request-id="response.request_id"
-                    @open="onOpen"
-                    @action="onAction"
-                    @why="onWhy"
-                    @spec="onSpec"
-                    @product="onProductOpen"
+                    {{ fallbackText }}
+                  </p>
+                  <section
+                    :class="['mgroup', `mgroup--${g.type}`, { 'mgroup--next': gi > 0 }]"
+                    :aria-labelledby="`mgroup-${g.type}`"
+                    :data-match-group="g.type"
                   >
-                    <RequiredLine
-                      v-if="requiredOf(p.item).length"
-                      :required="requiredOf(p.item)"
-                      :anchor-id="p.item.product_id"
-                      :anchor-title="p.item.title"
-                      :request-id="response.request_id"
+                    <div class="mgroup__head">
+                      <h2 :id="`mgroup-${g.type}`" class="mgroup__title">{{ g.title }}</h2>
+                      <span class="t-xs t-muted t-num">{{ g.items.length }}</span>
+                    </div>
+                    <p v-if="g.type === 'fallback'" class="mgroup__note t-sm t-muted">
+                      {{ FALLBACK_NOTE }}
+                    </p>
+                    <ol class="search-page__list" :start="g.items[0]?.position">
+                      <li v-for="p in g.items" :key="p.item.product_id">
+                        <FamilyCard
+                          v-if="resultsOn"
+                          :item="p.item"
+                          :position="p.position"
+                          :named="named"
+                          :selected="state.trace && selected === p.item.product_id"
+                          :in-spec="inSpec"
+                          :show-compat="hardwareOn"
+                          :purchase="response.purchase"
+                          :request-id="response.request_id"
+                          @expand="onVariantExpand"
+                          @spec="onSpecTarget"
+                          @price-request="onPriceRequest"
+                          @why="onWhy"
+                          @product="onProductOpen"
+                        >
+                          <RequiredLine
+                            v-if="requiredOf(p.item).length"
+                            :required="requiredOf(p.item)"
+                            :anchor-id="p.item.product_id"
+                            :anchor-title="p.item.title"
+                            :request-id="response.request_id"
+                          />
+                        </FamilyCard>
+                        <ResultCard
+                          v-else
+                          :item="p.item"
+                          :position="p.position"
+                          :selected="state.trace && selected === p.item.product_id"
+                          :in-spec="spec.has(p.item.product_id)"
+                          :show-compat="hardwareOn"
+                          :request-id="response.request_id"
+                          @open="onOpen"
+                          @action="onAction"
+                          @why="onWhy"
+                          @spec="onSpec"
+                          @product="onProductOpen"
+                        />
+                      </li>
+                    </ol>
+                    <CompanionsBlock
+                      v-if="gi === 0 && companionItems.length"
+                      :items="companionItems"
+                      :anchor="companionAnchorTitle"
+                      @open="onCompanionOpen"
+                      @add="onCompanionAdd"
+                      @search="submit"
                     />
-                  </ResultCard>
-                </li>
-              </ol>
+                  </section>
+                </template>
+              </template>
 
-              <CompanionsBlock
-                v-if="companionItems.length"
-                :items="companionItems"
-                :anchor="companionAnchorTitle"
-                @open="onCompanionOpen"
-                @add="onCompanionAdd"
-                @search="submit"
-              />
+              <template v-else>
+                <ol v-if="mainTop.length" class="search-page__list" aria-label="Результаты">
+                  <li v-for="p in mainTop" :key="p.item.product_id">
+                    <FamilyCard
+                      v-if="resultsOn"
+                      :item="p.item"
+                      :position="p.position"
+                      :named="named"
+                      :selected="state.trace && selected === p.item.product_id"
+                      :in-spec="inSpec"
+                      :show-compat="hardwareOn"
+                      :purchase="response.purchase"
+                      :request-id="response.request_id"
+                      @expand="onVariantExpand"
+                      @spec="onSpecTarget"
+                      @price-request="onPriceRequest"
+                      @why="onWhy"
+                      @product="onProductOpen"
+                    >
+                      <RequiredLine
+                        v-if="requiredOf(p.item).length"
+                        :required="requiredOf(p.item)"
+                        :anchor-id="p.item.product_id"
+                        :anchor-title="p.item.title"
+                        :request-id="response.request_id"
+                      />
+                    </FamilyCard>
+                    <ResultCard
+                      v-else
+                      :item="p.item"
+                      :position="p.position"
+                      :selected="state.trace && selected === p.item.product_id"
+                      :in-spec="spec.has(p.item.product_id)"
+                      :show-compat="hardwareOn"
+                      :request-id="response.request_id"
+                      @open="onOpen"
+                      @action="onAction"
+                      @why="onWhy"
+                      @spec="onSpec"
+                      @product="onProductOpen"
+                    >
+                      <RequiredLine
+                        v-if="requiredOf(p.item).length"
+                        :required="requiredOf(p.item)"
+                        :anchor-id="p.item.product_id"
+                        :anchor-title="p.item.title"
+                        :request-id="response.request_id"
+                      />
+                    </ResultCard>
+                  </li>
+                </ol>
 
-              <ol
-                v-if="mainRest.length"
-                class="search-page__list"
-                :start="BLOCK_AFTER + 1"
-                aria-label="Продолжение выдачи"
-              >
-                <li v-for="p in mainRest" :key="p.item.product_id">
-                  <FamilyCard
-                    v-if="resultsOn"
-                    :item="p.item"
-                    :position="p.position"
-                    :named="named"
-                    :selected="state.trace && selected === p.item.product_id"
-                    :in-spec="inSpec"
-                    :show-compat="hardwareOn"
-                    :purchase="response.purchase"
-                    :request-id="response.request_id"
-                    @expand="onVariantExpand"
-                    @spec="onSpecTarget"
-                    @price-request="onPriceRequest"
-                    @why="onWhy"
-                    @product="onProductOpen"
-                  >
-                    <RequiredLine
-                      v-if="requiredOf(p.item).length"
-                      :required="requiredOf(p.item)"
-                      :anchor-id="p.item.product_id"
-                      :anchor-title="p.item.title"
+                <CompanionsBlock
+                  v-if="companionItems.length"
+                  :items="companionItems"
+                  :anchor="companionAnchorTitle"
+                  @open="onCompanionOpen"
+                  @add="onCompanionAdd"
+                  @search="submit"
+                />
+
+                <ol
+                  v-if="mainRest.length"
+                  class="search-page__list"
+                  :start="BLOCK_AFTER + 1"
+                  aria-label="Продолжение выдачи"
+                >
+                  <li v-for="p in mainRest" :key="p.item.product_id">
+                    <FamilyCard
+                      v-if="resultsOn"
+                      :item="p.item"
+                      :position="p.position"
+                      :named="named"
+                      :selected="state.trace && selected === p.item.product_id"
+                      :in-spec="inSpec"
+                      :show-compat="hardwareOn"
+                      :purchase="response.purchase"
                       :request-id="response.request_id"
-                    />
-                  </FamilyCard>
-                  <ResultCard
-                    v-else
-                    :item="p.item"
-                    :position="p.position"
-                    :selected="state.trace && selected === p.item.product_id"
-                    :in-spec="spec.has(p.item.product_id)"
-                    :show-compat="hardwareOn"
-                    :request-id="response.request_id"
-                    @open="onOpen"
-                    @action="onAction"
-                    @why="onWhy"
-                    @spec="onSpec"
-                    @product="onProductOpen"
-                  >
-                    <RequiredLine
-                      v-if="requiredOf(p.item).length"
-                      :required="requiredOf(p.item)"
-                      :anchor-id="p.item.product_id"
-                      :anchor-title="p.item.title"
+                      @expand="onVariantExpand"
+                      @spec="onSpecTarget"
+                      @price-request="onPriceRequest"
+                      @why="onWhy"
+                      @product="onProductOpen"
+                    >
+                      <RequiredLine
+                        v-if="requiredOf(p.item).length"
+                        :required="requiredOf(p.item)"
+                        :anchor-id="p.item.product_id"
+                        :anchor-title="p.item.title"
+                        :request-id="response.request_id"
+                      />
+                    </FamilyCard>
+                    <ResultCard
+                      v-else
+                      :item="p.item"
+                      :position="p.position"
+                      :selected="state.trace && selected === p.item.product_id"
+                      :in-spec="spec.has(p.item.product_id)"
+                      :show-compat="hardwareOn"
                       :request-id="response.request_id"
-                    />
-                  </ResultCard>
-                </li>
-              </ol>
+                      @open="onOpen"
+                      @action="onAction"
+                      @why="onWhy"
+                      @spec="onSpec"
+                      @product="onProductOpen"
+                    >
+                      <RequiredLine
+                        v-if="requiredOf(p.item).length"
+                        :required="requiredOf(p.item)"
+                        :anchor-id="p.item.product_id"
+                        :anchor-title="p.item.title"
+                        :request-id="response.request_id"
+                      />
+                    </ResultCard>
+                  </li>
+                </ol>
+              </template>
 
               <UpgradeCard
                 v-if="upgrade"
@@ -1081,7 +1196,7 @@ async function onSupply() {
               </section>
 
               <section
-                v-if="blocks.analogs.length"
+                v-if="blocks.analogs.length && !matchMode"
                 class="search-page__section"
                 aria-labelledby="analogs-title"
               >
@@ -1393,6 +1508,48 @@ async function onSupply() {
   flex-direction: column;
   gap: var(--space-2);
   margin-top: var(--space-3);
+}
+/* Контур фида: группы выдачи по ступени лестницы. */
+.mgroup {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+.mgroup--next {
+  margin-top: var(--space-4);
+}
+.mgroup__head {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
+}
+.mgroup__title {
+  margin: 0;
+  font-size: var(--fs-h2);
+  line-height: var(--lh-h2);
+  font-weight: var(--fw-semibold);
+}
+.mgroup__note,
+.mgroup__lead {
+  margin: 0;
+}
+.mgroup__lead {
+  font-size: var(--fs-body);
+  font-weight: var(--fw-medium);
+}
+/* «Популярное в наличии» — не результат поиска: своя подложка и пунктирная рамка. */
+.mgroup--fallback {
+  padding: var(--space-3);
+  border: var(--border-w) dashed var(--border-control);
+  border-radius: var(--radius-panel);
+  background: var(--surface-2);
+}
+.mgroup--fallback.mgroup--next,
+.mgroup__lead--after {
+  margin-top: var(--space-6);
+}
+.mgroup__lead + .mgroup--fallback {
+  margin-top: var(--space-2);
 }
 .search-page__chips {
   display: flex;

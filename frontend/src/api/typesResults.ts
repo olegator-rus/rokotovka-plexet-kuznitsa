@@ -16,7 +16,11 @@ export interface Refinement {
 
 export interface ResultCounts {
   families: number
-  variants: number
+  /** Контур выдачи; в контракте контура фида вместо него `skus`. */
+  variants?: number
+  /** Контур фида. */
+  skus?: number
+  by_match_type?: Record<string, number>
 }
 
 export interface ResultSortInfo {
