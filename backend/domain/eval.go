@@ -1,6 +1,9 @@
 package domain
 
-import "time"
+import (
+	"encoding/json"
+	"time"
+)
 
 // Оценка качества поиска: наборы запросов с разметкой, прогоны
 // конфигураций и их результаты. Метрики считает services/eval*.go.
@@ -11,13 +14,14 @@ const (
 	EvalSetTest       = "test"       // замороженный: итоговые цифры, на нём ничего не настраивается
 	EvalSetRegression = "regression" // проверка правок агента
 	EvalSetDemo       = "demo"       // сценарии видео, в метриках test не участвуют
+	EvalSetP2         = "p2"         // регрессия контура коммерции: лицензии, парт-номера, характеристики, совместимость, комплекты
 	// EvalSetHoldoutWeek — реплей отложенной недели журнала (не из queries.json): поиски последних 7 дней,
 	// которых агент не видел, частота = число поисков; разметка — по тексту из queries.json.
 	EvalSetHoldoutWeek = "holdout_week"
 )
 
 // EvalSets — допустимые наборы.
-var EvalSets = []string{EvalSetTune, EvalSetTest, EvalSetRegression, EvalSetDemo}
+var EvalSets = []string{EvalSetTune, EvalSetTest, EvalSetRegression, EvalSetDemo, EvalSetP2}
 
 // Типы запросов разметки (EvalQuery.Type).
 const (
@@ -48,6 +52,8 @@ type EvalQuery struct {
 	Judgments map[string]int `json:"judgments"`
 	Absent    bool           `json:"absent"`
 	Cluster   string         `json:"cluster,omitempty"`
+	// Expect — ожидания набора p2 (контур коммерции): якорь, обязательные и несовместимые компаньоны, числовые условия.
+	Expect json.RawMessage `json:"expect,omitempty" gorm:"-"`
 }
 
 // LogEvent — строка исторического журнала поведения (events.jsonl).

@@ -1,0 +1,877 @@
+[
+  {
+    "anchor_product": "1csrv-corp64",
+    "candidate_product": "1ccl-20",
+    "class": "required",
+    "query": "сервер 1с"
+  },
+  {
+    "anchor_product": "1csrv-corp64",
+    "candidate_product": "1ccl-5usb",
+    "class": "required",
+    "query": "сервер 1с"
+  },
+  {
+    "anchor_product": "1csrv-prof64",
+    "candidate_product": "1ccl-100",
+    "class": "required",
+    "query": "сервер 1с"
+  },
+  {
+    "anchor_product": "1csrv-prof64",
+    "candidate_product": "1ccl-20",
+    "class": "required",
+    "query": "сервер 1с"
+  },
+  {
+    "anchor_product": "1csrv-prof64",
+    "candidate_product": "1ccl-5",
+    "class": "required",
+    "query": "сервер 1с"
+  },
+  {
+    "anchor_product": "1csrv-prof64",
+    "candidate_product": "1ccl-5usb",
+    "class": "required",
+    "query": "сервер 1с"
+  },
+  {
+    "anchor_product": "nb-ns685-i5-16-512",
+    "candidate_product": "w11p-oem",
+    "class": "required",
+    "query": "аквариус cmp ns685"
+  },
+  {
+    "anchor_product": "ws22-dc16",
+    "candidate_product": "rdscal25-u1",
+    "class": "required",
+    "query": "windows server"
+  },
+  {
+    "anchor_product": "ws22-dc16",
+    "candidate_product": "wscal-d5",
+    "class": "required",
+    "query": "windows server 2022"
+  },
+  {
+    "anchor_product": "ws22-dc16",
+    "candidate_product": "wscal-u1",
+    "class": "required",
+    "query": "windows server 2022"
+  },
+  {
+    "anchor_product": "ws22-dc16",
+    "candidate_product": "wscal25-u1",
+    "class": "required",
+    "query": "windows server"
+  },
+  {
+    "anchor_product": "ws22-dc16",
+    "candidate_product": "wscal25-u5",
+    "class": "required",
+    "query": "windows server"
+  },
+  {
+    "anchor_product": "ws22-std16",
+    "candidate_product": "wscal-d1",
+    "class": "required",
+    "query": "windows server 2022"
+  },
+  {
+    "anchor_product": "ws22-std16",
+    "candidate_product": "wscal-d5",
+    "class": "required",
+    "query": "windows server 2022"
+  },
+  {
+    "anchor_product": "ws22-std16",
+    "candidate_product": "wscal25-u5",
+    "class": "required",
+    "query": "windows server"
+  },
+  {
+    "anchor_product": "ws25-dc16",
+    "candidate_product": "rdscal25-u1",
+    "class": "required",
+    "query": "windows server"
+  },
+  {
+    "anchor_product": "ws25-std16",
+    "candidate_product": "rdscal25-u1",
+    "class": "required",
+    "query": "windows server"
+  },
+  {
+    "anchor_product": "ws25-std16",
+    "candidate_product": "wscal25-d5",
+    "class": "required",
+    "query": "windows server"
+  },
+  {
+    "anchor_product": "ws25-std16",
+    "candidate_product": "wscal25-u1",
+    "class": "required",
+    "query": "windows server"
+  },
+  {
+    "anchor_product": "ws25-std16",
+    "candidate_product": "wscal25-u5",
+    "class": "required",
+    "query": "windows server"
+  },
+  {
+    "anchor_product": "srv-dl380g10-5218",
+    "candidate_product": "mem-hpe-64g-d4",
+    "class": "compatible",
+    "query": "hpe proliant dl380 gen10"
+  },
+  {
+    "anchor_product": "srv-dl380g10-5218",
+    "candidate_product": "ssd-hpe-960-sata",
+    "class": "compatible",
+    "query": "hpe proliant dl380 gen10"
+  },
+  {
+    "anchor_product": "srv-dl380g11-4410y",
+    "candidate_product": "mem-hpe-16g-d5",
+    "class": "compatible",
+    "query": "hpe proliant dl380 gen11"
+  },
+  {
+    "anchor_product": "srv-dl380g11-4410y",
+    "candidate_product": "mem-hpe-32g-d5",
+    "class": "compatible",
+    "query": "hpe proliant dl380 gen11"
+  },
+  {
+    "anchor_product": "srv-dl380g11-4410y",
+    "candidate_product": "mem-hpe-64g-d5",
+    "class": "compatible",
+    "query": "hpe proliant dl380 gen11"
+  },
+  {
+    "anchor_product": "srv-dl380g11-4410y",
+    "candidate_product": "ssd-hpe-1920-sata",
+    "class": "compatible",
+    "query": "hpe proliant dl380 gen11"
+  },
+  {
+    "anchor_product": "srv-dl380g11-4410y",
+    "candidate_product": "ssd-hpe-960-sas",
+    "class": "compatible",
+    "query": "hpe proliant dl380 gen11"
+  },
+  {
+    "anchor_product": "srv-dl380g11-4410y",
+    "candidate_product": "ssd-hpe-960-sata",
+    "class": "compatible",
+    "query": "hpe proliant dl380 gen11"
+  },
+  {
+    "anchor_product": "srv-dl380g11-4410y",
+    "candidate_product": "svc-hpe-tc-g11-5y",
+    "class": "compatible",
+    "query": "hpe proliant dl380 gen11"
+  },
+  {
+    "anchor_product": "srv-dl380g11-5418y",
+    "candidate_product": "hdd-hpe-2400-sas",
+    "class": "compatible",
+    "query": "hpe proliant dl380 gen11"
+  },
+  {
+    "anchor_product": "srv-dl380g11-5418y",
+    "candidate_product": "mem-hpe-32g-d5",
+    "class": "compatible",
+    "query": "hpe proliant dl380 gen11"
+  },
+  {
+    "anchor_product": "srv-dl380g11-5418y",
+    "candidate_product": "ssd-hpe-1920-sata",
+    "class": "compatible",
+    "query": "hpe proliant dl380 gen11"
+  },
+  {
+    "anchor_product": "srv-dl380g11-5418y",
+    "candidate_product": "ssd-hpe-960-sas",
+    "class": "compatible",
+    "query": "hpe proliant dl380 gen11"
+  },
+  {
+    "anchor_product": "srv-dl380g11-5418y",
+    "candidate_product": "svc-hpe-tc-g11-5y",
+    "class": "compatible",
+    "query": "hpe proliant dl380 gen11"
+  },
+  {
+    "anchor_product": "srv-r740-g6230",
+    "candidate_product": "hdd-dell-2400-sas",
+    "class": "compatible",
+    "query": "dell poweredge r740"
+  },
+  {
+    "anchor_product": "srv-r740-g6230",
+    "candidate_product": "ssd-dell-1920-sata",
+    "class": "compatible",
+    "query": "dell poweredge r740"
+  },
+  {
+    "anchor_product": "srv-r740-g6230",
+    "candidate_product": "ssd-dell-960-sata",
+    "class": "compatible",
+    "query": "dell poweredge r740"
+  },
+  {
+    "anchor_product": "srv-r740-s4210",
+    "candidate_product": "mem-dell-32g-d4-2933",
+    "class": "compatible",
+    "query": "dell poweredge r740"
+  },
+  {
+    "anchor_product": "srv-r750-g6338",
+    "candidate_product": "ssd-dell-1920-sata",
+    "class": "compatible",
+    "query": "dell poweredge r750"
+  },
+  {
+    "anchor_product": "srv-r750-g6338",
+    "candidate_product": "ssd-dell-960-sas",
+    "class": "compatible",
+    "query": "dell poweredge r750"
+  },
+  {
+    "anchor_product": "srv-r750-g6338",
+    "candidate_product": "ssd-dell-960-sata",
+    "class": "compatible",
+    "query": "dell poweredge r750"
+  },
+  {
+    "anchor_product": "srv-r750-s4314",
+    "candidate_product": "mem-dell-64g-d4",
+    "class": "compatible",
+    "query": "dell poweredge r750"
+  },
+  {
+    "anchor_product": "srv-r750-s4314",
+    "candidate_product": "ssd-dell-1920-sata",
+    "class": "compatible",
+    "query": "dell poweredge r750"
+  },
+  {
+    "anchor_product": "srv-r750-s4314",
+    "candidate_product": "svc-dell-ps-r750-3y",
+    "class": "compatible",
+    "query": "dell poweredge r750"
+  },
+  {
+    "anchor_product": "srv-vegman-r220-base",
+    "candidate_product": "mem-yadro-32g-d4",
+    "class": "compatible",
+    "query": "yadro vegman r220 g2"
+  },
+  {
+    "anchor_product": "srv-dl380g10-5218",
+    "candidate_product": "ssd-hpe-960-sas",
+    "class": "conditional",
+    "query": "hpe proliant dl380 gen10"
+  },
+  {
+    "anchor_product": "srv-dl380g11-4410y",
+    "candidate_product": "mem-kingston-32g-d5",
+    "class": "conditional",
+    "query": "hpe proliant dl380 gen11"
+  },
+  {
+    "anchor_product": "srv-dl380g11-4410y",
+    "candidate_product": "ssd-hpe-3840-nvme",
+    "class": "conditional",
+    "query": "hpe proliant dl380 gen11"
+  },
+  {
+    "anchor_product": "srv-dl380g11-5418y",
+    "candidate_product": "mem-kingston-32g-d5",
+    "class": "conditional",
+    "query": "hpe proliant dl380 gen11"
+  },
+  {
+    "anchor_product": "srv-r740-g6230",
+    "candidate_product": "hdd-dell-8000-sas",
+    "class": "conditional",
+    "query": "dell poweredge r740"
+  },
+  {
+    "anchor_product": "srv-r740-g6230",
+    "candidate_product": "mem-dell-16g-d4",
+    "class": "conditional",
+    "query": "dell poweredge r740"
+  },
+  {
+    "anchor_product": "srv-r740-g6230",
+    "candidate_product": "mem-dell-32g-d4",
+    "class": "conditional",
+    "query": "dell poweredge r740"
+  },
+  {
+    "anchor_product": "srv-r740-g6230",
+    "candidate_product": "mem-dell-64g-d4",
+    "class": "conditional",
+    "query": "dell poweredge r740"
+  },
+  {
+    "anchor_product": "srv-r740-g6230",
+    "candidate_product": "mem-kingston-32g-d4",
+    "class": "conditional",
+    "query": "dell poweredge r740"
+  },
+  {
+    "anchor_product": "srv-r740-s4210",
+    "candidate_product": "mem-dell-16g-d4",
+    "class": "conditional",
+    "query": "dell poweredge r740"
+  },
+  {
+    "anchor_product": "srv-r740-s4210",
+    "candidate_product": "mem-dell-32g-d4",
+    "class": "conditional",
+    "query": "dell poweredge r740"
+  },
+  {
+    "anchor_product": "srv-r740-s4210",
+    "candidate_product": "mem-dell-64g-d4",
+    "class": "conditional",
+    "query": "dell poweredge r740"
+  },
+  {
+    "anchor_product": "srv-r750-g6338",
+    "candidate_product": "hdd-dell-2400-sas",
+    "class": "conditional",
+    "query": "dell poweredge r750"
+  },
+  {
+    "anchor_product": "srv-r750-s4314",
+    "candidate_product": "hdd-dell-8000-sas",
+    "class": "conditional",
+    "query": "dell poweredge r750"
+  },
+  {
+    "anchor_product": "srv-r750-s4314",
+    "candidate_product": "mem-kingston-32g-d4",
+    "class": "conditional",
+    "query": "dell poweredge r750"
+  },
+  {
+    "anchor_product": "srv-dl380g10-5218",
+    "candidate_product": "mem-dell-32g-d4",
+    "class": "incompatible",
+    "query": "hpe proliant dl380 gen10"
+  },
+  {
+    "anchor_product": "srv-dl380g10-5218",
+    "candidate_product": "mem-hpe-32g-d5",
+    "class": "incompatible",
+    "query": "hpe proliant dl380 gen10"
+  },
+  {
+    "anchor_product": "srv-dl380g10-5218",
+    "candidate_product": "ssd-dell-960-sata",
+    "class": "incompatible",
+    "query": "hpe proliant dl380 gen10"
+  },
+  {
+    "anchor_product": "srv-dl380g11-4410y",
+    "candidate_product": "hdd-seagate-exos-8tb",
+    "class": "incompatible",
+    "query": "hpe proliant dl380 gen11"
+  },
+  {
+    "anchor_product": "srv-dl380g11-4410y",
+    "candidate_product": "mem-hpe-16g-d4",
+    "class": "incompatible",
+    "query": "hpe proliant dl380 gen11"
+  },
+  {
+    "anchor_product": "srv-dl380g11-4410y",
+    "candidate_product": "mem-hpe-32g-d4",
+    "class": "incompatible",
+    "query": "hpe proliant dl380 gen11"
+  },
+  {
+    "anchor_product": "srv-dl380g11-4410y",
+    "candidate_product": "mem-hpe-64g-d4",
+    "class": "incompatible",
+    "query": "hpe proliant dl380 gen11"
+  },
+  {
+    "anchor_product": "srv-dl380g11-5418y",
+    "candidate_product": "hdd-seagate-exos-8tb",
+    "class": "incompatible",
+    "query": "hpe proliant dl380 gen11"
+  },
+  {
+    "anchor_product": "srv-dl380g11-5418y",
+    "candidate_product": "mem-hpe-16g-d4",
+    "class": "incompatible",
+    "query": "hpe proliant dl380 gen11"
+  },
+  {
+    "anchor_product": "srv-dl380g11-5418y",
+    "candidate_product": "mem-hpe-32g-d4",
+    "class": "incompatible",
+    "query": "hpe proliant dl380 gen11"
+  },
+  {
+    "anchor_product": "srv-dl380g11-5418y",
+    "candidate_product": "mem-hpe-64g-d4",
+    "class": "incompatible",
+    "query": "hpe proliant dl380 gen11"
+  },
+  {
+    "anchor_product": "srv-r740-g6230",
+    "candidate_product": "mem-hpe-32g-d5",
+    "class": "incompatible",
+    "query": "dell poweredge r740"
+  },
+  {
+    "anchor_product": "srv-r740-g6230",
+    "candidate_product": "mem-kingston-32g-d5",
+    "class": "incompatible",
+    "query": "dell poweredge r740"
+  },
+  {
+    "anchor_product": "srv-r750-g6338",
+    "candidate_product": "svc-dell-ps-r740-3y",
+    "class": "incompatible",
+    "query": "dell poweredge r750"
+  },
+  {
+    "anchor_product": "srv-r750-s4314",
+    "candidate_product": "svc-dell-ps-r740-3y",
+    "class": "incompatible",
+    "query": "dell poweredge r750"
+  },
+  {
+    "anchor_product": "ws25-dc16",
+    "candidate_product": "wscal-d5",
+    "class": "incompatible",
+    "query": "windows server 2025"
+  },
+  {
+    "anchor_product": "ws25-dc16",
+    "candidate_product": "wscal-u5",
+    "class": "incompatible",
+    "query": "windows server 2025"
+  },
+  {
+    "anchor_product": "ws25-std16",
+    "candidate_product": "wscal-d1",
+    "class": "incompatible",
+    "query": "windows server 2025"
+  },
+  {
+    "anchor_product": "ws25-std16",
+    "candidate_product": "wscal-d5",
+    "class": "incompatible",
+    "query": "windows server 2025"
+  },
+  {
+    "anchor_product": "ws25-std16",
+    "candidate_product": "wscal-rds",
+    "class": "incompatible",
+    "query": "windows server 2025"
+  },
+  {
+    "anchor_product": "srv-dl380g10-5218",
+    "candidate_product": "mem-dell-32g-d4-2933",
+    "class": "unknown",
+    "query": "hpe proliant dl380 gen10"
+  },
+  {
+    "anchor_product": "srv-dl380g10-5218",
+    "candidate_product": "mem-hpe-16g-d5",
+    "class": "unknown",
+    "query": "hpe proliant dl380 gen10"
+  },
+  {
+    "anchor_product": "srv-dl380g10-5218",
+    "candidate_product": "mem-kingston-32g-d4",
+    "class": "unknown",
+    "query": "hpe proliant dl380 gen10"
+  },
+  {
+    "anchor_product": "srv-dl380g10-5218",
+    "candidate_product": "ssd-hpe-3840-nvme",
+    "class": "unknown",
+    "query": "hpe proliant dl380 gen10"
+  },
+  {
+    "anchor_product": "srv-dl380g10-5218",
+    "candidate_product": "ssd-samsung-pm893-960",
+    "class": "unknown",
+    "query": "hpe proliant dl380 gen10"
+  },
+  {
+    "anchor_product": "srv-dl380g11-5418y",
+    "candidate_product": "hdd-dell-8000-sas",
+    "class": "unknown",
+    "query": "hpe proliant dl380 gen11"
+  },
+  {
+    "anchor_product": "srv-dl380g11-5418y",
+    "candidate_product": "mem-dell-16g-d4",
+    "class": "unknown",
+    "query": "hpe proliant dl380 gen11"
+  },
+  {
+    "anchor_product": "srv-r740-g6230",
+    "candidate_product": "mem-hpe-16g-d5",
+    "class": "unknown",
+    "query": "dell poweredge r740"
+  },
+  {
+    "anchor_product": "srv-r740-g6230",
+    "candidate_product": "mem-hpe-32g-d4",
+    "class": "unknown",
+    "query": "dell poweredge r740"
+  },
+  {
+    "anchor_product": "srv-r740-g6230",
+    "candidate_product": "ssd-samsung-pm893-960",
+    "class": "unknown",
+    "query": "dell poweredge r740"
+  },
+  {
+    "anchor_product": "srv-r750-g6338",
+    "candidate_product": "hdd-seagate-exos-8tb",
+    "class": "unknown",
+    "query": "dell poweredge r750"
+  },
+  {
+    "anchor_product": "srv-r750-g6338",
+    "candidate_product": "mem-samsung-64g-d4",
+    "class": "unknown",
+    "query": "dell poweredge r750"
+  },
+  {
+    "anchor_product": "srv-r750-g6338",
+    "candidate_product": "ssd-hpe-3840-nvme",
+    "class": "unknown",
+    "query": "dell poweredge r750"
+  },
+  {
+    "anchor_product": "srv-r750-g6338",
+    "candidate_product": "ssd-hpe-960-sas",
+    "class": "unknown",
+    "query": "dell poweredge r750"
+  },
+  {
+    "anchor_product": "srv-r750-g6338",
+    "candidate_product": "ssd-samsung-pm893-960",
+    "class": "unknown",
+    "query": "dell poweredge r750"
+  },
+  {
+    "anchor_product": "srv-vegman-r220-base",
+    "candidate_product": "hdd-hpe-2400-sas",
+    "class": "unknown",
+    "query": "yadro vegman r220 g2"
+  },
+  {
+    "anchor_product": "srv-vegman-r220-base",
+    "candidate_product": "mem-dell-16g-d4",
+    "class": "unknown",
+    "query": "yadro vegman r220 g2"
+  },
+  {
+    "anchor_product": "srv-vegman-r220-base",
+    "candidate_product": "mem-samsung-64g-d4",
+    "class": "unknown",
+    "query": "yadro vegman r220 g2"
+  },
+  {
+    "anchor_product": "srv-vegman-r220-max",
+    "candidate_product": "hdd-hpe-2400-sas",
+    "class": "unknown",
+    "query": "yadro vegman r220 g2"
+  },
+  {
+    "anchor_product": "srv-vegman-r220-max",
+    "candidate_product": "ssd-dell-960-sas",
+    "class": "unknown",
+    "query": "yadro vegman r220 g2"
+  },
+  {
+    "anchor_product": "nb-e14g5-i5-16-512",
+    "candidate_product": "m365b-bs",
+    "class": "complement",
+    "query": "lenovo thinkpad e14 gen 5"
+  },
+  {
+    "anchor_product": "nb-e14g5-i5-16-512",
+    "candidate_product": "off24-hb",
+    "class": "complement",
+    "query": "lenovo thinkpad e14 gen 5"
+  },
+  {
+    "anchor_product": "nb-e14g5-i7-16-1t",
+    "candidate_product": "m365b-bs",
+    "class": "complement",
+    "query": "lenovo thinkpad e14 gen 5"
+  },
+  {
+    "anchor_product": "nb-e14g5-i7-16-1t",
+    "candidate_product": "mon-dell-p2425h",
+    "class": "complement",
+    "query": "lenovo thinkpad e14 gen 5"
+  },
+  {
+    "anchor_product": "nb-lat5540-i5-16-512",
+    "candidate_product": "mon-dell-p2725h",
+    "class": "complement",
+    "query": "dell latitude 5540"
+  },
+  {
+    "anchor_product": "nb-lat5540-i7-32-1t",
+    "candidate_product": "mon-dell-p2425h",
+    "class": "complement",
+    "query": "dell latitude 5540"
+  },
+  {
+    "anchor_product": "nb-mbd16-i5-16-512",
+    "candidate_product": "m365b-bs",
+    "class": "complement",
+    "query": "huawei matebook d 16"
+  },
+  {
+    "anchor_product": "nb-mbd16-i5-16-512",
+    "candidate_product": "off24-hb",
+    "class": "complement",
+    "query": "huawei matebook d 16"
+  },
+  {
+    "anchor_product": "nb-ns685-i5-16-512",
+    "candidate_product": "m365b-bs",
+    "class": "complement",
+    "query": "аквариус cmp ns685"
+  },
+  {
+    "anchor_product": "nb-ns685-i5-8-256",
+    "candidate_product": "kes-std10",
+    "class": "complement",
+    "query": "аквариус cmp ns685"
+  },
+  {
+    "anchor_product": "nb-ns685-i5-8-256",
+    "candidate_product": "m365b-bs",
+    "class": "complement",
+    "query": "аквариус cmp ns685"
+  },
+  {
+    "anchor_product": "nb-ns685-i5-8-256",
+    "candidate_product": "mon-dell-p2425h",
+    "class": "complement",
+    "query": "аквариус cmp ns685"
+  },
+  {
+    "anchor_product": "nb-ns685-i5-8-256",
+    "candidate_product": "mon-dell-p2725h",
+    "class": "complement",
+    "query": "аквариус cmp ns685"
+  },
+  {
+    "anchor_product": "nb-ns685-i5-8-256",
+    "candidate_product": "off24-hb",
+    "class": "complement",
+    "query": "аквариус cmp ns685"
+  },
+  {
+    "anchor_product": "nb-pb450g10-i5-16-512",
+    "candidate_product": "m365b-bs",
+    "class": "complement",
+    "query": "hp probook 450 g10"
+  },
+  {
+    "anchor_product": "nb-pb450g10-i5-8-256",
+    "candidate_product": "kes-std10",
+    "class": "complement",
+    "query": "hp probook 450 g10"
+  },
+  {
+    "anchor_product": "nb-pb450g10-i5-8-256",
+    "candidate_product": "m365b-bs",
+    "class": "complement",
+    "query": "hp probook 450 g10"
+  },
+  {
+    "anchor_product": "nb-pb450g10-i5-8-256",
+    "candidate_product": "mon-dell-p2725h",
+    "class": "complement",
+    "query": "hp probook 450 g10"
+  },
+  {
+    "anchor_product": "nb-t14g4-i5-16-512",
+    "candidate_product": "kes-std10",
+    "class": "complement",
+    "query": "lenovo thinkpad t14 gen 4"
+  },
+  {
+    "anchor_product": "nb-t14g4-i7-32-1t",
+    "candidate_product": "mon-dell-p2425h",
+    "class": "complement",
+    "query": "lenovo thinkpad t14 gen 4"
+  },
+  {
+    "anchor_product": "kes-std10",
+    "candidate_product": "kes-ext10",
+    "class": "upgrade",
+    "query": "kaspersky endpoint security для бизнеса"
+  },
+  {
+    "anchor_product": "kes-std25",
+    "candidate_product": "kes-ext10",
+    "class": "upgrade",
+    "query": "kaspersky endpoint security для бизнеса"
+  },
+  {
+    "anchor_product": "kes-std50",
+    "candidate_product": "kes-ext10",
+    "class": "upgrade",
+    "query": "kaspersky endpoint security для бизнеса"
+  },
+  {
+    "anchor_product": "m365b-bs",
+    "candidate_product": "m365b-bp",
+    "class": "upgrade",
+    "query": "microsoft 365 для бизнеса"
+  },
+  {
+    "anchor_product": "off24-home",
+    "candidate_product": "off24-hb",
+    "class": "upgrade",
+    "query": "microsoft office 2024"
+  },
+  {
+    "anchor_product": "ws22-std16",
+    "candidate_product": "ws22-dc16",
+    "class": "upgrade",
+    "query": "microsoft windows server 2022"
+  },
+  {
+    "anchor_product": "ws22-std2",
+    "candidate_product": "ws22-dc16",
+    "class": "upgrade",
+    "query": "microsoft windows server 2022"
+  },
+  {
+    "anchor_product": "ws25-std16",
+    "candidate_product": "ws25-dc16",
+    "class": "upgrade",
+    "query": "microsoft windows server 2025"
+  },
+  {
+    "anchor_product": "ws25-std2",
+    "candidate_product": "ws25-dc16",
+    "class": "upgrade",
+    "query": "microsoft windows server 2025"
+  },
+  {
+    "anchor_product": "kes-std25",
+    "candidate_product": "mem-hpe-32g-d5",
+    "class": "irrelevant"
+  },
+  {
+    "anchor_product": "m365b-bp",
+    "candidate_product": "svc-dell-ps-r740-3y",
+    "class": "irrelevant"
+  },
+  {
+    "anchor_product": "mem-dell-32g-d4",
+    "candidate_product": "off24-hb",
+    "class": "irrelevant"
+  },
+  {
+    "anchor_product": "mon-dell-p2425h",
+    "candidate_product": "sql22-cal",
+    "class": "irrelevant"
+  },
+  {
+    "anchor_product": "nb-e14g5-i5-16-512",
+    "candidate_product": "wscal25-u1",
+    "class": "irrelevant"
+  },
+  {
+    "anchor_product": "nb-mbd16-i5-16-512",
+    "candidate_product": "ws25-dc16",
+    "class": "irrelevant"
+  },
+  {
+    "anchor_product": "nb-t14g4-i5-16-512",
+    "candidate_product": "1cits-prof12",
+    "class": "irrelevant"
+  },
+  {
+    "anchor_product": "off24-hb",
+    "candidate_product": "hdd-dell-2400-sas",
+    "class": "irrelevant"
+  },
+  {
+    "anchor_product": "rdscal25-u1",
+    "candidate_product": "mon-samsung-g5-27",
+    "class": "irrelevant"
+  },
+  {
+    "anchor_product": "sql22-ent2c",
+    "candidate_product": "sql22-cal",
+    "class": "irrelevant"
+  },
+  {
+    "anchor_product": "sql22-std2c",
+    "candidate_product": "sql22-cal",
+    "class": "irrelevant",
+    "query": "sql server 2022 по ядрам"
+  },
+  {
+    "anchor_product": "srv-dl380g11-4410y",
+    "candidate_product": "fm-std",
+    "class": "irrelevant"
+  },
+  {
+    "anchor_product": "srv-r750-s4314",
+    "candidate_product": "acro-pro1y",
+    "class": "irrelevant"
+  },
+  {
+    "anchor_product": "srv-vegman-r220-base",
+    "candidate_product": "zoom-pro1y",
+    "class": "irrelevant"
+  },
+  {
+    "anchor_product": "ssd-hpe-960-sata",
+    "candidate_product": "cdr-perp",
+    "class": "irrelevant"
+  },
+  {
+    "anchor_product": "sw-eltex-mes2324b",
+    "candidate_product": "kplus-3dev-1y",
+    "class": "irrelevant"
+  },
+  {
+    "anchor_product": "ups-ippon-rt-3000",
+    "candidate_product": "m365b-bs",
+    "class": "irrelevant"
+  },
+  {
+    "anchor_product": "ws22-std16",
+    "candidate_product": "nb-pb450g10-i5-8-256",
+    "class": "irrelevant"
+  },
+  {
+    "anchor_product": "ws25-std16",
+    "candidate_product": "ps-t1y",
+    "class": "irrelevant"
+  },
+  {
+    "anchor_product": "wscal25-u1",
+    "candidate_product": "acad-1y",
+    "class": "irrelevant"
+  }
+]

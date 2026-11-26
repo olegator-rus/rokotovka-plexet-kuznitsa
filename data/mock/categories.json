@@ -148,5 +148,60 @@
     "id": "remote-access",
     "name": "Удалённое администрирование",
     "parent_id": "remote"
+  },
+  {
+    "id": "servers",
+    "name": "Серверы и комплектующие",
+    "parent_id": null
+  },
+  {
+    "id": "server-systems",
+    "name": "Серверы",
+    "parent_id": "servers"
+  },
+  {
+    "id": "server-memory",
+    "name": "Серверная память",
+    "parent_id": "servers"
+  },
+  {
+    "id": "server-storage",
+    "name": "Серверные диски",
+    "parent_id": "servers"
+  },
+  {
+    "id": "server-services",
+    "name": "Гарантия и сервис",
+    "parent_id": "servers"
+  },
+  {
+    "id": "workplace-hw",
+    "name": "Рабочие места",
+    "parent_id": null
+  },
+  {
+    "id": "laptops",
+    "name": "Ноутбуки",
+    "parent_id": "workplace-hw"
+  },
+  {
+    "id": "monitors",
+    "name": "Мониторы",
+    "parent_id": "workplace-hw"
+  },
+  {
+    "id": "network",
+    "name": "Сеть и питание",
+    "parent_id": null
+  },
+  {
+    "id": "switches",
+    "name": "Коммутаторы",
+    "parent_id": "network"
+  },
+  {
+    "id": "ups",
+    "name": "Источники бесперебойного питания",
+    "parent_id": "network"
   }
 ]

@@ -168,5 +168,75 @@
     "id": "safib",
     "name": "САФИБ",
     "origin": "ru"
+  },
+  {
+    "id": "dell",
+    "name": "Dell Technologies",
+    "origin": "foreign"
+  },
+  {
+    "id": "hpe",
+    "name": "Hewlett Packard Enterprise",
+    "origin": "foreign"
+  },
+  {
+    "id": "lenovo",
+    "name": "Lenovo",
+    "origin": "foreign"
+  },
+  {
+    "id": "hp",
+    "name": "HP",
+    "origin": "foreign"
+  },
+  {
+    "id": "huawei",
+    "name": "Huawei",
+    "origin": "foreign"
+  },
+  {
+    "id": "kingston",
+    "name": "Kingston",
+    "origin": "foreign"
+  },
+  {
+    "id": "samsung",
+    "name": "Samsung",
+    "origin": "foreign"
+  },
+  {
+    "id": "seagate",
+    "name": "Seagate",
+    "origin": "foreign"
+  },
+  {
+    "id": "dlink",
+    "name": "D-Link",
+    "origin": "foreign"
+  },
+  {
+    "id": "eaton",
+    "name": "Eaton",
+    "origin": "foreign"
+  },
+  {
+    "id": "ippon",
+    "name": "Ippon",
+    "origin": "foreign"
+  },
+  {
+    "id": "yadro",
+    "name": "YADRO",
+    "origin": "ru"
+  },
+  {
+    "id": "aquarius",
+    "name": "Аквариус",
+    "origin": "ru"
+  },
+  {
+    "id": "eltex",
+    "name": "Элтекс",
+    "origin": "ru"
   }
 ]

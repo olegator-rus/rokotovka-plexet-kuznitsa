@@ -7896,5 +7896,3142 @@
     "notes": "шум; «привет» в английской раскладке",
     "cluster": "noise-test",
     "terms": []
+  },
+  {
+    "id": "q-0382",
+    "text": "windows server 2025 standard на 50 пользователей",
+    "type": "p2_license",
+    "set": "p2",
+    "freq": 6,
+    "client_id": null,
+    "judgments": {
+      "ws25-std16": 3,
+      "ws25-std2": 2,
+      "ws25-dc16": 1
+    },
+    "absent": false,
+    "notes": "лицензионное правило и количество компаньона",
+    "cluster": "p2-001",
+    "terms": [],
+    "expect": {
+      "anchor_family": "windows-server-2025",
+      "quantity": 50,
+      "required": [
+        {
+          "family_id": "windows-server-cal-2025",
+          "metric": "user",
+          "quantity": 50
+        }
+      ],
+      "incompatible": [
+        "wscal-u1",
+        "wscal-d1",
+        "wscal-u5",
+        "wscal-d5",
+        "wscal-rds"
+      ]
+    }
+  },
+  {
+    "id": "q-0383",
+    "text": "windows server 2025 datacenter 16 ядер",
+    "type": "p2_license",
+    "set": "p2",
+    "freq": 4,
+    "client_id": null,
+    "judgments": {
+      "ws25-dc16": 3,
+      "ws25-std16": 1
+    },
+    "absent": false,
+    "notes": "лицензионное правило и количество компаньона",
+    "cluster": "p2-002",
+    "terms": [],
+    "expect": {
+      "anchor_family": "windows-server-2025",
+      "required": [
+        {
+          "family_id": "windows-server-cal-2025"
+        }
+      ],
+      "filters": [
+        {
+          "key": "cpu_cores",
+          "op": "eq",
+          "value": 16,
+          "unit": "ядер"
+        }
+      ]
+    }
+  },
+  {
+    "id": "q-0384",
+    "text": "лицензия windows server 2025 на 32 ядра",
+    "type": "p2_license",
+    "set": "p2",
+    "freq": 3,
+    "client_id": null,
+    "judgments": {
+      "ws25-std16": 3,
+      "ws25-dc16": 2,
+      "ws25-std2": 2
+    },
+    "absent": false,
+    "notes": "лицензионное правило и количество компаньона",
+    "cluster": "p2-003",
+    "terms": [],
+    "expect": {
+      "anchor_family": "windows-server-2025",
+      "required": [
+        {
+          "family_id": "windows-server-cal-2025"
+        }
+      ]
+    }
+  },
+  {
+    "id": "q-0385",
+    "text": "cal 2025 на 25 пользователей",
+    "type": "p2_license",
+    "set": "p2",
+    "freq": 5,
+    "client_id": null,
+    "judgments": {
+      "wscal25-u1": 3,
+      "wscal25-u5": 3,
+      "wscal25-d1": 1,
+      "wscal25-d5": 1
+    },
+    "absent": false,
+    "notes": "лицензионное правило и количество компаньона",
+    "cluster": "p2-004",
+    "terms": [],
+    "expect": {
+      "quantity": 25,
+      "incompatible": [
+        "wscal-u1",
+        "wscal-d1",
+        "wscal-u5",
+        "wscal-d5"
+      ]
+    }
+  },
+  {
+    "id": "q-0386",
+    "text": "клиентские лицензии windows server 2025 на устройство",
+    "type": "p2_license",
+    "set": "p2",
+    "freq": 3,
+    "client_id": null,
+    "judgments": {
+      "wscal25-d1": 3,
+      "wscal25-d5": 3,
+      "wscal25-u1": 1,
+      "wscal25-u5": 1
+    },
+    "absent": false,
+    "notes": "лицензионное правило и количество компаньона",
+    "cluster": "p2-005",
+    "terms": [],
+    "expect": {
+      "incompatible": [
+        "wscal-u1",
+        "wscal-d1",
+        "wscal-u5",
+        "wscal-d5"
+      ]
+    }
+  },
+  {
+    "id": "q-0387",
+    "text": "rds cal 2025",
+    "type": "p2_license",
+    "set": "p2",
+    "freq": 4,
+    "client_id": null,
+    "judgments": {
+      "rdscal25-d1": 3,
+      "rdscal25-u1": 3,
+      "wscal-rds": 1
+    },
+    "absent": false,
+    "notes": "лицензионное правило и количество компаньона",
+    "cluster": "p2-006",
+    "terms": [],
+    "expect": {}
+  },
+  {
+    "id": "q-0388",
+    "text": "удаленный рабочий стол windows server 2025 на 10 пользователей",
+    "type": "p2_license",
+    "set": "p2",
+    "freq": 3,
+    "client_id": null,
+    "judgments": {
+      "rdscal25-u1": 3,
+      "rdscal25-d1": 2,
+      "ws25-std16": 1
+    },
+    "absent": false,
+    "notes": "лицензионное правило и количество компаньона",
+    "cluster": "p2-007",
+    "terms": [],
+    "expect": {
+      "anchor_family": "windows-server-2025",
+      "quantity": 10,
+      "required": [
+        {
+          "family_id": "rds-cal-2025",
+          "metric": "user",
+          "quantity": 10
+        }
+      ],
+      "incompatible": [
+        "wscal-rds"
+      ]
+    }
+  },
+  {
+    "id": "q-0389",
+    "text": "cal для windows server 2022 на 5 устройств",
+    "type": "p2_license",
+    "set": "p2",
+    "freq": 3,
+    "client_id": null,
+    "judgments": {
+      "wscal-d1": 3,
+      "wscal-d5": 3,
+      "wscal25-d1": 2,
+      "wscal25-d5": 2,
+      "wscal-u1": 1,
+      "wscal-u5": 1
+    },
+    "absent": false,
+    "notes": "лицензионное правило и количество компаньона",
+    "cluster": "p2-008",
+    "terms": [],
+    "expect": {
+      "quantity": 5
+    }
+  },
+  {
+    "id": "q-0390",
+    "text": "windows server 2022 standard на 20 пользователей",
+    "type": "p2_license",
+    "set": "p2",
+    "freq": 4,
+    "client_id": null,
+    "judgments": {
+      "ws22-std16": 3,
+      "ws22-std2": 2,
+      "ws22-dc16": 1
+    },
+    "absent": false,
+    "notes": "лицензионное правило и количество компаньона",
+    "cluster": "p2-009",
+    "terms": [],
+    "expect": {
+      "anchor_family": "windows-server-2022",
+      "quantity": 20,
+      "required": [
+        {
+          "family_id": "windows-server-cal",
+          "metric": "user",
+          "quantity": 20
+        }
+      ]
+    }
+  },
+  {
+    "id": "q-0391",
+    "text": "sql server 2022 standard server cal на 15 пользователей",
+    "type": "p2_license",
+    "set": "p2",
+    "freq": 3,
+    "client_id": null,
+    "judgments": {
+      "sql22-stdsrv": 3,
+      "sql22-cal": 2,
+      "sql22-std2c": 1
+    },
+    "absent": false,
+    "notes": "лицензионное правило и количество компаньона",
+    "cluster": "p2-010",
+    "terms": [],
+    "expect": {
+      "anchor_family": "sql-server-2022",
+      "quantity": 15,
+      "required": [
+        {
+          "product_id": "sql22-cal",
+          "quantity": 15
+        }
+      ]
+    }
+  },
+  {
+    "id": "q-0392",
+    "text": "sql server 2022 standard по ядрам на 4 ядра",
+    "type": "p2_license",
+    "set": "p2",
+    "freq": 2,
+    "client_id": null,
+    "judgments": {
+      "sql22-std2c": 3,
+      "sql22-stdsrv": 1
+    },
+    "absent": false,
+    "notes": "лицензионное правило и количество компаньона",
+    "cluster": "p2-011",
+    "terms": [],
+    "expect": {
+      "anchor_family": "sql-server-2022",
+      "no_required": true,
+      "filters": [
+        {
+          "key": "cpu_cores",
+          "op": "eq",
+          "value": 4,
+          "unit": "ядер"
+        }
+      ]
+    }
+  },
+  {
+    "id": "q-0393",
+    "text": "sql cal 2022 на пользователя",
+    "type": "p2_license",
+    "set": "p2",
+    "freq": 2,
+    "client_id": null,
+    "judgments": {
+      "sql22-cal": 3,
+      "sql22-stdsrv": 1
+    },
+    "absent": false,
+    "notes": "лицензионное правило и количество компаньона",
+    "cluster": "p2-012",
+    "terms": [],
+    "expect": {}
+  },
+  {
+    "id": "q-0394",
+    "text": "1с сервер корп и клиентские лицензии на 20 пользователей",
+    "type": "p2_license",
+    "set": "p2",
+    "freq": 2,
+    "client_id": null,
+    "judgments": {
+      "1ccl-20": 3,
+      "1csrv-corp64": 3,
+      "1ccl-1": 2,
+      "1ccl-10": 1,
+      "1ccl-50": 1,
+      "1csrv-prof64": 1
+    },
+    "absent": false,
+    "notes": "лицензионное правило и количество компаньона",
+    "cluster": "p2-013",
+    "terms": [],
+    "expect": {
+      "anchor_family": "1c-server",
+      "quantity": 20,
+      "required": [
+        {
+          "family_id": "1c-client-license",
+          "quantity": 20
+        }
+      ]
+    }
+  },
+  {
+    "id": "q-0395",
+    "text": "сервер 1с проф 64 бит",
+    "type": "p2_license",
+    "set": "p2",
+    "freq": 3,
+    "client_id": null,
+    "judgments": {
+      "1csrv-prof64": 3,
+      "1csrv-corp64": 1,
+      "1csrv-prof32": 1
+    },
+    "absent": false,
+    "notes": "лицензионное правило и количество компаньона",
+    "cluster": "p2-014",
+    "terms": [],
+    "expect": {
+      "anchor_family": "1c-server",
+      "required": [
+        {
+          "family_id": "1c-client-license"
+        }
+      ]
+    }
+  },
+  {
+    "id": "q-0396",
+    "text": "office 2024 для дома и бизнеса 10 пк",
+    "type": "p2_license",
+    "set": "p2",
+    "freq": 3,
+    "client_id": null,
+    "judgments": {
+      "off24-hb": 3,
+      "off21-hb": 1,
+      "off24-home": 1
+    },
+    "absent": false,
+    "notes": "лицензионное правило и количество компаньона",
+    "cluster": "p2-015",
+    "terms": [],
+    "expect": {
+      "anchor_family": "office-2024",
+      "no_required": true
+    }
+  },
+  {
+    "id": "q-0397",
+    "text": "microsoft 365 business premium на 30 пользователей",
+    "type": "p2_license",
+    "set": "p2",
+    "freq": 3,
+    "client_id": null,
+    "judgments": {
+      "m365b-bp": 3,
+      "m365b-bs": 1,
+      "m365b-e3": 1
+    },
+    "absent": false,
+    "notes": "лицензионное правило и количество компаньона",
+    "cluster": "p2-016",
+    "terms": [],
+    "expect": {
+      "anchor_family": "microsoft-365-business",
+      "no_required": true,
+      "quantity": 30
+    }
+  },
+  {
+    "id": "q-0398",
+    "text": "microsoft 365 business standard годовая подписка",
+    "type": "p2_license",
+    "set": "p2",
+    "freq": 4,
+    "client_id": null,
+    "judgments": {
+      "m365b-bs": 3,
+      "m365b-bb": 1,
+      "m365b-bp": 1
+    },
+    "absent": false,
+    "notes": "лицензионное правило и количество компаньона",
+    "cluster": "p2-017",
+    "terms": [],
+    "expect": {
+      "anchor_family": "microsoft-365-business",
+      "no_required": true,
+      "upgrade": "m365b-bp"
+    }
+  },
+  {
+    "id": "q-0399",
+    "text": "windows server 2025 standard cal уже есть",
+    "type": "p2_license",
+    "set": "p2",
+    "freq": 2,
+    "client_id": null,
+    "judgments": {
+      "ws25-std16": 3,
+      "ws25-std2": 2
+    },
+    "absent": false,
+    "notes": "лицензионное правило и количество компаньона",
+    "cluster": "p2-018",
+    "terms": [],
+    "expect": {
+      "anchor_family": "windows-server-2025",
+      "existing_license": true,
+      "required": [
+        {
+          "family_id": "windows-server-cal-2025"
+        }
+      ]
+    }
+  },
+  {
+    "id": "q-0400",
+    "text": "kaspersky endpoint security стандартный 25 узлов",
+    "type": "p2_license",
+    "set": "p2",
+    "freq": 3,
+    "client_id": null,
+    "judgments": {
+      "kes-std25": 3,
+      "kes-ext10": 1,
+      "kes-std10": 1,
+      "kes-std50": 1
+    },
+    "absent": false,
+    "notes": "лицензионное правило и количество компаньона",
+    "cluster": "p2-019",
+    "terms": [],
+    "expect": {
+      "anchor_family": "kaspersky-endpoint-security",
+      "no_required": true,
+      "upgrade": "kes-ext10"
+    }
+  },
+  {
+    "id": "q-0401",
+    "text": "windows server 2025 на 50 устройств",
+    "type": "p2_license",
+    "set": "p2",
+    "freq": 3,
+    "client_id": null,
+    "judgments": {
+      "ws25-std16": 3,
+      "ws25-std2": 2,
+      "ws25-dc16": 1
+    },
+    "absent": false,
+    "notes": "лицензионное правило и количество компаньона",
+    "cluster": "p2-020",
+    "terms": [],
+    "expect": {
+      "anchor_family": "windows-server-2025",
+      "quantity": 50,
+      "required": [
+        {
+          "family_id": "windows-server-cal-2025",
+          "metric": "device",
+          "quantity": 50
+        }
+      ],
+      "incompatible": [
+        "wscal-u1",
+        "wscal-d1",
+        "wscal-u5",
+        "wscal-d5"
+      ]
+    }
+  },
+  {
+    "id": "q-0402",
+    "text": "P00924-B21",
+    "type": "p2_mpn",
+    "set": "p2",
+    "freq": 3,
+    "client_id": null,
+    "judgments": {
+      "mem-hpe-32g-d4": 3
+    },
+    "absent": false,
+    "notes": "точный парт-номер или модель, без исправления опечаток",
+    "cluster": "p2-021",
+    "terms": [],
+    "expect": {
+      "mpn": "P00924-B21"
+    }
+  },
+  {
+    "id": "q-0403",
+    "text": "p00924b21",
+    "type": "p2_mpn",
+    "set": "p2",
+    "freq": 1,
+    "client_id": null,
+    "judgments": {
+      "mem-hpe-32g-d4": 3
+    },
+    "absent": false,
+    "notes": "точный парт-номер или модель, без исправления опечаток",
+    "cluster": "p2-022",
+    "terms": [],
+    "expect": {
+      "mpn": "P00924-B21"
+    }
+  },
+  {
+    "id": "q-0404",
+    "text": "P43328-B21",
+    "type": "p2_mpn",
+    "set": "p2",
+    "freq": 2,
+    "client_id": null,
+    "judgments": {
+      "mem-hpe-32g-d5": 3
+    },
+    "absent": false,
+    "notes": "точный парт-номер или модель, без исправления опечаток",
+    "cluster": "p2-023",
+    "terms": [],
+    "expect": {
+      "mpn": "P43328-B21"
+    }
+  },
+  {
+    "id": "q-0405",
+    "text": "370-AEVQ",
+    "type": "p2_mpn",
+    "set": "p2",
+    "freq": 2,
+    "client_id": null,
+    "judgments": {
+      "mem-dell-32g-d4": 3
+    },
+    "absent": false,
+    "notes": "точный парт-номер или модель, без исправления опечаток",
+    "cluster": "p2-024",
+    "terms": [],
+    "expect": {
+      "mpn": "370-AEVQ"
+    }
+  },
+  {
+    "id": "q-0406",
+    "text": "370aevq",
+    "type": "p2_mpn",
+    "set": "p2",
+    "freq": 1,
+    "client_id": null,
+    "judgments": {
+      "mem-dell-32g-d4": 3
+    },
+    "absent": false,
+    "notes": "точный парт-номер или модель, без исправления опечаток",
+    "cluster": "p2-025",
+    "terms": [],
+    "expect": {
+      "mpn": "370-AEVQ"
+    }
+  },
+  {
+    "id": "q-0407",
+    "text": "KSM32RD4/32HDR",
+    "type": "p2_mpn",
+    "set": "p2",
+    "freq": 2,
+    "client_id": null,
+    "judgments": {
+      "mem-kingston-32g-d4": 3
+    },
+    "absent": false,
+    "notes": "точный парт-номер или модель, без исправления опечаток",
+    "cluster": "p2-026",
+    "terms": [],
+    "expect": {
+      "mpn": "KSM32RD4/32HDR"
+    }
+  },
+  {
+    "id": "q-0408",
+    "text": "ksm32rd4 32hdr",
+    "type": "p2_mpn",
+    "set": "p2",
+    "freq": 1,
+    "client_id": null,
+    "judgments": {
+      "mem-kingston-32g-d4": 3
+    },
+    "absent": false,
+    "notes": "точный парт-номер или модель, без исправления опечаток",
+    "cluster": "p2-027",
+    "terms": [],
+    "expect": {
+      "mpn": "KSM32RD4/32HDR"
+    }
+  },
+  {
+    "id": "q-0409",
+    "text": "MZ7L3960HCJR-00A07",
+    "type": "p2_mpn",
+    "set": "p2",
+    "freq": 1,
+    "client_id": null,
+    "judgments": {
+      "ssd-samsung-pm893-960": 3
+    },
+    "absent": false,
+    "notes": "точный парт-номер или модель, без исправления опечаток",
+    "cluster": "p2-028",
+    "terms": [],
+    "expect": {
+      "mpn": "MZ7L3960HCJR-00A07"
+    }
+  },
+  {
+    "id": "q-0410",
+    "text": "ST8000NM000A",
+    "type": "p2_mpn",
+    "set": "p2",
+    "freq": 2,
+    "client_id": null,
+    "judgments": {
+      "hdd-seagate-exos-8tb": 3
+    },
+    "absent": false,
+    "notes": "точный парт-номер или модель, без исправления опечаток",
+    "cluster": "p2-029",
+    "terms": [],
+    "expect": {
+      "mpn": "ST8000NM000A"
+    }
+  },
+  {
+    "id": "q-0411",
+    "text": "881457-B21",
+    "type": "p2_mpn",
+    "set": "p2",
+    "freq": 2,
+    "client_id": null,
+    "judgments": {
+      "hdd-hpe-2400-sas": 3
+    },
+    "absent": false,
+    "notes": "точный парт-номер или модель, без исправления опечаток",
+    "cluster": "p2-030",
+    "terms": [],
+    "expect": {
+      "mpn": "881457-B21"
+    }
+  },
+  {
+    "id": "q-0412",
+    "text": "JL253A",
+    "type": "p2_mpn",
+    "set": "p2",
+    "freq": 1,
+    "client_id": null,
+    "judgments": {
+      "sw-aruba-2930f-24": 3
+    },
+    "absent": false,
+    "notes": "точный парт-номер или модель, без исправления опечаток",
+    "cluster": "p2-031",
+    "terms": [],
+    "expect": {
+      "mpn": "JL253A"
+    }
+  },
+  {
+    "id": "q-0413",
+    "text": "MES2324B",
+    "type": "p2_mpn",
+    "set": "p2",
+    "freq": 3,
+    "client_id": null,
+    "judgments": {
+      "sw-eltex-mes2324b": 3,
+      "sw-eltex-mes2324p": 1
+    },
+    "absent": false,
+    "notes": "точный парт-номер или модель, без исправления опечаток",
+    "cluster": "p2-032",
+    "terms": [],
+    "expect": {
+      "mpn": "MES2324B"
+    }
+  },
+  {
+    "id": "q-0414",
+    "text": "S5735-L24T4S-A1",
+    "type": "p2_mpn",
+    "set": "p2",
+    "freq": 1,
+    "client_id": null,
+    "judgments": {
+      "sw-huawei-s5735-24": 3
+    },
+    "absent": false,
+    "notes": "точный парт-номер или модель, без исправления опечаток",
+    "cluster": "p2-033",
+    "terms": [],
+    "expect": {
+      "mpn": "S5735-L24T4S-A1"
+    }
+  },
+  {
+    "id": "q-0415",
+    "text": "dell poweredge r740",
+    "type": "p2_mpn",
+    "set": "p2",
+    "freq": 5,
+    "client_id": null,
+    "judgments": {
+      "srv-r740-g6230": 3,
+      "srv-r740-s4210": 3,
+      "srv-r750-g6338": 1,
+      "srv-r750-s4314": 1
+    },
+    "absent": false,
+    "notes": "точный парт-номер или модель, без исправления опечаток",
+    "cluster": "p2-034",
+    "terms": [],
+    "expect": {
+      "model_id": "dell-poweredge-r740"
+    }
+  },
+  {
+    "id": "q-0416",
+    "text": "r750",
+    "type": "p2_mpn",
+    "set": "p2",
+    "freq": 3,
+    "client_id": null,
+    "judgments": {
+      "srv-r750-g6338": 3,
+      "srv-r750-s4314": 3
+    },
+    "absent": false,
+    "notes": "точный парт-номер или модель, без исправления опечаток",
+    "cluster": "p2-035",
+    "terms": [],
+    "expect": {
+      "model_id": "dell-poweredge-r750"
+    }
+  },
+  {
+    "id": "q-0417",
+    "text": "hpe dl380 gen11",
+    "type": "p2_mpn",
+    "set": "p2",
+    "freq": 4,
+    "client_id": null,
+    "judgments": {
+      "srv-dl380g11-4410y": 3,
+      "srv-dl380g11-5418y": 3,
+      "srv-dl380g10-4210": 1,
+      "srv-dl380g10-5218": 1
+    },
+    "absent": false,
+    "notes": "точный парт-номер или модель, без исправления опечаток",
+    "cluster": "p2-036",
+    "terms": [],
+    "expect": {
+      "model_id": "hpe-proliant-dl380-gen11"
+    }
+  },
+  {
+    "id": "q-0418",
+    "text": "thinkpad t14 gen 4",
+    "type": "p2_mpn",
+    "set": "p2",
+    "freq": 3,
+    "client_id": null,
+    "judgments": {
+      "nb-t14g4-i5-16-512": 3,
+      "nb-t14g4-i7-32-1t": 3,
+      "nb-e14g5-i5-16-512": 1,
+      "nb-e14g5-i7-16-1t": 1
+    },
+    "absent": false,
+    "notes": "точный парт-номер или модель, без исправления опечаток",
+    "cluster": "p2-037",
+    "terms": [],
+    "expect": {
+      "model_id": "lenovo-thinkpad-t14-gen4"
+    }
+  },
+  {
+    "id": "q-0419",
+    "text": "P2425H",
+    "type": "p2_mpn",
+    "set": "p2",
+    "freq": 2,
+    "client_id": null,
+    "judgments": {
+      "mon-dell-p2425h": 3
+    },
+    "absent": false,
+    "notes": "точный парт-номер или модель, без исправления опечаток",
+    "cluster": "p2-038",
+    "terms": [],
+    "expect": {
+      "mpn": "P2425H"
+    }
+  },
+  {
+    "id": "q-0420",
+    "text": "Р00924-В21",
+    "type": "p2_mpn",
+    "set": "p2",
+    "freq": 1,
+    "client_id": null,
+    "judgments": {
+      "mem-hpe-32g-d4": 3
+    },
+    "absent": false,
+    "notes": "точный парт-номер или модель, без исправления опечаток; кириллические Р и В вместо латинских",
+    "cluster": "p2-039",
+    "terms": [],
+    "expect": {
+      "mpn": "P00924-B21"
+    }
+  },
+  {
+    "id": "q-0421",
+    "text": "P0092",
+    "type": "p2_mpn",
+    "set": "p2",
+    "freq": 1,
+    "client_id": null,
+    "judgments": {
+      "mem-hpe-16g-d4": 3,
+      "mem-hpe-32g-d4": 3,
+      "mem-hpe-64g-d4": 3
+    },
+    "absent": false,
+    "notes": "точный парт-номер или модель, без исправления опечаток",
+    "cluster": "p2-040",
+    "terms": [],
+    "expect": {
+      "mpn_prefix": "P0092"
+    }
+  },
+  {
+    "id": "q-0422",
+    "text": "ноутбук 16 гб 512 гб",
+    "type": "p2_specs",
+    "set": "p2",
+    "freq": 5,
+    "client_id": null,
+    "judgments": {
+      "nb-e14g5-i5-16-512": 3,
+      "nb-lat5540-i5-16-512": 3,
+      "nb-mbd16-i5-16-512": 3,
+      "nb-ns685-i5-16-512": 3,
+      "nb-pb450g10-i5-16-512": 3,
+      "nb-t14g4-i5-16-512": 3
+    },
+    "absent": false,
+    "notes": "число с единицей → фильтр",
+    "cluster": "p2-041",
+    "terms": [],
+    "expect": {
+      "filters": [
+        {
+          "key": "ram_gb",
+          "op": "eq",
+          "value": 16,
+          "unit": "ГБ"
+        },
+        {
+          "key": "storage_gb",
+          "op": "eq",
+          "value": 512,
+          "unit": "ГБ"
+        }
+      ]
+    }
+  },
+  {
+    "id": "q-0423",
+    "text": "ноутбук 15,6 дюйма до 100000 рублей",
+    "type": "p2_specs",
+    "set": "p2",
+    "freq": 4,
+    "client_id": null,
+    "judgments": {
+      "nb-ns685-i5-16-512": 3,
+      "nb-ns685-i5-8-256": 3,
+      "nb-pb450g10-i5-16-512": 3,
+      "nb-pb450g10-i5-8-256": 3,
+      "nb-lat5540-i5-16-512": 1,
+      "nb-lat5540-i7-32-1t": 1
+    },
+    "absent": false,
+    "notes": "число с единицей → фильтр",
+    "cluster": "p2-042",
+    "terms": [],
+    "expect": {
+      "filters": [
+        {
+          "key": "screen_inch",
+          "op": "eq",
+          "value": 15.6,
+          "unit": "″"
+        },
+        {
+          "key": "price_rub",
+          "op": "lte",
+          "value": 100000,
+          "unit": "₽"
+        }
+      ]
+    }
+  },
+  {
+    "id": "q-0424",
+    "text": "20 ноутбуков с 16 гб оперативной памяти",
+    "type": "p2_specs",
+    "set": "p2",
+    "freq": 3,
+    "client_id": null,
+    "judgments": {
+      "nb-e14g5-i5-16-512": 3,
+      "nb-e14g5-i7-16-1t": 3,
+      "nb-lat5540-i5-16-512": 3,
+      "nb-mbd16-i5-16-512": 3,
+      "nb-ns685-i5-16-512": 3,
+      "nb-pb450g10-i5-16-512": 3,
+      "nb-t14g4-i5-16-512": 3
+    },
+    "absent": false,
+    "notes": "число с единицей → фильтр",
+    "cluster": "p2-043",
+    "terms": [],
+    "expect": {
+      "quantity": 20,
+      "filters": [
+        {
+          "key": "ram_gb",
+          "op": "eq",
+          "value": 16,
+          "unit": "ГБ"
+        }
+      ]
+    }
+  },
+  {
+    "id": "q-0425",
+    "text": "ноутбук от 32 гб озу",
+    "type": "p2_specs",
+    "set": "p2",
+    "freq": 3,
+    "client_id": null,
+    "judgments": {
+      "nb-lat5540-i7-32-1t": 3,
+      "nb-t14g4-i7-32-1t": 3
+    },
+    "absent": false,
+    "notes": "число с единицей → фильтр",
+    "cluster": "p2-044",
+    "terms": [],
+    "expect": {
+      "filters": [
+        {
+          "key": "ram_gb",
+          "op": "gte",
+          "value": 32,
+          "unit": "ГБ"
+        }
+      ]
+    }
+  },
+  {
+    "id": "q-0426",
+    "text": "ноутбук 14 дюймов 1 тб",
+    "type": "p2_specs",
+    "set": "p2",
+    "freq": 2,
+    "client_id": null,
+    "judgments": {
+      "nb-e14g5-i7-16-1t": 3,
+      "nb-t14g4-i7-32-1t": 3,
+      "nb-e14g5-i5-16-512": 1,
+      "nb-t14g4-i5-16-512": 1
+    },
+    "absent": false,
+    "notes": "число с единицей → фильтр",
+    "cluster": "p2-045",
+    "terms": [],
+    "expect": {
+      "filters": [
+        {
+          "key": "screen_inch",
+          "op": "eq",
+          "value": 14,
+          "unit": "″"
+        },
+        {
+          "key": "storage_gb",
+          "op": "eq",
+          "value": 1000,
+          "unit": "ГБ"
+        }
+      ]
+    }
+  },
+  {
+    "id": "q-0427",
+    "text": "ноутбук без операционной системы",
+    "type": "p2_specs",
+    "set": "p2",
+    "freq": 4,
+    "client_id": null,
+    "judgments": {
+      "nb-e14g5-i5-16-512": 3,
+      "nb-lat5540-i7-32-1t": 3,
+      "nb-ns685-i5-16-512": 3,
+      "nb-ns685-i5-8-256": 3,
+      "nb-pb450g10-i5-8-256": 3
+    },
+    "absent": false,
+    "notes": "число с единицей → фильтр",
+    "cluster": "p2-046",
+    "terms": [],
+    "expect": {
+      "filters": [
+        {
+          "key": "os",
+          "op": "eq",
+          "value": "без ОС"
+        }
+      ]
+    }
+  },
+  {
+    "id": "q-0428",
+    "text": "монитор 27 дюймов",
+    "type": "p2_specs",
+    "set": "p2",
+    "freq": 5,
+    "client_id": null,
+    "judgments": {
+      "mon-dell-p2725h": 3,
+      "mon-dell-u2724d": 3,
+      "mon-lenovo-l27i": 3,
+      "mon-samsung-g5-27": 3
+    },
+    "absent": false,
+    "notes": "число с единицей → фильтр",
+    "cluster": "p2-047",
+    "terms": [],
+    "expect": {
+      "filters": [
+        {
+          "key": "screen_inch",
+          "op": "eq",
+          "value": 27,
+          "unit": "″"
+        }
+      ]
+    }
+  },
+  {
+    "id": "q-0429",
+    "text": "монитор 24-27 дюймов",
+    "type": "p2_specs",
+    "set": "p2",
+    "freq": 3,
+    "client_id": null,
+    "judgments": {
+      "mon-dell-p2725h": 3,
+      "mon-dell-u2724d": 3,
+      "mon-lenovo-l27i": 3,
+      "mon-samsung-g5-27": 3,
+      "mon-dell-p2425h": 1,
+      "mon-hp-e24g5": 1,
+      "mon-huawei-se24": 1
+    },
+    "absent": false,
+    "notes": "число с единицей → фильтр",
+    "cluster": "p2-048",
+    "terms": [],
+    "expect": {
+      "filters": [
+        {
+          "key": "screen_inch",
+          "op": "range",
+          "value": 24,
+          "value2": 27,
+          "unit": "″"
+        }
+      ]
+    }
+  },
+  {
+    "id": "q-0430",
+    "text": "монитор 144 гц",
+    "type": "p2_specs",
+    "set": "p2",
+    "freq": 3,
+    "client_id": null,
+    "judgments": {
+      "mon-samsung-g5-27": 3
+    },
+    "absent": false,
+    "notes": "число с единицей → фильтр",
+    "cluster": "p2-049",
+    "terms": [],
+    "expect": {
+      "filters": [
+        {
+          "key": "refresh_hz",
+          "op": "gte",
+          "value": 144,
+          "unit": "Гц"
+        }
+      ]
+    }
+  },
+  {
+    "id": "q-0431",
+    "text": "монитор 27\" не менее 100 гц",
+    "type": "p2_specs",
+    "set": "p2",
+    "freq": 2,
+    "client_id": null,
+    "judgments": {
+      "mon-dell-p2725h": 3,
+      "mon-dell-u2724d": 3,
+      "mon-lenovo-l27i": 3,
+      "mon-samsung-g5-27": 3
+    },
+    "absent": false,
+    "notes": "число с единицей → фильтр",
+    "cluster": "p2-050",
+    "terms": [],
+    "expect": {
+      "filters": [
+        {
+          "key": "screen_inch",
+          "op": "eq",
+          "value": 27,
+          "unit": "″"
+        },
+        {
+          "key": "refresh_hz",
+          "op": "gte",
+          "value": 100,
+          "unit": "Гц"
+        }
+      ]
+    }
+  },
+  {
+    "id": "q-0432",
+    "text": "коммутатор 48 портов",
+    "type": "p2_specs",
+    "set": "p2",
+    "freq": 4,
+    "client_id": null,
+    "judgments": {
+      "sw-aruba-cx6100-48p": 3,
+      "sw-eltex-mes2348b": 3,
+      "sw-huawei-s5735-48p": 3
+    },
+    "absent": false,
+    "notes": "число с единицей → фильтр",
+    "cluster": "p2-051",
+    "terms": [],
+    "expect": {
+      "filters": [
+        {
+          "key": "ports_count",
+          "op": "eq",
+          "value": 48,
+          "unit": "портов"
+        }
+      ]
+    }
+  },
+  {
+    "id": "q-0433",
+    "text": "коммутатор 24 порта poe",
+    "type": "p2_specs",
+    "set": "p2",
+    "freq": 3,
+    "client_id": null,
+    "judgments": {
+      "sw-eltex-mes2324p": 3,
+      "sw-aruba-cx6100-48p": 1,
+      "sw-huawei-s5735-48p": 1
+    },
+    "absent": false,
+    "notes": "число с единицей → фильтр",
+    "cluster": "p2-052",
+    "terms": [],
+    "expect": {
+      "filters": [
+        {
+          "key": "ports_count",
+          "op": "eq",
+          "value": 24,
+          "unit": "портов"
+        },
+        {
+          "key": "poe",
+          "op": "eq",
+          "value": true
+        }
+      ]
+    }
+  },
+  {
+    "id": "q-0434",
+    "text": "коммутатор 24 порта аплинк 10 гбит/с",
+    "type": "p2_specs",
+    "set": "p2",
+    "freq": 2,
+    "client_id": null,
+    "judgments": {
+      "sw-aruba-2930f-24": 3,
+      "sw-eltex-mes2324b": 3,
+      "sw-eltex-mes2324p": 3,
+      "sw-huawei-s5735-24": 3,
+      "sw-dlink-dgs1210-28": 1
+    },
+    "absent": false,
+    "notes": "число с единицей → фильтр",
+    "cluster": "p2-053",
+    "terms": [],
+    "expect": {
+      "filters": [
+        {
+          "key": "ports_count",
+          "op": "eq",
+          "value": 24,
+          "unit": "портов"
+        },
+        {
+          "key": "net_gbps",
+          "op": "eq",
+          "value": 10,
+          "unit": "Гбит/с"
+        }
+      ]
+    }
+  },
+  {
+    "id": "q-0435",
+    "text": "серверная память 32 гб ddr4",
+    "type": "p2_specs",
+    "set": "p2",
+    "freq": 4,
+    "client_id": null,
+    "judgments": {
+      "mem-dell-32g-d4": 3,
+      "mem-dell-32g-d4-2933": 3,
+      "mem-hpe-32g-d4": 3,
+      "mem-kingston-32g-d4": 3,
+      "mem-yadro-32g-d4": 3,
+      "mem-hpe-32g-d5": 1,
+      "mem-kingston-32g-d5": 1
+    },
+    "absent": false,
+    "notes": "число с единицей → фильтр",
+    "cluster": "p2-054",
+    "terms": [],
+    "expect": {
+      "filters": [
+        {
+          "key": "ram_gb",
+          "op": "eq",
+          "value": 32,
+          "unit": "ГБ"
+        },
+        {
+          "key": "memory_type",
+          "op": "eq",
+          "value": "DDR4"
+        }
+      ]
+    }
+  },
+  {
+    "id": "q-0436",
+    "text": "память 64 гб ddr5",
+    "type": "p2_specs",
+    "set": "p2",
+    "freq": 2,
+    "client_id": null,
+    "judgments": {
+      "mem-hpe-64g-d5": 3,
+      "mem-dell-64g-d4": 1,
+      "mem-hpe-64g-d4": 1,
+      "mem-samsung-64g-d4": 1
+    },
+    "absent": false,
+    "notes": "число с единицей → фильтр",
+    "cluster": "p2-055",
+    "terms": [],
+    "expect": {
+      "filters": [
+        {
+          "key": "ram_gb",
+          "op": "eq",
+          "value": 64,
+          "unit": "ГБ"
+        },
+        {
+          "key": "memory_type",
+          "op": "eq",
+          "value": "DDR5"
+        }
+      ]
+    }
+  },
+  {
+    "id": "q-0437",
+    "text": "ssd 960 гб sata",
+    "type": "p2_specs",
+    "set": "p2",
+    "freq": 4,
+    "client_id": null,
+    "judgments": {
+      "ssd-dell-960-sata": 3,
+      "ssd-hpe-960-sata": 3,
+      "ssd-samsung-pm893-960": 3,
+      "ssd-yadro-960": 3,
+      "ssd-dell-960-sas": 1,
+      "ssd-hpe-960-sas": 1
+    },
+    "absent": false,
+    "notes": "число с единицей → фильтр",
+    "cluster": "p2-056",
+    "terms": [],
+    "expect": {
+      "filters": [
+        {
+          "key": "storage_gb",
+          "op": "eq",
+          "value": 960,
+          "unit": "ГБ"
+        },
+        {
+          "key": "drive_type",
+          "op": "eq",
+          "value": "SSD"
+        },
+        {
+          "key": "interface",
+          "op": "eq",
+          "value": "SATA"
+        }
+      ]
+    }
+  },
+  {
+    "id": "q-0438",
+    "text": "жесткий диск 8 тб",
+    "type": "p2_specs",
+    "set": "p2",
+    "freq": 3,
+    "client_id": null,
+    "judgments": {
+      "hdd-dell-8000-sas": 3,
+      "hdd-seagate-exos-8tb": 3
+    },
+    "absent": false,
+    "notes": "число с единицей → фильтр",
+    "cluster": "p2-057",
+    "terms": [],
+    "expect": {
+      "filters": [
+        {
+          "key": "storage_gb",
+          "op": "eq",
+          "value": 8000,
+          "unit": "ГБ"
+        },
+        {
+          "key": "drive_type",
+          "op": "eq",
+          "value": "HDD"
+        }
+      ]
+    }
+  },
+  {
+    "id": "q-0439",
+    "text": "ssd от 1,92 тб",
+    "type": "p2_specs",
+    "set": "p2",
+    "freq": 2,
+    "client_id": null,
+    "judgments": {
+      "ssd-dell-1920-sata": 3,
+      "ssd-hpe-1920-sata": 3,
+      "ssd-hpe-3840-nvme": 3
+    },
+    "absent": false,
+    "notes": "число с единицей → фильтр",
+    "cluster": "p2-058",
+    "terms": [],
+    "expect": {
+      "filters": [
+        {
+          "key": "storage_gb",
+          "op": "gte",
+          "value": 1920,
+          "unit": "ГБ"
+        },
+        {
+          "key": "drive_type",
+          "op": "eq",
+          "value": "SSD"
+        }
+      ]
+    }
+  },
+  {
+    "id": "q-0440",
+    "text": "ибп от 2 квт",
+    "type": "p2_specs",
+    "set": "p2",
+    "freq": 2,
+    "client_id": null,
+    "judgments": {
+      "ups-eaton-9sx-3000": 3,
+      "ups-ippon-rt-3000": 3,
+      "ups-ippon-rt-6000": 3
+    },
+    "absent": false,
+    "notes": "число с единицей → фильтр",
+    "cluster": "p2-059",
+    "terms": [],
+    "expect": {
+      "filters": [
+        {
+          "key": "power_w",
+          "op": "gte",
+          "value": 2000,
+          "unit": "Вт"
+        }
+      ]
+    }
+  },
+  {
+    "id": "q-0441",
+    "text": "сервер 2u от 128 гб памяти",
+    "type": "p2_specs",
+    "set": "p2",
+    "freq": 3,
+    "client_id": null,
+    "judgments": {
+      "srv-dl380g10-5218": 3,
+      "srv-dl380g11-5418y": 3,
+      "srv-r740-g6230": 3,
+      "srv-r750-g6338": 3,
+      "srv-r750-s4314": 3,
+      "srv-vegman-r220-base": 3,
+      "srv-vegman-r220-max": 3,
+      "srv-dl380g10-4210": 1,
+      "srv-dl380g11-4410y": 1,
+      "srv-r740-s4210": 1
+    },
+    "absent": false,
+    "notes": "число с единицей → фильтр",
+    "cluster": "p2-060",
+    "terms": [],
+    "expect": {
+      "filters": [
+        {
+          "key": "form_factor_u",
+          "op": "eq",
+          "value": 2,
+          "unit": "U"
+        },
+        {
+          "key": "ram_gb",
+          "op": "gte",
+          "value": 128,
+          "unit": "ГБ"
+        }
+      ]
+    }
+  },
+  {
+    "id": "q-0442",
+    "text": "память для dell r740",
+    "type": "p2_compat",
+    "set": "p2",
+    "freq": 6,
+    "client_id": null,
+    "judgments": {
+      "mem-dell-32g-d4-2933": 3,
+      "mem-dell-16g-d4": 2,
+      "mem-dell-32g-d4": 2,
+      "mem-dell-64g-d4": 2,
+      "mem-kingston-32g-d4": 2
+    },
+    "absent": false,
+    "notes": "совместимость с целевой моделью: verified 3, conditional 2, unknown/incompatible 0",
+    "cluster": "p2-061",
+    "terms": [],
+    "expect": {
+      "compat_target": "dell-poweredge-r740"
+    }
+  },
+  {
+    "id": "q-0443",
+    "text": "память 32 гб для dell poweredge r750",
+    "type": "p2_compat",
+    "set": "p2",
+    "freq": 4,
+    "client_id": null,
+    "judgments": {
+      "mem-dell-32g-d4": 3,
+      "mem-kingston-32g-d4": 2
+    },
+    "absent": false,
+    "notes": "совместимость с целевой моделью: verified 3, conditional 2, unknown/incompatible 0",
+    "cluster": "p2-062",
+    "terms": [],
+    "expect": {
+      "compat_target": "dell-poweredge-r750",
+      "filters": [
+        {
+          "key": "ram_gb",
+          "op": "eq",
+          "value": 32,
+          "unit": "ГБ"
+        }
+      ]
+    }
+  },
+  {
+    "id": "q-0444",
+    "text": "оперативная память для hpe dl380 gen10",
+    "type": "p2_compat",
+    "set": "p2",
+    "freq": 4,
+    "client_id": null,
+    "judgments": {
+      "mem-hpe-16g-d4": 3,
+      "mem-hpe-32g-d4": 3,
+      "mem-hpe-64g-d4": 3
+    },
+    "absent": false,
+    "notes": "совместимость с целевой моделью: verified 3, conditional 2, unknown/incompatible 0",
+    "cluster": "p2-063",
+    "terms": [],
+    "expect": {
+      "compat_target": "hpe-proliant-dl380-gen10"
+    }
+  },
+  {
+    "id": "q-0445",
+    "text": "память ddr5 для proliant dl380 gen11",
+    "type": "p2_compat",
+    "set": "p2",
+    "freq": 3,
+    "client_id": null,
+    "judgments": {
+      "mem-hpe-16g-d5": 3,
+      "mem-hpe-32g-d5": 3,
+      "mem-hpe-64g-d5": 3,
+      "mem-kingston-32g-d5": 2
+    },
+    "absent": false,
+    "notes": "совместимость с целевой моделью: verified 3, conditional 2, unknown/incompatible 0",
+    "cluster": "p2-064",
+    "terms": [],
+    "expect": {
+      "compat_target": "hpe-proliant-dl380-gen11",
+      "filters": [
+        {
+          "key": "memory_type",
+          "op": "eq",
+          "value": "DDR5"
+        }
+      ]
+    }
+  },
+  {
+    "id": "q-0446",
+    "text": "ssd для r740",
+    "type": "p2_compat",
+    "set": "p2",
+    "freq": 4,
+    "client_id": null,
+    "judgments": {
+      "ssd-dell-1920-sata": 3,
+      "ssd-dell-960-sas": 3,
+      "ssd-dell-960-sata": 3
+    },
+    "absent": false,
+    "notes": "совместимость с целевой моделью: verified 3, conditional 2, unknown/incompatible 0",
+    "cluster": "p2-065",
+    "terms": [],
+    "expect": {
+      "compat_target": "dell-poweredge-r740",
+      "filters": [
+        {
+          "key": "drive_type",
+          "op": "eq",
+          "value": "SSD"
+        }
+      ]
+    }
+  },
+  {
+    "id": "q-0447",
+    "text": "диски для hpe dl380 gen11",
+    "type": "p2_compat",
+    "set": "p2",
+    "freq": 3,
+    "client_id": null,
+    "judgments": {
+      "hdd-hpe-2400-sas": 3,
+      "ssd-hpe-1920-sata": 3,
+      "ssd-hpe-960-sas": 3,
+      "ssd-hpe-960-sata": 3,
+      "ssd-hpe-3840-nvme": 2
+    },
+    "absent": false,
+    "notes": "совместимость с целевой моделью: verified 3, conditional 2, unknown/incompatible 0",
+    "cluster": "p2-066",
+    "terms": [],
+    "expect": {
+      "compat_target": "hpe-proliant-dl380-gen11"
+    }
+  },
+  {
+    "id": "q-0448",
+    "text": "жесткий диск sas для dell r750",
+    "type": "p2_compat",
+    "set": "p2",
+    "freq": 2,
+    "client_id": null,
+    "judgments": {
+      "hdd-dell-2400-sas": 2,
+      "hdd-dell-8000-sas": 2
+    },
+    "absent": false,
+    "notes": "совместимость с целевой моделью: verified 3, conditional 2, unknown/incompatible 0",
+    "cluster": "p2-067",
+    "terms": [],
+    "expect": {
+      "compat_target": "dell-poweredge-r750",
+      "filters": [
+        {
+          "key": "drive_type",
+          "op": "eq",
+          "value": "HDD"
+        },
+        {
+          "key": "interface",
+          "op": "eq",
+          "value": "SAS"
+        }
+      ]
+    }
+  },
+  {
+    "id": "q-0449",
+    "text": "память для yadro vegman r220",
+    "type": "p2_compat",
+    "set": "p2",
+    "freq": 2,
+    "client_id": null,
+    "judgments": {
+      "mem-yadro-32g-d4": 3
+    },
+    "absent": false,
+    "notes": "совместимость с целевой моделью: verified 3, conditional 2, unknown/incompatible 0",
+    "cluster": "p2-068",
+    "terms": [],
+    "expect": {
+      "compat_target": "yadro-vegman-r220-g2"
+    }
+  },
+  {
+    "id": "q-0450",
+    "text": "гарантия для poweredge r740",
+    "type": "p2_compat",
+    "set": "p2",
+    "freq": 3,
+    "client_id": null,
+    "judgments": {
+      "svc-dell-ps-r740-3y": 3
+    },
+    "absent": false,
+    "notes": "совместимость с целевой моделью: verified 3, conditional 2, unknown/incompatible 0",
+    "cluster": "p2-069",
+    "terms": [],
+    "expect": {
+      "compat_target": "dell-poweredge-r740"
+    }
+  },
+  {
+    "id": "q-0451",
+    "text": "продление гарантии hpe dl380 gen10",
+    "type": "p2_compat",
+    "set": "p2",
+    "freq": 2,
+    "client_id": null,
+    "judgments": {
+      "svc-hpe-tc-g10-3y": 3
+    },
+    "absent": false,
+    "notes": "совместимость с целевой моделью: verified 3, conditional 2, unknown/incompatible 0",
+    "cluster": "p2-070",
+    "terms": [],
+    "expect": {
+      "compat_target": "hpe-proliant-dl380-gen10"
+    }
+  },
+  {
+    "id": "q-0452",
+    "text": "ddr5 для dell r740",
+    "type": "p2_compat",
+    "set": "p2",
+    "freq": 2,
+    "client_id": null,
+    "judgments": {},
+    "absent": false,
+    "notes": "совместимость с целевой моделью: verified 3, conditional 2, unknown/incompatible 0",
+    "cluster": "p2-071",
+    "terms": [],
+    "expect": {
+      "compat_target": "dell-poweredge-r740",
+      "filters": [
+        {
+          "key": "memory_type",
+          "op": "eq",
+          "value": "DDR5"
+        }
+      ]
+    }
+  },
+  {
+    "id": "q-0453",
+    "text": "64 гб для r750",
+    "type": "p2_compat",
+    "set": "p2",
+    "freq": 2,
+    "client_id": null,
+    "judgments": {
+      "mem-dell-64g-d4": 3
+    },
+    "absent": false,
+    "notes": "совместимость с целевой моделью: verified 3, conditional 2, unknown/incompatible 0",
+    "cluster": "p2-072",
+    "terms": [],
+    "expect": {
+      "compat_target": "dell-poweredge-r750",
+      "filters": [
+        {
+          "key": "ram_gb",
+          "op": "eq",
+          "value": 64,
+          "unit": "ГБ"
+        }
+      ]
+    }
+  },
+  {
+    "id": "q-0454",
+    "text": "kingston для dell r750",
+    "type": "p2_compat",
+    "set": "p2",
+    "freq": 2,
+    "client_id": null,
+    "judgments": {
+      "mem-kingston-32g-d4": 2
+    },
+    "absent": false,
+    "notes": "совместимость с целевой моделью: verified 3, conditional 2, unknown/incompatible 0",
+    "cluster": "p2-073",
+    "terms": [],
+    "expect": {
+      "compat_target": "dell-poweredge-r750"
+    }
+  },
+  {
+    "id": "q-0455",
+    "text": "ssd 960 для hpe gen10",
+    "type": "p2_compat",
+    "set": "p2",
+    "freq": 2,
+    "client_id": null,
+    "judgments": {
+      "ssd-hpe-960-sata": 3,
+      "ssd-hpe-960-sas": 2
+    },
+    "absent": false,
+    "notes": "совместимость с целевой моделью: verified 3, conditional 2, unknown/incompatible 0",
+    "cluster": "p2-074",
+    "terms": [],
+    "expect": {
+      "compat_target": "hpe-proliant-dl380-gen10",
+      "filters": [
+        {
+          "key": "storage_gb",
+          "op": "eq",
+          "value": 960,
+          "unit": "ГБ"
+        }
+      ]
+    }
+  },
+  {
+    "id": "q-0456",
+    "text": "nvme для dl380 gen11",
+    "type": "p2_compat",
+    "set": "p2",
+    "freq": 2,
+    "client_id": null,
+    "judgments": {
+      "ssd-hpe-3840-nvme": 2
+    },
+    "absent": false,
+    "notes": "совместимость с целевой моделью: verified 3, conditional 2, unknown/incompatible 0",
+    "cluster": "p2-075",
+    "terms": [],
+    "expect": {
+      "compat_target": "hpe-proliant-dl380-gen11",
+      "filters": [
+        {
+          "key": "interface",
+          "op": "eq",
+          "value": "NVMe"
+        }
+      ]
+    }
+  },
+  {
+    "id": "q-0457",
+    "text": "диск 3,5 8 тб для dl380 gen11",
+    "type": "p2_compat",
+    "set": "p2",
+    "freq": 1,
+    "client_id": null,
+    "judgments": {},
+    "absent": false,
+    "notes": "совместимость с целевой моделью: verified 3, conditional 2, unknown/incompatible 0",
+    "cluster": "p2-076",
+    "terms": [],
+    "expect": {
+      "compat_target": "hpe-proliant-dl380-gen11",
+      "filters": [
+        {
+          "key": "storage_gb",
+          "op": "eq",
+          "value": 8000,
+          "unit": "ГБ"
+        }
+      ]
+    }
+  },
+  {
+    "id": "q-0458",
+    "text": "память 16 гб для poweredge r740",
+    "type": "p2_compat",
+    "set": "p2",
+    "freq": 2,
+    "client_id": null,
+    "judgments": {
+      "mem-dell-16g-d4": 2
+    },
+    "absent": false,
+    "notes": "совместимость с целевой моделью: verified 3, conditional 2, unknown/incompatible 0",
+    "cluster": "p2-077",
+    "terms": [],
+    "expect": {
+      "compat_target": "dell-poweredge-r740",
+      "filters": [
+        {
+          "key": "ram_gb",
+          "op": "eq",
+          "value": 16,
+          "unit": "ГБ"
+        }
+      ]
+    }
+  },
+  {
+    "id": "q-0459",
+    "text": "cal 2025 для windows server 2025",
+    "type": "p2_compat",
+    "set": "p2",
+    "freq": 3,
+    "client_id": null,
+    "judgments": {
+      "wscal25-d1": 3,
+      "wscal25-d5": 3,
+      "wscal25-u1": 3,
+      "wscal25-u5": 3
+    },
+    "absent": false,
+    "notes": "совместимость с целевой моделью: verified 3, conditional 2, unknown/incompatible 0",
+    "cluster": "p2-078",
+    "terms": [],
+    "expect": {
+      "compat_target": "windows-server-2025",
+      "incompatible": [
+        "wscal-u1",
+        "wscal-d1",
+        "wscal-u5",
+        "wscal-d5"
+      ]
+    }
+  },
+  {
+    "id": "q-0460",
+    "text": "cal для windows server 2025",
+    "type": "p2_compat",
+    "set": "p2",
+    "freq": 5,
+    "client_id": null,
+    "judgments": {
+      "wscal25-d1": 3,
+      "wscal25-d5": 3,
+      "wscal25-u1": 3,
+      "wscal25-u5": 3
+    },
+    "absent": false,
+    "notes": "совместимость с целевой моделью: verified 3, conditional 2, unknown/incompatible 0",
+    "cluster": "p2-079",
+    "terms": [],
+    "expect": {
+      "compat_target": "windows-server-2025",
+      "incompatible": [
+        "wscal-u1",
+        "wscal-d1",
+        "wscal-u5",
+        "wscal-d5",
+        "wscal-rds"
+      ]
+    }
+  },
+  {
+    "id": "q-0461",
+    "text": "rds cal для windows server 2025",
+    "type": "p2_compat",
+    "set": "p2",
+    "freq": 3,
+    "client_id": null,
+    "judgments": {
+      "rdscal25-d1": 3,
+      "rdscal25-u1": 3
+    },
+    "absent": false,
+    "notes": "совместимость с целевой моделью: verified 3, conditional 2, unknown/incompatible 0",
+    "cluster": "p2-080",
+    "terms": [],
+    "expect": {
+      "compat_target": "windows-server-2025",
+      "incompatible": [
+        "wscal-rds"
+      ]
+    }
+  },
+  {
+    "id": "q-0462",
+    "text": "rds cal 2022 для windows server 2025",
+    "type": "p2_compat",
+    "set": "p2",
+    "freq": 1,
+    "client_id": null,
+    "judgments": {
+      "rdscal25-d1": 2,
+      "rdscal25-u1": 2
+    },
+    "absent": false,
+    "notes": "совместимость с целевой моделью: verified 3, conditional 2, unknown/incompatible 0",
+    "cluster": "p2-081",
+    "terms": [],
+    "expect": {
+      "compat_target": "windows-server-2025",
+      "incompatible": [
+        "wscal-rds"
+      ]
+    }
+  },
+  {
+    "id": "q-0463",
+    "text": "kaspersky для astra linux",
+    "type": "p2_compat",
+    "set": "p2",
+    "freq": 3,
+    "client_id": null,
+    "judgments": {
+      "kes-ext10": 3,
+      "kes-ext50": 3,
+      "kes-std10": 3,
+      "kes-std25": 3,
+      "kes-std50": 3,
+      "kes-std10-ren": 2,
+      "kes-std50-ren": 2
+    },
+    "absent": false,
+    "notes": "совместимость с целевой моделью: verified 3, conditional 2, unknown/incompatible 0",
+    "cluster": "p2-082",
+    "terms": [],
+    "expect": {
+      "compat_target": "astra-linux-se"
+    }
+  },
+  {
+    "id": "q-0464",
+    "text": "мойофис для astra linux",
+    "type": "p2_compat",
+    "set": "p2",
+    "freq": 2,
+    "client_id": null,
+    "judgments": {
+      "myo-p1": 3,
+      "myo-p10": 3,
+      "myo-p25": 3,
+      "myo-p50": 3,
+      "myo-s1": 3
+    },
+    "absent": false,
+    "notes": "совместимость с целевой моделью: verified 3, conditional 2, unknown/incompatible 0",
+    "cluster": "p2-083",
+    "terms": [],
+    "expect": {
+      "compat_target": "astra-linux-se"
+    }
+  },
+  {
+    "id": "q-0465",
+    "text": "samsung pm893 для dell r740",
+    "type": "p2_compat",
+    "set": "p2",
+    "freq": 1,
+    "client_id": null,
+    "judgments": {},
+    "absent": false,
+    "notes": "совместимость с целевой моделью: verified 3, conditional 2, unknown/incompatible 0",
+    "cluster": "p2-084",
+    "terms": [],
+    "expect": {
+      "compat_target": "dell-poweredge-r740",
+      "unknown": [
+        "ssd-samsung-pm893-960"
+      ]
+    }
+  },
+  {
+    "id": "q-0466",
+    "text": "kingston ddr5 для dl380 gen11",
+    "type": "p2_compat",
+    "set": "p2",
+    "freq": 1,
+    "client_id": null,
+    "judgments": {
+      "mem-kingston-32g-d5": 2
+    },
+    "absent": false,
+    "notes": "совместимость с целевой моделью: verified 3, conditional 2, unknown/incompatible 0",
+    "cluster": "p2-085",
+    "terms": [],
+    "expect": {
+      "compat_target": "hpe-proliant-dl380-gen11",
+      "filters": [
+        {
+          "key": "memory_type",
+          "op": "eq",
+          "value": "DDR5"
+        }
+      ]
+    }
+  },
+  {
+    "id": "q-0467",
+    "text": "рабочее место для 20 сотрудников",
+    "type": "p2_bundle",
+    "set": "p2",
+    "freq": 4,
+    "client_id": null,
+    "judgments": {
+      "kes-std25": 2,
+      "m365b-bs": 2,
+      "nb-e14g5-i5-16-512": 2,
+      "nb-e14g5-i7-16-1t": 2,
+      "nb-lat5540-i5-16-512": 2,
+      "nb-lat5540-i7-32-1t": 2,
+      "nb-mbd16-i5-16-512": 2,
+      "nb-ns685-i5-16-512": 2,
+      "nb-ns685-i5-8-256": 2,
+      "nb-pb450g10-i5-16-512": 2,
+      "nb-pb450g10-i5-8-256": 2,
+      "nb-t14g4-i5-16-512": 2,
+      "nb-t14g4-i7-32-1t": 2,
+      "mon-dell-p2425h": 1,
+      "mon-dell-p2725h": 1,
+      "mon-dell-u2724d": 1,
+      "mon-hp-e24g5": 1,
+      "mon-huawei-se24": 1,
+      "mon-lenovo-l27i": 1,
+      "mon-samsung-g5-27": 1
+    },
+    "absent": false,
+    "notes": "комплексная закупка, шаблон решения",
+    "cluster": "p2-086",
+    "terms": [],
+    "expect": {
+      "template_id": "tmpl-workplace",
+      "quantity": 20
+    }
+  },
+  {
+    "id": "q-0468",
+    "text": "рабочее место бухгалтера",
+    "type": "p2_bundle",
+    "set": "p2",
+    "freq": 3,
+    "client_id": null,
+    "judgments": {
+      "1cbuh-prof": 2,
+      "nb-e14g5-i5-16-512": 2,
+      "nb-e14g5-i7-16-1t": 2,
+      "nb-lat5540-i5-16-512": 2,
+      "nb-lat5540-i7-32-1t": 2,
+      "nb-mbd16-i5-16-512": 2,
+      "nb-ns685-i5-16-512": 2,
+      "nb-ns685-i5-8-256": 2,
+      "nb-pb450g10-i5-16-512": 2,
+      "nb-pb450g10-i5-8-256": 2,
+      "nb-t14g4-i5-16-512": 2,
+      "nb-t14g4-i7-32-1t": 2,
+      "off24-hb": 2,
+      "mon-dell-p2425h": 1,
+      "mon-dell-p2725h": 1,
+      "mon-dell-u2724d": 1,
+      "mon-hp-e24g5": 1,
+      "mon-huawei-se24": 1,
+      "mon-lenovo-l27i": 1,
+      "mon-samsung-g5-27": 1
+    },
+    "absent": false,
+    "notes": "комплексная закупка, шаблон решения",
+    "cluster": "p2-087",
+    "terms": [],
+    "expect": {
+      "template_id": "tmpl-workplace"
+    }
+  },
+  {
+    "id": "q-0469",
+    "text": "оснастить офис на 10 человек ноутбуками и офисом",
+    "type": "p2_bundle",
+    "set": "p2",
+    "freq": 2,
+    "client_id": null,
+    "judgments": {
+      "nb-e14g5-i5-16-512": 3,
+      "nb-e14g5-i7-16-1t": 3,
+      "nb-lat5540-i5-16-512": 3,
+      "nb-lat5540-i7-32-1t": 3,
+      "nb-mbd16-i5-16-512": 3,
+      "nb-ns685-i5-16-512": 3,
+      "nb-ns685-i5-8-256": 3,
+      "nb-pb450g10-i5-16-512": 3,
+      "nb-pb450g10-i5-8-256": 3,
+      "nb-t14g4-i5-16-512": 3,
+      "nb-t14g4-i7-32-1t": 3,
+      "m365b-bb": 2,
+      "m365b-bp": 2,
+      "m365b-bs": 2,
+      "m365b-e3": 2,
+      "off24-hb": 2,
+      "off24-home": 2,
+      "off24-ltscpp": 2,
+      "off24-ltscstd": 2
+    },
+    "absent": false,
+    "notes": "комплексная закупка, шаблон решения",
+    "cluster": "p2-088",
+    "terms": [],
+    "expect": {
+      "template_id": "tmpl-workplace",
+      "quantity": 10
+    }
+  },
+  {
+    "id": "q-0470",
+    "text": "сервер под 1с на 50 пользователей",
+    "type": "p2_bundle",
+    "set": "p2",
+    "freq": 4,
+    "client_id": null,
+    "judgments": {
+      "1ccl-50": 2,
+      "1csrv-corp64": 2,
+      "1csrv-prof32": 2,
+      "1csrv-prof64": 2,
+      "srv-dl380g10-5218": 2,
+      "srv-dl380g11-5418y": 2,
+      "srv-r740-g6230": 2,
+      "srv-r750-g6338": 2,
+      "srv-r750-s4314": 2,
+      "srv-vegman-r220-base": 2,
+      "srv-vegman-r220-max": 2,
+      "pgpro-ent": 1,
+      "pgpro-std": 1,
+      "pgpro-std1y": 1,
+      "ws25-std16": 1
+    },
+    "absent": false,
+    "notes": "комплексная закупка, шаблон решения",
+    "cluster": "p2-089",
+    "terms": [],
+    "expect": {
+      "template_id": "tmpl-1c-server",
+      "quantity": 50
+    }
+  },
+  {
+    "id": "q-0471",
+    "text": "сервер для 1с с windows server и sql",
+    "type": "p2_bundle",
+    "set": "p2",
+    "freq": 2,
+    "client_id": null,
+    "judgments": {
+      "sql22-stdsrv": 2,
+      "srv-dl380g10-5218": 2,
+      "srv-dl380g11-4410y": 2,
+      "srv-dl380g11-5418y": 2,
+      "srv-r740-g6230": 2,
+      "srv-r740-s4210": 2,
+      "srv-r750-g6338": 2,
+      "srv-r750-s4314": 2,
+      "srv-vegman-r220-base": 2,
+      "srv-vegman-r220-max": 2,
+      "ws25-std16": 2,
+      "1csrv-corp64": 1,
+      "1csrv-prof32": 1,
+      "1csrv-prof64": 1,
+      "srv-dl380g10-4210": 1
+    },
+    "absent": false,
+    "notes": "комплексная закупка, шаблон решения",
+    "cluster": "p2-090",
+    "terms": [],
+    "expect": {
+      "template_id": "tmpl-1c-server"
+    }
+  },
+  {
+    "id": "q-0472",
+    "text": "удаленный офис на 5 человек",
+    "type": "p2_bundle",
+    "set": "p2",
+    "freq": 2,
+    "client_id": null,
+    "judgments": {
+      "m365b-bb": 2,
+      "nb-e14g5-i5-16-512": 2,
+      "nb-e14g5-i7-16-1t": 2,
+      "nb-lat5540-i5-16-512": 2,
+      "nb-lat5540-i7-32-1t": 2,
+      "nb-mbd16-i5-16-512": 2,
+      "nb-ns685-i5-16-512": 2,
+      "nb-ns685-i5-8-256": 2,
+      "nb-pb450g10-i5-16-512": 2,
+      "nb-pb450g10-i5-8-256": 2,
+      "nb-t14g4-i5-16-512": 2,
+      "nb-t14g4-i7-32-1t": 2,
+      "sw-aruba-2930f-24": 2,
+      "sw-aruba-cx6100-48p": 2,
+      "sw-dlink-dgs1210-28": 2,
+      "sw-eltex-mes2324b": 2,
+      "sw-eltex-mes2324p": 2,
+      "sw-eltex-mes2348b": 2,
+      "sw-huawei-s5735-24": 2,
+      "sw-huawei-s5735-48p": 2,
+      "ups-eaton-9sx-3000": 2,
+      "ups-ippon-rt-3000": 2,
+      "ups-ippon-rt-6000": 2,
+      "ups-ippon-spp-2200": 2
+    },
+    "absent": false,
+    "notes": "комплексная закупка, шаблон решения",
+    "cluster": "p2-091",
+    "terms": [],
+    "expect": {
+      "template_id": "tmpl-remote-office",
+      "quantity": 5
+    }
+  },
+  {
+    "id": "q-0473",
+    "text": "филиал на 15 рабочих мест",
+    "type": "p2_bundle",
+    "set": "p2",
+    "freq": 2,
+    "client_id": null,
+    "judgments": {
+      "nb-e14g5-i5-16-512": 2,
+      "nb-e14g5-i7-16-1t": 2,
+      "nb-lat5540-i5-16-512": 2,
+      "nb-lat5540-i7-32-1t": 2,
+      "nb-mbd16-i5-16-512": 2,
+      "nb-ns685-i5-16-512": 2,
+      "nb-ns685-i5-8-256": 2,
+      "nb-pb450g10-i5-16-512": 2,
+      "nb-pb450g10-i5-8-256": 2,
+      "nb-t14g4-i5-16-512": 2,
+      "nb-t14g4-i7-32-1t": 2,
+      "sw-aruba-2930f-24": 2,
+      "sw-aruba-cx6100-48p": 2,
+      "sw-dlink-dgs1210-28": 2,
+      "sw-eltex-mes2324b": 2,
+      "sw-eltex-mes2324p": 2,
+      "sw-eltex-mes2348b": 2,
+      "sw-huawei-s5735-24": 2,
+      "sw-huawei-s5735-48p": 2,
+      "ups-eaton-9sx-3000": 2,
+      "ups-ippon-rt-3000": 2,
+      "ups-ippon-rt-6000": 2,
+      "ups-ippon-spp-2200": 2
+    },
+    "absent": false,
+    "notes": "комплексная закупка, шаблон решения",
+    "cluster": "p2-092",
+    "terms": [],
+    "expect": {
+      "template_id": "tmpl-remote-office",
+      "quantity": 15
+    }
+  },
+  {
+    "id": "q-0474",
+    "text": "комплект для нового сотрудника ноутбук офис антивирус",
+    "type": "p2_bundle",
+    "set": "p2",
+    "freq": 2,
+    "client_id": null,
+    "judgments": {
+      "nb-e14g5-i5-16-512": 3,
+      "nb-e14g5-i7-16-1t": 3,
+      "nb-lat5540-i5-16-512": 3,
+      "nb-lat5540-i7-32-1t": 3,
+      "nb-mbd16-i5-16-512": 3,
+      "nb-ns685-i5-16-512": 3,
+      "nb-ns685-i5-8-256": 3,
+      "nb-pb450g10-i5-16-512": 3,
+      "nb-pb450g10-i5-8-256": 3,
+      "nb-t14g4-i5-16-512": 3,
+      "nb-t14g4-i7-32-1t": 3,
+      "kes-ext10": 2,
+      "kes-ext50": 2,
+      "kes-std10": 2,
+      "kes-std25": 2,
+      "kes-std50": 2,
+      "m365b-bb": 2,
+      "m365b-bp": 2,
+      "m365b-bs": 2,
+      "m365b-e3": 2,
+      "off24-hb": 2,
+      "off24-home": 2,
+      "off24-ltscpp": 2,
+      "off24-ltscstd": 2
+    },
+    "absent": false,
+    "notes": "комплексная закупка, шаблон решения",
+    "cluster": "p2-093",
+    "terms": [],
+    "expect": {
+      "template_id": "tmpl-workplace",
+      "quantity": 1
+    }
+  },
+  {
+    "id": "q-0475",
+    "text": "ноутбук с windows и office",
+    "type": "p2_bundle",
+    "set": "p2",
+    "freq": 3,
+    "client_id": null,
+    "judgments": {
+      "nb-e14g5-i7-16-1t": 3,
+      "nb-lat5540-i5-16-512": 3,
+      "nb-mbd16-i5-16-512": 3,
+      "nb-pb450g10-i5-16-512": 3,
+      "nb-t14g4-i5-16-512": 3,
+      "nb-t14g4-i7-32-1t": 3,
+      "off24-hb": 2,
+      "off24-home": 2,
+      "off24-ltscpp": 2,
+      "off24-ltscstd": 2,
+      "nb-e14g5-i5-16-512": 1,
+      "nb-lat5540-i7-32-1t": 1,
+      "nb-ns685-i5-16-512": 1,
+      "nb-ns685-i5-8-256": 1,
+      "nb-pb450g10-i5-8-256": 1
+    },
+    "absent": false,
+    "notes": "комплексная закупка, шаблон решения",
+    "cluster": "p2-094",
+    "terms": [],
+    "expect": {
+      "companions": true,
+      "filters": [
+        {
+          "key": "os",
+          "op": "eq",
+          "value": "предустановлена"
+        }
+      ]
+    }
+  },
+  {
+    "id": "q-0476",
+    "text": "сервер dell r750 с памятью и дисками",
+    "type": "p2_bundle",
+    "set": "p2",
+    "freq": 2,
+    "client_id": null,
+    "judgments": {
+      "mem-dell-16g-d4": 3,
+      "mem-dell-32g-d4": 3,
+      "mem-dell-64g-d4": 3,
+      "srv-r750-g6338": 3,
+      "srv-r750-s4314": 3,
+      "ssd-dell-1920-sata": 3,
+      "ssd-dell-960-sas": 3,
+      "ssd-dell-960-sata": 3,
+      "hdd-dell-2400-sas": 2,
+      "hdd-dell-8000-sas": 2,
+      "mem-kingston-32g-d4": 2
+    },
+    "absent": false,
+    "notes": "комплексная закупка, шаблон решения",
+    "cluster": "p2-095",
+    "terms": [],
+    "expect": {
+      "anchor_family": "dell-poweredge-r750",
+      "compat_target": "dell-poweredge-r750"
+    }
+  },
+  {
+    "id": "q-0477",
+    "text": "windows server 2025 с cal на 30 пользователей",
+    "type": "p2_bundle",
+    "set": "p2",
+    "freq": 3,
+    "client_id": null,
+    "judgments": {
+      "ws25-std16": 3,
+      "wscal25-u1": 3,
+      "wscal25-u5": 3,
+      "ws25-std2": 1
+    },
+    "absent": false,
+    "notes": "комплексная закупка, шаблон решения",
+    "cluster": "p2-096",
+    "terms": [],
+    "expect": {
+      "anchor_family": "windows-server-2025",
+      "quantity": 30,
+      "required": [
+        {
+          "family_id": "windows-server-cal-2025",
+          "metric": "user",
+          "quantity": 30
+        }
+      ]
+    }
+  },
+  {
+    "id": "q-0478",
+    "text": "рабочее место на отечественном по",
+    "type": "p2_bundle",
+    "set": "p2",
+    "freq": 2,
+    "client_id": null,
+    "judgments": {
+      "astra-orel": 2,
+      "astra-smol": 2,
+      "astra-vrn": 2,
+      "myo-p1": 2,
+      "myo-p10": 2,
+      "myo-p25": 2,
+      "myo-p50": 2,
+      "myo-s1": 2,
+      "nb-ns685-i5-16-512": 2,
+      "nb-ns685-i5-8-256": 2,
+      "kes-ext10": 1,
+      "kes-ext50": 1,
+      "kes-std10": 1,
+      "kes-std25": 1,
+      "kes-std50": 1
+    },
+    "absent": false,
+    "notes": "комплексная закупка, шаблон решения",
+    "cluster": "p2-097",
+    "terms": [],
+    "expect": {
+      "template_id": "tmpl-workplace"
+    }
+  },
+  {
+    "id": "q-0479",
+    "text": "коммутатор и ибп для небольшого офиса",
+    "type": "p2_bundle",
+    "set": "p2",
+    "freq": 2,
+    "client_id": null,
+    "judgments": {
+      "sw-aruba-2930f-24": 2,
+      "sw-aruba-cx6100-48p": 2,
+      "sw-dlink-dgs1210-28": 2,
+      "sw-eltex-mes2324b": 2,
+      "sw-eltex-mes2324p": 2,
+      "sw-eltex-mes2348b": 2,
+      "sw-huawei-s5735-24": 2,
+      "sw-huawei-s5735-48p": 2,
+      "ups-eaton-9sx-3000": 2,
+      "ups-ippon-rt-3000": 2,
+      "ups-ippon-rt-6000": 2,
+      "ups-ippon-spp-2200": 2
+    },
+    "absent": false,
+    "notes": "комплексная закупка, шаблон решения",
+    "cluster": "p2-098",
+    "terms": [],
+    "expect": {
+      "template_id": "tmpl-remote-office"
+    }
+  },
+  {
+    "id": "q-0480",
+    "text": "сервер hpe gen11 под виртуализацию",
+    "type": "p2_bundle",
+    "set": "p2",
+    "freq": 2,
+    "client_id": null,
+    "judgments": {
+      "srv-dl380g11-4410y": 3,
+      "srv-dl380g11-5418y": 3,
+      "vsph-std1y": 2,
+      "vsph-std3y": 2,
+      "vsph-vvf1y": 2,
+      "ws25-dc16": 2
+    },
+    "absent": false,
+    "notes": "комплексная закупка, шаблон решения",
+    "cluster": "p2-099",
+    "terms": [],
+    "expect": {
+      "anchor_family": "hpe-proliant-dl380-gen11"
+    }
+  },
+  {
+    "id": "q-0481",
+    "text": "закупка 10 ноутбуков и мониторов",
+    "type": "p2_bundle",
+    "set": "p2",
+    "freq": 2,
+    "client_id": null,
+    "judgments": {
+      "mon-dell-p2425h": 3,
+      "mon-dell-p2725h": 3,
+      "mon-dell-u2724d": 3,
+      "mon-hp-e24g5": 3,
+      "mon-huawei-se24": 3,
+      "mon-lenovo-l27i": 3,
+      "mon-samsung-g5-27": 3,
+      "nb-e14g5-i5-16-512": 3,
+      "nb-e14g5-i7-16-1t": 3,
+      "nb-lat5540-i5-16-512": 3,
+      "nb-lat5540-i7-32-1t": 3,
+      "nb-mbd16-i5-16-512": 3,
+      "nb-ns685-i5-16-512": 3,
+      "nb-ns685-i5-8-256": 3,
+      "nb-pb450g10-i5-16-512": 3,
+      "nb-pb450g10-i5-8-256": 3,
+      "nb-t14g4-i5-16-512": 3,
+      "nb-t14g4-i7-32-1t": 3
+    },
+    "absent": false,
+    "notes": "комплексная закупка, шаблон решения",
+    "cluster": "p2-100",
+    "terms": [],
+    "expect": {
+      "quantity": 10
+    }
+  },
+  {
+    "id": "q-0482",
+    "text": "антивирус для компании на 50 пк",
+    "type": "p2_negative",
+    "set": "p2",
+    "freq": 3,
+    "client_id": null,
+    "judgments": {
+      "dress-cx50": 3,
+      "kes-std50": 3,
+      "kes-ext10": 1,
+      "kes-ext50": 1,
+      "kes-std10": 1,
+      "kes-std10-ren": 1,
+      "kes-std25": 1,
+      "kes-std50-ren": 1
+    },
+    "absent": false,
+    "notes": "отрицательный или пограничный: блок и фильтры не должны срабатывать ошибочно",
+    "cluster": "p2-101",
+    "terms": [],
+    "expect": {
+      "companions": null,
+      "quantity": 50
+    }
+  },
+  {
+    "id": "q-0483",
+    "text": "серверная память",
+    "type": "p2_negative",
+    "set": "p2",
+    "freq": 3,
+    "client_id": null,
+    "judgments": {
+      "mem-dell-16g-d4": 1,
+      "mem-dell-32g-d4": 1,
+      "mem-dell-32g-d4-2933": 1,
+      "mem-dell-64g-d4": 1,
+      "mem-hpe-16g-d4": 1,
+      "mem-hpe-16g-d5": 1,
+      "mem-hpe-32g-d4": 1,
+      "mem-hpe-32g-d5": 1,
+      "mem-hpe-64g-d4": 1,
+      "mem-hpe-64g-d5": 1,
+      "mem-kingston-32g-d4": 1,
+      "mem-kingston-32g-d5": 1,
+      "mem-samsung-64g-d4": 1,
+      "mem-yadro-32g-d4": 1
+    },
+    "absent": false,
+    "notes": "отрицательный или пограничный: блок и фильтры не должны срабатывать ошибочно",
+    "cluster": "p2-102",
+    "terms": [],
+    "expect": {
+      "companions": null
+    }
+  },
+  {
+    "id": "q-0484",
+    "text": "dell",
+    "type": "p2_negative",
+    "set": "p2",
+    "freq": 2,
+    "client_id": null,
+    "judgments": {
+      "mon-dell-p2425h": 1,
+      "mon-dell-p2725h": 1,
+      "mon-dell-u2724d": 1,
+      "mon-hp-e24g5": 1,
+      "mon-huawei-se24": 1,
+      "mon-lenovo-l27i": 1,
+      "mon-samsung-g5-27": 1,
+      "nb-e14g5-i5-16-512": 1,
+      "nb-e14g5-i7-16-1t": 1,
+      "nb-lat5540-i5-16-512": 1,
+      "nb-lat5540-i7-32-1t": 1,
+      "nb-mbd16-i5-16-512": 1,
+      "nb-ns685-i5-16-512": 1,
+      "nb-ns685-i5-8-256": 1,
+      "nb-pb450g10-i5-16-512": 1,
+      "nb-pb450g10-i5-8-256": 1,
+      "nb-t14g4-i5-16-512": 1,
+      "nb-t14g4-i7-32-1t": 1,
+      "srv-dl380g10-4210": 1,
+      "srv-dl380g10-5218": 1,
+      "srv-dl380g11-4410y": 1,
+      "srv-dl380g11-5418y": 1,
+      "srv-r740-g6230": 1,
+      "srv-r740-s4210": 1,
+      "srv-r750-g6338": 1,
+      "srv-r750-s4314": 1,
+      "srv-vegman-r220-base": 1,
+      "srv-vegman-r220-max": 1
+    },
+    "absent": false,
+    "notes": "отрицательный или пограничный: блок и фильтры не должны срабатывать ошибочно",
+    "cluster": "p2-103",
+    "terms": [],
+    "expect": {
+      "companions": null
+    }
+  },
+  {
+    "id": "q-0485",
+    "text": "ddr4",
+    "type": "p2_negative",
+    "set": "p2",
+    "freq": 2,
+    "client_id": null,
+    "judgments": {
+      "mem-dell-16g-d4": 2,
+      "mem-dell-32g-d4": 2,
+      "mem-dell-32g-d4-2933": 2,
+      "mem-dell-64g-d4": 2,
+      "mem-hpe-16g-d4": 2,
+      "mem-hpe-32g-d4": 2,
+      "mem-hpe-64g-d4": 2,
+      "mem-kingston-32g-d4": 2,
+      "mem-samsung-64g-d4": 2,
+      "mem-yadro-32g-d4": 2
+    },
+    "absent": false,
+    "notes": "отрицательный или пограничный: блок и фильтры не должны срабатывать ошибочно",
+    "cluster": "p2-104",
+    "terms": [],
+    "expect": {
+      "companions": null
+    }
+  },
+  {
+    "id": "q-0486",
+    "text": "32",
+    "type": "p2_negative",
+    "set": "p2",
+    "freq": 1,
+    "client_id": null,
+    "judgments": {},
+    "absent": false,
+    "notes": "отрицательный или пограничный: блок и фильтры не должны срабатывать ошибочно",
+    "cluster": "p2-105",
+    "terms": [],
+    "expect": {
+      "companions": null,
+      "filters": []
+    }
+  },
+  {
+    "id": "q-0487",
+    "text": "16 гб",
+    "type": "p2_negative",
+    "set": "p2",
+    "freq": 2,
+    "client_id": null,
+    "judgments": {
+      "mem-dell-16g-d4": 1,
+      "mem-hpe-16g-d4": 1,
+      "mem-hpe-16g-d5": 1,
+      "nb-e14g5-i5-16-512": 1,
+      "nb-e14g5-i7-16-1t": 1,
+      "nb-lat5540-i5-16-512": 1,
+      "nb-mbd16-i5-16-512": 1,
+      "nb-ns685-i5-16-512": 1,
+      "nb-pb450g10-i5-16-512": 1,
+      "nb-t14g4-i5-16-512": 1
+    },
+    "absent": false,
+    "notes": "отрицательный или пограничный: блок и фильтры не должны срабатывать ошибочно",
+    "cluster": "p2-106",
+    "terms": [],
+    "expect": {
+      "companions": null
+    }
+  },
+  {
+    "id": "q-0488",
+    "text": "cal",
+    "type": "p2_negative",
+    "set": "p2",
+    "freq": 3,
+    "client_id": null,
+    "judgments": {
+      "wscal-d1": 2,
+      "wscal-d5": 2,
+      "wscal-rds": 2,
+      "wscal-u1": 2,
+      "wscal-u5": 2,
+      "wscal25-d1": 2,
+      "wscal25-d5": 2,
+      "wscal25-u1": 2,
+      "wscal25-u5": 2,
+      "rdscal25-d1": 1,
+      "rdscal25-u1": 1,
+      "sql22-cal": 1
+    },
+    "absent": false,
+    "notes": "отрицательный или пограничный: блок и фильтры не должны срабатывать ошибочно",
+    "cluster": "p2-107",
+    "terms": [],
+    "expect": {
+      "companions": null
+    }
+  },
+  {
+    "id": "q-0489",
+    "text": "windows server без cal",
+    "type": "p2_negative",
+    "set": "p2",
+    "freq": 2,
+    "client_id": null,
+    "judgments": {
+      "ws22-std16": 2,
+      "ws25-std16": 2
+    },
+    "absent": false,
+    "notes": "отрицательный или пограничный: блок и фильтры не должны срабатывать ошибочно",
+    "cluster": "p2-108",
+    "terms": [],
+    "expect": {
+      "existing_license": true
+    }
+  },
+  {
+    "id": "q-0490",
+    "text": "sql server 2022 enterprise на ядра",
+    "type": "p2_negative",
+    "set": "p2",
+    "freq": 2,
+    "client_id": null,
+    "judgments": {
+      "sql22-ent2c": 3
+    },
+    "absent": false,
+    "notes": "отрицательный или пограничный: блок и фильтры не должны срабатывать ошибочно",
+    "cluster": "p2-109",
+    "terms": [],
+    "expect": {
+      "anchor_family": "sql-server-2022",
+      "no_required": true
+    }
+  },
+  {
+    "id": "q-0491",
+    "text": "10 ноутбуков",
+    "type": "p2_negative",
+    "set": "p2",
+    "freq": 3,
+    "client_id": null,
+    "judgments": {
+      "nb-e14g5-i5-16-512": 2,
+      "nb-e14g5-i7-16-1t": 2,
+      "nb-lat5540-i5-16-512": 2,
+      "nb-lat5540-i7-32-1t": 2,
+      "nb-mbd16-i5-16-512": 2,
+      "nb-ns685-i5-16-512": 2,
+      "nb-ns685-i5-8-256": 2,
+      "nb-pb450g10-i5-16-512": 2,
+      "nb-pb450g10-i5-8-256": 2,
+      "nb-t14g4-i5-16-512": 2,
+      "nb-t14g4-i7-32-1t": 2
+    },
+    "absent": false,
+    "notes": "отрицательный или пограничный: блок и фильтры не должны срабатывать ошибочно",
+    "cluster": "p2-110",
+    "terms": [],
+    "expect": {
+      "quantity": 10,
+      "filters": []
+    }
+  },
+  {
+    "id": "q-0492",
+    "text": "монитор для ноутбука",
+    "type": "p2_negative",
+    "set": "p2",
+    "freq": 2,
+    "client_id": null,
+    "judgments": {
+      "mon-dell-p2425h": 2,
+      "mon-dell-p2725h": 2,
+      "mon-dell-u2724d": 2,
+      "mon-hp-e24g5": 2,
+      "mon-huawei-se24": 2,
+      "mon-lenovo-l27i": 2,
+      "mon-samsung-g5-27": 2
+    },
+    "absent": false,
+    "notes": "отрицательный или пограничный: блок и фильтры не должны срабатывать ошибочно",
+    "cluster": "p2-111",
+    "terms": [],
+    "expect": {
+      "compat_target": null
+    }
+  },
+  {
+    "id": "q-0493",
+    "text": "сумка для ноутбука",
+    "type": "p2_negative",
+    "set": "p2",
+    "freq": 2,
+    "client_id": null,
+    "judgments": {},
+    "absent": true,
+    "notes": "отрицательный или пограничный: блок и фильтры не должны срабатывать ошибочно",
+    "cluster": "p2-112",
+    "terms": [],
+    "expect": {
+      "companions": null,
+      "absent": true
+    }
+  },
+  {
+    "id": "q-0494",
+    "text": "supermicro sys-6029p",
+    "type": "p2_negative",
+    "set": "p2",
+    "freq": 1,
+    "client_id": null,
+    "judgments": {
+      "srv-dl380g10-4210": 1,
+      "srv-dl380g10-5218": 1,
+      "srv-dl380g11-4410y": 1,
+      "srv-dl380g11-5418y": 1,
+      "srv-r740-g6230": 1,
+      "srv-r740-s4210": 1,
+      "srv-r750-g6338": 1,
+      "srv-r750-s4314": 1,
+      "srv-vegman-r220-base": 1,
+      "srv-vegman-r220-max": 1
+    },
+    "absent": true,
+    "notes": "отрицательный или пограничный: блок и фильтры не должны срабатывать ошибочно",
+    "cluster": "p2-113",
+    "terms": [],
+    "expect": {
+      "companions": null,
+      "absent": true
+    }
+  },
+  {
+    "id": "q-0495",
+    "text": "iphone 15 pro",
+    "type": "p2_negative",
+    "set": "p2",
+    "freq": 2,
+    "client_id": null,
+    "judgments": {},
+    "absent": true,
+    "notes": "отрицательный или пограничный: блок и фильтры не должны срабатывать ошибочно",
+    "cluster": "p2-114",
+    "terms": [],
+    "expect": {
+      "companions": null,
+      "absent": true
+    }
+  },
+  {
+    "id": "q-0496",
+    "text": "memory for server",
+    "type": "p2_negative",
+    "set": "p2",
+    "freq": 1,
+    "client_id": null,
+    "judgments": {
+      "mem-dell-16g-d4": 2,
+      "mem-dell-32g-d4": 2,
+      "mem-dell-32g-d4-2933": 2,
+      "mem-dell-64g-d4": 2,
+      "mem-hpe-16g-d4": 2,
+      "mem-hpe-16g-d5": 2,
+      "mem-hpe-32g-d4": 2,
+      "mem-hpe-32g-d5": 2,
+      "mem-hpe-64g-d4": 2,
+      "mem-hpe-64g-d5": 2,
+      "mem-kingston-32g-d4": 2,
+      "mem-kingston-32g-d5": 2,
+      "mem-samsung-64g-d4": 2,
+      "mem-yadro-32g-d4": 2
+    },
+    "absent": false,
+    "notes": "отрицательный или пограничный: блок и фильтры не должны срабатывать ошибочно",
+    "cluster": "p2-115",
+    "terms": [],
+    "expect": {
+      "companions": null
+    }
+  },
+  {
+    "id": "q-0497",
+    "text": "rds cal 2019",
+    "type": "p2_negative",
+    "set": "p2",
+    "freq": 1,
+    "client_id": null,
+    "judgments": {
+      "rdscal25-d1": 1,
+      "rdscal25-u1": 1,
+      "wscal-rds": 1
+    },
+    "absent": true,
+    "notes": "отрицательный или пограничный: блок и фильтры не должны срабатывать ошибочно",
+    "cluster": "p2-116",
+    "terms": [],
+    "expect": {
+      "companions": null,
+      "absent": true
+    }
+  },
+  {
+    "id": "q-0498",
+    "text": "бесплатный антивирус",
+    "type": "p2_negative",
+    "set": "p2",
+    "freq": 2,
+    "client_id": null,
+    "judgments": {},
+    "absent": true,
+    "notes": "отрицательный или пограничный: блок и фильтры не должны срабатывать ошибочно",
+    "cluster": "p2-117",
+    "terms": [],
+    "expect": {
+      "companions": null,
+      "absent": true
+    }
+  },
+  {
+    "id": "q-0499",
+    "text": "ram_gb:32",
+    "type": "p2_negative",
+    "set": "p2",
+    "freq": 1,
+    "client_id": null,
+    "judgments": {
+      "mem-dell-32g-d4": 1,
+      "mem-dell-32g-d4-2933": 1,
+      "mem-hpe-32g-d4": 1,
+      "mem-hpe-32g-d5": 1,
+      "mem-kingston-32g-d4": 1,
+      "mem-kingston-32g-d5": 1,
+      "mem-yadro-32g-d4": 1
+    },
+    "absent": false,
+    "notes": "отрицательный или пограничный: блок и фильтры не должны срабатывать ошибочно",
+    "cluster": "p2-118",
+    "terms": [],
+    "expect": {
+      "companions": null
+    }
+  },
+  {
+    "id": "q-0500",
+    "text": "windows server 2025 и cal 2022",
+    "type": "p2_negative",
+    "set": "p2",
+    "freq": 1,
+    "client_id": null,
+    "judgments": {
+      "ws25-std16": 2,
+      "wscal25-d1": 2,
+      "wscal25-d5": 2,
+      "wscal25-u1": 2,
+      "wscal25-u5": 2
+    },
+    "absent": false,
+    "notes": "отрицательный или пограничный: блок и фильтры не должны срабатывать ошибочно",
+    "cluster": "p2-119",
+    "terms": [],
+    "expect": {
+      "anchor_family": "windows-server-2025",
+      "incompatible": [
+        "wscal-u1",
+        "wscal-d1",
+        "wscal-u5",
+        "wscal-d5"
+      ]
+    }
+  },
+  {
+    "id": "q-0501",
+    "text": "p00924",
+    "type": "p2_negative",
+    "set": "p2",
+    "freq": 1,
+    "client_id": null,
+    "judgments": {
+      "mem-hpe-32g-d4": 3
+    },
+    "absent": false,
+    "notes": "отрицательный или пограничный: блок и фильтры не должны срабатывать ошибочно",
+    "cluster": "p2-120",
+    "terms": [],
+    "expect": {
+      "mpn_prefix": "P00924"
+    }
   }
 ]

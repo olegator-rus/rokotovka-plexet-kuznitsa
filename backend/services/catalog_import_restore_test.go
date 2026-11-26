@@ -92,9 +92,13 @@ func TestForeignDataset(t *testing.T) {
 	}
 	eq := func(a, b *int) bool { return (a == nil && b == nil) || (a != nil && b != nil && *a == *b) }
 	eqs := func(a, b *string) bool { return (a == nil && b == nil) || (a != nil && b != nil && *a == *b) }
-	var typ, metric, qty, dur, vendor, cat, price, reestr, origin int
+	var typ, metric, qty, dur, vendor, cat, price, reestr, origin, soft int
 	for _, p := range got.Products {
 		w := truth[p.ID]
+		if w.Kind == "hardware" { // условия лицензии восстанавливаются только у ПО
+			goto common
+		}
+		soft++
 		if p.License.Type == w.License.Type {
 			typ++
 		}
@@ -107,6 +111,7 @@ func TestForeignDataset(t *testing.T) {
 		if eq(p.License.DurationMonths, w.License.DurationMonths) {
 			dur++
 		}
+	common:
 		if p.VendorID != "" {
 			vendor++
 		}
@@ -142,10 +147,10 @@ func TestForeignDataset(t *testing.T) {
 	for _, p := range got.Products {
 		fams[p.FamilyID] = true
 	}
-	n := float64(len(got.Products))
+	n, ns := float64(len(got.Products)), float64(max(soft, 1))
 	prec, rec := float64(tp)/float64(max(tp+fp, 1)), float64(tp)/float64(max(tp+fn, 1))
 	t.Logf("тип %.0f%%, метрика %.0f%%, количество %.0f%%, срок %.0f%%; вендор %.0f%%, категория %.0f%%, цена %.0f%%, реестр %.0f%%, происхождение %.0f%%",
-		100*float64(typ)/n, 100*float64(metric)/n, 100*float64(qty)/n, 100*float64(dur)/n, 100*float64(vendor)/n,
+		100*float64(typ)/ns, 100*float64(metric)/ns, 100*float64(qty)/ns, 100*float64(dur)/ns, 100*float64(vendor)/n,
 		100*float64(cat)/n, 100*float64(price)/n, 100*float64(reestr)/n, 100*float64(origin)/n)
 	t.Logf("семейства: %d (в mock %d), попарно точность %.2f, полнота %.2f", len(fams), countFamilies(want), prec, rec)
 	evs, err := g.LoadEvents(t.Context())
@@ -163,10 +168,14 @@ func TestForeignDataset(t *testing.T) {
 	if price != len(got.Products) || reestr != len(got.Products) || vendor != len(got.Products) || origin != len(got.Products) {
 		t.Error("цена, реестр, вендор и происхождение должны совпасть у всех позиций")
 	}
-	if float64(qty)/n < 0.9 || float64(typ)/n < 0.8 || float64(dur)/n < 0.9 || prec < 0.95 || rec < 0.5 {
+	if float64(qty)/ns < 0.9 || float64(typ)/ns < 0.8 || float64(dur)/ns < 0.9 || prec < 0.95 || rec < 0.5 {
 		t.Error("восстановление ниже порога: количество ≥90%, тип ≥80%, срок ≥90%, семейства точность ≥0.95 и полнота ≥0.5")
 	}
-	if len(evs) != 5121 || len(got.Clients) != len(want.Clients) || len(got.Relations) < len(want.Relations)*9/10 {
+	wantEvs, err := catalogsource.MockJSON{Dir: "../../data/mock"}.LoadEvents(t.Context())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(evs) != len(wantEvs) || len(got.Clients) != len(want.Clients) || len(got.Relations) < len(want.Relations)*9/10 {
 		t.Errorf("журнал, клиенты или связи потерялись: %d событий, %d клиентов, %d связей", len(evs), len(got.Clients), len(got.Relations))
 	}
 }

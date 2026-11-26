@@ -5119,3 +5119,1285 @@
 {"ts":"2026-05-26T16:37:55Z","session_id":"s-a204d84a96be","client_id":null,"type":"search","query":"adobe photoshop","results_count":3}
 {"ts":"2026-05-26T16:38:33Z","session_id":"s-a204d84a96be","client_id":null,"type":"click","product_id":"ps-t1y","position":1}
 {"ts":"2026-05-26T16:41:14Z","session_id":"s-e617dd44fb1c","client_id":null,"type":"search","query":"anydesk standard","results_count":1}
+{"ts":"2026-04-27T05:13:52Z","session_id":"s2-5333059221a5","client_id":"client-d","type":"add_to_cart","product_id":"nb-e14g5-i5-16-512"}
+{"ts":"2026-04-27T05:15:21Z","session_id":"s2-5333059221a5","client_id":"client-d","type":"add_to_cart","product_id":"kes-std25"}
+{"ts":"2026-04-27T05:16:23Z","session_id":"s2-5333059221a5","client_id":"client-d","type":"add_to_cart","product_id":"mon-dell-p2725h"}
+{"ts":"2026-04-27T05:24:53Z","session_id":"s2-5333059221a5","client_id":"client-d","type":"order","product_id":"nb-e14g5-i5-16-512","quantity":15,"order_id":"o-00001","account_id":"client-d"}
+{"ts":"2026-04-27T05:24:53Z","session_id":"s2-5333059221a5","client_id":"client-d","type":"order","product_id":"kes-std25","quantity":1,"order_id":"o-00001","account_id":"client-d"}
+{"ts":"2026-04-27T05:24:53Z","session_id":"s2-5333059221a5","client_id":"client-d","type":"order","product_id":"mon-dell-p2725h","quantity":15,"order_id":"o-00001","account_id":"client-d"}
+{"ts":"2026-04-27T06:16:41Z","session_id":"s2-f04b324083b1","client_id":null,"type":"search","query":"память 16 гб для poweredge r740","results_count":0}
+{"ts":"2026-04-27T07:10:23Z","session_id":"s2-a49460e071eb","client_id":null,"type":"search","query":"сервер 1с проф 64 бит","results_count":0}
+{"ts":"2026-04-27T07:32:20Z","session_id":"s2-b7bb0ab7a481","client_id":null,"type":"search","query":"cal 2025 на 25 пользователей","results_count":13}
+{"ts":"2026-04-27T07:32:36Z","session_id":"s2-b7bb0ab7a481","client_id":null,"type":"click","product_id":"wscal25-u1","position":8}
+{"ts":"2026-04-27T07:33:51Z","session_id":"s2-b7bb0ab7a481","client_id":null,"type":"add_to_cart","product_id":"wscal25-u1"}
+{"ts":"2026-04-27T07:51:16Z","session_id":"s2-c4718b17e1d1","client_id":null,"type":"search","query":"windows server 2025 standard на 50 пользователей","results_count":4}
+{"ts":"2026-04-27T07:51:55Z","session_id":"s2-c4718b17e1d1","client_id":null,"type":"click","product_id":"ws25-std2","position":4}
+{"ts":"2026-04-27T08:24:30Z","session_id":"s2-842af82b1de9","client_id":null,"type":"search","query":"диски для hpe dl380 gen11","results_count":0}
+{"ts":"2026-04-27T08:36:27Z","session_id":"s2-fea59de77244","client_id":null,"type":"add_to_cart","product_id":"sql22-stdsrv"}
+{"ts":"2026-04-27T08:37:56Z","session_id":"s2-fea59de77244","client_id":null,"type":"add_to_cart","product_id":"sql22-cal"}
+{"ts":"2026-04-27T08:40:42Z","session_id":"s2-fea59de77244","client_id":null,"type":"order","product_id":"sql22-stdsrv","quantity":1,"order_id":"o-00002","account_id":"acc-037"}
+{"ts":"2026-04-27T08:40:42Z","session_id":"s2-fea59de77244","client_id":null,"type":"order","product_id":"sql22-cal","quantity":15,"order_id":"o-00002","account_id":"acc-037"}
+{"ts":"2026-04-27T08:54:07Z","session_id":"s2-1594a9575596","client_id":null,"type":"search","query":"антивирус для компании на 50 пк","results_count":0}
+{"ts":"2026-04-27T09:26:51Z","session_id":"s2-2fb495e9e58e","client_id":null,"type":"add_to_cart","product_id":"mem-hpe-16g-d4"}
+{"ts":"2026-04-27T09:27:09Z","session_id":"s2-2fb495e9e58e","client_id":null,"type":"add_to_cart","product_id":"nb-e14g5-i7-16-1t"}
+{"ts":"2026-04-27T09:32:58Z","session_id":"s2-2fb495e9e58e","client_id":null,"type":"order","product_id":"mem-hpe-16g-d4","quantity":3,"order_id":"o-00003","account_id":"acc-007"}
+{"ts":"2026-04-27T09:32:58Z","session_id":"s2-2fb495e9e58e","client_id":null,"type":"order","product_id":"nb-e14g5-i7-16-1t","quantity":1,"order_id":"o-00003","account_id":"acc-007"}
+{"ts":"2026-04-27T09:39:26Z","session_id":"s2-5efb33d2e4ed","client_id":null,"type":"add_to_cart","product_id":"nb-ns685-i5-8-256"}
+{"ts":"2026-04-27T09:40:12Z","session_id":"s2-5efb33d2e4ed","client_id":null,"type":"add_to_cart","product_id":"kes-std25"}
+{"ts":"2026-04-27T09:40:33Z","session_id":"s2-5efb33d2e4ed","client_id":null,"type":"add_to_cart","product_id":"w11p-oem"}
+{"ts":"2026-04-27T09:41:15Z","session_id":"s2-5efb33d2e4ed","client_id":null,"type":"add_to_cart","product_id":"mon-dell-p2425h"}
+{"ts":"2026-04-27T09:50:43Z","session_id":"s2-5efb33d2e4ed","client_id":null,"type":"order","product_id":"nb-ns685-i5-8-256","quantity":1,"order_id":"o-00004","account_id":"acc-034"}
+{"ts":"2026-04-27T09:50:43Z","session_id":"s2-5efb33d2e4ed","client_id":null,"type":"order","product_id":"kes-std25","quantity":1,"order_id":"o-00004","account_id":"acc-034"}
+{"ts":"2026-04-27T09:50:43Z","session_id":"s2-5efb33d2e4ed","client_id":null,"type":"order","product_id":"w11p-oem","quantity":1,"order_id":"o-00004","account_id":"acc-034"}
+{"ts":"2026-04-27T09:50:43Z","session_id":"s2-5efb33d2e4ed","client_id":null,"type":"order","product_id":"mon-dell-p2425h","quantity":1,"order_id":"o-00004","account_id":"acc-034"}
+{"ts":"2026-04-27T10:22:20Z","session_id":"s2-25b8e1abf7f0","client_id":null,"type":"add_to_cart","product_id":"nb-t14g4-i5-16-512"}
+{"ts":"2026-04-27T10:22:31Z","session_id":"s2-25b8e1abf7f0","client_id":null,"type":"add_to_cart","product_id":"off24-hb"}
+{"ts":"2026-04-27T10:23:55Z","session_id":"s2-25b8e1abf7f0","client_id":null,"type":"add_to_cart","product_id":"kes-std25"}
+{"ts":"2026-04-27T10:25:36Z","session_id":"s2-25b8e1abf7f0","client_id":null,"type":"order","product_id":"nb-t14g4-i5-16-512","quantity":15,"order_id":"o-00005","account_id":"acc-006"}
+{"ts":"2026-04-27T10:25:36Z","session_id":"s2-25b8e1abf7f0","client_id":null,"type":"order","product_id":"off24-hb","quantity":15,"order_id":"o-00005","account_id":"acc-006"}
+{"ts":"2026-04-27T10:25:36Z","session_id":"s2-25b8e1abf7f0","client_id":null,"type":"order","product_id":"kes-std25","quantity":1,"order_id":"o-00005","account_id":"acc-006"}
+{"ts":"2026-04-27T10:26:55Z","session_id":"s2-2d1d503c6ff9","client_id":null,"type":"search","query":"sql server 2022 standard по ядрам на 4 ядра","results_count":0}
+{"ts":"2026-04-27T10:29:00Z","session_id":"s2-9f33092cec65","client_id":"client-d","type":"add_to_cart","product_id":"ws25-std16"}
+{"ts":"2026-04-27T10:29:27Z","session_id":"s2-9f33092cec65","client_id":"client-d","type":"add_to_cart","product_id":"wscal25-d1"}
+{"ts":"2026-04-27T10:33:07Z","session_id":"s2-9f33092cec65","client_id":"client-d","type":"order","product_id":"ws25-std16","quantity":1,"order_id":"o-00006","account_id":"client-d"}
+{"ts":"2026-04-27T10:33:07Z","session_id":"s2-9f33092cec65","client_id":"client-d","type":"order","product_id":"wscal25-d1","quantity":30,"order_id":"o-00006","account_id":"client-d"}
+{"ts":"2026-04-27T10:42:20Z","session_id":"s2-1750ef95fd86","client_id":null,"type":"search","query":"microsoft 365 business standard годовая подписка","results_count":0}
+{"ts":"2026-04-27T10:57:54Z","session_id":"s2-687f7c3cd7e2","client_id":null,"type":"search","query":"windows server 2025 standard cal уже есть","results_count":0}
+{"ts":"2026-04-27T11:02:22Z","session_id":"s2-170ba6aad2d8","client_id":null,"type":"search","query":"ноутбук с windows и office","results_count":0}
+{"ts":"2026-04-27T13:18:50Z","session_id":"s2-888dcfe637b3","client_id":null,"type":"search","query":"ноутбук от 32 гб озу","results_count":0}
+{"ts":"2026-04-27T13:27:52Z","session_id":"s2-fd277cc08845","client_id":null,"type":"add_to_cart","product_id":"mem-yadro-32g-d4"}
+{"ts":"2026-04-27T13:32:22Z","session_id":"s2-fd277cc08845","client_id":null,"type":"order","product_id":"mem-yadro-32g-d4","quantity":5,"order_id":"o-00007","account_id":"acc-009"}
+{"ts":"2026-04-27T13:39:56Z","session_id":"s2-1a919a8dc128","client_id":null,"type":"search","query":"office 2024 для дома и бизнеса 10 пк","results_count":2}
+{"ts":"2026-04-27T13:40:04Z","session_id":"s2-1a919a8dc128","client_id":null,"type":"click","product_id":"off24-hb","position":2}
+{"ts":"2026-04-27T15:16:10Z","session_id":"s2-12d89de60e44","client_id":null,"type":"add_to_cart","product_id":"nb-t14g4-i7-32-1t"}
+{"ts":"2026-04-27T15:23:14Z","session_id":"s2-12d89de60e44","client_id":null,"type":"order","product_id":"nb-t14g4-i7-32-1t","quantity":1,"order_id":"o-00008","account_id":"acc-034"}
+{"ts":"2026-04-27T16:32:33Z","session_id":"s2-2e39c93b12f7","client_id":null,"type":"search","query":"cal для windows server 2025","results_count":9}
+{"ts":"2026-04-27T17:49:50Z","session_id":"s2-17361743a9f3","client_id":null,"type":"add_to_cart","product_id":"mem-hpe-32g-d4"}
+{"ts":"2026-04-27T17:50:21Z","session_id":"s2-17361743a9f3","client_id":null,"type":"add_to_cart","product_id":"srv-dl380g10-5218"}
+{"ts":"2026-04-27T17:54:14Z","session_id":"s2-17361743a9f3","client_id":null,"type":"order","product_id":"mem-hpe-32g-d4","quantity":3,"order_id":"o-00009","account_id":"acc-030"}
+{"ts":"2026-04-27T17:54:14Z","session_id":"s2-17361743a9f3","client_id":null,"type":"order","product_id":"srv-dl380g10-5218","quantity":1,"order_id":"o-00009","account_id":"acc-030"}
+{"ts":"2026-04-28T05:45:06Z","session_id":"s2-e9563af00d79","client_id":null,"type":"search","query":"жесткий диск 8 тб","results_count":4}
+{"ts":"2026-04-28T05:45:25Z","session_id":"s2-e9563af00d79","client_id":null,"type":"click","product_id":"hdd-seagate-exos-8tb","position":2}
+{"ts":"2026-04-28T05:48:08Z","session_id":"s2-e9563af00d79","client_id":null,"type":"add_to_cart","product_id":"hdd-seagate-exos-8tb"}
+{"ts":"2026-04-28T05:56:39Z","session_id":"s2-a799ccaac7d4","client_id":null,"type":"add_to_cart","product_id":"ups-ippon-rt-3000"}
+{"ts":"2026-04-28T06:02:00Z","session_id":"s2-a799ccaac7d4","client_id":null,"type":"order","product_id":"ups-ippon-rt-3000","quantity":3,"order_id":"o-00010","account_id":"acc-003"}
+{"ts":"2026-04-28T06:11:35Z","session_id":"s2-e97cc936c487","client_id":null,"type":"search","query":"диск 3,5 8 тб для dl380 gen11","results_count":0}
+{"ts":"2026-04-28T06:19:22Z","session_id":"s2-f3d042acb2bf","client_id":null,"type":"search","query":"dell poweredge r740","results_count":3}
+{"ts":"2026-04-28T06:19:49Z","session_id":"s2-f3d042acb2bf","client_id":null,"type":"click","product_id":"srv-r740-s4210","position":2}
+{"ts":"2026-04-28T06:37:42Z","session_id":"s2-c7866a90ea30","client_id":null,"type":"search","query":"cal для windows server 2025","results_count":9}
+{"ts":"2026-04-28T06:38:22Z","session_id":"s2-c7866a90ea30","client_id":null,"type":"click","product_id":"wscal25-d1","position":3}
+{"ts":"2026-04-28T07:02:33Z","session_id":"s2-acd7b5a46843","client_id":"client-d","type":"add_to_cart","product_id":"ws25-std16"}
+{"ts":"2026-04-28T07:02:55Z","session_id":"s2-acd7b5a46843","client_id":"client-d","type":"add_to_cart","product_id":"wscal25-u5"}
+{"ts":"2026-04-28T07:03:33Z","session_id":"s2-acd7b5a46843","client_id":"client-d","type":"add_to_cart","product_id":"rdscal25-u1"}
+{"ts":"2026-04-28T07:04:36Z","session_id":"s2-acd7b5a46843","client_id":"client-d","type":"order","product_id":"ws25-std16","quantity":1,"order_id":"o-00011","account_id":"client-d"}
+{"ts":"2026-04-28T07:04:36Z","session_id":"s2-acd7b5a46843","client_id":"client-d","type":"order","product_id":"wscal25-u5","quantity":5,"order_id":"o-00011","account_id":"client-d"}
+{"ts":"2026-04-28T07:04:36Z","session_id":"s2-acd7b5a46843","client_id":"client-d","type":"order","product_id":"rdscal25-u1","quantity":12,"order_id":"o-00011","account_id":"client-d"}
+{"ts":"2026-04-28T07:07:04Z","session_id":"s2-b3db03b94a71","client_id":null,"type":"search","query":"ksm32rd4 32hdr","results_count":0}
+{"ts":"2026-04-28T07:07:45Z","session_id":"s2-3c686c6eeefc","client_id":null,"type":"search","query":"серверная память 32 гб ddr4","results_count":10}
+{"ts":"2026-04-28T08:22:36Z","session_id":"s2-4faf30974f0f","client_id":null,"type":"search","query":"microsoft 365 business premium на 30 пользователей","results_count":1}
+{"ts":"2026-04-28T08:23:00Z","session_id":"s2-4faf30974f0f","client_id":null,"type":"click","product_id":"m365b-bp","position":1}
+{"ts":"2026-04-28T08:23:23Z","session_id":"s2-4faf30974f0f","client_id":null,"type":"add_to_cart","product_id":"m365b-bp"}
+{"ts":"2026-04-28T08:41:49Z","session_id":"s2-deef9ecff91d","client_id":null,"type":"search","query":"ноутбук с windows и office","results_count":0}
+{"ts":"2026-04-28T09:14:45Z","session_id":"s2-e6fc7bf3dc1b","client_id":null,"type":"search","query":"коммутатор и ибп для небольшого офиса","results_count":0}
+{"ts":"2026-04-28T10:10:46Z","session_id":"s2-6ed42830dab9","client_id":null,"type":"search","query":"windows server 2022 standard на 20 пользователей","results_count":4}
+{"ts":"2026-04-28T10:11:24Z","session_id":"s2-6ed42830dab9","client_id":null,"type":"click","product_id":"ws22-std2","position":3}
+{"ts":"2026-04-28T10:13:03Z","session_id":"s2-6ed42830dab9","client_id":null,"type":"add_to_cart","product_id":"ws22-std2"}
+{"ts":"2026-04-28T10:18:48Z","session_id":"s2-e0d05a7f84fa","client_id":null,"type":"search","query":"cal для windows server 2022 на 5 устройств","results_count":9}
+{"ts":"2026-04-28T10:18:54Z","session_id":"s2-e0d05a7f84fa","client_id":null,"type":"click","product_id":"wscal25-d1","position":3}
+{"ts":"2026-04-28T10:20:38Z","session_id":"s2-75baa373a000","client_id":null,"type":"add_to_cart","product_id":"mem-dell-64g-d4"}
+{"ts":"2026-04-28T10:24:01Z","session_id":"s2-75baa373a000","client_id":null,"type":"order","product_id":"mem-dell-64g-d4","quantity":5,"order_id":"o-00012","account_id":"acc-030"}
+{"ts":"2026-04-28T10:46:54Z","session_id":"s2-d3c96aa2b5de","client_id":null,"type":"add_to_cart","product_id":"nb-ns685-i5-16-512"}
+{"ts":"2026-04-28T10:47:37Z","session_id":"s2-d3c96aa2b5de","client_id":null,"type":"add_to_cart","product_id":"off24-hb"}
+{"ts":"2026-04-28T10:48:48Z","session_id":"s2-d3c96aa2b5de","client_id":null,"type":"add_to_cart","product_id":"w11p-oem"}
+{"ts":"2026-04-28T10:58:22Z","session_id":"s2-d3c96aa2b5de","client_id":null,"type":"order","product_id":"nb-ns685-i5-16-512","quantity":1,"order_id":"o-00013","account_id":"acc-032"}
+{"ts":"2026-04-28T10:58:22Z","session_id":"s2-d3c96aa2b5de","client_id":null,"type":"order","product_id":"off24-hb","quantity":1,"order_id":"o-00013","account_id":"acc-032"}
+{"ts":"2026-04-28T10:58:22Z","session_id":"s2-d3c96aa2b5de","client_id":null,"type":"order","product_id":"w11p-oem","quantity":1,"order_id":"o-00013","account_id":"acc-032"}
+{"ts":"2026-04-28T11:13:38Z","session_id":"s2-395050d1bb92","client_id":null,"type":"search","query":"монитор 24-27 дюймов","results_count":0}
+{"ts":"2026-04-28T11:46:53Z","session_id":"s2-445835a5f1eb","client_id":null,"type":"search","query":"windows server 2025 на 50 устройств","results_count":23}
+{"ts":"2026-04-28T11:47:08Z","session_id":"s2-445835a5f1eb","client_id":null,"type":"click","product_id":"ws25-std16","position":2}
+{"ts":"2026-04-28T11:50:06Z","session_id":"s2-445835a5f1eb","client_id":null,"type":"add_to_cart","product_id":"ws25-std16"}
+{"ts":"2026-04-28T12:34:10Z","session_id":"s2-9da6bf170ecd","client_id":null,"type":"search","query":"10 ноутбуков","results_count":11}
+{"ts":"2026-04-28T13:23:40Z","session_id":"s2-2314df73066a","client_id":null,"type":"search","query":"windows server 2025 standard на 50 пользователей","results_count":4}
+{"ts":"2026-04-28T13:24:06Z","session_id":"s2-2314df73066a","client_id":null,"type":"click","product_id":"ws25-std16","position":2}
+{"ts":"2026-04-28T13:40:17Z","session_id":"s2-8bb1adab0af6","client_id":null,"type":"search","query":"10 ноутбуков","results_count":11}
+{"ts":"2026-04-28T13:40:27Z","session_id":"s2-8bb1adab0af6","client_id":null,"type":"click","product_id":"nb-e14g5-i5-16-512","position":3}
+{"ts":"2026-04-28T14:19:55Z","session_id":"s2-2a69bb6a6a29","client_id":null,"type":"search","query":"сервер для 1с с windows server и sql","results_count":0}
+{"ts":"2026-04-28T15:58:09Z","session_id":"s2-15ac7be67488","client_id":null,"type":"price_request","product_id":"srv-dl380g11-5418y"}
+{"ts":"2026-04-28T15:58:09Z","session_id":"s2-15ac7be67488","client_id":null,"type":"add_to_cart","product_id":"srv-dl380g11-5418y"}
+{"ts":"2026-04-28T15:58:57Z","session_id":"s2-15ac7be67488","client_id":null,"type":"add_to_cart","product_id":"mem-hpe-16g-d5"}
+{"ts":"2026-04-28T15:59:41Z","session_id":"s2-15ac7be67488","client_id":null,"type":"add_to_cart","product_id":"hdd-hpe-2400-sas"}
+{"ts":"2026-04-28T16:07:09Z","session_id":"s2-15ac7be67488","client_id":null,"type":"order","product_id":"srv-dl380g11-5418y","quantity":2,"order_id":"o-00014","account_id":"acc-036"}
+{"ts":"2026-04-28T16:07:09Z","session_id":"s2-15ac7be67488","client_id":null,"type":"order","product_id":"mem-hpe-16g-d5","quantity":8,"order_id":"o-00014","account_id":"acc-036"}
+{"ts":"2026-04-28T16:07:09Z","session_id":"s2-15ac7be67488","client_id":null,"type":"order","product_id":"hdd-hpe-2400-sas","quantity":2,"order_id":"o-00014","account_id":"acc-036"}
+{"ts":"2026-04-28T16:30:03Z","session_id":"s2-75f206abe1f5","client_id":null,"type":"search","query":"windows server 2022 standard на 20 пользователей","results_count":4}
+{"ts":"2026-04-28T16:30:34Z","session_id":"s2-75f206abe1f5","client_id":null,"type":"click","product_id":"ws22-std16","position":1}
+{"ts":"2026-04-28T16:33:00Z","session_id":"s2-75f206abe1f5","client_id":null,"type":"add_to_cart","product_id":"ws22-std16"}
+{"ts":"2026-04-28T16:40:22Z","session_id":"s2-5f3dbd2697dd","client_id":null,"type":"search","query":"rds cal 2025","results_count":3}
+{"ts":"2026-04-28T16:40:34Z","session_id":"s2-5f3dbd2697dd","client_id":null,"type":"click","product_id":"rdscal25-u1","position":2}
+{"ts":"2026-04-28T16:41:36Z","session_id":"s2-5f3dbd2697dd","client_id":null,"type":"add_to_cart","product_id":"rdscal25-u1"}
+{"ts":"2026-04-29T06:17:30Z","session_id":"s2-44ec4bc8b42f","client_id":null,"type":"search","query":"rds cal 2022 для windows server 2025","results_count":1}
+{"ts":"2026-04-29T06:31:23Z","session_id":"s2-81b0b29a0af2","client_id":null,"type":"search","query":"P2425H","results_count":1}
+{"ts":"2026-04-29T06:31:39Z","session_id":"s2-81b0b29a0af2","client_id":null,"type":"click","product_id":"mon-dell-p2425h","position":1}
+{"ts":"2026-04-29T06:47:03Z","session_id":"s2-10c98230c547","client_id":null,"type":"search","query":"ssd 960 гб sata","results_count":4}
+{"ts":"2026-04-29T06:47:12Z","session_id":"s2-10c98230c547","client_id":null,"type":"click","product_id":"ssd-hpe-960-sata","position":1}
+{"ts":"2026-04-29T06:49:15Z","session_id":"s2-0f3eef7b26b8","client_id":null,"type":"add_to_cart","product_id":"nb-pb450g10-i5-8-256"}
+{"ts":"2026-04-29T06:49:46Z","session_id":"s2-0f3eef7b26b8","client_id":null,"type":"add_to_cart","product_id":"m365b-bs"}
+{"ts":"2026-04-29T06:51:15Z","session_id":"s2-0f3eef7b26b8","client_id":null,"type":"add_to_cart","product_id":"w11p-oem"}
+{"ts":"2026-04-29T06:51:58Z","session_id":"s2-0f3eef7b26b8","client_id":null,"type":"add_to_cart","product_id":"mon-dell-p2725h"}
+{"ts":"2026-04-29T06:56:40Z","session_id":"s2-0f3eef7b26b8","client_id":null,"type":"order","product_id":"nb-pb450g10-i5-8-256","quantity":15,"order_id":"o-00015","account_id":"acc-023"}
+{"ts":"2026-04-29T06:56:40Z","session_id":"s2-0f3eef7b26b8","client_id":null,"type":"order","product_id":"m365b-bs","quantity":15,"order_id":"o-00015","account_id":"acc-023"}
+{"ts":"2026-04-29T06:56:40Z","session_id":"s2-0f3eef7b26b8","client_id":null,"type":"order","product_id":"w11p-oem","quantity":15,"order_id":"o-00015","account_id":"acc-023"}
+{"ts":"2026-04-29T06:56:40Z","session_id":"s2-0f3eef7b26b8","client_id":null,"type":"order","product_id":"mon-dell-p2725h","quantity":15,"order_id":"o-00015","account_id":"acc-023"}
+{"ts":"2026-04-29T07:00:09Z","session_id":"s2-62f5cd925257","client_id":null,"type":"search","query":"диски для hpe dl380 gen11","results_count":0}
+{"ts":"2026-04-29T07:13:52Z","session_id":"s2-72482d209c61","client_id":null,"type":"search","query":"MZ7L3960HCJR-00A07","results_count":0}
+{"ts":"2026-04-29T07:19:16Z","session_id":"s2-724bd126bada","client_id":null,"type":"add_to_cart","product_id":"mon-dell-u2724d"}
+{"ts":"2026-04-29T07:27:13Z","session_id":"s2-724bd126bada","client_id":null,"type":"order","product_id":"mon-dell-u2724d","quantity":1,"order_id":"o-00016","account_id":"acc-022"}
+{"ts":"2026-04-29T07:28:27Z","session_id":"s2-a930a351cc02","client_id":null,"type":"search","query":"cal 2025 для windows server 2025","results_count":9}
+{"ts":"2026-04-29T07:28:36Z","session_id":"s2-a930a351cc02","client_id":null,"type":"click","product_id":"wscal25-u1","position":7}
+{"ts":"2026-04-29T07:34:04Z","session_id":"s2-47e1cf1f33a2","client_id":null,"type":"add_to_cart","product_id":"nb-ns685-i5-8-256"}
+{"ts":"2026-04-29T07:34:20Z","session_id":"s2-47e1cf1f33a2","client_id":null,"type":"add_to_cart","product_id":"w11p-oem"}
+{"ts":"2026-04-29T07:38:19Z","session_id":"s2-47e1cf1f33a2","client_id":null,"type":"order","product_id":"nb-ns685-i5-8-256","quantity":20,"order_id":"o-00017","account_id":"acc-028"}
+{"ts":"2026-04-29T07:38:19Z","session_id":"s2-47e1cf1f33a2","client_id":null,"type":"order","product_id":"w11p-oem","quantity":20,"order_id":"o-00017","account_id":"acc-028"}
+{"ts":"2026-04-29T08:08:42Z","session_id":"s2-bc8a7847dec4","client_id":null,"type":"search","query":"microsoft 365 business standard годовая подписка","results_count":0}
+{"ts":"2026-04-29T08:14:04Z","session_id":"s2-d6020290e8d7","client_id":null,"type":"add_to_cart","product_id":"nb-pb450g10-i5-8-256"}
+{"ts":"2026-04-29T08:14:26Z","session_id":"s2-d6020290e8d7","client_id":null,"type":"add_to_cart","product_id":"m365b-bs"}
+{"ts":"2026-04-29T08:15:31Z","session_id":"s2-d6020290e8d7","client_id":null,"type":"add_to_cart","product_id":"w11p-oem"}
+{"ts":"2026-04-29T08:19:08Z","session_id":"s2-d6020290e8d7","client_id":null,"type":"order","product_id":"nb-pb450g10-i5-8-256","quantity":25,"order_id":"o-00018","account_id":"acc-014"}
+{"ts":"2026-04-29T08:19:08Z","session_id":"s2-d6020290e8d7","client_id":null,"type":"order","product_id":"m365b-bs","quantity":25,"order_id":"o-00018","account_id":"acc-014"}
+{"ts":"2026-04-29T08:19:08Z","session_id":"s2-d6020290e8d7","client_id":null,"type":"order","product_id":"w11p-oem","quantity":25,"order_id":"o-00018","account_id":"acc-014"}
+{"ts":"2026-04-29T08:24:17Z","session_id":"s2-33f044592767","client_id":null,"type":"add_to_cart","product_id":"srv-r750-s4314"}
+{"ts":"2026-04-29T08:25:05Z","session_id":"s2-33f044592767","client_id":null,"type":"add_to_cart","product_id":"mem-kingston-32g-d4"}
+{"ts":"2026-04-29T08:25:49Z","session_id":"s2-33f044592767","client_id":null,"type":"add_to_cart","product_id":"ssd-dell-960-sas"}
+{"ts":"2026-04-29T08:26:20Z","session_id":"s2-33f044592767","client_id":null,"type":"add_to_cart","product_id":"ups-ippon-rt-3000"}
+{"ts":"2026-04-29T08:30:00Z","session_id":"s2-33f044592767","client_id":null,"type":"order","product_id":"srv-r750-s4314","quantity":1,"order_id":"o-00019","account_id":"acc-024"}
+{"ts":"2026-04-29T08:30:00Z","session_id":"s2-33f044592767","client_id":null,"type":"order","product_id":"mem-kingston-32g-d4","quantity":8,"order_id":"o-00019","account_id":"acc-024"}
+{"ts":"2026-04-29T08:30:00Z","session_id":"s2-33f044592767","client_id":null,"type":"order","product_id":"ssd-dell-960-sas","quantity":2,"order_id":"o-00019","account_id":"acc-024"}
+{"ts":"2026-04-29T08:30:00Z","session_id":"s2-33f044592767","client_id":null,"type":"order","product_id":"ups-ippon-rt-3000","quantity":1,"order_id":"o-00019","account_id":"acc-024"}
+{"ts":"2026-04-29T09:30:01Z","session_id":"s2-4ad856d58a7b","client_id":null,"type":"search","query":"1с сервер корп и клиентские лицензии на 20 пользователей","results_count":0}
+{"ts":"2026-04-29T09:35:03Z","session_id":"s2-f3be3e20b17c","client_id":null,"type":"search","query":"оснастить офис на 10 человек ноутбуками и офисом","results_count":0}
+{"ts":"2026-04-29T11:17:16Z","session_id":"s2-8f330af37deb","client_id":null,"type":"search","query":"windows server 2025 standard на 50 пользователей","results_count":4}
+{"ts":"2026-04-29T11:17:44Z","session_id":"s2-8f330af37deb","client_id":null,"type":"click","product_id":"ws25-std16","position":2}
+{"ts":"2026-04-29T11:25:15Z","session_id":"s2-c5c3c705465f","client_id":null,"type":"search","query":"P43328-B21","results_count":0}
+{"ts":"2026-04-29T11:55:23Z","session_id":"s2-65859bbe6e27","client_id":null,"type":"search","query":"cal для windows server 2025","results_count":9}
+{"ts":"2026-04-29T12:46:17Z","session_id":"s2-f8fa65f3af73","client_id":null,"type":"search","query":"жесткий диск 8 тб","results_count":4}
+{"ts":"2026-04-29T12:46:22Z","session_id":"s2-f8fa65f3af73","client_id":null,"type":"click","product_id":"hdd-seagate-exos-8tb","position":2}
+{"ts":"2026-04-29T13:26:55Z","session_id":"s2-295014a90088","client_id":null,"type":"search","query":"cal","results_count":13}
+{"ts":"2026-04-29T13:43:52Z","session_id":"s2-6da4f1f00ef9","client_id":null,"type":"search","query":"ноутбук 16 гб 512 гб","results_count":11}
+{"ts":"2026-04-29T13:44:28Z","session_id":"s2-6da4f1f00ef9","client_id":null,"type":"click","product_id":"nb-lat5540-i5-16-512","position":6}
+{"ts":"2026-04-29T13:46:35Z","session_id":"s2-6da4f1f00ef9","client_id":null,"type":"add_to_cart","product_id":"nb-lat5540-i5-16-512"}
+{"ts":"2026-04-29T15:06:22Z","session_id":"s2-59bc6cbd92b4","client_id":null,"type":"add_to_cart","product_id":"nb-lat5540-i5-16-512"}
+{"ts":"2026-04-29T15:07:39Z","session_id":"s2-59bc6cbd92b4","client_id":null,"type":"add_to_cart","product_id":"off24-hb"}
+{"ts":"2026-04-29T15:07:56Z","session_id":"s2-59bc6cbd92b4","client_id":null,"type":"add_to_cart","product_id":"mon-dell-p2725h"}
+{"ts":"2026-04-29T15:14:06Z","session_id":"s2-59bc6cbd92b4","client_id":null,"type":"order","product_id":"nb-lat5540-i5-16-512","quantity":10,"order_id":"o-00020","account_id":"acc-040"}
+{"ts":"2026-04-29T15:14:06Z","session_id":"s2-59bc6cbd92b4","client_id":null,"type":"order","product_id":"off24-hb","quantity":10,"order_id":"o-00020","account_id":"acc-040"}
+{"ts":"2026-04-29T15:14:06Z","session_id":"s2-59bc6cbd92b4","client_id":null,"type":"order","product_id":"mon-dell-p2725h","quantity":10,"order_id":"o-00020","account_id":"acc-040"}
+{"ts":"2026-04-29T15:24:03Z","session_id":"s2-5ae1565c954b","client_id":null,"type":"add_to_cart","product_id":"srv-r750-s4314"}
+{"ts":"2026-04-29T15:25:10Z","session_id":"s2-5ae1565c954b","client_id":null,"type":"add_to_cart","product_id":"mem-dell-32g-d4"}
+{"ts":"2026-04-29T15:26:32Z","session_id":"s2-5ae1565c954b","client_id":null,"type":"add_to_cart","product_id":"ups-ippon-rt-6000"}
+{"ts":"2026-04-29T15:30:49Z","session_id":"s2-5ae1565c954b","client_id":null,"type":"order","product_id":"srv-r750-s4314","quantity":1,"order_id":"o-00021","account_id":"acc-024"}
+{"ts":"2026-04-29T15:30:49Z","session_id":"s2-5ae1565c954b","client_id":null,"type":"order","product_id":"mem-dell-32g-d4","quantity":2,"order_id":"o-00021","account_id":"acc-024"}
+{"ts":"2026-04-29T15:30:49Z","session_id":"s2-5ae1565c954b","client_id":null,"type":"order","product_id":"ups-ippon-rt-6000","quantity":1,"order_id":"o-00021","account_id":"acc-024"}
+{"ts":"2026-04-30T06:03:36Z","session_id":"s2-9974d1a4a431","client_id":null,"type":"search","query":"сервер для 1с с windows server и sql","results_count":0}
+{"ts":"2026-04-30T06:33:34Z","session_id":"s2-4c286fc73c41","client_id":null,"type":"add_to_cart","product_id":"nb-mbd16-i5-16-512"}
+{"ts":"2026-04-30T06:34:56Z","session_id":"s2-4c286fc73c41","client_id":null,"type":"add_to_cart","product_id":"off24-hb"}
+{"ts":"2026-04-30T06:36:17Z","session_id":"s2-4c286fc73c41","client_id":null,"type":"add_to_cart","product_id":"kes-std25"}
+{"ts":"2026-04-30T06:45:23Z","session_id":"s2-4c286fc73c41","client_id":null,"type":"order","product_id":"nb-mbd16-i5-16-512","quantity":1,"order_id":"o-00022","account_id":"acc-011"}
+{"ts":"2026-04-30T06:45:23Z","session_id":"s2-4c286fc73c41","client_id":null,"type":"order","product_id":"off24-hb","quantity":1,"order_id":"o-00022","account_id":"acc-011"}
+{"ts":"2026-04-30T06:45:23Z","session_id":"s2-4c286fc73c41","client_id":null,"type":"order","product_id":"kes-std25","quantity":1,"order_id":"o-00022","account_id":"acc-011"}
+{"ts":"2026-04-30T09:41:22Z","session_id":"s2-20c13658edd2","client_id":null,"type":"add_to_cart","product_id":"nb-ns685-i5-16-512"}
+{"ts":"2026-04-30T09:41:54Z","session_id":"s2-20c13658edd2","client_id":null,"type":"add_to_cart","product_id":"off24-hb"}
+{"ts":"2026-04-30T09:43:16Z","session_id":"s2-20c13658edd2","client_id":null,"type":"add_to_cart","product_id":"w11p-oem"}
+{"ts":"2026-04-30T09:50:15Z","session_id":"s2-20c13658edd2","client_id":null,"type":"order","product_id":"nb-ns685-i5-16-512","quantity":20,"order_id":"o-00023","account_id":"acc-006"}
+{"ts":"2026-04-30T09:50:15Z","session_id":"s2-20c13658edd2","client_id":null,"type":"order","product_id":"off24-hb","quantity":20,"order_id":"o-00023","account_id":"acc-006"}
+{"ts":"2026-04-30T09:50:15Z","session_id":"s2-20c13658edd2","client_id":null,"type":"order","product_id":"w11p-oem","quantity":20,"order_id":"o-00023","account_id":"acc-006"}
+{"ts":"2026-04-30T09:56:16Z","session_id":"s2-c6716d68bdb8","client_id":null,"type":"search","query":"монитор 24-27 дюймов","results_count":0}
+{"ts":"2026-04-30T10:10:45Z","session_id":"s2-5c91dd3a8b5b","client_id":null,"type":"search","query":"hpe dl380 gen11","results_count":3}
+{"ts":"2026-04-30T10:11:13Z","session_id":"s2-5c91dd3a8b5b","client_id":null,"type":"click","product_id":"srv-dl380g11-5418y","position":3}
+{"ts":"2026-04-30T10:12:33Z","session_id":"s2-9b94f308e138","client_id":null,"type":"add_to_cart","product_id":"nb-e14g5-i5-16-512"}
+{"ts":"2026-04-30T10:12:43Z","session_id":"s2-9b94f308e138","client_id":null,"type":"add_to_cart","product_id":"off24-hb"}
+{"ts":"2026-04-30T10:13:00Z","session_id":"s2-9b94f308e138","client_id":null,"type":"add_to_cart","product_id":"kes-std50"}
+{"ts":"2026-04-30T10:13:58Z","session_id":"s2-5c91dd3a8b5b","client_id":null,"type":"price_request","product_id":"srv-dl380g11-5418y"}
+{"ts":"2026-04-30T10:21:54Z","session_id":"s2-9b94f308e138","client_id":null,"type":"order","product_id":"nb-e14g5-i5-16-512","quantity":15,"order_id":"o-00024","account_id":"acc-015"}
+{"ts":"2026-04-30T10:21:54Z","session_id":"s2-9b94f308e138","client_id":null,"type":"order","product_id":"off24-hb","quantity":15,"order_id":"o-00024","account_id":"acc-015"}
+{"ts":"2026-04-30T10:21:54Z","session_id":"s2-9b94f308e138","client_id":null,"type":"order","product_id":"kes-std50","quantity":1,"order_id":"o-00024","account_id":"acc-015"}
+{"ts":"2026-04-30T10:30:23Z","session_id":"s2-b25eae22a2c7","client_id":null,"type":"search","query":"память для dell r740","results_count":0}
+{"ts":"2026-04-30T11:09:53Z","session_id":"s2-ea1378766e7f","client_id":null,"type":"search","query":"P0092","results_count":0}
+{"ts":"2026-04-30T12:13:00Z","session_id":"s2-4a163c04e923","client_id":null,"type":"add_to_cart","product_id":"w11p-esd"}
+{"ts":"2026-04-30T12:21:05Z","session_id":"s2-4a163c04e923","client_id":null,"type":"order","product_id":"w11p-esd","quantity":1,"order_id":"o-00025","account_id":"acc-021"}
+{"ts":"2026-04-30T12:43:32Z","session_id":"s2-0fe51df9eecf","client_id":null,"type":"search","query":"коммутатор 24 порта poe","results_count":0}
+{"ts":"2026-04-30T12:49:38Z","session_id":"s2-3f62bad65866","client_id":null,"type":"search","query":"hpe dl380 gen11","results_count":3}
+{"ts":"2026-04-30T13:01:54Z","session_id":"s2-b22fa405932f","client_id":null,"type":"search","query":"KSM32RD4/32HDR","results_count":0}
+{"ts":"2026-04-30T13:04:06Z","session_id":"s2-4b773944d578","client_id":null,"type":"search","query":"windows server 2025 и cal 2022","results_count":9}
+{"ts":"2026-04-30T14:06:05Z","session_id":"s2-ada16b3c5d5b","client_id":null,"type":"search","query":"сервер dell r750 с памятью и дисками","results_count":0}
+{"ts":"2026-04-30T14:06:26Z","session_id":"s2-ef9a6d488817","client_id":"client-c","type":"add_to_cart","product_id":"ws25-std16"}
+{"ts":"2026-04-30T14:07:04Z","session_id":"s2-ef9a6d488817","client_id":"client-c","type":"add_to_cart","product_id":"wscal25-u5"}
+{"ts":"2026-04-30T14:12:29Z","session_id":"s2-ef9a6d488817","client_id":"client-c","type":"order","product_id":"ws25-std16","quantity":1,"order_id":"o-00026","account_id":"client-c"}
+{"ts":"2026-04-30T14:12:29Z","session_id":"s2-ef9a6d488817","client_id":"client-c","type":"order","product_id":"wscal25-u5","quantity":6,"order_id":"o-00026","account_id":"client-c"}
+{"ts":"2026-04-30T14:40:59Z","session_id":"s2-be64181b8a3b","client_id":null,"type":"add_to_cart","product_id":"sw-eltex-mes2324p"}
+{"ts":"2026-04-30T14:42:15Z","session_id":"s2-be64181b8a3b","client_id":null,"type":"add_to_cart","product_id":"ups-ippon-spp-2200"}
+{"ts":"2026-04-30T14:48:30Z","session_id":"s2-be64181b8a3b","client_id":null,"type":"order","product_id":"sw-eltex-mes2324p","quantity":1,"order_id":"o-00027","account_id":"acc-019"}
+{"ts":"2026-04-30T14:48:30Z","session_id":"s2-be64181b8a3b","client_id":null,"type":"order","product_id":"ups-ippon-spp-2200","quantity":1,"order_id":"o-00027","account_id":"acc-019"}
+{"ts":"2026-04-30T15:17:47Z","session_id":"s2-e00e337e2d58","client_id":null,"type":"add_to_cart","product_id":"nb-t14g4-i5-16-512"}
+{"ts":"2026-04-30T15:18:24Z","session_id":"s2-e00e337e2d58","client_id":null,"type":"add_to_cart","product_id":"m365b-bb"}
+{"ts":"2026-04-30T15:19:18Z","session_id":"s2-e00e337e2d58","client_id":null,"type":"add_to_cart","product_id":"kes-std10"}
+{"ts":"2026-04-30T15:19:38Z","session_id":"s2-e00e337e2d58","client_id":null,"type":"add_to_cart","product_id":"mon-dell-p2425h"}
+{"ts":"2026-04-30T15:21:47Z","session_id":"s2-e00e337e2d58","client_id":null,"type":"order","product_id":"nb-t14g4-i5-16-512","quantity":15,"order_id":"o-00028","account_id":"acc-016"}
+{"ts":"2026-04-30T15:21:47Z","session_id":"s2-e00e337e2d58","client_id":null,"type":"order","product_id":"m365b-bb","quantity":15,"order_id":"o-00028","account_id":"acc-016"}
+{"ts":"2026-04-30T15:21:47Z","session_id":"s2-e00e337e2d58","client_id":null,"type":"order","product_id":"kes-std10","quantity":1,"order_id":"o-00028","account_id":"acc-016"}
+{"ts":"2026-04-30T15:21:47Z","session_id":"s2-e00e337e2d58","client_id":null,"type":"order","product_id":"mon-dell-p2425h","quantity":15,"order_id":"o-00028","account_id":"acc-016"}
+{"ts":"2026-04-30T15:37:26Z","session_id":"s2-6c5516c0598c","client_id":null,"type":"search","query":"серверная память","results_count":14}
+{"ts":"2026-04-30T15:39:31Z","session_id":"s2-9d585c186426","client_id":null,"type":"add_to_cart","product_id":"nb-e14g5-i5-16-512"}
+{"ts":"2026-04-30T15:39:56Z","session_id":"s2-9d585c186426","client_id":null,"type":"add_to_cart","product_id":"m365b-bp"}
+{"ts":"2026-04-30T15:40:25Z","session_id":"s2-0de49fdb3ae5","client_id":null,"type":"search","query":"серверная память 32 гб ddr4","results_count":10}
+{"ts":"2026-04-30T15:41:22Z","session_id":"s2-964998c1eb6c","client_id":null,"type":"add_to_cart","product_id":"mon-hp-e24g5"}
+{"ts":"2026-04-30T15:42:34Z","session_id":"s2-964998c1eb6c","client_id":null,"type":"add_to_cart","product_id":"sw-dlink-dgs1210-28"}
+{"ts":"2026-04-30T15:44:02Z","session_id":"s2-964998c1eb6c","client_id":null,"type":"order","product_id":"mon-hp-e24g5","quantity":2,"order_id":"o-00030","account_id":"acc-007"}
+{"ts":"2026-04-30T15:44:02Z","session_id":"s2-964998c1eb6c","client_id":null,"type":"order","product_id":"sw-dlink-dgs1210-28","quantity":1,"order_id":"o-00030","account_id":"acc-007"}
+{"ts":"2026-04-30T15:47:20Z","session_id":"s2-9d585c186426","client_id":null,"type":"order","product_id":"nb-e14g5-i5-16-512","quantity":5,"order_id":"o-00029","account_id":"acc-016"}
+{"ts":"2026-04-30T15:47:20Z","session_id":"s2-9d585c186426","client_id":null,"type":"order","product_id":"m365b-bp","quantity":5,"order_id":"o-00029","account_id":"acc-016"}
+{"ts":"2026-04-30T16:16:44Z","session_id":"s2-cea55ec336c0","client_id":null,"type":"add_to_cart","product_id":"mon-hp-e24g5"}
+{"ts":"2026-04-30T16:17:51Z","session_id":"s2-cea55ec336c0","client_id":null,"type":"add_to_cart","product_id":"sw-dlink-dgs1210-28"}
+{"ts":"2026-04-30T16:25:48Z","session_id":"s2-cea55ec336c0","client_id":null,"type":"order","product_id":"mon-hp-e24g5","quantity":2,"order_id":"o-00031","account_id":"acc-007"}
+{"ts":"2026-04-30T16:25:48Z","session_id":"s2-cea55ec336c0","client_id":null,"type":"order","product_id":"sw-dlink-dgs1210-28","quantity":1,"order_id":"o-00031","account_id":"acc-007"}
+{"ts":"2026-04-30T16:53:54Z","session_id":"s2-a01fc0022c5f","client_id":null,"type":"search","query":"370aevq","results_count":0}
+{"ts":"2026-04-30T17:06:43Z","session_id":"s2-7302d071ba51","client_id":null,"type":"search","query":"удаленный офис на 5 человек","results_count":0}
+{"ts":"2026-05-01T05:46:11Z","session_id":"s2-3167bf9471da","client_id":null,"type":"search","query":"r750","results_count":3}
+{"ts":"2026-05-01T06:48:11Z","session_id":"s2-ad5bb7ac30d0","client_id":null,"type":"add_to_cart","product_id":"nb-pb450g10-i5-16-512"}
+{"ts":"2026-05-01T06:49:32Z","session_id":"s2-ad5bb7ac30d0","client_id":null,"type":"add_to_cart","product_id":"off24-hb"}
+{"ts":"2026-05-01T06:58:02Z","session_id":"s2-ad5bb7ac30d0","client_id":null,"type":"order","product_id":"nb-pb450g10-i5-16-512","quantity":2,"order_id":"o-00032","account_id":"acc-034"}
+{"ts":"2026-05-01T06:58:02Z","session_id":"s2-ad5bb7ac30d0","client_id":null,"type":"order","product_id":"off24-hb","quantity":2,"order_id":"o-00032","account_id":"acc-034"}
+{"ts":"2026-05-01T07:22:47Z","session_id":"s2-16965c310c21","client_id":null,"type":"search","query":"rds cal для windows server 2025","results_count":1}
+{"ts":"2026-05-01T07:44:20Z","session_id":"s2-6121b3ec86ce","client_id":"client-d","type":"add_to_cart","product_id":"ws25-std16"}
+{"ts":"2026-05-01T07:45:39Z","session_id":"s2-6121b3ec86ce","client_id":"client-d","type":"add_to_cart","product_id":"wscal25-u1"}
+{"ts":"2026-05-01T07:53:51Z","session_id":"s2-6121b3ec86ce","client_id":"client-d","type":"order","product_id":"ws25-std16","quantity":1,"order_id":"o-00033","account_id":"client-d"}
+{"ts":"2026-05-01T07:53:51Z","session_id":"s2-6121b3ec86ce","client_id":"client-d","type":"order","product_id":"wscal25-u1","quantity":50,"order_id":"o-00033","account_id":"client-d"}
+{"ts":"2026-05-01T08:10:59Z","session_id":"s2-d9e74a13259d","client_id":null,"type":"search","query":"thinkpad t14 gen 4","results_count":2}
+{"ts":"2026-05-01T08:11:08Z","session_id":"s2-d9e74a13259d","client_id":null,"type":"click","product_id":"nb-t14g4-i7-32-1t","position":1}
+{"ts":"2026-05-01T08:12:40Z","session_id":"s2-d9e74a13259d","client_id":null,"type":"add_to_cart","product_id":"nb-t14g4-i7-32-1t"}
+{"ts":"2026-05-01T08:14:42Z","session_id":"s2-86dbfa9c395c","client_id":null,"type":"add_to_cart","product_id":"mem-hpe-64g-d5"}
+{"ts":"2026-05-01T08:18:59Z","session_id":"s2-86dbfa9c395c","client_id":null,"type":"order","product_id":"mem-hpe-64g-d5","quantity":5,"order_id":"o-00034","account_id":"acc-031"}
+{"ts":"2026-05-01T09:03:23Z","session_id":"s2-47ed92e88e21","client_id":null,"type":"search","query":"ноутбук 15,6 дюйма до 100000 рублей","results_count":0}
+{"ts":"2026-05-01T09:18:26Z","session_id":"s2-081795c742d6","client_id":null,"type":"add_to_cart","product_id":"mon-lenovo-l27i"}
+{"ts":"2026-05-01T09:20:08Z","session_id":"s2-081795c742d6","client_id":null,"type":"order","product_id":"mon-lenovo-l27i","quantity":1,"order_id":"o-00035","account_id":"acc-030"}
+{"ts":"2026-05-01T10:30:29Z","session_id":"s2-f11c5ed39810","client_id":null,"type":"search","query":"серверная память 32 гб ddr4","results_count":10}
+{"ts":"2026-05-01T10:34:25Z","session_id":"s2-ee287ba7b464","client_id":null,"type":"search","query":"office 2024 для дома и бизнеса 10 пк","results_count":2}
+{"ts":"2026-05-01T10:35:03Z","session_id":"s2-ee287ba7b464","client_id":null,"type":"click","product_id":"off24-hb","position":2}
+{"ts":"2026-05-01T10:35:50Z","session_id":"s2-ee287ba7b464","client_id":null,"type":"add_to_cart","product_id":"off24-hb"}
+{"ts":"2026-05-01T10:59:23Z","session_id":"s2-3c932f55a86c","client_id":null,"type":"search","query":"память для yadro vegman r220","results_count":0}
+{"ts":"2026-05-01T12:37:46Z","session_id":"s2-49da708244a7","client_id":null,"type":"add_to_cart","product_id":"nb-lat5540-i5-16-512"}
+{"ts":"2026-05-01T12:38:09Z","session_id":"s2-49da708244a7","client_id":null,"type":"add_to_cart","product_id":"off24-hb"}
+{"ts":"2026-05-01T12:39:11Z","session_id":"s2-49da708244a7","client_id":null,"type":"add_to_cart","product_id":"kes-std50"}
+{"ts":"2026-05-01T12:41:18Z","session_id":"s2-49da708244a7","client_id":null,"type":"order","product_id":"nb-lat5540-i5-16-512","quantity":25,"order_id":"o-00036","account_id":"acc-017"}
+{"ts":"2026-05-01T12:41:18Z","session_id":"s2-49da708244a7","client_id":null,"type":"order","product_id":"off24-hb","quantity":25,"order_id":"o-00036","account_id":"acc-017"}
+{"ts":"2026-05-01T12:41:18Z","session_id":"s2-49da708244a7","client_id":null,"type":"order","product_id":"kes-std50","quantity":1,"order_id":"o-00036","account_id":"acc-017"}
+{"ts":"2026-05-01T12:58:11Z","session_id":"s2-124d56cfac8b","client_id":null,"type":"add_to_cart","product_id":"w11p-esd"}
+{"ts":"2026-05-01T13:02:27Z","session_id":"s2-124d56cfac8b","client_id":null,"type":"order","product_id":"w11p-esd","quantity":1,"order_id":"o-00037","account_id":"acc-005"}
+{"ts":"2026-05-01T13:04:08Z","session_id":"s2-ef0654f96c70","client_id":null,"type":"search","query":"монитор для ноутбука","results_count":0}
+{"ts":"2026-05-01T13:24:38Z","session_id":"s2-904a8c917151","client_id":null,"type":"search","query":"sql server 2022 enterprise на ядра","results_count":1}
+{"ts":"2026-05-01T13:25:11Z","session_id":"s2-904a8c917151","client_id":null,"type":"click","product_id":"sql22-ent2c","position":1}
+{"ts":"2026-05-01T13:25:39Z","session_id":"s2-904a8c917151","client_id":null,"type":"price_request","product_id":"sql22-ent2c"}
+{"ts":"2026-05-01T13:40:13Z","session_id":"s2-82d394636f16","client_id":null,"type":"search","query":"гарантия для poweredge r740","results_count":1}
+{"ts":"2026-05-01T13:40:28Z","session_id":"s2-82d394636f16","client_id":null,"type":"click","product_id":"svc-dell-ps-r740-3y","position":1}
+{"ts":"2026-05-01T13:56:27Z","session_id":"s2-a17ed38fe32d","client_id":null,"type":"search","query":"881457-B21","results_count":0}
+{"ts":"2026-05-01T14:42:51Z","session_id":"s2-17186d24e82c","client_id":null,"type":"search","query":"iphone 15 pro","results_count":0}
+{"ts":"2026-05-01T15:25:59Z","session_id":"s2-d3ab1946cc6f","client_id":null,"type":"search","query":"рабочее место для 20 сотрудников","results_count":0}
+{"ts":"2026-05-01T15:52:15Z","session_id":"s2-6bc0b5f58a67","client_id":null,"type":"price_request","product_id":"srv-dl380g11-5418y"}
+{"ts":"2026-05-01T15:52:15Z","session_id":"s2-6bc0b5f58a67","client_id":null,"type":"add_to_cart","product_id":"srv-dl380g11-5418y"}
+{"ts":"2026-05-01T15:53:13Z","session_id":"s2-6bc0b5f58a67","client_id":null,"type":"add_to_cart","product_id":"mem-kingston-32g-d5"}
+{"ts":"2026-05-01T15:53:32Z","session_id":"s2-6bc0b5f58a67","client_id":null,"type":"add_to_cart","product_id":"ssd-hpe-1920-sata"}
+{"ts":"2026-05-01T15:54:08Z","session_id":"s2-6bc0b5f58a67","client_id":null,"type":"add_to_cart","product_id":"svc-hpe-tc-g11-5y"}
+{"ts":"2026-05-01T15:55:34Z","session_id":"s2-11ef030064bb","client_id":null,"type":"add_to_cart","product_id":"sw-eltex-mes2324p"}
+{"ts":"2026-05-01T15:56:10Z","session_id":"s2-11ef030064bb","client_id":null,"type":"add_to_cart","product_id":"ups-ippon-spp-2200"}
+{"ts":"2026-05-01T15:56:53Z","session_id":"s2-a5da147937a2","client_id":null,"type":"add_to_cart","product_id":"srv-dl380g11-4410y"}
+{"ts":"2026-05-01T15:57:18Z","session_id":"s2-a5da147937a2","client_id":null,"type":"add_to_cart","product_id":"mem-hpe-64g-d5"}
+{"ts":"2026-05-01T15:57:51Z","session_id":"s2-11ef030064bb","client_id":null,"type":"order","product_id":"sw-eltex-mes2324p","quantity":1,"order_id":"o-00039","account_id":"acc-007"}
+{"ts":"2026-05-01T15:57:51Z","session_id":"s2-11ef030064bb","client_id":null,"type":"order","product_id":"ups-ippon-spp-2200","quantity":1,"order_id":"o-00039","account_id":"acc-007"}
+{"ts":"2026-05-01T15:57:59Z","session_id":"s2-6bc0b5f58a67","client_id":null,"type":"order","product_id":"srv-dl380g11-5418y","quantity":1,"order_id":"o-00038","account_id":"acc-008"}
+{"ts":"2026-05-01T15:57:59Z","session_id":"s2-6bc0b5f58a67","client_id":null,"type":"order","product_id":"mem-kingston-32g-d5","quantity":4,"order_id":"o-00038","account_id":"acc-008"}
+{"ts":"2026-05-01T15:57:59Z","session_id":"s2-6bc0b5f58a67","client_id":null,"type":"order","product_id":"ssd-hpe-1920-sata","quantity":4,"order_id":"o-00038","account_id":"acc-008"}
+{"ts":"2026-05-01T15:57:59Z","session_id":"s2-6bc0b5f58a67","client_id":null,"type":"order","product_id":"svc-hpe-tc-g11-5y","quantity":1,"order_id":"o-00038","account_id":"acc-008"}
+{"ts":"2026-05-01T15:58:03Z","session_id":"s2-a5da147937a2","client_id":null,"type":"add_to_cart","product_id":"ssd-hpe-960-sata"}
+{"ts":"2026-05-01T16:06:55Z","session_id":"s2-a5da147937a2","client_id":null,"type":"order","product_id":"srv-dl380g11-4410y","quantity":1,"order_id":"o-00040","account_id":"acc-021"}
+{"ts":"2026-05-01T16:06:55Z","session_id":"s2-a5da147937a2","client_id":null,"type":"order","product_id":"mem-hpe-64g-d5","quantity":8,"order_id":"o-00040","account_id":"acc-021"}
+{"ts":"2026-05-01T16:06:55Z","session_id":"s2-a5da147937a2","client_id":null,"type":"order","product_id":"ssd-hpe-960-sata","quantity":2,"order_id":"o-00040","account_id":"acc-021"}
+{"ts":"2026-05-01T17:14:30Z","session_id":"s2-aa884d712239","client_id":null,"type":"add_to_cart","product_id":"srv-r750-s4314"}
+{"ts":"2026-05-01T17:15:05Z","session_id":"s2-aa884d712239","client_id":null,"type":"add_to_cart","product_id":"mem-dell-64g-d4"}
+{"ts":"2026-05-01T17:16:04Z","session_id":"s2-aa884d712239","client_id":null,"type":"add_to_cart","product_id":"hdd-dell-2400-sas"}
+{"ts":"2026-05-01T17:16:36Z","session_id":"s2-aa884d712239","client_id":null,"type":"add_to_cart","product_id":"svc-dell-ps-r750-3y"}
+{"ts":"2026-05-01T17:18:06Z","session_id":"s2-aa884d712239","client_id":null,"type":"add_to_cart","product_id":"ups-ippon-rt-3000"}
+{"ts":"2026-05-01T17:25:33Z","session_id":"s2-aa884d712239","client_id":null,"type":"order","product_id":"srv-r750-s4314","quantity":2,"order_id":"o-00041","account_id":"acc-011"}
+{"ts":"2026-05-01T17:25:33Z","session_id":"s2-aa884d712239","client_id":null,"type":"order","product_id":"mem-dell-64g-d4","quantity":4,"order_id":"o-00041","account_id":"acc-011"}
+{"ts":"2026-05-01T17:25:33Z","session_id":"s2-aa884d712239","client_id":null,"type":"order","product_id":"hdd-dell-2400-sas","quantity":4,"order_id":"o-00041","account_id":"acc-011"}
+{"ts":"2026-05-01T17:25:33Z","session_id":"s2-aa884d712239","client_id":null,"type":"order","product_id":"svc-dell-ps-r750-3y","quantity":1,"order_id":"o-00041","account_id":"acc-011"}
+{"ts":"2026-05-01T17:25:33Z","session_id":"s2-aa884d712239","client_id":null,"type":"order","product_id":"ups-ippon-rt-3000","quantity":1,"order_id":"o-00041","account_id":"acc-011"}
+{"ts":"2026-05-02T10:06:54Z","session_id":"s2-2c8073b29430","client_id":null,"type":"add_to_cart","product_id":"ssd-hpe-1920-sata"}
+{"ts":"2026-05-02T10:12:51Z","session_id":"s2-2c8073b29430","client_id":null,"type":"order","product_id":"ssd-hpe-1920-sata","quantity":1,"order_id":"o-00042","account_id":"acc-007"}
+{"ts":"2026-05-02T10:33:09Z","session_id":"s2-66da7285f1e3","client_id":null,"type":"search","query":"windows server 2025 standard на 50 пользователей","results_count":4}
+{"ts":"2026-05-02T10:33:16Z","session_id":"s2-66da7285f1e3","client_id":null,"type":"click","product_id":"ws25-std2","position":4}
+{"ts":"2026-05-02T11:39:57Z","session_id":"s2-0e6c12d68711","client_id":null,"type":"add_to_cart","product_id":"nb-pb450g10-i5-8-256"}
+{"ts":"2026-05-02T11:40:19Z","session_id":"s2-0e6c12d68711","client_id":null,"type":"add_to_cart","product_id":"off24-hb"}
+{"ts":"2026-05-02T11:40:30Z","session_id":"s2-0e6c12d68711","client_id":null,"type":"add_to_cart","product_id":"w11p-oem"}
+{"ts":"2026-05-02T11:42:43Z","session_id":"s2-0e6c12d68711","client_id":null,"type":"order","product_id":"nb-pb450g10-i5-8-256","quantity":15,"order_id":"o-00043","account_id":"acc-033"}
+{"ts":"2026-05-02T11:42:43Z","session_id":"s2-0e6c12d68711","client_id":null,"type":"order","product_id":"off24-hb","quantity":15,"order_id":"o-00043","account_id":"acc-033"}
+{"ts":"2026-05-02T11:42:43Z","session_id":"s2-0e6c12d68711","client_id":null,"type":"order","product_id":"w11p-oem","quantity":15,"order_id":"o-00043","account_id":"acc-033"}
+{"ts":"2026-05-02T12:27:34Z","session_id":"s2-b0f0b46fc1af","client_id":null,"type":"add_to_cart","product_id":"ws25-std16"}
+{"ts":"2026-05-02T12:28:10Z","session_id":"s2-b0f0b46fc1af","client_id":null,"type":"add_to_cart","product_id":"wscal25-u5"}
+{"ts":"2026-05-02T12:29:23Z","session_id":"s2-b0f0b46fc1af","client_id":null,"type":"order","product_id":"ws25-std16","quantity":1,"order_id":"o-00044","account_id":"acc-035"}
+{"ts":"2026-05-02T12:29:23Z","session_id":"s2-b0f0b46fc1af","client_id":null,"type":"order","product_id":"wscal25-u5","quantity":1,"order_id":"o-00044","account_id":"acc-035"}
+{"ts":"2026-05-02T12:44:22Z","session_id":"s2-7a95e36ee9d0","client_id":null,"type":"search","query":"монитор 27 дюймов","results_count":0}
+{"ts":"2026-05-02T15:53:34Z","session_id":"s2-1ee21b82960a","client_id":null,"type":"search","query":"сервер 2u от 128 гб памяти","results_count":0}
+{"ts":"2026-05-03T07:32:07Z","session_id":"s2-f6ab177078c9","client_id":null,"type":"add_to_cart","product_id":"sw-eltex-mes2324p"}
+{"ts":"2026-05-03T07:40:17Z","session_id":"s2-f6ab177078c9","client_id":null,"type":"order","product_id":"sw-eltex-mes2324p","quantity":2,"order_id":"o-00045","account_id":"acc-040"}
+{"ts":"2026-05-03T09:08:47Z","session_id":"s2-99677ec43453","client_id":null,"type":"search","query":"серверная память 32 гб ddr4","results_count":10}
+{"ts":"2026-05-03T10:31:26Z","session_id":"s2-087967bf9e32","client_id":null,"type":"search","query":"MES2324B","results_count":2}
+{"ts":"2026-05-03T11:46:37Z","session_id":"s2-fa29059410f3","client_id":null,"type":"add_to_cart","product_id":"ws25-std16"}
+{"ts":"2026-05-03T11:46:50Z","session_id":"s2-fa29059410f3","client_id":null,"type":"add_to_cart","product_id":"wscal25-d1"}
+{"ts":"2026-05-03T11:51:17Z","session_id":"s2-fa29059410f3","client_id":null,"type":"order","product_id":"ws25-std16","quantity":1,"order_id":"o-00046","account_id":"acc-008"}
+{"ts":"2026-05-03T11:51:17Z","session_id":"s2-fa29059410f3","client_id":null,"type":"order","product_id":"wscal25-d1","quantity":25,"order_id":"o-00046","account_id":"acc-008"}
+{"ts":"2026-05-03T12:29:08Z","session_id":"s2-799ee17479fb","client_id":null,"type":"search","query":"антивирус для компании на 50 пк","results_count":0}
+{"ts":"2026-05-03T15:29:00Z","session_id":"s2-054a8d7e255b","client_id":null,"type":"add_to_cart","product_id":"mem-dell-64g-d4"}
+{"ts":"2026-05-03T15:31:51Z","session_id":"s2-054a8d7e255b","client_id":null,"type":"order","product_id":"mem-dell-64g-d4","quantity":2,"order_id":"o-00047","account_id":"acc-024"}
+{"ts":"2026-05-03T16:29:12Z","session_id":"s2-dcef29d4a075","client_id":null,"type":"search","query":"cal для windows server 2022 на 5 устройств","results_count":9}
+{"ts":"2026-05-03T16:29:25Z","session_id":"s2-dcef29d4a075","client_id":null,"type":"click","product_id":"wscal25-d5","position":4}
+{"ts":"2026-05-04T06:14:44Z","session_id":"s2-fd089a1f9a18","client_id":null,"type":"add_to_cart","product_id":"nb-pb450g10-i5-8-256"}
+{"ts":"2026-05-04T06:15:08Z","session_id":"s2-fd089a1f9a18","client_id":null,"type":"add_to_cart","product_id":"off24-hb"}
+{"ts":"2026-05-04T06:16:22Z","session_id":"s2-fd089a1f9a18","client_id":null,"type":"add_to_cart","product_id":"kes-std25"}
+{"ts":"2026-05-04T06:22:07Z","session_id":"s2-fd089a1f9a18","client_id":null,"type":"order","product_id":"nb-pb450g10-i5-8-256","quantity":2,"order_id":"o-00048","account_id":"acc-009"}
+{"ts":"2026-05-04T06:22:07Z","session_id":"s2-fd089a1f9a18","client_id":null,"type":"order","product_id":"off24-hb","quantity":2,"order_id":"o-00048","account_id":"acc-009"}
+{"ts":"2026-05-04T06:22:07Z","session_id":"s2-fd089a1f9a18","client_id":null,"type":"order","product_id":"kes-std25","quantity":1,"order_id":"o-00048","account_id":"acc-009"}
+{"ts":"2026-05-04T07:10:48Z","session_id":"s2-0087c07a2f98","client_id":null,"type":"search","query":"жесткий диск 8 тб","results_count":4}
+{"ts":"2026-05-04T07:11:18Z","session_id":"s2-0087c07a2f98","client_id":null,"type":"click","product_id":"hdd-seagate-exos-8tb","position":2}
+{"ts":"2026-05-04T07:39:18Z","session_id":"s2-cfd1aae0512e","client_id":null,"type":"add_to_cart","product_id":"srv-vegman-r220-base"}
+{"ts":"2026-05-04T07:45:24Z","session_id":"s2-d2ad07baf02e","client_id":null,"type":"search","query":"kingston ddr5 для dl380 gen11","results_count":0}
+{"ts":"2026-05-04T07:46:40Z","session_id":"s2-cfd1aae0512e","client_id":null,"type":"order","product_id":"srv-vegman-r220-base","quantity":1,"order_id":"o-00049","account_id":"acc-033"}
+{"ts":"2026-05-04T07:47:16Z","session_id":"s2-9150ff5cbff6","client_id":null,"type":"add_to_cart","product_id":"ws22-std16"}
+{"ts":"2026-05-04T07:48:27Z","session_id":"s2-9150ff5cbff6","client_id":null,"type":"add_to_cart","product_id":"wscal-u1"}
+{"ts":"2026-05-04T07:56:45Z","session_id":"s2-9150ff5cbff6","client_id":null,"type":"order","product_id":"ws22-std16","quantity":1,"order_id":"o-00050","account_id":"acc-032"}
+{"ts":"2026-05-04T07:56:45Z","session_id":"s2-9150ff5cbff6","client_id":null,"type":"order","product_id":"wscal-u1","quantity":5,"order_id":"o-00050","account_id":"acc-032"}
+{"ts":"2026-05-04T08:06:55Z","session_id":"s2-f81ed4542a13","client_id":null,"type":"search","query":"монитор 27 дюймов","results_count":0}
+{"ts":"2026-05-04T08:21:32Z","session_id":"s2-66660ff407b3","client_id":null,"type":"add_to_cart","product_id":"ups-ippon-rt-6000"}
+{"ts":"2026-05-04T08:26:13Z","session_id":"s2-66660ff407b3","client_id":null,"type":"order","product_id":"ups-ippon-rt-6000","quantity":1,"order_id":"o-00051","account_id":"acc-016"}
+{"ts":"2026-05-04T08:48:16Z","session_id":"s2-c9e9d9166b09","client_id":null,"type":"search","query":"сервер hpe gen11 под виртуализацию","results_count":0}
+{"ts":"2026-05-04T09:06:28Z","session_id":"s2-9eb81319b38f","client_id":null,"type":"search","query":"dell poweredge r740","results_count":3}
+{"ts":"2026-05-04T09:52:40Z","session_id":"s2-c8be78dbeb2c","client_id":"client-a","type":"add_to_cart","product_id":"ws25-std16"}
+{"ts":"2026-05-04T09:53:04Z","session_id":"s2-c8be78dbeb2c","client_id":"client-a","type":"add_to_cart","product_id":"wscal25-u1"}
+{"ts":"2026-05-04T09:53:15Z","session_id":"s2-22ff055161e8","client_id":null,"type":"add_to_cart","product_id":"nb-lat5540-i7-32-1t"}
+{"ts":"2026-05-04T10:00:19Z","session_id":"s2-c8be78dbeb2c","client_id":"client-a","type":"order","product_id":"ws25-std16","quantity":1,"order_id":"o-00052","account_id":"client-a"}
+{"ts":"2026-05-04T10:00:19Z","session_id":"s2-c8be78dbeb2c","client_id":"client-a","type":"order","product_id":"wscal25-u1","quantity":15,"order_id":"o-00052","account_id":"client-a"}
+{"ts":"2026-05-04T10:00:25Z","session_id":"s2-2e7ea22c9f83","client_id":null,"type":"add_to_cart","product_id":"srv-r740-s4210"}
+{"ts":"2026-05-04T10:00:51Z","session_id":"s2-2e7ea22c9f83","client_id":null,"type":"add_to_cart","product_id":"mem-dell-64g-d4"}
+{"ts":"2026-05-04T10:01:39Z","session_id":"s2-2e7ea22c9f83","client_id":null,"type":"add_to_cart","product_id":"svc-dell-ps-r740-3y"}
+{"ts":"2026-05-04T10:03:11Z","session_id":"s2-22ff055161e8","client_id":null,"type":"order","product_id":"nb-lat5540-i7-32-1t","quantity":5,"order_id":"o-00053","account_id":"acc-011"}
+{"ts":"2026-05-04T10:07:01Z","session_id":"s2-2e7ea22c9f83","client_id":null,"type":"order","product_id":"srv-r740-s4210","quantity":2,"order_id":"o-00054","account_id":"acc-031"}
+{"ts":"2026-05-04T10:07:01Z","session_id":"s2-2e7ea22c9f83","client_id":null,"type":"order","product_id":"mem-dell-64g-d4","quantity":8,"order_id":"o-00054","account_id":"acc-031"}
+{"ts":"2026-05-04T10:07:01Z","session_id":"s2-2e7ea22c9f83","client_id":null,"type":"order","product_id":"svc-dell-ps-r740-3y","quantity":1,"order_id":"o-00054","account_id":"acc-031"}
+{"ts":"2026-05-04T11:47:19Z","session_id":"s2-68d427c9597e","client_id":null,"type":"add_to_cart","product_id":"ws25-std16"}
+{"ts":"2026-05-04T11:48:20Z","session_id":"s2-68d427c9597e","client_id":null,"type":"add_to_cart","product_id":"ws25-std2"}
+{"ts":"2026-05-04T11:49:34Z","session_id":"s2-68d427c9597e","client_id":null,"type":"add_to_cart","product_id":"wscal25-u1"}
+{"ts":"2026-05-04T11:59:00Z","session_id":"s2-68d427c9597e","client_id":null,"type":"order","product_id":"ws25-std16","quantity":1,"order_id":"o-00055","account_id":"acc-032"}
+{"ts":"2026-05-04T11:59:00Z","session_id":"s2-68d427c9597e","client_id":null,"type":"order","product_id":"ws25-std2","quantity":4,"order_id":"o-00055","account_id":"acc-032"}
+{"ts":"2026-05-04T11:59:00Z","session_id":"s2-68d427c9597e","client_id":null,"type":"order","product_id":"wscal25-u1","quantity":5,"order_id":"o-00055","account_id":"acc-032"}
+{"ts":"2026-05-04T14:54:35Z","session_id":"s2-fcfa9e10ea61","client_id":null,"type":"add_to_cart","product_id":"nb-e14g5-i7-16-1t"}
+{"ts":"2026-05-04T14:58:50Z","session_id":"s2-fcfa9e10ea61","client_id":null,"type":"order","product_id":"nb-e14g5-i7-16-1t","quantity":15,"order_id":"o-00056","account_id":"acc-030"}
+{"ts":"2026-05-04T17:17:31Z","session_id":"s2-c760716b2b1c","client_id":null,"type":"search","query":"16 гб","results_count":40}
+{"ts":"2026-05-05T07:09:15Z","session_id":"s2-9434b2b8539f","client_id":null,"type":"add_to_cart","product_id":"srv-r750-s4314"}
+{"ts":"2026-05-05T07:10:33Z","session_id":"s2-9434b2b8539f","client_id":null,"type":"add_to_cart","product_id":"mem-dell-64g-d4"}
+{"ts":"2026-05-05T07:15:51Z","session_id":"s2-9434b2b8539f","client_id":null,"type":"order","product_id":"srv-r750-s4314","quantity":1,"order_id":"o-00057","account_id":"acc-027"}
+{"ts":"2026-05-05T07:15:51Z","session_id":"s2-9434b2b8539f","client_id":null,"type":"order","product_id":"mem-dell-64g-d4","quantity":8,"order_id":"o-00057","account_id":"acc-027"}
+{"ts":"2026-05-05T07:26:03Z","session_id":"s2-33fdb30a54b1","client_id":null,"type":"search","query":"монитор 144 гц","results_count":7}
+{"ts":"2026-05-05T07:44:28Z","session_id":"s2-bd9694fed0fe","client_id":null,"type":"search","query":"samsung pm893 для dell r740","results_count":0}
+{"ts":"2026-05-05T07:55:01Z","session_id":"s2-3d1ffab394d1","client_id":null,"type":"add_to_cart","product_id":"ws25-std16"}
+{"ts":"2026-05-05T07:56:16Z","session_id":"s2-3d1ffab394d1","client_id":null,"type":"add_to_cart","product_id":"ws25-std2"}
+{"ts":"2026-05-05T07:56:55Z","session_id":"s2-3d1ffab394d1","client_id":null,"type":"add_to_cart","product_id":"wscal25-u1"}
+{"ts":"2026-05-05T07:58:09Z","session_id":"s2-3d1ffab394d1","client_id":null,"type":"add_to_cart","product_id":"rdscal25-u1"}
+{"ts":"2026-05-05T08:02:05Z","session_id":"s2-3d1ffab394d1","client_id":null,"type":"order","product_id":"ws25-std16","quantity":1,"order_id":"o-00058","account_id":"acc-025"}
+{"ts":"2026-05-05T08:02:05Z","session_id":"s2-3d1ffab394d1","client_id":null,"type":"order","product_id":"ws25-std2","quantity":4,"order_id":"o-00058","account_id":"acc-025"}
+{"ts":"2026-05-05T08:02:05Z","session_id":"s2-3d1ffab394d1","client_id":null,"type":"order","product_id":"wscal25-u1","quantity":10,"order_id":"o-00058","account_id":"acc-025"}
+{"ts":"2026-05-05T08:02:05Z","session_id":"s2-3d1ffab394d1","client_id":null,"type":"order","product_id":"rdscal25-u1","quantity":5,"order_id":"o-00058","account_id":"acc-025"}
+{"ts":"2026-05-05T08:15:51Z","session_id":"s2-5dcaa60e24ed","client_id":null,"type":"add_to_cart","product_id":"ws25-std16"}
+{"ts":"2026-05-05T08:16:09Z","session_id":"s2-5dcaa60e24ed","client_id":null,"type":"add_to_cart","product_id":"wscal25-d1"}
+{"ts":"2026-05-05T08:17:25Z","session_id":"s2-5dcaa60e24ed","client_id":null,"type":"order","product_id":"ws25-std16","quantity":1,"order_id":"o-00059","account_id":"acc-021"}
+{"ts":"2026-05-05T08:17:25Z","session_id":"s2-5dcaa60e24ed","client_id":null,"type":"order","product_id":"wscal25-d1","quantity":10,"order_id":"o-00059","account_id":"acc-021"}
+{"ts":"2026-05-05T09:10:50Z","session_id":"s2-af468dd16ffb","client_id":null,"type":"add_to_cart","product_id":"srv-dl380g11-4410y"}
+{"ts":"2026-05-05T09:12:19Z","session_id":"s2-af468dd16ffb","client_id":null,"type":"add_to_cart","product_id":"hdd-dell-8000-sas"}
+{"ts":"2026-05-05T09:20:34Z","session_id":"s2-af468dd16ffb","client_id":null,"type":"order","product_id":"srv-dl380g11-4410y","quantity":1,"order_id":"o-00060","account_id":"acc-021"}
+{"ts":"2026-05-05T09:20:34Z","session_id":"s2-af468dd16ffb","client_id":null,"type":"order","product_id":"hdd-dell-8000-sas","quantity":1,"order_id":"o-00060","account_id":"acc-021"}
+{"ts":"2026-05-05T09:22:56Z","session_id":"s2-93e4fc5c00e1","client_id":null,"type":"add_to_cart","product_id":"nb-mbd16-i5-16-512"}
+{"ts":"2026-05-05T09:23:10Z","session_id":"s2-93e4fc5c00e1","client_id":null,"type":"add_to_cart","product_id":"kes-std50"}
+{"ts":"2026-05-05T09:24:23Z","session_id":"s2-69b8c33d4b6c","client_id":null,"type":"search","query":"windows server 2025 datacenter 16 ядер","results_count":2}
+{"ts":"2026-05-05T09:30:40Z","session_id":"s2-93e4fc5c00e1","client_id":null,"type":"order","product_id":"nb-mbd16-i5-16-512","quantity":1,"order_id":"o-00061","account_id":"acc-001"}
+{"ts":"2026-05-05T09:30:40Z","session_id":"s2-93e4fc5c00e1","client_id":null,"type":"order","product_id":"kes-std50","quantity":1,"order_id":"o-00061","account_id":"acc-001"}
+{"ts":"2026-05-05T09:43:30Z","session_id":"s2-262ca15805fb","client_id":null,"type":"add_to_cart","product_id":"nb-mbd16-i5-16-512"}
+{"ts":"2026-05-05T09:44:15Z","session_id":"s2-262ca15805fb","client_id":null,"type":"add_to_cart","product_id":"m365b-bs"}
+{"ts":"2026-05-05T09:45:12Z","session_id":"s2-262ca15805fb","client_id":null,"type":"add_to_cart","product_id":"kes-std10"}
+{"ts":"2026-05-05T09:50:50Z","session_id":"s2-262ca15805fb","client_id":null,"type":"order","product_id":"nb-mbd16-i5-16-512","quantity":10,"order_id":"o-00062","account_id":"acc-001"}
+{"ts":"2026-05-05T09:50:50Z","session_id":"s2-262ca15805fb","client_id":null,"type":"order","product_id":"m365b-bs","quantity":10,"order_id":"o-00062","account_id":"acc-001"}
+{"ts":"2026-05-05T09:50:50Z","session_id":"s2-262ca15805fb","client_id":null,"type":"order","product_id":"kes-std10","quantity":1,"order_id":"o-00062","account_id":"acc-001"}
+{"ts":"2026-05-05T09:51:05Z","session_id":"s2-9c0a0c1549dd","client_id":null,"type":"search","query":"S5735-L24T4S-A1","results_count":1}
+{"ts":"2026-05-05T09:51:21Z","session_id":"s2-9c0a0c1549dd","client_id":null,"type":"click","product_id":"sw-huawei-s5735-24","position":1}
+{"ts":"2026-05-05T11:40:44Z","session_id":"s2-8f8158421fc7","client_id":null,"type":"add_to_cart","product_id":"ws22-std16"}
+{"ts":"2026-05-05T11:41:03Z","session_id":"s2-8f8158421fc7","client_id":null,"type":"add_to_cart","product_id":"wscal25-u1"}
+{"ts":"2026-05-05T11:43:46Z","session_id":"s2-8f8158421fc7","client_id":null,"type":"order","product_id":"ws22-std16","quantity":1,"order_id":"o-00063","account_id":"acc-018"}
+{"ts":"2026-05-05T11:43:46Z","session_id":"s2-8f8158421fc7","client_id":null,"type":"order","product_id":"wscal25-u1","quantity":10,"order_id":"o-00063","account_id":"acc-018"}
+{"ts":"2026-05-05T12:06:57Z","session_id":"s2-b2a0dad98904","client_id":null,"type":"search","query":"1с сервер корп и клиентские лицензии на 20 пользователей","results_count":0}
+{"ts":"2026-05-05T12:13:01Z","session_id":"s2-e80a6a24ed7d","client_id":"client-d","type":"add_to_cart","product_id":"sw-eltex-mes2324p"}
+{"ts":"2026-05-05T12:14:29Z","session_id":"s2-e80a6a24ed7d","client_id":"client-d","type":"add_to_cart","product_id":"mem-hpe-64g-d5"}
+{"ts":"2026-05-05T12:21:22Z","session_id":"s2-289c59c1952d","client_id":null,"type":"add_to_cart","product_id":"ws25-std16"}
+{"ts":"2026-05-05T12:22:10Z","session_id":"s2-e80a6a24ed7d","client_id":"client-d","type":"order","product_id":"sw-eltex-mes2324p","quantity":1,"order_id":"o-00064","account_id":"client-d"}
+{"ts":"2026-05-05T12:22:10Z","session_id":"s2-e80a6a24ed7d","client_id":"client-d","type":"order","product_id":"mem-hpe-64g-d5","quantity":1,"order_id":"o-00064","account_id":"client-d"}
+{"ts":"2026-05-05T12:22:31Z","session_id":"s2-289c59c1952d","client_id":null,"type":"add_to_cart","product_id":"wscal25-u1"}
+{"ts":"2026-05-05T12:23:53Z","session_id":"s2-289c59c1952d","client_id":null,"type":"order","product_id":"ws25-std16","quantity":1,"order_id":"o-00065","account_id":"acc-013"}
+{"ts":"2026-05-05T12:23:53Z","session_id":"s2-289c59c1952d","client_id":null,"type":"order","product_id":"wscal25-u1","quantity":25,"order_id":"o-00065","account_id":"acc-013"}
+{"ts":"2026-05-05T12:54:01Z","session_id":"s2-b650b190a958","client_id":null,"type":"add_to_cart","product_id":"mem-yadro-32g-d4"}
+{"ts":"2026-05-05T12:56:58Z","session_id":"s2-b650b190a958","client_id":null,"type":"order","product_id":"mem-yadro-32g-d4","quantity":2,"order_id":"o-00066","account_id":"acc-037"}
+{"ts":"2026-05-05T13:20:22Z","session_id":"s2-8e64c4fd1757","client_id":null,"type":"add_to_cart","product_id":"nb-ns685-i5-16-512"}
+{"ts":"2026-05-05T13:21:23Z","session_id":"s2-8e64c4fd1757","client_id":null,"type":"add_to_cart","product_id":"w11p-oem"}
+{"ts":"2026-05-05T13:24:36Z","session_id":"s2-8e64c4fd1757","client_id":null,"type":"order","product_id":"nb-ns685-i5-16-512","quantity":20,"order_id":"o-00067","account_id":"acc-029"}
+{"ts":"2026-05-05T13:24:36Z","session_id":"s2-8e64c4fd1757","client_id":null,"type":"order","product_id":"w11p-oem","quantity":20,"order_id":"o-00067","account_id":"acc-029"}
+{"ts":"2026-05-05T14:09:18Z","session_id":"s2-ac9e567cb3de","client_id":"client-d","type":"add_to_cart","product_id":"ws25-std16"}
+{"ts":"2026-05-05T14:09:36Z","session_id":"s2-ac9e567cb3de","client_id":"client-d","type":"add_to_cart","product_id":"ws25-std2"}
+{"ts":"2026-05-05T14:10:31Z","session_id":"s2-ac9e567cb3de","client_id":"client-d","type":"add_to_cart","product_id":"wscal-u1"}
+{"ts":"2026-05-05T14:10:36Z","session_id":"s2-61ce3d6a4148","client_id":"client-c","type":"price_request","product_id":"srv-r750-g6338"}
+{"ts":"2026-05-05T14:10:36Z","session_id":"s2-61ce3d6a4148","client_id":"client-c","type":"add_to_cart","product_id":"srv-r750-g6338"}
+{"ts":"2026-05-05T14:12:01Z","session_id":"s2-61ce3d6a4148","client_id":"client-c","type":"add_to_cart","product_id":"mem-kingston-32g-d4"}
+{"ts":"2026-05-05T14:13:07Z","session_id":"s2-61ce3d6a4148","client_id":"client-c","type":"add_to_cart","product_id":"ups-ippon-rt-6000"}
+{"ts":"2026-05-05T14:15:23Z","session_id":"s2-ac9e567cb3de","client_id":"client-d","type":"order","product_id":"ws25-std16","quantity":1,"order_id":"o-00068","account_id":"client-d"}
+{"ts":"2026-05-05T14:15:23Z","session_id":"s2-ac9e567cb3de","client_id":"client-d","type":"order","product_id":"ws25-std2","quantity":4,"order_id":"o-00068","account_id":"client-d"}
+{"ts":"2026-05-05T14:15:23Z","session_id":"s2-ac9e567cb3de","client_id":"client-d","type":"order","product_id":"wscal-u1","quantity":10,"order_id":"o-00068","account_id":"client-d"}
+{"ts":"2026-05-05T14:16:00Z","session_id":"s2-61ce3d6a4148","client_id":"client-c","type":"order","product_id":"srv-r750-g6338","quantity":1,"order_id":"o-00069","account_id":"client-c"}
+{"ts":"2026-05-05T14:16:00Z","session_id":"s2-61ce3d6a4148","client_id":"client-c","type":"order","product_id":"mem-kingston-32g-d4","quantity":2,"order_id":"o-00069","account_id":"client-c"}
+{"ts":"2026-05-05T14:16:00Z","session_id":"s2-61ce3d6a4148","client_id":"client-c","type":"order","product_id":"ups-ippon-rt-6000","quantity":1,"order_id":"o-00069","account_id":"client-c"}
+{"ts":"2026-05-05T15:34:06Z","session_id":"s2-a8bfe9ddaeef","client_id":null,"type":"add_to_cart","product_id":"sql22-stdsrv"}
+{"ts":"2026-05-05T15:35:16Z","session_id":"s2-a8bfe9ddaeef","client_id":null,"type":"add_to_cart","product_id":"sql22-cal"}
+{"ts":"2026-05-05T15:41:05Z","session_id":"s2-a8bfe9ddaeef","client_id":null,"type":"order","product_id":"sql22-stdsrv","quantity":1,"order_id":"o-00070","account_id":"acc-025"}
+{"ts":"2026-05-05T15:41:05Z","session_id":"s2-a8bfe9ddaeef","client_id":null,"type":"order","product_id":"sql22-cal","quantity":25,"order_id":"o-00070","account_id":"acc-025"}
+{"ts":"2026-05-05T16:39:54Z","session_id":"s2-3b4836595e63","client_id":null,"type":"search","query":"комплект для нового сотрудника ноутбук офис антивирус","results_count":0}
+{"ts":"2026-05-06T07:03:43Z","session_id":"s2-f9544c7bd43c","client_id":null,"type":"add_to_cart","product_id":"nb-e14g5-i7-16-1t"}
+{"ts":"2026-05-06T07:04:54Z","session_id":"s2-f9544c7bd43c","client_id":null,"type":"add_to_cart","product_id":"m365b-bp"}
+{"ts":"2026-05-06T07:05:09Z","session_id":"s2-f9544c7bd43c","client_id":null,"type":"add_to_cart","product_id":"kes-std10"}
+{"ts":"2026-05-06T07:06:59Z","session_id":"s2-27781dadfac6","client_id":null,"type":"search","query":"ddr5 для dell r740","results_count":0}
+{"ts":"2026-05-06T07:06:59Z","session_id":"s2-f9544c7bd43c","client_id":null,"type":"order","product_id":"nb-e14g5-i7-16-1t","quantity":3,"order_id":"o-00071","account_id":"acc-004"}
+{"ts":"2026-05-06T07:06:59Z","session_id":"s2-f9544c7bd43c","client_id":null,"type":"order","product_id":"m365b-bp","quantity":3,"order_id":"o-00071","account_id":"acc-004"}
+{"ts":"2026-05-06T07:06:59Z","session_id":"s2-f9544c7bd43c","client_id":null,"type":"order","product_id":"kes-std10","quantity":1,"order_id":"o-00071","account_id":"acc-004"}
+{"ts":"2026-05-06T07:24:51Z","session_id":"s2-766fb3de38df","client_id":null,"type":"add_to_cart","product_id":"sw-eltex-mes2324p"}
+{"ts":"2026-05-06T07:25:45Z","session_id":"s2-766fb3de38df","client_id":null,"type":"add_to_cart","product_id":"ups-ippon-spp-2200"}
+{"ts":"2026-05-06T07:32:18Z","session_id":"s2-766fb3de38df","client_id":null,"type":"order","product_id":"sw-eltex-mes2324p","quantity":1,"order_id":"o-00072","account_id":"acc-020"}
+{"ts":"2026-05-06T07:32:18Z","session_id":"s2-766fb3de38df","client_id":null,"type":"order","product_id":"ups-ippon-spp-2200","quantity":1,"order_id":"o-00072","account_id":"acc-020"}
+{"ts":"2026-05-06T08:39:21Z","session_id":"s2-4eb45a0f81d5","client_id":null,"type":"search","query":"удаленный офис на 5 человек","results_count":0}
+{"ts":"2026-05-06T10:28:49Z","session_id":"s2-44b7bcb12c57","client_id":null,"type":"add_to_cart","product_id":"nb-ns685-i5-8-256"}
+{"ts":"2026-05-06T10:29:36Z","session_id":"s2-44b7bcb12c57","client_id":null,"type":"add_to_cart","product_id":"m365b-bs"}
+{"ts":"2026-05-06T10:30:32Z","session_id":"s2-44b7bcb12c57","client_id":null,"type":"add_to_cart","product_id":"kes-std50"}
+{"ts":"2026-05-06T10:31:03Z","session_id":"s2-44b7bcb12c57","client_id":null,"type":"add_to_cart","product_id":"w11p-oem"}
+{"ts":"2026-05-06T10:40:28Z","session_id":"s2-44b7bcb12c57","client_id":null,"type":"order","product_id":"nb-ns685-i5-8-256","quantity":15,"order_id":"o-00073","account_id":"acc-021"}
+{"ts":"2026-05-06T10:40:28Z","session_id":"s2-44b7bcb12c57","client_id":null,"type":"order","product_id":"m365b-bs","quantity":15,"order_id":"o-00073","account_id":"acc-021"}
+{"ts":"2026-05-06T10:40:28Z","session_id":"s2-44b7bcb12c57","client_id":null,"type":"order","product_id":"kes-std50","quantity":1,"order_id":"o-00073","account_id":"acc-021"}
+{"ts":"2026-05-06T10:40:28Z","session_id":"s2-44b7bcb12c57","client_id":null,"type":"order","product_id":"w11p-oem","quantity":15,"order_id":"o-00073","account_id":"acc-021"}
+{"ts":"2026-05-06T11:12:39Z","session_id":"s2-8d33c718d503","client_id":null,"type":"search","query":"sql cal 2022 на пользователя","results_count":2}
+{"ts":"2026-05-06T11:12:53Z","session_id":"s2-8d33c718d503","client_id":null,"type":"click","product_id":"sql22-cal","position":1}
+{"ts":"2026-05-06T11:54:59Z","session_id":"s2-8eb38adfdf9e","client_id":null,"type":"add_to_cart","product_id":"ws25-std16"}
+{"ts":"2026-05-06T11:56:28Z","session_id":"s2-8eb38adfdf9e","client_id":null,"type":"add_to_cart","product_id":"wscal25-u5"}
+{"ts":"2026-05-06T11:59:43Z","session_id":"s2-8eb38adfdf9e","client_id":null,"type":"order","product_id":"ws25-std16","quantity":1,"order_id":"o-00074","account_id":"acc-030"}
+{"ts":"2026-05-06T11:59:43Z","session_id":"s2-8eb38adfdf9e","client_id":null,"type":"order","product_id":"wscal25-u5","quantity":5,"order_id":"o-00074","account_id":"acc-030"}
+{"ts":"2026-05-06T12:22:21Z","session_id":"s2-426b48f5d5a1","client_id":null,"type":"search","query":"supermicro sys-6029p","results_count":0}
+{"ts":"2026-05-06T12:31:53Z","session_id":"s2-eea064ce1c47","client_id":null,"type":"search","query":"thinkpad t14 gen 4","results_count":2}
+{"ts":"2026-05-06T12:34:41Z","session_id":"s2-1c5e3901fa3e","client_id":null,"type":"price_request","product_id":"srv-r750-g6338"}
+{"ts":"2026-05-06T12:34:41Z","session_id":"s2-1c5e3901fa3e","client_id":null,"type":"add_to_cart","product_id":"srv-r750-g6338"}
+{"ts":"2026-05-06T12:35:03Z","session_id":"s2-1c9cf3b248da","client_id":null,"type":"add_to_cart","product_id":"ws25-std16"}
+{"ts":"2026-05-06T12:35:08Z","session_id":"s2-1c5e3901fa3e","client_id":null,"type":"add_to_cart","product_id":"mem-dell-32g-d4"}
+{"ts":"2026-05-06T12:35:18Z","session_id":"s2-1c9cf3b248da","client_id":null,"type":"add_to_cart","product_id":"wscal25-u1"}
+{"ts":"2026-05-06T12:36:23Z","session_id":"s2-1c5e3901fa3e","client_id":null,"type":"add_to_cart","product_id":"ssd-dell-960-sata"}
+{"ts":"2026-05-06T12:36:35Z","session_id":"s2-1c5e3901fa3e","client_id":null,"type":"add_to_cart","product_id":"svc-dell-ps-r750-3y"}
+{"ts":"2026-05-06T12:37:04Z","session_id":"s2-1c5e3901fa3e","client_id":null,"type":"add_to_cart","product_id":"ups-ippon-rt-3000"}
+{"ts":"2026-05-06T12:37:50Z","session_id":"s2-1c9cf3b248da","client_id":null,"type":"order","product_id":"ws25-std16","quantity":1,"order_id":"o-00075","account_id":"acc-004"}
+{"ts":"2026-05-06T12:37:50Z","session_id":"s2-1c9cf3b248da","client_id":null,"type":"order","product_id":"wscal25-u1","quantity":30,"order_id":"o-00075","account_id":"acc-004"}
+{"ts":"2026-05-06T12:42:33Z","session_id":"s2-404cc4c30a80","client_id":"client-c","type":"add_to_cart","product_id":"mem-yadro-32g-d4"}
+{"ts":"2026-05-06T12:43:30Z","session_id":"s2-1c5e3901fa3e","client_id":null,"type":"order","product_id":"srv-r750-g6338","quantity":1,"order_id":"o-00076","account_id":"acc-019"}
+{"ts":"2026-05-06T12:43:30Z","session_id":"s2-1c5e3901fa3e","client_id":null,"type":"order","product_id":"mem-dell-32g-d4","quantity":4,"order_id":"o-00076","account_id":"acc-019"}
+{"ts":"2026-05-06T12:43:30Z","session_id":"s2-1c5e3901fa3e","client_id":null,"type":"order","product_id":"ssd-dell-960-sata","quantity":2,"order_id":"o-00076","account_id":"acc-019"}
+{"ts":"2026-05-06T12:43:30Z","session_id":"s2-1c5e3901fa3e","client_id":null,"type":"order","product_id":"svc-dell-ps-r750-3y","quantity":1,"order_id":"o-00076","account_id":"acc-019"}
+{"ts":"2026-05-06T12:43:30Z","session_id":"s2-1c5e3901fa3e","client_id":null,"type":"order","product_id":"ups-ippon-rt-3000","quantity":1,"order_id":"o-00076","account_id":"acc-019"}
+{"ts":"2026-05-06T12:43:53Z","session_id":"s2-404cc4c30a80","client_id":"client-c","type":"add_to_cart","product_id":"nb-e14g5-i7-16-1t"}
+{"ts":"2026-05-06T12:46:38Z","session_id":"s2-9b5a313be37a","client_id":null,"type":"search","query":"windows server 2025 standard cal уже есть","results_count":0}
+{"ts":"2026-05-06T12:48:31Z","session_id":"s2-404cc4c30a80","client_id":"client-c","type":"order","product_id":"mem-yadro-32g-d4","quantity":1,"order_id":"o-00077","account_id":"client-c"}
+{"ts":"2026-05-06T12:48:31Z","session_id":"s2-404cc4c30a80","client_id":"client-c","type":"order","product_id":"nb-e14g5-i7-16-1t","quantity":1,"order_id":"o-00077","account_id":"client-c"}
+{"ts":"2026-05-06T13:06:12Z","session_id":"s2-e5296c0d1006","client_id":null,"type":"search","query":"ноутбук без операционной системы","results_count":0}
+{"ts":"2026-05-06T13:17:14Z","session_id":"s2-820714f9e1e5","client_id":null,"type":"search","query":"сервер dell r750 с памятью и дисками","results_count":0}
+{"ts":"2026-05-06T13:42:50Z","session_id":"s2-1b63afccf885","client_id":null,"type":"add_to_cart","product_id":"ssd-dell-1920-sata"}
+{"ts":"2026-05-06T13:46:40Z","session_id":"s2-1b63afccf885","client_id":null,"type":"order","product_id":"ssd-dell-1920-sata","quantity":3,"order_id":"o-00078","account_id":"acc-018"}
+{"ts":"2026-05-06T14:10:21Z","session_id":"s2-73fbafcaa4d8","client_id":null,"type":"search","query":"монитор 27 дюймов","results_count":0}
+{"ts":"2026-05-06T14:31:08Z","session_id":"s2-c4f05b58bca2","client_id":null,"type":"search","query":"cal 2025 на 25 пользователей","results_count":13}
+{"ts":"2026-05-06T15:09:38Z","session_id":"s2-5cc7b77e6897","client_id":null,"type":"add_to_cart","product_id":"ws22-std16"}
+{"ts":"2026-05-06T15:09:48Z","session_id":"s2-5cc7b77e6897","client_id":null,"type":"add_to_cart","product_id":"wscal-u1"}
+{"ts":"2026-05-06T15:14:54Z","session_id":"s2-5cc7b77e6897","client_id":null,"type":"order","product_id":"ws22-std16","quantity":1,"order_id":"o-00079","account_id":"acc-003"}
+{"ts":"2026-05-06T15:14:54Z","session_id":"s2-5cc7b77e6897","client_id":null,"type":"order","product_id":"wscal-u1","quantity":20,"order_id":"o-00079","account_id":"acc-003"}
+{"ts":"2026-05-06T15:26:10Z","session_id":"s2-f62f1d62368a","client_id":null,"type":"add_to_cart","product_id":"nb-e14g5-i7-16-1t"}
+{"ts":"2026-05-06T15:27:33Z","session_id":"s2-f62f1d62368a","client_id":null,"type":"add_to_cart","product_id":"veeam-vul10-1y"}
+{"ts":"2026-05-06T15:34:49Z","session_id":"s2-f62f1d62368a","client_id":null,"type":"order","product_id":"nb-e14g5-i7-16-1t","quantity":1,"order_id":"o-00080","account_id":"acc-032"}
+{"ts":"2026-05-06T15:34:49Z","session_id":"s2-f62f1d62368a","client_id":null,"type":"order","product_id":"veeam-vul10-1y","quantity":1,"order_id":"o-00080","account_id":"acc-032"}
+{"ts":"2026-05-06T16:37:50Z","session_id":"s2-3976ff53e447","client_id":null,"type":"search","query":"клиентские лицензии windows server 2025 на устройство","results_count":9}
+{"ts":"2026-05-06T17:06:21Z","session_id":"s2-d65bd268b055","client_id":null,"type":"search","query":"ssd 960 гб sata","results_count":4}
+{"ts":"2026-05-06T17:07:00Z","session_id":"s2-d65bd268b055","client_id":null,"type":"click","product_id":"ssd-yadro-960","position":3}
+{"ts":"2026-05-06T17:08:22Z","session_id":"s2-d65bd268b055","client_id":null,"type":"add_to_cart","product_id":"ssd-yadro-960"}
+{"ts":"2026-05-07T05:40:46Z","session_id":"s2-18835cdd3407","client_id":null,"type":"search","query":"сервер 1с проф 64 бит","results_count":0}
+{"ts":"2026-05-07T07:09:35Z","session_id":"s2-200f797581e6","client_id":null,"type":"search","query":"nvme для dl380 gen11","results_count":1}
+{"ts":"2026-05-07T07:17:00Z","session_id":"s2-3a56ecb71a92","client_id":null,"type":"search","query":"рабочее место на отечественном по","results_count":0}
+{"ts":"2026-05-07T07:24:28Z","session_id":"s2-9f2c700c9042","client_id":null,"type":"search","query":"оперативная память для hpe dl380 gen10","results_count":0}
+{"ts":"2026-05-07T07:50:37Z","session_id":"s2-8f4fdbcf8a7b","client_id":null,"type":"search","query":"ssd от 1,92 тб","results_count":10}
+{"ts":"2026-05-07T07:51:17Z","session_id":"s2-8f4fdbcf8a7b","client_id":null,"type":"click","product_id":"ssd-hpe-1920-sata","position":1}
+{"ts":"2026-05-07T07:53:12Z","session_id":"s2-8f4fdbcf8a7b","client_id":null,"type":"add_to_cart","product_id":"ssd-hpe-1920-sata"}
+{"ts":"2026-05-07T08:40:16Z","session_id":"s2-5a7f579d6f6c","client_id":null,"type":"add_to_cart","product_id":"ws25-std16"}
+{"ts":"2026-05-07T08:41:17Z","session_id":"s2-5a7f579d6f6c","client_id":null,"type":"add_to_cart","product_id":"ws25-std2"}
+{"ts":"2026-05-07T08:41:59Z","session_id":"s2-5a7f579d6f6c","client_id":null,"type":"add_to_cart","product_id":"wscal25-u5"}
+{"ts":"2026-05-07T08:44:40Z","session_id":"s2-5a7f579d6f6c","client_id":null,"type":"order","product_id":"ws25-std16","quantity":1,"order_id":"o-00081","account_id":"acc-008"}
+{"ts":"2026-05-07T08:44:40Z","session_id":"s2-5a7f579d6f6c","client_id":null,"type":"order","product_id":"ws25-std2","quantity":8,"order_id":"o-00081","account_id":"acc-008"}
+{"ts":"2026-05-07T08:44:40Z","session_id":"s2-5a7f579d6f6c","client_id":null,"type":"order","product_id":"wscal25-u5","quantity":10,"order_id":"o-00081","account_id":"acc-008"}
+{"ts":"2026-05-07T08:48:47Z","session_id":"s2-79df8927a614","client_id":null,"type":"search","query":"диски для hpe dl380 gen11","results_count":0}
+{"ts":"2026-05-07T09:26:55Z","session_id":"s2-ebd5f5f9b8f0","client_id":null,"type":"search","query":"филиал на 15 рабочих мест","results_count":0}
+{"ts":"2026-05-07T09:38:30Z","session_id":"s2-845b326811ad","client_id":null,"type":"add_to_cart","product_id":"sw-eltex-mes2324p"}
+{"ts":"2026-05-07T09:39:54Z","session_id":"s2-845b326811ad","client_id":null,"type":"add_to_cart","product_id":"ups-ippon-spp-2200"}
+{"ts":"2026-05-07T09:42:39Z","session_id":"s2-845b326811ad","client_id":null,"type":"order","product_id":"sw-eltex-mes2324p","quantity":1,"order_id":"o-00082","account_id":"acc-009"}
+{"ts":"2026-05-07T09:42:39Z","session_id":"s2-845b326811ad","client_id":null,"type":"order","product_id":"ups-ippon-spp-2200","quantity":1,"order_id":"o-00082","account_id":"acc-009"}
+{"ts":"2026-05-07T09:44:48Z","session_id":"s2-f7ae8a1044e6","client_id":null,"type":"add_to_cart","product_id":"nb-e14g5-i5-16-512"}
+{"ts":"2026-05-07T09:46:01Z","session_id":"s2-f7ae8a1044e6","client_id":null,"type":"add_to_cart","product_id":"nb-pb450g10-i5-8-256"}
+{"ts":"2026-05-07T09:54:52Z","session_id":"s2-f7ae8a1044e6","client_id":null,"type":"order","product_id":"nb-e14g5-i5-16-512","quantity":1,"order_id":"o-00083","account_id":"acc-015"}
+{"ts":"2026-05-07T09:54:52Z","session_id":"s2-f7ae8a1044e6","client_id":null,"type":"order","product_id":"nb-pb450g10-i5-8-256","quantity":1,"order_id":"o-00083","account_id":"acc-015"}
+{"ts":"2026-05-07T10:15:02Z","session_id":"s2-9d2949fc0265","client_id":null,"type":"search","query":"windows server 2025 с cal на 30 пользователей","results_count":9}
+{"ts":"2026-05-07T10:23:21Z","session_id":"s2-7c66560e7b07","client_id":null,"type":"add_to_cart","product_id":"ws25-std16"}
+{"ts":"2026-05-07T10:24:33Z","session_id":"s2-7c66560e7b07","client_id":null,"type":"add_to_cart","product_id":"wscal25-u5"}
+{"ts":"2026-05-07T10:29:34Z","session_id":"s2-7c66560e7b07","client_id":null,"type":"order","product_id":"ws25-std16","quantity":1,"order_id":"o-00084","account_id":"acc-026"}
+{"ts":"2026-05-07T10:29:34Z","session_id":"s2-7c66560e7b07","client_id":null,"type":"order","product_id":"wscal25-u5","quantity":10,"order_id":"o-00084","account_id":"acc-026"}
+{"ts":"2026-05-07T10:46:46Z","session_id":"s2-9448b6255f20","client_id":null,"type":"add_to_cart","product_id":"ws25-std16"}
+{"ts":"2026-05-07T10:47:46Z","session_id":"s2-9448b6255f20","client_id":null,"type":"add_to_cart","product_id":"wscal25-u1"}
+{"ts":"2026-05-07T10:48:44Z","session_id":"s2-9448b6255f20","client_id":null,"type":"add_to_cart","product_id":"rdscal25-u1"}
+{"ts":"2026-05-07T10:54:26Z","session_id":"s2-9448b6255f20","client_id":null,"type":"order","product_id":"ws25-std16","quantity":1,"order_id":"o-00085","account_id":"acc-020"}
+{"ts":"2026-05-07T10:54:26Z","session_id":"s2-9448b6255f20","client_id":null,"type":"order","product_id":"wscal25-u1","quantity":10,"order_id":"o-00085","account_id":"acc-020"}
+{"ts":"2026-05-07T10:54:26Z","session_id":"s2-9448b6255f20","client_id":null,"type":"order","product_id":"rdscal25-u1","quantity":5,"order_id":"o-00085","account_id":"acc-020"}
+{"ts":"2026-05-07T12:26:31Z","session_id":"s2-a36baa3c7201","client_id":null,"type":"add_to_cart","product_id":"nb-t14g4-i7-32-1t"}
+{"ts":"2026-05-07T12:27:25Z","session_id":"s2-a36baa3c7201","client_id":null,"type":"add_to_cart","product_id":"m365b-bp"}
+{"ts":"2026-05-07T12:28:33Z","session_id":"s2-a36baa3c7201","client_id":null,"type":"add_to_cart","product_id":"kes-std10"}
+{"ts":"2026-05-07T12:36:11Z","session_id":"s2-d537840bb3b7","client_id":null,"type":"add_to_cart","product_id":"nb-ns685-i5-16-512"}
+{"ts":"2026-05-07T12:36:21Z","session_id":"s2-d537840bb3b7","client_id":null,"type":"add_to_cart","product_id":"off24-hb"}
+{"ts":"2026-05-07T12:36:36Z","session_id":"s2-d537840bb3b7","client_id":null,"type":"add_to_cart","product_id":"kes-std10"}
+{"ts":"2026-05-07T12:37:15Z","session_id":"s2-a36baa3c7201","client_id":null,"type":"order","product_id":"nb-t14g4-i7-32-1t","quantity":20,"order_id":"o-00086","account_id":"acc-010"}
+{"ts":"2026-05-07T12:37:15Z","session_id":"s2-a36baa3c7201","client_id":null,"type":"order","product_id":"m365b-bp","quantity":20,"order_id":"o-00086","account_id":"acc-010"}
+{"ts":"2026-05-07T12:37:15Z","session_id":"s2-a36baa3c7201","client_id":null,"type":"order","product_id":"kes-std10","quantity":1,"order_id":"o-00086","account_id":"acc-010"}
+{"ts":"2026-05-07T12:41:58Z","session_id":"s2-d537840bb3b7","client_id":null,"type":"order","product_id":"nb-ns685-i5-16-512","quantity":1,"order_id":"o-00087","account_id":"acc-023"}
+{"ts":"2026-05-07T12:41:58Z","session_id":"s2-d537840bb3b7","client_id":null,"type":"order","product_id":"off24-hb","quantity":1,"order_id":"o-00087","account_id":"acc-023"}
+{"ts":"2026-05-07T12:41:58Z","session_id":"s2-d537840bb3b7","client_id":null,"type":"order","product_id":"kes-std10","quantity":1,"order_id":"o-00087","account_id":"acc-023"}
+{"ts":"2026-05-07T12:47:01Z","session_id":"s2-fa36c8fbf3e4","client_id":null,"type":"search","query":"гарантия для poweredge r740","results_count":1}
+{"ts":"2026-05-07T13:11:54Z","session_id":"s2-6a5ef51b479c","client_id":null,"type":"search","query":"ssd 960 гб sata","results_count":4}
+{"ts":"2026-05-07T13:13:24Z","session_id":"s2-0635491d7168","client_id":null,"type":"search","query":"dell poweredge r740","results_count":3}
+{"ts":"2026-05-07T13:13:29Z","session_id":"s2-0635491d7168","client_id":null,"type":"click","product_id":"srv-r740-g6230","position":1}
+{"ts":"2026-05-07T13:32:13Z","session_id":"s2-92ba72381b17","client_id":null,"type":"search","query":"коммутатор 24 порта poe","results_count":0}
+{"ts":"2026-05-07T15:01:05Z","session_id":"s2-3b5a88e998d9","client_id":null,"type":"search","query":"монитор 27 дюймов","results_count":0}
+{"ts":"2026-05-07T15:53:29Z","session_id":"s2-88faaacf7bb3","client_id":null,"type":"search","query":"ddr4","results_count":18}
+{"ts":"2026-05-07T15:53:54Z","session_id":"s2-88faaacf7bb3","client_id":null,"type":"click","product_id":"mem-samsung-64g-d4","position":9}
+{"ts":"2026-05-07T16:01:01Z","session_id":"s2-114cfd41b775","client_id":null,"type":"search","query":"удаленный рабочий стол windows server 2025 на 10 пользователей","results_count":0}
+{"ts":"2026-05-08T06:17:28Z","session_id":"s2-3361b9d422ee","client_id":null,"type":"search","query":"P43328-B21","results_count":0}
+{"ts":"2026-05-08T06:20:05Z","session_id":"s2-62c8e3da992b","client_id":null,"type":"search","query":"филиал на 15 рабочих мест","results_count":0}
+{"ts":"2026-05-08T06:28:40Z","session_id":"s2-787350f50c67","client_id":null,"type":"search","query":"cal для windows server 2025","results_count":9}
+{"ts":"2026-05-08T08:09:16Z","session_id":"s2-389957efa6c9","client_id":null,"type":"search","query":"ddr4","results_count":18}
+{"ts":"2026-05-08T08:09:41Z","session_id":"s2-389957efa6c9","client_id":null,"type":"click","product_id":"mem-hpe-16g-d4","position":1}
+{"ts":"2026-05-08T08:39:23Z","session_id":"s2-fc4d8337f8fe","client_id":null,"type":"search","query":"клиентские лицензии windows server 2025 на устройство","results_count":9}
+{"ts":"2026-05-08T08:39:34Z","session_id":"s2-fc4d8337f8fe","client_id":null,"type":"click","product_id":"wscal25-d1","position":3}
+{"ts":"2026-05-08T09:12:18Z","session_id":"s2-e2dee7f2051c","client_id":null,"type":"add_to_cart","product_id":"ws25-std16"}
+{"ts":"2026-05-08T09:12:42Z","session_id":"s2-e2dee7f2051c","client_id":null,"type":"add_to_cart","product_id":"ws25-std2"}
+{"ts":"2026-05-08T09:13:28Z","session_id":"s2-e2dee7f2051c","client_id":null,"type":"add_to_cart","product_id":"wscal25-u1"}
+{"ts":"2026-05-08T09:14:34Z","session_id":"s2-e2dee7f2051c","client_id":null,"type":"add_to_cart","product_id":"rdscal25-u1"}
+{"ts":"2026-05-08T09:18:49Z","session_id":"s2-e2dee7f2051c","client_id":null,"type":"order","product_id":"ws25-std16","quantity":1,"order_id":"o-00088","account_id":"acc-010"}
+{"ts":"2026-05-08T09:18:49Z","session_id":"s2-e2dee7f2051c","client_id":null,"type":"order","product_id":"ws25-std2","quantity":2,"order_id":"o-00088","account_id":"acc-010"}
+{"ts":"2026-05-08T09:18:49Z","session_id":"s2-e2dee7f2051c","client_id":null,"type":"order","product_id":"wscal25-u1","quantity":50,"order_id":"o-00088","account_id":"acc-010"}
+{"ts":"2026-05-08T09:18:49Z","session_id":"s2-e2dee7f2051c","client_id":null,"type":"order","product_id":"rdscal25-u1","quantity":25,"order_id":"o-00088","account_id":"acc-010"}
+{"ts":"2026-05-08T09:39:33Z","session_id":"s2-a22d54aaabc7","client_id":null,"type":"add_to_cart","product_id":"nb-pb450g10-i5-8-256"}
+{"ts":"2026-05-08T09:40:18Z","session_id":"s2-a22d54aaabc7","client_id":null,"type":"add_to_cart","product_id":"mem-yadro-32g-d4"}
+{"ts":"2026-05-08T09:42:06Z","session_id":"s2-a22d54aaabc7","client_id":null,"type":"order","product_id":"nb-pb450g10-i5-8-256","quantity":3,"order_id":"o-00089","account_id":"acc-036"}
+{"ts":"2026-05-08T09:42:06Z","session_id":"s2-a22d54aaabc7","client_id":null,"type":"order","product_id":"mem-yadro-32g-d4","quantity":1,"order_id":"o-00089","account_id":"acc-036"}
+{"ts":"2026-05-08T09:44:31Z","session_id":"s2-7fbaabeb2d28","client_id":null,"type":"search","query":"сумка для ноутбука","results_count":0}
+{"ts":"2026-05-08T10:04:55Z","session_id":"s2-97210e54c937","client_id":null,"type":"search","query":"лицензия windows server 2025 на 32 ядра","results_count":23}
+{"ts":"2026-05-08T10:44:40Z","session_id":"s2-5c83433ba553","client_id":null,"type":"search","query":"ноутбук 15,6 дюйма до 100000 рублей","results_count":0}
+{"ts":"2026-05-08T11:09:01Z","session_id":"s2-496c99a5f78a","client_id":null,"type":"add_to_cart","product_id":"srv-vegman-r220-base"}
+{"ts":"2026-05-08T11:09:40Z","session_id":"s2-496c99a5f78a","client_id":null,"type":"add_to_cart","product_id":"mem-yadro-32g-d4"}
+{"ts":"2026-05-08T11:10:39Z","session_id":"s2-496c99a5f78a","client_id":null,"type":"add_to_cart","product_id":"ssd-yadro-960"}
+{"ts":"2026-05-08T11:11:59Z","session_id":"s2-496c99a5f78a","client_id":null,"type":"add_to_cart","product_id":"svc-yadro-3y"}
+{"ts":"2026-05-08T11:21:31Z","session_id":"s2-496c99a5f78a","client_id":null,"type":"order","product_id":"srv-vegman-r220-base","quantity":1,"order_id":"o-00090","account_id":"acc-004"}
+{"ts":"2026-05-08T11:21:31Z","session_id":"s2-496c99a5f78a","client_id":null,"type":"order","product_id":"mem-yadro-32g-d4","quantity":8,"order_id":"o-00090","account_id":"acc-004"}
+{"ts":"2026-05-08T11:21:31Z","session_id":"s2-496c99a5f78a","client_id":null,"type":"order","product_id":"ssd-yadro-960","quantity":4,"order_id":"o-00090","account_id":"acc-004"}
+{"ts":"2026-05-08T11:21:31Z","session_id":"s2-496c99a5f78a","client_id":null,"type":"order","product_id":"svc-yadro-3y","quantity":1,"order_id":"o-00090","account_id":"acc-004"}
+{"ts":"2026-05-08T12:16:49Z","session_id":"s2-0e8869832d59","client_id":null,"type":"add_to_cart","product_id":"ws25-std16"}
+{"ts":"2026-05-08T12:17:42Z","session_id":"s2-0e8869832d59","client_id":null,"type":"add_to_cart","product_id":"wscal25-u5"}
+{"ts":"2026-05-08T12:23:53Z","session_id":"s2-0e8869832d59","client_id":null,"type":"order","product_id":"ws25-std16","quantity":1,"order_id":"o-00091","account_id":"acc-021"}
+{"ts":"2026-05-08T12:23:53Z","session_id":"s2-0e8869832d59","client_id":null,"type":"order","product_id":"wscal25-u5","quantity":1,"order_id":"o-00091","account_id":"acc-021"}
+{"ts":"2026-05-08T12:31:12Z","session_id":"s2-9501124c4ec4","client_id":null,"type":"search","query":"рабочее место для 20 сотрудников","results_count":0}
+{"ts":"2026-05-08T12:38:27Z","session_id":"s2-30efd8340f32","client_id":null,"type":"add_to_cart","product_id":"mon-hp-e24g5"}
+{"ts":"2026-05-08T12:39:24Z","session_id":"s2-30efd8340f32","client_id":null,"type":"add_to_cart","product_id":"sw-dlink-dgs1210-28"}
+{"ts":"2026-05-08T12:42:39Z","session_id":"s2-30efd8340f32","client_id":null,"type":"order","product_id":"mon-hp-e24g5","quantity":2,"order_id":"o-00092","account_id":"acc-007"}
+{"ts":"2026-05-08T12:42:39Z","session_id":"s2-30efd8340f32","client_id":null,"type":"order","product_id":"sw-dlink-dgs1210-28","quantity":1,"order_id":"o-00092","account_id":"acc-007"}
+{"ts":"2026-05-08T12:47:08Z","session_id":"s2-95026616a33d","client_id":null,"type":"add_to_cart","product_id":"srv-dl380g10-5218"}
+{"ts":"2026-05-08T12:48:38Z","session_id":"s2-95026616a33d","client_id":null,"type":"add_to_cart","product_id":"mem-hpe-32g-d4"}
+{"ts":"2026-05-08T12:49:07Z","session_id":"s2-95026616a33d","client_id":null,"type":"add_to_cart","product_id":"ssd-hpe-960-sas"}
+{"ts":"2026-05-08T12:56:24Z","session_id":"s2-95026616a33d","client_id":null,"type":"order","product_id":"srv-dl380g10-5218","quantity":1,"order_id":"o-00093","account_id":"acc-022"}
+{"ts":"2026-05-08T12:56:24Z","session_id":"s2-95026616a33d","client_id":null,"type":"order","product_id":"mem-hpe-32g-d4","quantity":2,"order_id":"o-00093","account_id":"acc-022"}
+{"ts":"2026-05-08T12:56:24Z","session_id":"s2-95026616a33d","client_id":null,"type":"order","product_id":"ssd-hpe-960-sas","quantity":4,"order_id":"o-00093","account_id":"acc-022"}
+{"ts":"2026-05-08T15:24:25Z","session_id":"s2-354e870921d0","client_id":null,"type":"search","query":"64 гб для r750","results_count":2}
+{"ts":"2026-05-08T16:37:04Z","session_id":"s2-941b7473c66e","client_id":null,"type":"search","query":"жесткий диск sas для dell r750","results_count":0}
+{"ts":"2026-05-09T07:35:36Z","session_id":"s2-546b7e6cf274","client_id":null,"type":"search","query":"64 гб для r750","results_count":2}
+{"ts":"2026-05-09T10:16:12Z","session_id":"s2-ba0aca50416e","client_id":null,"type":"price_request","product_id":"srv-dl380g11-5418y"}
+{"ts":"2026-05-09T10:16:12Z","session_id":"s2-ba0aca50416e","client_id":null,"type":"add_to_cart","product_id":"srv-dl380g11-5418y"}
+{"ts":"2026-05-09T10:17:22Z","session_id":"s2-ba0aca50416e","client_id":null,"type":"price_request","product_id":"srv-r750-g6338"}
+{"ts":"2026-05-09T10:17:22Z","session_id":"s2-ba0aca50416e","client_id":null,"type":"add_to_cart","product_id":"srv-r750-g6338"}
+{"ts":"2026-05-09T10:22:52Z","session_id":"s2-ba0aca50416e","client_id":null,"type":"order","product_id":"srv-dl380g11-5418y","quantity":1,"order_id":"o-00094","account_id":"acc-033"}
+{"ts":"2026-05-09T10:22:52Z","session_id":"s2-ba0aca50416e","client_id":null,"type":"order","product_id":"srv-r750-g6338","quantity":1,"order_id":"o-00094","account_id":"acc-033"}
+{"ts":"2026-05-09T10:54:32Z","session_id":"s2-4920c3574f25","client_id":null,"type":"search","query":"коммутатор 24 порта аплинк 10 гбит/с","results_count":0}
+{"ts":"2026-05-09T11:18:28Z","session_id":"s2-caf282d9ddad","client_id":null,"type":"add_to_cart","product_id":"srv-r750-s4314"}
+{"ts":"2026-05-09T11:19:21Z","session_id":"s2-caf282d9ddad","client_id":null,"type":"add_to_cart","product_id":"mem-dell-32g-d4"}
+{"ts":"2026-05-09T11:19:53Z","session_id":"s2-caf282d9ddad","client_id":null,"type":"add_to_cart","product_id":"hdd-dell-8000-sas"}
+{"ts":"2026-05-09T11:20:19Z","session_id":"s2-caf282d9ddad","client_id":null,"type":"add_to_cart","product_id":"svc-dell-ps-r750-3y"}
+{"ts":"2026-05-09T11:21:03Z","session_id":"s2-caf282d9ddad","client_id":null,"type":"add_to_cart","product_id":"ups-ippon-rt-3000"}
+{"ts":"2026-05-09T11:27:32Z","session_id":"s2-caf282d9ddad","client_id":null,"type":"order","product_id":"srv-r750-s4314","quantity":2,"order_id":"o-00095","account_id":"acc-036"}
+{"ts":"2026-05-09T11:27:32Z","session_id":"s2-caf282d9ddad","client_id":null,"type":"order","product_id":"mem-dell-32g-d4","quantity":2,"order_id":"o-00095","account_id":"acc-036"}
+{"ts":"2026-05-09T11:27:32Z","session_id":"s2-caf282d9ddad","client_id":null,"type":"order","product_id":"hdd-dell-8000-sas","quantity":4,"order_id":"o-00095","account_id":"acc-036"}
+{"ts":"2026-05-09T11:27:32Z","session_id":"s2-caf282d9ddad","client_id":null,"type":"order","product_id":"svc-dell-ps-r750-3y","quantity":1,"order_id":"o-00095","account_id":"acc-036"}
+{"ts":"2026-05-09T11:27:32Z","session_id":"s2-caf282d9ddad","client_id":null,"type":"order","product_id":"ups-ippon-rt-3000","quantity":1,"order_id":"o-00095","account_id":"acc-036"}
+{"ts":"2026-05-09T14:20:37Z","session_id":"s2-f1281dc5d1cc","client_id":null,"type":"search","query":"рабочее место бухгалтера","results_count":4}
+{"ts":"2026-05-09T14:20:48Z","session_id":"s2-f1281dc5d1cc","client_id":null,"type":"click","product_id":"1cbuh-prof","position":3}
+{"ts":"2026-05-09T16:34:43Z","session_id":"s2-88aad1c863a5","client_id":null,"type":"search","query":"windows server 2025 с cal на 30 пользователей","results_count":9}
+{"ts":"2026-05-10T08:10:17Z","session_id":"s2-d875462f51e8","client_id":null,"type":"search","query":"память 64 гб ddr5","results_count":4}
+{"ts":"2026-05-10T10:56:25Z","session_id":"s2-3c19d1399122","client_id":null,"type":"add_to_cart","product_id":"nb-e14g5-i5-16-512"}
+{"ts":"2026-05-10T11:01:33Z","session_id":"s2-3c19d1399122","client_id":null,"type":"order","product_id":"nb-e14g5-i5-16-512","quantity":5,"order_id":"o-00096","account_id":"acc-031"}
+{"ts":"2026-05-10T14:22:22Z","session_id":"s2-8491dcfe2ea9","client_id":null,"type":"add_to_cart","product_id":"nb-pb450g10-i5-16-512"}
+{"ts":"2026-05-10T14:22:58Z","session_id":"s2-8491dcfe2ea9","client_id":null,"type":"price_request","product_id":"ups-eaton-9sx-3000"}
+{"ts":"2026-05-10T14:22:58Z","session_id":"s2-8491dcfe2ea9","client_id":null,"type":"add_to_cart","product_id":"ups-eaton-9sx-3000"}
+{"ts":"2026-05-10T14:31:12Z","session_id":"s2-8491dcfe2ea9","client_id":null,"type":"order","product_id":"nb-pb450g10-i5-16-512","quantity":5,"order_id":"o-00097","account_id":"acc-035"}
+{"ts":"2026-05-10T14:31:12Z","session_id":"s2-8491dcfe2ea9","client_id":null,"type":"order","product_id":"ups-eaton-9sx-3000","quantity":1,"order_id":"o-00097","account_id":"acc-035"}
+{"ts":"2026-05-11T07:45:52Z","session_id":"s2-1786a38c0e3e","client_id":null,"type":"search","query":"nvme для dl380 gen11","results_count":1}
+{"ts":"2026-05-11T08:48:01Z","session_id":"s2-8405c213d358","client_id":null,"type":"add_to_cart","product_id":"mem-hpe-32g-d5"}
+{"ts":"2026-05-11T08:49:01Z","session_id":"s2-8405c213d358","client_id":null,"type":"add_to_cart","product_id":"mem-hpe-64g-d4"}
+{"ts":"2026-05-11T08:56:05Z","session_id":"s2-8405c213d358","client_id":null,"type":"order","product_id":"mem-hpe-32g-d5","quantity":5,"order_id":"o-00098","account_id":"acc-016"}
+{"ts":"2026-05-11T08:56:05Z","session_id":"s2-8405c213d358","client_id":null,"type":"order","product_id":"mem-hpe-64g-d4","quantity":1,"order_id":"o-00098","account_id":"acc-016"}
+{"ts":"2026-05-11T09:41:21Z","session_id":"s2-42f333a766b5","client_id":null,"type":"search","query":"microsoft 365 business standard годовая подписка","results_count":0}
+{"ts":"2026-05-11T10:23:54Z","session_id":"s2-fdbe01c97344","client_id":null,"type":"search","query":"p00924","results_count":0}
+{"ts":"2026-05-11T10:34:34Z","session_id":"s2-b9cc1e755087","client_id":null,"type":"search","query":"сервер 2u от 128 гб памяти","results_count":0}
+{"ts":"2026-05-11T11:41:00Z","session_id":"s2-0bbe8c92441f","client_id":null,"type":"search","query":"dell poweredge r740","results_count":3}
+{"ts":"2026-05-11T11:49:10Z","session_id":"s2-bf3b352c1a7f","client_id":null,"type":"search","query":"мойофис для astra linux","results_count":0}
+{"ts":"2026-05-11T12:15:05Z","session_id":"s2-56c2704f72d9","client_id":null,"type":"search","query":"сервер под 1с на 50 пользователей","results_count":0}
+{"ts":"2026-05-11T12:29:01Z","session_id":"s2-8601f9e9f7fc","client_id":null,"type":"search","query":"серверная память","results_count":14}
+{"ts":"2026-05-11T13:11:15Z","session_id":"s2-3e7c348e4754","client_id":null,"type":"search","query":"ноутбук 15,6 дюйма до 100000 рублей","results_count":0}
+{"ts":"2026-05-11T13:27:25Z","session_id":"s2-d7cf006f0600","client_id":null,"type":"search","query":"P2425H","results_count":1}
+{"ts":"2026-05-11T13:27:59Z","session_id":"s2-d7cf006f0600","client_id":null,"type":"click","product_id":"mon-dell-p2425h","position":1}
+{"ts":"2026-05-11T13:28:15Z","session_id":"s2-5bac565d135a","client_id":null,"type":"search","query":"cal 2025 для windows server 2025","results_count":9}
+{"ts":"2026-05-11T13:30:35Z","session_id":"s2-d7cf006f0600","client_id":null,"type":"add_to_cart","product_id":"mon-dell-p2425h"}
+{"ts":"2026-05-11T13:46:32Z","session_id":"s2-950b0099bad0","client_id":null,"type":"search","query":"ssd 960 для hpe gen10","results_count":2}
+{"ts":"2026-05-11T14:37:20Z","session_id":"s2-61ebd2ff602e","client_id":null,"type":"search","query":"cal 2025 для windows server 2025","results_count":9}
+{"ts":"2026-05-11T14:37:57Z","session_id":"s2-61ebd2ff602e","client_id":null,"type":"click","product_id":"wscal25-u1","position":7}
+{"ts":"2026-05-11T14:59:49Z","session_id":"s2-f0ea9d4b758a","client_id":null,"type":"search","query":"cal 2025 на 25 пользователей","results_count":13}
+{"ts":"2026-05-11T14:59:58Z","session_id":"s2-f0ea9d4b758a","client_id":null,"type":"click","product_id":"wscal25-u1","position":8}
+{"ts":"2026-05-11T15:03:53Z","session_id":"s2-670b02f1ba13","client_id":null,"type":"search","query":"windows server без cal","results_count":9}
+{"ts":"2026-05-11T15:29:15Z","session_id":"s2-89fda426ecde","client_id":null,"type":"add_to_cart","product_id":"srv-dl380g10-5218"}
+{"ts":"2026-05-11T15:30:05Z","session_id":"s2-89fda426ecde","client_id":null,"type":"add_to_cart","product_id":"mem-hpe-32g-d4"}
+{"ts":"2026-05-11T15:30:25Z","session_id":"s2-89fda426ecde","client_id":null,"type":"add_to_cart","product_id":"svc-hpe-tc-g10-3y"}
+{"ts":"2026-05-11T15:34:13Z","session_id":"s2-89fda426ecde","client_id":null,"type":"order","product_id":"srv-dl380g10-5218","quantity":1,"order_id":"o-00099","account_id":"acc-017"}
+{"ts":"2026-05-11T15:34:13Z","session_id":"s2-89fda426ecde","client_id":null,"type":"order","product_id":"mem-hpe-32g-d4","quantity":4,"order_id":"o-00099","account_id":"acc-017"}
+{"ts":"2026-05-11T15:34:13Z","session_id":"s2-89fda426ecde","client_id":null,"type":"order","product_id":"svc-hpe-tc-g10-3y","quantity":1,"order_id":"o-00099","account_id":"acc-017"}
+{"ts":"2026-05-11T15:39:49Z","session_id":"s2-b96a07baace2","client_id":null,"type":"search","query":"sql cal 2022 на пользователя","results_count":2}
+{"ts":"2026-05-11T15:44:12Z","session_id":"s2-353634b500a2","client_id":null,"type":"search","query":"бесплатный антивирус","results_count":0}
+{"ts":"2026-05-11T16:05:26Z","session_id":"s2-4d35f18e1ffc","client_id":null,"type":"search","query":"ssd для r740","results_count":2}
+{"ts":"2026-05-12T08:16:19Z","session_id":"s2-05fe80fd3fd3","client_id":null,"type":"add_to_cart","product_id":"ws22-std16"}
+{"ts":"2026-05-12T08:16:58Z","session_id":"s2-05fe80fd3fd3","client_id":null,"type":"add_to_cart","product_id":"wscal25-u1"}
+{"ts":"2026-05-12T08:26:17Z","session_id":"s2-05fe80fd3fd3","client_id":null,"type":"order","product_id":"ws22-std16","quantity":1,"order_id":"o-00100","account_id":"acc-025"}
+{"ts":"2026-05-12T08:26:17Z","session_id":"s2-05fe80fd3fd3","client_id":null,"type":"order","product_id":"wscal25-u1","quantity":5,"order_id":"o-00100","account_id":"acc-025"}
+{"ts":"2026-05-12T08:47:15Z","session_id":"s2-9803ea1cb790","client_id":null,"type":"search","query":"32","results_count":0}
+{"ts":"2026-05-12T09:06:30Z","session_id":"s2-1f171ba87ca0","client_id":null,"type":"add_to_cart","product_id":"mon-hp-e24g5"}
+{"ts":"2026-05-12T09:07:38Z","session_id":"s2-1f171ba87ca0","client_id":null,"type":"add_to_cart","product_id":"sw-dlink-dgs1210-28"}
+{"ts":"2026-05-12T09:07:39Z","session_id":"s2-f6a40ea958da","client_id":null,"type":"search","query":"ноутбук 16 гб 512 гб","results_count":11}
+{"ts":"2026-05-12T09:07:51Z","session_id":"s2-f6a40ea958da","client_id":null,"type":"click","product_id":"nb-pb450g10-i5-16-512","position":7}
+{"ts":"2026-05-12T09:15:35Z","session_id":"s2-1f171ba87ca0","client_id":null,"type":"order","product_id":"mon-hp-e24g5","quantity":2,"order_id":"o-00101","account_id":"acc-007"}
+{"ts":"2026-05-12T09:15:35Z","session_id":"s2-1f171ba87ca0","client_id":null,"type":"order","product_id":"sw-dlink-dgs1210-28","quantity":1,"order_id":"o-00101","account_id":"acc-007"}
+{"ts":"2026-05-12T10:13:41Z","session_id":"s2-c76b2a30a525","client_id":null,"type":"search","query":"клиентские лицензии windows server 2025 на устройство","results_count":9}
+{"ts":"2026-05-12T10:13:54Z","session_id":"s2-c76b2a30a525","client_id":null,"type":"click","product_id":"wscal25-d5","position":4}
+{"ts":"2026-05-12T10:30:05Z","session_id":"s2-bb60218021ee","client_id":null,"type":"add_to_cart","product_id":"sw-eltex-mes2324p"}
+{"ts":"2026-05-12T10:30:32Z","session_id":"s2-bb60218021ee","client_id":null,"type":"add_to_cart","product_id":"ups-ippon-spp-2200"}
+{"ts":"2026-05-12T10:35:13Z","session_id":"s2-bb60218021ee","client_id":null,"type":"order","product_id":"sw-eltex-mes2324p","quantity":1,"order_id":"o-00102","account_id":"acc-022"}
+{"ts":"2026-05-12T10:35:13Z","session_id":"s2-bb60218021ee","client_id":null,"type":"order","product_id":"ups-ippon-spp-2200","quantity":1,"order_id":"o-00102","account_id":"acc-022"}
+{"ts":"2026-05-12T10:36:39Z","session_id":"s2-2fe253a39939","client_id":null,"type":"search","query":"продление гарантии hpe dl380 gen10","results_count":0}
+{"ts":"2026-05-12T10:51:43Z","session_id":"s2-bd1fb42ded81","client_id":null,"type":"search","query":"kaspersky для astra linux","results_count":0}
+{"ts":"2026-05-12T10:51:59Z","session_id":"s2-f8407538ad2b","client_id":null,"type":"search","query":"rds cal для windows server 2025","results_count":1}
+{"ts":"2026-05-12T12:01:33Z","session_id":"s2-5a71e041305c","client_id":null,"type":"search","query":"ибп от 2 квт","results_count":0}
+{"ts":"2026-05-12T13:32:10Z","session_id":"s2-64797a2ba67a","client_id":null,"type":"add_to_cart","product_id":"nb-e14g5-i7-16-1t"}
+{"ts":"2026-05-12T13:40:11Z","session_id":"s2-64797a2ba67a","client_id":null,"type":"order","product_id":"nb-e14g5-i7-16-1t","quantity":5,"order_id":"o-00103","account_id":"acc-009"}
+{"ts":"2026-05-12T14:00:42Z","session_id":"s2-1109e99b4f2d","client_id":null,"type":"add_to_cart","product_id":"sw-eltex-mes2324p"}
+{"ts":"2026-05-12T14:01:42Z","session_id":"s2-1109e99b4f2d","client_id":null,"type":"add_to_cart","product_id":"ups-ippon-spp-2200"}
+{"ts":"2026-05-12T14:07:59Z","session_id":"s2-1109e99b4f2d","client_id":null,"type":"order","product_id":"sw-eltex-mes2324p","quantity":1,"order_id":"o-00104","account_id":"acc-004"}
+{"ts":"2026-05-12T14:07:59Z","session_id":"s2-1109e99b4f2d","client_id":null,"type":"order","product_id":"ups-ippon-spp-2200","quantity":1,"order_id":"o-00104","account_id":"acc-004"}
+{"ts":"2026-05-12T14:45:11Z","session_id":"s2-328bdc4a7d3d","client_id":null,"type":"search","query":"память для dell r740","results_count":0}
+{"ts":"2026-05-13T05:35:58Z","session_id":"s2-b5e8c79de30d","client_id":null,"type":"add_to_cart","product_id":"srv-r750-s4314"}
+{"ts":"2026-05-13T05:36:52Z","session_id":"s2-b5e8c79de30d","client_id":null,"type":"add_to_cart","product_id":"mem-dell-64g-d4"}
+{"ts":"2026-05-13T05:38:13Z","session_id":"s2-b5e8c79de30d","client_id":null,"type":"add_to_cart","product_id":"ssd-dell-1920-sata"}
+{"ts":"2026-05-13T05:39:05Z","session_id":"s2-b5e8c79de30d","client_id":null,"type":"add_to_cart","product_id":"svc-dell-ps-r750-3y"}
+{"ts":"2026-05-13T05:47:53Z","session_id":"s2-d2749b18640f","client_id":null,"type":"search","query":"монитор 27\" не менее 100 гц","results_count":0}
+{"ts":"2026-05-13T05:48:11Z","session_id":"s2-b5e8c79de30d","client_id":null,"type":"order","product_id":"srv-r750-s4314","quantity":1,"order_id":"o-00105","account_id":"acc-010"}
+{"ts":"2026-05-13T05:48:11Z","session_id":"s2-b5e8c79de30d","client_id":null,"type":"order","product_id":"mem-dell-64g-d4","quantity":8,"order_id":"o-00105","account_id":"acc-010"}
+{"ts":"2026-05-13T05:48:11Z","session_id":"s2-b5e8c79de30d","client_id":null,"type":"order","product_id":"ssd-dell-1920-sata","quantity":2,"order_id":"o-00105","account_id":"acc-010"}
+{"ts":"2026-05-13T05:48:11Z","session_id":"s2-b5e8c79de30d","client_id":null,"type":"order","product_id":"svc-dell-ps-r750-3y","quantity":1,"order_id":"o-00105","account_id":"acc-010"}
+{"ts":"2026-05-13T06:17:13Z","session_id":"s2-cf22f7cd6974","client_id":null,"type":"search","query":"sql server 2022 enterprise на ядра","results_count":1}
+{"ts":"2026-05-13T06:59:21Z","session_id":"s2-33454c92b6fd","client_id":"client-d","type":"price_request","product_id":"srv-r740-g6230"}
+{"ts":"2026-05-13T06:59:21Z","session_id":"s2-33454c92b6fd","client_id":"client-d","type":"add_to_cart","product_id":"srv-r740-g6230"}
+{"ts":"2026-05-13T06:59:52Z","session_id":"s2-33454c92b6fd","client_id":"client-d","type":"add_to_cart","product_id":"mem-dell-16g-d4"}
+{"ts":"2026-05-13T07:00:37Z","session_id":"s2-33454c92b6fd","client_id":"client-d","type":"add_to_cart","product_id":"svc-dell-ps-r740-3y"}
+{"ts":"2026-05-13T07:05:35Z","session_id":"s2-33454c92b6fd","client_id":"client-d","type":"order","product_id":"srv-r740-g6230","quantity":1,"order_id":"o-00106","account_id":"client-d"}
+{"ts":"2026-05-13T07:05:35Z","session_id":"s2-33454c92b6fd","client_id":"client-d","type":"order","product_id":"mem-dell-16g-d4","quantity":4,"order_id":"o-00106","account_id":"client-d"}
+{"ts":"2026-05-13T07:05:35Z","session_id":"s2-33454c92b6fd","client_id":"client-d","type":"order","product_id":"svc-dell-ps-r740-3y","quantity":1,"order_id":"o-00106","account_id":"client-d"}
+{"ts":"2026-05-13T07:20:06Z","session_id":"s2-7ee6c0c6c17d","client_id":null,"type":"search","query":"370-AEVQ","results_count":0}
+{"ts":"2026-05-13T08:36:23Z","session_id":"s2-5fe4f1801690","client_id":null,"type":"search","query":"ноутбук без операционной системы","results_count":0}
+{"ts":"2026-05-13T08:37:12Z","session_id":"s2-a5014c4643d5","client_id":"client-a","type":"add_to_cart","product_id":"srv-dl380g10-5218"}
+{"ts":"2026-05-13T08:37:25Z","session_id":"s2-a5014c4643d5","client_id":"client-a","type":"add_to_cart","product_id":"mem-hpe-64g-d4"}
+{"ts":"2026-05-13T08:38:12Z","session_id":"s2-a5014c4643d5","client_id":"client-a","type":"add_to_cart","product_id":"ssd-hpe-960-sata"}
+{"ts":"2026-05-13T08:38:48Z","session_id":"s2-a5014c4643d5","client_id":"client-a","type":"add_to_cart","product_id":"svc-hpe-tc-g10-3y"}
+{"ts":"2026-05-13T08:41:31Z","session_id":"s2-a5014c4643d5","client_id":"client-a","type":"order","product_id":"srv-dl380g10-5218","quantity":1,"order_id":"o-00107","account_id":"client-a"}
+{"ts":"2026-05-13T08:41:31Z","session_id":"s2-a5014c4643d5","client_id":"client-a","type":"order","product_id":"mem-hpe-64g-d4","quantity":4,"order_id":"o-00107","account_id":"client-a"}
+{"ts":"2026-05-13T08:41:31Z","session_id":"s2-a5014c4643d5","client_id":"client-a","type":"order","product_id":"ssd-hpe-960-sata","quantity":4,"order_id":"o-00107","account_id":"client-a"}
+{"ts":"2026-05-13T08:41:31Z","session_id":"s2-a5014c4643d5","client_id":"client-a","type":"order","product_id":"svc-hpe-tc-g10-3y","quantity":1,"order_id":"o-00107","account_id":"client-a"}
+{"ts":"2026-05-13T08:54:25Z","session_id":"s2-fcf62339494f","client_id":null,"type":"add_to_cart","product_id":"nb-t14g4-i5-16-512"}
+{"ts":"2026-05-13T08:57:29Z","session_id":"s2-fcf62339494f","client_id":null,"type":"order","product_id":"nb-t14g4-i5-16-512","quantity":3,"order_id":"o-00108","account_id":"acc-033"}
+{"ts":"2026-05-13T09:21:21Z","session_id":"s2-3e1c6a9dc6b8","client_id":null,"type":"add_to_cart","product_id":"nb-lat5540-i7-32-1t"}
+{"ts":"2026-05-13T09:29:43Z","session_id":"s2-3e1c6a9dc6b8","client_id":null,"type":"order","product_id":"nb-lat5540-i7-32-1t","quantity":1,"order_id":"o-00109","account_id":"acc-021"}
+{"ts":"2026-05-13T09:36:22Z","session_id":"s2-8ff71bbbd1c8","client_id":null,"type":"add_to_cart","product_id":"ws25-std16"}
+{"ts":"2026-05-13T09:36:57Z","session_id":"s2-8ff71bbbd1c8","client_id":null,"type":"add_to_cart","product_id":"ws25-std2"}
+{"ts":"2026-05-13T09:38:20Z","session_id":"s2-8ff71bbbd1c8","client_id":null,"type":"add_to_cart","product_id":"wscal25-u1"}
+{"ts":"2026-05-13T09:45:50Z","session_id":"s2-8ff71bbbd1c8","client_id":null,"type":"order","product_id":"ws25-std16","quantity":1,"order_id":"o-00110","account_id":"acc-038"}
+{"ts":"2026-05-13T09:45:50Z","session_id":"s2-8ff71bbbd1c8","client_id":null,"type":"order","product_id":"ws25-std2","quantity":4,"order_id":"o-00110","account_id":"acc-038"}
+{"ts":"2026-05-13T09:45:50Z","session_id":"s2-8ff71bbbd1c8","client_id":null,"type":"order","product_id":"wscal25-u1","quantity":30,"order_id":"o-00110","account_id":"acc-038"}
+{"ts":"2026-05-13T09:52:50Z","session_id":"s2-f72b29e39dd1","client_id":null,"type":"add_to_cart","product_id":"ws25-std16"}
+{"ts":"2026-05-13T09:54:10Z","session_id":"s2-f72b29e39dd1","client_id":null,"type":"add_to_cart","product_id":"wscal25-u5"}
+{"ts":"2026-05-13T10:01:02Z","session_id":"s2-f72b29e39dd1","client_id":null,"type":"order","product_id":"ws25-std16","quantity":1,"order_id":"o-00111","account_id":"acc-018"}
+{"ts":"2026-05-13T10:01:02Z","session_id":"s2-f72b29e39dd1","client_id":null,"type":"order","product_id":"wscal25-u5","quantity":10,"order_id":"o-00111","account_id":"acc-018"}
+{"ts":"2026-05-13T10:08:14Z","session_id":"s2-d4c47d0f06ab","client_id":null,"type":"search","query":"антивирус для компании на 50 пк","results_count":0}
+{"ts":"2026-05-13T11:20:27Z","session_id":"s2-a6cedbc3f652","client_id":null,"type":"add_to_cart","product_id":"sql22-stdsrv"}
+{"ts":"2026-05-13T11:21:28Z","session_id":"s2-a6cedbc3f652","client_id":null,"type":"add_to_cart","product_id":"sql22-cal"}
+{"ts":"2026-05-13T11:24:22Z","session_id":"s2-a6cedbc3f652","client_id":null,"type":"order","product_id":"sql22-stdsrv","quantity":1,"order_id":"o-00112","account_id":"acc-034"}
+{"ts":"2026-05-13T11:24:22Z","session_id":"s2-a6cedbc3f652","client_id":null,"type":"order","product_id":"sql22-cal","quantity":10,"order_id":"o-00112","account_id":"acc-034"}
+{"ts":"2026-05-13T11:40:47Z","session_id":"s2-6dc8d981e83b","client_id":null,"type":"add_to_cart","product_id":"ws25-std16"}
+{"ts":"2026-05-13T11:41:08Z","session_id":"s2-6dc8d981e83b","client_id":null,"type":"add_to_cart","product_id":"ws25-std2"}
+{"ts":"2026-05-13T11:41:22Z","session_id":"s2-6dc8d981e83b","client_id":null,"type":"add_to_cart","product_id":"wscal25-u1"}
+{"ts":"2026-05-13T11:41:57Z","session_id":"s2-6dc8d981e83b","client_id":null,"type":"add_to_cart","product_id":"rdscal25-u1"}
+{"ts":"2026-05-13T11:43:52Z","session_id":"s2-6dc8d981e83b","client_id":null,"type":"order","product_id":"ws25-std16","quantity":1,"order_id":"o-00113","account_id":"acc-031"}
+{"ts":"2026-05-13T11:43:52Z","session_id":"s2-6dc8d981e83b","client_id":null,"type":"order","product_id":"ws25-std2","quantity":4,"order_id":"o-00113","account_id":"acc-031"}
+{"ts":"2026-05-13T11:43:52Z","session_id":"s2-6dc8d981e83b","client_id":null,"type":"order","product_id":"wscal25-u1","quantity":30,"order_id":"o-00113","account_id":"acc-031"}
+{"ts":"2026-05-13T11:43:52Z","session_id":"s2-6dc8d981e83b","client_id":null,"type":"order","product_id":"rdscal25-u1","quantity":15,"order_id":"o-00113","account_id":"acc-031"}
+{"ts":"2026-05-13T11:56:24Z","session_id":"s2-84cfcff411d7","client_id":null,"type":"add_to_cart","product_id":"ws25-std16"}
+{"ts":"2026-05-13T11:57:25Z","session_id":"s2-84cfcff411d7","client_id":null,"type":"add_to_cart","product_id":"wscal-u1"}
+{"ts":"2026-05-13T12:00:23Z","session_id":"s2-7c5c55e69768","client_id":null,"type":"search","query":"коммутатор и ибп для небольшого офиса","results_count":0}
+{"ts":"2026-05-13T12:01:32Z","session_id":"s2-84cfcff411d7","client_id":null,"type":"order","product_id":"ws25-std16","quantity":1,"order_id":"o-00114","account_id":"acc-002"}
+{"ts":"2026-05-13T12:01:32Z","session_id":"s2-84cfcff411d7","client_id":null,"type":"order","product_id":"wscal-u1","quantity":50,"order_id":"o-00114","account_id":"acc-002"}
+{"ts":"2026-05-13T12:15:33Z","session_id":"s2-491dce55c5b3","client_id":null,"type":"search","query":"rds cal 2025","results_count":3}
+{"ts":"2026-05-13T12:15:35Z","session_id":"s2-f70f7fe178ff","client_id":null,"type":"price_request","product_id":"srv-vegman-r220-max"}
+{"ts":"2026-05-13T12:15:35Z","session_id":"s2-f70f7fe178ff","client_id":null,"type":"add_to_cart","product_id":"srv-vegman-r220-max"}
+{"ts":"2026-05-13T12:16:46Z","session_id":"s2-f70f7fe178ff","client_id":null,"type":"add_to_cart","product_id":"mem-yadro-32g-d4"}
+{"ts":"2026-05-13T12:17:22Z","session_id":"s2-f70f7fe178ff","client_id":null,"type":"add_to_cart","product_id":"svc-yadro-3y"}
+{"ts":"2026-05-13T12:23:22Z","session_id":"s2-f70f7fe178ff","client_id":null,"type":"order","product_id":"srv-vegman-r220-max","quantity":2,"order_id":"o-00115","account_id":"acc-019"}
+{"ts":"2026-05-13T12:23:22Z","session_id":"s2-f70f7fe178ff","client_id":null,"type":"order","product_id":"mem-yadro-32g-d4","quantity":2,"order_id":"o-00115","account_id":"acc-019"}
+{"ts":"2026-05-13T12:23:22Z","session_id":"s2-f70f7fe178ff","client_id":null,"type":"order","product_id":"svc-yadro-3y","quantity":1,"order_id":"o-00115","account_id":"acc-019"}
+{"ts":"2026-05-13T12:52:13Z","session_id":"s2-7079e12e6b61","client_id":null,"type":"search","query":"P00924-B21","results_count":0}
+{"ts":"2026-05-13T13:04:11Z","session_id":"s2-115b198a14e1","client_id":null,"type":"search","query":"ssd для r740","results_count":2}
+{"ts":"2026-05-13T13:14:18Z","session_id":"s2-13a9dc6d382d","client_id":null,"type":"add_to_cart","product_id":"nb-e14g5-i5-16-512"}
+{"ts":"2026-05-13T13:14:28Z","session_id":"s2-13a9dc6d382d","client_id":null,"type":"add_to_cart","product_id":"nb-pb450g10-i5-8-256"}
+{"ts":"2026-05-13T13:22:26Z","session_id":"s2-13a9dc6d382d","client_id":null,"type":"order","product_id":"nb-e14g5-i5-16-512","quantity":1,"order_id":"o-00116","account_id":"acc-028"}
+{"ts":"2026-05-13T13:22:26Z","session_id":"s2-13a9dc6d382d","client_id":null,"type":"order","product_id":"nb-pb450g10-i5-8-256","quantity":1,"order_id":"o-00116","account_id":"acc-028"}
+{"ts":"2026-05-13T13:57:48Z","session_id":"s2-b6adedb74045","client_id":null,"type":"search","query":"dell","results_count":20}
+{"ts":"2026-05-13T14:25:37Z","session_id":"s2-b653e5bf4cff","client_id":null,"type":"search","query":"ssd от 1,92 тб","results_count":10}
+{"ts":"2026-05-13T14:28:04Z","session_id":"s2-12a53622a538","client_id":null,"type":"search","query":"windows server 2025 datacenter 16 ядер","results_count":2}
+{"ts":"2026-05-13T14:28:32Z","session_id":"s2-12a53622a538","client_id":null,"type":"click","product_id":"ws25-dc16","position":2}
+{"ts":"2026-05-13T14:38:04Z","session_id":"s2-bc8050f5bbc4","client_id":null,"type":"search","query":"ноутбук без операционной системы","results_count":0}
+{"ts":"2026-05-13T15:03:48Z","session_id":"s2-8483001563c5","client_id":null,"type":"search","query":"rds cal 2019","results_count":3}
+{"ts":"2026-05-13T16:03:48Z","session_id":"s2-c6bf06be3334","client_id":null,"type":"add_to_cart","product_id":"nb-lat5540-i5-16-512"}
+{"ts":"2026-05-13T16:04:00Z","session_id":"s2-7cb7b3681ad3","client_id":"client-d","type":"add_to_cart","product_id":"nb-lat5540-i5-16-512"}
+{"ts":"2026-05-13T16:04:26Z","session_id":"s2-c6bf06be3334","client_id":null,"type":"add_to_cart","product_id":"m365b-bp"}
+{"ts":"2026-05-13T16:04:52Z","session_id":"s2-7cb7b3681ad3","client_id":"client-d","type":"add_to_cart","product_id":"kes-std25"}
+{"ts":"2026-05-13T16:05:42Z","session_id":"s2-c6bf06be3334","client_id":null,"type":"add_to_cart","product_id":"kes-std10"}
+{"ts":"2026-05-13T16:10:49Z","session_id":"s2-c6bf06be3334","client_id":null,"type":"order","product_id":"nb-lat5540-i5-16-512","quantity":15,"order_id":"o-00117","account_id":"acc-022"}
+{"ts":"2026-05-13T16:10:49Z","session_id":"s2-c6bf06be3334","client_id":null,"type":"order","product_id":"m365b-bp","quantity":15,"order_id":"o-00117","account_id":"acc-022"}
+{"ts":"2026-05-13T16:10:49Z","session_id":"s2-c6bf06be3334","client_id":null,"type":"order","product_id":"kes-std10","quantity":1,"order_id":"o-00117","account_id":"acc-022"}
+{"ts":"2026-05-13T16:14:13Z","session_id":"s2-7cb7b3681ad3","client_id":"client-d","type":"order","product_id":"nb-lat5540-i5-16-512","quantity":2,"order_id":"o-00118","account_id":"client-d"}
+{"ts":"2026-05-13T16:14:13Z","session_id":"s2-7cb7b3681ad3","client_id":"client-d","type":"order","product_id":"kes-std25","quantity":1,"order_id":"o-00118","account_id":"client-d"}
+{"ts":"2026-05-13T16:45:18Z","session_id":"s2-1c37b82f3db7","client_id":null,"type":"search","query":"память 64 гб ddr5","results_count":4}
+{"ts":"2026-05-13T17:20:08Z","session_id":"s2-ad64f6f3672c","client_id":null,"type":"search","query":"kaspersky для astra linux","results_count":0}
+{"ts":"2026-05-14T06:15:50Z","session_id":"s2-39e3e94265b5","client_id":null,"type":"search","query":"cal","results_count":13}
+{"ts":"2026-05-14T07:56:33Z","session_id":"s2-c74c8b6ca7a3","client_id":null,"type":"search","query":"память для yadro vegman r220","results_count":0}
+{"ts":"2026-05-14T08:11:12Z","session_id":"s2-6057e988b6b9","client_id":null,"type":"search","query":"kaspersky endpoint security стандартный 25 узлов","results_count":5}
+{"ts":"2026-05-14T08:11:17Z","session_id":"s2-6057e988b6b9","client_id":null,"type":"click","product_id":"kes-std25","position":2}
+{"ts":"2026-05-14T08:13:04Z","session_id":"s2-6057e988b6b9","client_id":null,"type":"add_to_cart","product_id":"kes-std25"}
+{"ts":"2026-05-14T08:59:07Z","session_id":"s2-55c8a3c99283","client_id":null,"type":"search","query":"881457-B21","results_count":0}
+{"ts":"2026-05-14T10:11:20Z","session_id":"s2-d1b438302c9e","client_id":null,"type":"search","query":"ноутбук 16 гб 512 гб","results_count":11}
+{"ts":"2026-05-14T10:11:35Z","session_id":"s2-d1b438302c9e","client_id":null,"type":"click","product_id":"nb-lat5540-i5-16-512","position":6}
+{"ts":"2026-05-14T10:29:32Z","session_id":"s2-861ad79dd9c7","client_id":null,"type":"search","query":"мойофис для astra linux","results_count":0}
+{"ts":"2026-05-14T10:40:43Z","session_id":"s2-06a448773dab","client_id":null,"type":"search","query":"r750","results_count":3}
+{"ts":"2026-05-14T11:48:11Z","session_id":"s2-eb53aa8c1305","client_id":null,"type":"search","query":"windows server 2022 standard на 20 пользователей","results_count":4}
+{"ts":"2026-05-14T11:48:33Z","session_id":"s2-eb53aa8c1305","client_id":null,"type":"click","product_id":"ws22-std2","position":3}
+{"ts":"2026-05-14T12:24:08Z","session_id":"s2-d059ba824915","client_id":null,"type":"add_to_cart","product_id":"nb-pb450g10-i5-16-512"}
+{"ts":"2026-05-14T12:25:02Z","session_id":"s2-e3b58143319d","client_id":null,"type":"add_to_cart","product_id":"srv-dl380g10-5218"}
+{"ts":"2026-05-14T12:25:16Z","session_id":"s2-d059ba824915","client_id":null,"type":"add_to_cart","product_id":"off24-hb"}
+{"ts":"2026-05-14T12:25:58Z","session_id":"s2-e3b58143319d","client_id":null,"type":"add_to_cart","product_id":"mem-hpe-64g-d4"}
+{"ts":"2026-05-14T12:26:42Z","session_id":"s2-d059ba824915","client_id":null,"type":"order","product_id":"nb-pb450g10-i5-16-512","quantity":20,"order_id":"o-00119","account_id":"acc-010"}
+{"ts":"2026-05-14T12:26:42Z","session_id":"s2-d059ba824915","client_id":null,"type":"order","product_id":"off24-hb","quantity":20,"order_id":"o-00119","account_id":"acc-010"}
+{"ts":"2026-05-14T12:26:58Z","session_id":"s2-e3b58143319d","client_id":null,"type":"add_to_cart","product_id":"ssd-hpe-960-sata"}
+{"ts":"2026-05-14T12:28:21Z","session_id":"s2-e3b58143319d","client_id":null,"type":"add_to_cart","product_id":"svc-hpe-tc-g10-3y"}
+{"ts":"2026-05-14T12:33:44Z","session_id":"s2-e3b58143319d","client_id":null,"type":"order","product_id":"srv-dl380g10-5218","quantity":2,"order_id":"o-00120","account_id":"acc-014"}
+{"ts":"2026-05-14T12:33:44Z","session_id":"s2-e3b58143319d","client_id":null,"type":"order","product_id":"mem-hpe-64g-d4","quantity":8,"order_id":"o-00120","account_id":"acc-014"}
+{"ts":"2026-05-14T12:33:44Z","session_id":"s2-e3b58143319d","client_id":null,"type":"order","product_id":"ssd-hpe-960-sata","quantity":2,"order_id":"o-00120","account_id":"acc-014"}
+{"ts":"2026-05-14T12:33:44Z","session_id":"s2-e3b58143319d","client_id":null,"type":"order","product_id":"svc-hpe-tc-g10-3y","quantity":1,"order_id":"o-00120","account_id":"acc-014"}
+{"ts":"2026-05-14T14:25:03Z","session_id":"s2-6e50f92c828b","client_id":null,"type":"search","query":"ноутбук от 32 гб озу","results_count":0}
+{"ts":"2026-05-14T14:50:52Z","session_id":"s2-898b2e0cddcb","client_id":null,"type":"search","query":"windows server 2025 standard на 50 пользователей","results_count":4}
+{"ts":"2026-05-14T14:51:10Z","session_id":"s2-eca898b78dde","client_id":null,"type":"search","query":"sql server 2022 standard server cal на 15 пользователей","results_count":1}
+{"ts":"2026-05-14T14:51:26Z","session_id":"s2-eca898b78dde","client_id":null,"type":"click","product_id":"sql22-stdsrv","position":1}
+{"ts":"2026-05-14T15:34:30Z","session_id":"s2-4243a98d746b","client_id":null,"type":"add_to_cart","product_id":"nb-pb450g10-i5-8-256"}
+{"ts":"2026-05-14T15:39:36Z","session_id":"s2-940dc661f799","client_id":null,"type":"search","query":"ssd для r740","results_count":2}
+{"ts":"2026-05-14T15:40:37Z","session_id":"s2-4243a98d746b","client_id":null,"type":"order","product_id":"nb-pb450g10-i5-8-256","quantity":3,"order_id":"o-00121","account_id":"acc-037"}
+{"ts":"2026-05-14T15:43:45Z","session_id":"s2-972d33711b46","client_id":null,"type":"search","query":"cal 2025 на 25 пользователей","results_count":13}
+{"ts":"2026-05-15T05:48:12Z","session_id":"s2-9fd5d3d46803","client_id":null,"type":"add_to_cart","product_id":"mem-dell-64g-d4"}
+{"ts":"2026-05-15T05:55:18Z","session_id":"s2-9fd5d3d46803","client_id":null,"type":"order","product_id":"mem-dell-64g-d4","quantity":5,"order_id":"o-00122","account_id":"acc-011"}
+{"ts":"2026-05-15T06:01:32Z","session_id":"s2-6ff61957d9d4","client_id":null,"type":"add_to_cart","product_id":"nb-t14g4-i5-16-512"}
+{"ts":"2026-05-15T06:02:37Z","session_id":"s2-6ff61957d9d4","client_id":null,"type":"add_to_cart","product_id":"w11p-esd"}
+{"ts":"2026-05-15T06:03:58Z","session_id":"s2-6ff61957d9d4","client_id":null,"type":"order","product_id":"nb-t14g4-i5-16-512","quantity":2,"order_id":"o-00123","account_id":"acc-019"}
+{"ts":"2026-05-15T06:03:58Z","session_id":"s2-6ff61957d9d4","client_id":null,"type":"order","product_id":"w11p-esd","quantity":1,"order_id":"o-00123","account_id":"acc-019"}
+{"ts":"2026-05-15T06:40:41Z","session_id":"s2-ad3f3a8095db","client_id":null,"type":"search","query":"рабочее место на отечественном по","results_count":0}
+{"ts":"2026-05-15T07:34:02Z","session_id":"s2-596eb8ff5759","client_id":null,"type":"search","query":"коммутатор 24 порта аплинк 10 гбит/с","results_count":0}
+{"ts":"2026-05-15T09:31:26Z","session_id":"s2-27220fb8d981","client_id":null,"type":"add_to_cart","product_id":"ws22-std16"}
+{"ts":"2026-05-15T09:32:15Z","session_id":"s2-27220fb8d981","client_id":null,"type":"add_to_cart","product_id":"wscal25-u1"}
+{"ts":"2026-05-15T09:35:56Z","session_id":"s2-27220fb8d981","client_id":null,"type":"order","product_id":"ws22-std16","quantity":1,"order_id":"o-00124","account_id":"acc-034"}
+{"ts":"2026-05-15T09:35:56Z","session_id":"s2-27220fb8d981","client_id":null,"type":"order","product_id":"wscal25-u1","quantity":10,"order_id":"o-00124","account_id":"acc-034"}
+{"ts":"2026-05-15T09:58:58Z","session_id":"s2-b53082c342bd","client_id":null,"type":"add_to_cart","product_id":"nb-lat5540-i5-16-512"}
+{"ts":"2026-05-15T09:59:51Z","session_id":"s2-b53082c342bd","client_id":null,"type":"add_to_cart","product_id":"off24-hb"}
+{"ts":"2026-05-15T10:00:22Z","session_id":"s2-b53082c342bd","client_id":null,"type":"add_to_cart","product_id":"kes-std25"}
+{"ts":"2026-05-15T10:00:35Z","session_id":"s2-b53082c342bd","client_id":null,"type":"add_to_cart","product_id":"mon-dell-p2425h"}
+{"ts":"2026-05-15T10:10:20Z","session_id":"s2-b53082c342bd","client_id":null,"type":"order","product_id":"nb-lat5540-i5-16-512","quantity":2,"order_id":"o-00125","account_id":"acc-037"}
+{"ts":"2026-05-15T10:10:20Z","session_id":"s2-b53082c342bd","client_id":null,"type":"order","product_id":"off24-hb","quantity":2,"order_id":"o-00125","account_id":"acc-037"}
+{"ts":"2026-05-15T10:10:20Z","session_id":"s2-b53082c342bd","client_id":null,"type":"order","product_id":"kes-std25","quantity":1,"order_id":"o-00125","account_id":"acc-037"}
+{"ts":"2026-05-15T10:10:20Z","session_id":"s2-b53082c342bd","client_id":null,"type":"order","product_id":"mon-dell-p2425h","quantity":2,"order_id":"o-00125","account_id":"acc-037"}
+{"ts":"2026-05-15T11:23:11Z","session_id":"s2-343691e2a044","client_id":null,"type":"search","query":"коммутатор 48 портов","results_count":0}
+{"ts":"2026-05-15T12:00:45Z","session_id":"s2-3381088558d9","client_id":null,"type":"price_request","product_id":"srv-r750-g6338"}
+{"ts":"2026-05-15T12:00:45Z","session_id":"s2-3381088558d9","client_id":null,"type":"add_to_cart","product_id":"srv-r750-g6338"}
+{"ts":"2026-05-15T12:02:13Z","session_id":"s2-3381088558d9","client_id":null,"type":"add_to_cart","product_id":"mem-dell-16g-d4"}
+{"ts":"2026-05-15T12:03:33Z","session_id":"s2-3381088558d9","client_id":null,"type":"add_to_cart","product_id":"hdd-dell-2400-sas"}
+{"ts":"2026-05-15T12:04:48Z","session_id":"s2-3381088558d9","client_id":null,"type":"add_to_cart","product_id":"ups-ippon-rt-3000"}
+{"ts":"2026-05-15T12:11:42Z","session_id":"s2-3381088558d9","client_id":null,"type":"order","product_id":"srv-r750-g6338","quantity":2,"order_id":"o-00126","account_id":"acc-002"}
+{"ts":"2026-05-15T12:11:42Z","session_id":"s2-3381088558d9","client_id":null,"type":"order","product_id":"mem-dell-16g-d4","quantity":8,"order_id":"o-00126","account_id":"acc-002"}
+{"ts":"2026-05-15T12:11:42Z","session_id":"s2-3381088558d9","client_id":null,"type":"order","product_id":"hdd-dell-2400-sas","quantity":2,"order_id":"o-00126","account_id":"acc-002"}
+{"ts":"2026-05-15T12:11:42Z","session_id":"s2-3381088558d9","client_id":null,"type":"order","product_id":"ups-ippon-rt-3000","quantity":1,"order_id":"o-00126","account_id":"acc-002"}
+{"ts":"2026-05-15T12:25:22Z","session_id":"s2-57db37e10a44","client_id":null,"type":"add_to_cart","product_id":"nb-lat5540-i5-16-512"}
+{"ts":"2026-05-15T12:26:43Z","session_id":"s2-57db37e10a44","client_id":null,"type":"add_to_cart","product_id":"m365b-bb"}
+{"ts":"2026-05-15T12:27:34Z","session_id":"s2-57db37e10a44","client_id":null,"type":"add_to_cart","product_id":"kes-std50"}
+{"ts":"2026-05-15T12:27:49Z","session_id":"s2-57db37e10a44","client_id":null,"type":"add_to_cart","product_id":"mon-dell-p2425h"}
+{"ts":"2026-05-15T12:29:10Z","session_id":"s2-57db37e10a44","client_id":null,"type":"order","product_id":"nb-lat5540-i5-16-512","quantity":25,"order_id":"o-00127","account_id":"acc-008"}
+{"ts":"2026-05-15T12:29:10Z","session_id":"s2-57db37e10a44","client_id":null,"type":"order","product_id":"m365b-bb","quantity":25,"order_id":"o-00127","account_id":"acc-008"}
+{"ts":"2026-05-15T12:29:10Z","session_id":"s2-57db37e10a44","client_id":null,"type":"order","product_id":"kes-std50","quantity":1,"order_id":"o-00127","account_id":"acc-008"}
+{"ts":"2026-05-15T12:29:10Z","session_id":"s2-57db37e10a44","client_id":null,"type":"order","product_id":"mon-dell-p2425h","quantity":25,"order_id":"o-00127","account_id":"acc-008"}
+{"ts":"2026-05-15T13:13:28Z","session_id":"s2-09693ff44342","client_id":null,"type":"search","query":"kaspersky endpoint security стандартный 25 узлов","results_count":5}
+{"ts":"2026-05-15T15:09:12Z","session_id":"s2-c1018ba3351f","client_id":null,"type":"search","query":"p00924b21","results_count":0}
+{"ts":"2026-05-15T16:52:31Z","session_id":"s2-27e8e1437a22","client_id":null,"type":"search","query":"ноутбук с windows и office","results_count":0}
+{"ts":"2026-05-16T07:17:35Z","session_id":"s2-5b34cf61f2d3","client_id":null,"type":"add_to_cart","product_id":"nb-mbd16-i5-16-512"}
+{"ts":"2026-05-16T07:18:47Z","session_id":"s2-5b34cf61f2d3","client_id":null,"type":"add_to_cart","product_id":"m365b-bp"}
+{"ts":"2026-05-16T07:19:08Z","session_id":"s2-5b34cf61f2d3","client_id":null,"type":"add_to_cart","product_id":"kes-std50"}
+{"ts":"2026-05-16T07:28:52Z","session_id":"s2-5b34cf61f2d3","client_id":null,"type":"order","product_id":"nb-mbd16-i5-16-512","quantity":15,"order_id":"o-00128","account_id":"acc-009"}
+{"ts":"2026-05-16T07:28:52Z","session_id":"s2-5b34cf61f2d3","client_id":null,"type":"order","product_id":"m365b-bp","quantity":15,"order_id":"o-00128","account_id":"acc-009"}
+{"ts":"2026-05-16T07:28:52Z","session_id":"s2-5b34cf61f2d3","client_id":null,"type":"order","product_id":"kes-std50","quantity":1,"order_id":"o-00128","account_id":"acc-009"}
+{"ts":"2026-05-16T07:34:54Z","session_id":"s2-b9bbee54d3ae","client_id":null,"type":"add_to_cart","product_id":"nb-mbd16-i5-16-512"}
+{"ts":"2026-05-16T07:35:16Z","session_id":"s2-b9bbee54d3ae","client_id":null,"type":"add_to_cart","product_id":"off24-hb"}
+{"ts":"2026-05-16T07:35:40Z","session_id":"s2-b9bbee54d3ae","client_id":null,"type":"add_to_cart","product_id":"kes-std25"}
+{"ts":"2026-05-16T07:42:40Z","session_id":"s2-b9bbee54d3ae","client_id":null,"type":"order","product_id":"nb-mbd16-i5-16-512","quantity":10,"order_id":"o-00129","account_id":"acc-040"}
+{"ts":"2026-05-16T07:42:40Z","session_id":"s2-b9bbee54d3ae","client_id":null,"type":"order","product_id":"off24-hb","quantity":10,"order_id":"o-00129","account_id":"acc-040"}
+{"ts":"2026-05-16T07:42:40Z","session_id":"s2-b9bbee54d3ae","client_id":null,"type":"order","product_id":"kes-std25","quantity":1,"order_id":"o-00129","account_id":"acc-040"}
+{"ts":"2026-05-16T11:46:53Z","session_id":"s2-544b12b08e59","client_id":null,"type":"add_to_cart","product_id":"ws25-std16"}
+{"ts":"2026-05-16T11:47:45Z","session_id":"s2-544b12b08e59","client_id":null,"type":"add_to_cart","product_id":"ws25-std2"}
+{"ts":"2026-05-16T11:48:44Z","session_id":"s2-544b12b08e59","client_id":null,"type":"add_to_cart","product_id":"wscal25-u5"}
+{"ts":"2026-05-16T11:49:13Z","session_id":"s2-544b12b08e59","client_id":null,"type":"add_to_cart","product_id":"rdscal25-u1"}
+{"ts":"2026-05-16T11:56:34Z","session_id":"s2-544b12b08e59","client_id":null,"type":"order","product_id":"ws25-std16","quantity":1,"order_id":"o-00130","account_id":"acc-034"}
+{"ts":"2026-05-16T11:56:34Z","session_id":"s2-544b12b08e59","client_id":null,"type":"order","product_id":"ws25-std2","quantity":2,"order_id":"o-00130","account_id":"acc-034"}
+{"ts":"2026-05-16T11:56:34Z","session_id":"s2-544b12b08e59","client_id":null,"type":"order","product_id":"wscal25-u5","quantity":10,"order_id":"o-00130","account_id":"acc-034"}
+{"ts":"2026-05-16T11:56:34Z","session_id":"s2-544b12b08e59","client_id":null,"type":"order","product_id":"rdscal25-u1","quantity":25,"order_id":"o-00130","account_id":"acc-034"}
+{"ts":"2026-05-16T12:56:37Z","session_id":"s2-7066a6f65eff","client_id":null,"type":"add_to_cart","product_id":"srv-dl380g11-4410y"}
+{"ts":"2026-05-16T12:57:27Z","session_id":"s2-7066a6f65eff","client_id":null,"type":"add_to_cart","product_id":"mem-hpe-64g-d5"}
+{"ts":"2026-05-16T13:00:32Z","session_id":"s2-7066a6f65eff","client_id":null,"type":"order","product_id":"srv-dl380g11-4410y","quantity":1,"order_id":"o-00131","account_id":"acc-029"}
+{"ts":"2026-05-16T13:00:32Z","session_id":"s2-7066a6f65eff","client_id":null,"type":"order","product_id":"mem-hpe-64g-d5","quantity":4,"order_id":"o-00131","account_id":"acc-029"}
+{"ts":"2026-05-16T15:16:23Z","session_id":"s2-b233b92eb6c0","client_id":null,"type":"search","query":"ноутбук 14 дюймов 1 тб","results_count":0}
+{"ts":"2026-05-17T07:22:57Z","session_id":"s2-5227f93454d2","client_id":null,"type":"search","query":"windows server 2025 datacenter 16 ядер","results_count":2}
+{"ts":"2026-05-17T07:23:04Z","session_id":"s2-5227f93454d2","client_id":null,"type":"click","product_id":"ws25-dc16","position":2}
+{"ts":"2026-05-17T11:54:17Z","session_id":"s2-cd6a89ca663e","client_id":null,"type":"search","query":"r750","results_count":3}
+{"ts":"2026-05-17T16:10:56Z","session_id":"s2-161615ec6fe4","client_id":null,"type":"add_to_cart","product_id":"nb-lat5540-i5-16-512"}
+{"ts":"2026-05-17T16:11:40Z","session_id":"s2-161615ec6fe4","client_id":null,"type":"add_to_cart","product_id":"kes-std25"}
+{"ts":"2026-05-17T16:17:58Z","session_id":"s2-161615ec6fe4","client_id":null,"type":"order","product_id":"nb-lat5540-i5-16-512","quantity":10,"order_id":"o-00132","account_id":"acc-014"}
+{"ts":"2026-05-17T16:17:58Z","session_id":"s2-161615ec6fe4","client_id":null,"type":"order","product_id":"kes-std25","quantity":1,"order_id":"o-00132","account_id":"acc-014"}
+{"ts":"2026-05-18T07:38:27Z","session_id":"s2-6502b3008bf9","client_id":null,"type":"search","query":"память для dell r740","results_count":0}
+{"ts":"2026-05-18T08:25:47Z","session_id":"s2-86f26d08207c","client_id":null,"type":"search","query":"память 32 гб для dell poweredge r750","results_count":0}
+{"ts":"2026-05-18T08:26:46Z","session_id":"s2-44c649091130","client_id":null,"type":"search","query":"cal для windows server 2025","results_count":9}
+{"ts":"2026-05-18T08:27:17Z","session_id":"s2-44c649091130","client_id":null,"type":"click","product_id":"wscal25-d5","position":4}
+{"ts":"2026-05-18T08:31:36Z","session_id":"s2-904383801f3c","client_id":null,"type":"price_request","product_id":"srv-r740-g6230"}
+{"ts":"2026-05-18T08:31:36Z","session_id":"s2-904383801f3c","client_id":null,"type":"add_to_cart","product_id":"srv-r740-g6230"}
+{"ts":"2026-05-18T08:31:49Z","session_id":"s2-904383801f3c","client_id":null,"type":"add_to_cart","product_id":"mem-kingston-32g-d4"}
+{"ts":"2026-05-18T08:35:05Z","session_id":"s2-904383801f3c","client_id":null,"type":"order","product_id":"srv-r740-g6230","quantity":1,"order_id":"o-00133","account_id":"acc-011"}
+{"ts":"2026-05-18T08:35:05Z","session_id":"s2-904383801f3c","client_id":null,"type":"order","product_id":"mem-kingston-32g-d4","quantity":2,"order_id":"o-00133","account_id":"acc-011"}
+{"ts":"2026-05-18T08:52:41Z","session_id":"s2-d753f9841656","client_id":null,"type":"search","query":"rds cal 2025","results_count":3}
+{"ts":"2026-05-18T08:52:52Z","session_id":"s2-d753f9841656","client_id":null,"type":"click","product_id":"rdscal25-u1","position":2}
+{"ts":"2026-05-18T09:37:13Z","session_id":"s2-077b2e862508","client_id":null,"type":"search","query":"P00924-B21","results_count":0}
+{"ts":"2026-05-18T10:01:38Z","session_id":"s2-f3f9b5dd35f8","client_id":null,"type":"price_request","product_id":"srv-dl380g11-5418y"}
+{"ts":"2026-05-18T10:01:38Z","session_id":"s2-f3f9b5dd35f8","client_id":null,"type":"add_to_cart","product_id":"srv-dl380g11-5418y"}
+{"ts":"2026-05-18T10:02:08Z","session_id":"s2-f3f9b5dd35f8","client_id":null,"type":"add_to_cart","product_id":"hdd-dell-8000-sas"}
+{"ts":"2026-05-18T10:06:53Z","session_id":"s2-f3f9b5dd35f8","client_id":null,"type":"order","product_id":"srv-dl380g11-5418y","quantity":1,"order_id":"o-00134","account_id":"acc-018"}
+{"ts":"2026-05-18T10:06:53Z","session_id":"s2-f3f9b5dd35f8","client_id":null,"type":"order","product_id":"hdd-dell-8000-sas","quantity":1,"order_id":"o-00134","account_id":"acc-018"}
+{"ts":"2026-05-18T11:06:48Z","session_id":"s2-47be81df0193","client_id":null,"type":"add_to_cart","product_id":"ws25-std16"}
+{"ts":"2026-05-18T11:07:20Z","session_id":"s2-47be81df0193","client_id":null,"type":"add_to_cart","product_id":"wscal25-u5"}
+{"ts":"2026-05-18T11:11:22Z","session_id":"s2-47be81df0193","client_id":null,"type":"order","product_id":"ws25-std16","quantity":1,"order_id":"o-00135","account_id":"acc-015"}
+{"ts":"2026-05-18T11:11:22Z","session_id":"s2-47be81df0193","client_id":null,"type":"order","product_id":"wscal25-u5","quantity":5,"order_id":"o-00135","account_id":"acc-015"}
+{"ts":"2026-05-18T11:39:16Z","session_id":"s2-8fc40409e620","client_id":null,"type":"add_to_cart","product_id":"nb-e14g5-i7-16-1t"}
+{"ts":"2026-05-18T11:41:13Z","session_id":"s2-8fc40409e620","client_id":null,"type":"order","product_id":"nb-e14g5-i7-16-1t","quantity":1,"order_id":"o-00136","account_id":"acc-037"}
+{"ts":"2026-05-18T12:43:24Z","session_id":"s2-d577bc9799f3","client_id":null,"type":"search","query":"iphone 15 pro","results_count":0}
+{"ts":"2026-05-18T12:52:39Z","session_id":"s2-ad650ccd369c","client_id":null,"type":"search","query":"kaspersky для astra linux","results_count":0}
+{"ts":"2026-05-18T13:04:56Z","session_id":"s2-9ae1a5f73717","client_id":null,"type":"search","query":"hpe dl380 gen11","results_count":3}
+{"ts":"2026-05-18T13:44:38Z","session_id":"s2-cfb3a30d94d8","client_id":null,"type":"search","query":"память ddr5 для proliant dl380 gen11","results_count":0}
+{"ts":"2026-05-18T13:48:50Z","session_id":"s2-055d5bdb5102","client_id":null,"type":"search","query":"Р00924-В21","results_count":0}
+{"ts":"2026-05-18T14:00:12Z","session_id":"s2-3c0b233cd9fc","client_id":null,"type":"add_to_cart","product_id":"nb-lat5540-i5-16-512"}
+{"ts":"2026-05-18T14:00:37Z","session_id":"s2-3c0b233cd9fc","client_id":null,"type":"add_to_cart","product_id":"off24-hb"}
+{"ts":"2026-05-18T14:06:25Z","session_id":"s2-3c0b233cd9fc","client_id":null,"type":"order","product_id":"nb-lat5540-i5-16-512","quantity":20,"order_id":"o-00137","account_id":"acc-010"}
+{"ts":"2026-05-18T14:06:25Z","session_id":"s2-3c0b233cd9fc","client_id":null,"type":"order","product_id":"off24-hb","quantity":20,"order_id":"o-00137","account_id":"acc-010"}
+{"ts":"2026-05-18T14:31:12Z","session_id":"s2-8495f39b97a7","client_id":null,"type":"search","query":"ноутбук 14 дюймов 1 тб","results_count":0}
+{"ts":"2026-05-18T14:53:53Z","session_id":"s2-29236e572d0c","client_id":null,"type":"add_to_cart","product_id":"off24-hb"}
+{"ts":"2026-05-18T14:55:04Z","session_id":"s2-29236e572d0c","client_id":null,"type":"add_to_cart","product_id":"mem-hpe-64g-d4"}
+{"ts":"2026-05-18T15:00:18Z","session_id":"s2-29236e572d0c","client_id":null,"type":"order","product_id":"off24-hb","quantity":1,"order_id":"o-00138","account_id":"acc-003"}
+{"ts":"2026-05-18T15:00:18Z","session_id":"s2-29236e572d0c","client_id":null,"type":"order","product_id":"mem-hpe-64g-d4","quantity":1,"order_id":"o-00138","account_id":"acc-003"}
+{"ts":"2026-05-18T16:04:24Z","session_id":"s2-eebcd7b38c80","client_id":null,"type":"search","query":"windows server 2025 datacenter 16 ядер","results_count":2}
+{"ts":"2026-05-18T16:32:39Z","session_id":"s2-0b02e575f2de","client_id":null,"type":"add_to_cart","product_id":"nb-mbd16-i5-16-512"}
+{"ts":"2026-05-18T16:35:05Z","session_id":"s2-0b02e575f2de","client_id":null,"type":"order","product_id":"nb-mbd16-i5-16-512","quantity":1,"order_id":"o-00139","account_id":"acc-030"}
+{"ts":"2026-05-19T05:08:13Z","session_id":"s2-b677199a9c8d","client_id":null,"type":"search","query":"hpe dl380 gen11","results_count":3}
+{"ts":"2026-05-19T05:08:21Z","session_id":"s2-b677199a9c8d","client_id":null,"type":"click","product_id":"srv-dl380g11-5418y","position":3}
+{"ts":"2026-05-19T06:12:05Z","session_id":"s2-c0e098202442","client_id":"client-c","type":"add_to_cart","product_id":"sql22-stdsrv"}
+{"ts":"2026-05-19T06:13:35Z","session_id":"s2-c0e098202442","client_id":"client-c","type":"add_to_cart","product_id":"sql22-cal"}
+{"ts":"2026-05-19T06:15:44Z","session_id":"s2-c0e098202442","client_id":"client-c","type":"order","product_id":"sql22-stdsrv","quantity":1,"order_id":"o-00140","account_id":"client-c"}
+{"ts":"2026-05-19T06:15:44Z","session_id":"s2-c0e098202442","client_id":"client-c","type":"order","product_id":"sql22-cal","quantity":15,"order_id":"o-00140","account_id":"client-c"}
+{"ts":"2026-05-19T06:53:55Z","session_id":"s2-0eb5859d7e9e","client_id":null,"type":"search","query":"монитор для ноутбука","results_count":0}
+{"ts":"2026-05-19T07:03:19Z","session_id":"s2-8efb407426a8","client_id":null,"type":"search","query":"ноутбук 15,6 дюйма до 100000 рублей","results_count":0}
+{"ts":"2026-05-19T07:08:35Z","session_id":"s2-e0c3ddb4bc7f","client_id":null,"type":"add_to_cart","product_id":"ws25-std16"}
+{"ts":"2026-05-19T07:09:19Z","session_id":"s2-e0c3ddb4bc7f","client_id":null,"type":"add_to_cart","product_id":"wscal25-u5"}
+{"ts":"2026-05-19T07:10:06Z","session_id":"s2-e0c3ddb4bc7f","client_id":null,"type":"add_to_cart","product_id":"rdscal25-u1"}
+{"ts":"2026-05-19T07:15:43Z","session_id":"s2-e0c3ddb4bc7f","client_id":null,"type":"order","product_id":"ws25-std16","quantity":1,"order_id":"o-00141","account_id":"acc-017"}
+{"ts":"2026-05-19T07:15:43Z","session_id":"s2-e0c3ddb4bc7f","client_id":null,"type":"order","product_id":"wscal25-u5","quantity":6,"order_id":"o-00141","account_id":"acc-017"}
+{"ts":"2026-05-19T07:15:43Z","session_id":"s2-e0c3ddb4bc7f","client_id":null,"type":"order","product_id":"rdscal25-u1","quantity":15,"order_id":"o-00141","account_id":"acc-017"}
+{"ts":"2026-05-19T07:15:59Z","session_id":"s2-d5cf1db0fa73","client_id":null,"type":"add_to_cart","product_id":"nb-e14g5-i5-16-512"}
+{"ts":"2026-05-19T07:22:16Z","session_id":"s2-8db695e82aec","client_id":null,"type":"search","query":"монитор 27 дюймов","results_count":0}
+{"ts":"2026-05-19T07:22:20Z","session_id":"s2-d5cf1db0fa73","client_id":null,"type":"order","product_id":"nb-e14g5-i5-16-512","quantity":25,"order_id":"o-00142","account_id":"acc-011"}
+{"ts":"2026-05-19T07:27:01Z","session_id":"s2-d72b37cf344a","client_id":null,"type":"price_request","product_id":"srv-r740-g6230"}
+{"ts":"2026-05-19T07:27:01Z","session_id":"s2-d72b37cf344a","client_id":null,"type":"add_to_cart","product_id":"srv-r740-g6230"}
+{"ts":"2026-05-19T07:28:23Z","session_id":"s2-d72b37cf344a","client_id":null,"type":"add_to_cart","product_id":"mem-dell-32g-d4-2933"}
+{"ts":"2026-05-19T07:29:23Z","session_id":"s2-d72b37cf344a","client_id":null,"type":"add_to_cart","product_id":"ssd-dell-1920-sata"}
+{"ts":"2026-05-19T07:32:15Z","session_id":"s2-ab3ff48eae61","client_id":null,"type":"search","query":"ибп от 2 квт","results_count":0}
+{"ts":"2026-05-19T07:35:16Z","session_id":"s2-d72b37cf344a","client_id":null,"type":"order","product_id":"srv-r740-g6230","quantity":2,"order_id":"o-00143","account_id":"acc-025"}
+{"ts":"2026-05-19T07:35:16Z","session_id":"s2-d72b37cf344a","client_id":null,"type":"order","product_id":"mem-dell-32g-d4-2933","quantity":2,"order_id":"o-00143","account_id":"acc-025"}
+{"ts":"2026-05-19T07:35:16Z","session_id":"s2-d72b37cf344a","client_id":null,"type":"order","product_id":"ssd-dell-1920-sata","quantity":2,"order_id":"o-00143","account_id":"acc-025"}
+{"ts":"2026-05-19T07:58:50Z","session_id":"s2-959fd241cbb9","client_id":null,"type":"search","query":"монитор 27\" не менее 100 гц","results_count":0}
+{"ts":"2026-05-19T08:00:38Z","session_id":"s2-814a678d4ea8","client_id":null,"type":"add_to_cart","product_id":"ssd-hpe-960-sas"}
+{"ts":"2026-05-19T08:02:06Z","session_id":"s2-814a678d4ea8","client_id":null,"type":"order","product_id":"ssd-hpe-960-sas","quantity":2,"order_id":"o-00144","account_id":"acc-030"}
+{"ts":"2026-05-19T08:19:58Z","session_id":"s2-f2911c63d17d","client_id":null,"type":"search","query":"20 ноутбуков с 16 гб оперативной памяти","results_count":0}
+{"ts":"2026-05-19T08:36:03Z","session_id":"s2-a1db357873ca","client_id":null,"type":"search","query":"рабочее место для 20 сотрудников","results_count":0}
+{"ts":"2026-05-19T09:17:54Z","session_id":"s2-39b137118b8a","client_id":null,"type":"search","query":"10 ноутбуков","results_count":11}
+{"ts":"2026-05-19T10:18:38Z","session_id":"s2-217c9c979e14","client_id":null,"type":"search","query":"сервер hpe gen11 под виртуализацию","results_count":0}
+{"ts":"2026-05-19T10:43:20Z","session_id":"s2-e2c34dba42ca","client_id":null,"type":"search","query":"удаленный рабочий стол windows server 2025 на 10 пользователей","results_count":0}
+{"ts":"2026-05-19T12:35:42Z","session_id":"s2-86fb4da7e434","client_id":null,"type":"search","query":"cal для windows server 2022 на 5 устройств","results_count":9}
+{"ts":"2026-05-19T12:36:10Z","session_id":"s2-86fb4da7e434","client_id":null,"type":"click","product_id":"wscal-d1","position":1}
+{"ts":"2026-05-19T13:18:55Z","session_id":"s2-61a03296c11c","client_id":null,"type":"add_to_cart","product_id":"hdd-seagate-exos-8tb"}
+{"ts":"2026-05-19T13:21:27Z","session_id":"s2-61a03296c11c","client_id":null,"type":"order","product_id":"hdd-seagate-exos-8tb","quantity":1,"order_id":"o-00145","account_id":"acc-023"}
+{"ts":"2026-05-19T13:35:57Z","session_id":"s2-78340bec61e6","client_id":null,"type":"search","query":"MES2324B","results_count":2}
+{"ts":"2026-05-19T14:39:26Z","session_id":"s2-61add1282fa6","client_id":null,"type":"search","query":"сервер под 1с на 50 пользователей","results_count":0}
+{"ts":"2026-05-19T14:56:36Z","session_id":"s2-fbe6608d4bec","client_id":null,"type":"search","query":"память для dell r740","results_count":0}
+{"ts":"2026-05-19T15:49:52Z","session_id":"s2-73ea3a7e11bf","client_id":null,"type":"search","query":"сервер 2u от 128 гб памяти","results_count":0}
+{"ts":"2026-05-19T15:50:55Z","session_id":"s2-86605ec17198","client_id":null,"type":"search","query":"kaspersky endpoint security стандартный 25 узлов","results_count":5}
+{"ts":"2026-05-19T15:51:22Z","session_id":"s2-86605ec17198","client_id":null,"type":"click","product_id":"kes-std25","position":2}
+{"ts":"2026-05-19T17:16:03Z","session_id":"s2-d8439564dbfd","client_id":null,"type":"search","query":"ssd 960 для hpe gen10","results_count":2}
+{"ts":"2026-05-20T05:08:05Z","session_id":"s2-464b0410f94b","client_id":null,"type":"add_to_cart","product_id":"ws25-std16"}
+{"ts":"2026-05-20T05:09:28Z","session_id":"s2-464b0410f94b","client_id":null,"type":"add_to_cart","product_id":"ws25-std2"}
+{"ts":"2026-05-20T05:09:46Z","session_id":"s2-464b0410f94b","client_id":null,"type":"add_to_cart","product_id":"wscal25-d1"}
+{"ts":"2026-05-20T05:15:35Z","session_id":"s2-464b0410f94b","client_id":null,"type":"order","product_id":"ws25-std16","quantity":1,"order_id":"o-00146","account_id":"acc-016"}
+{"ts":"2026-05-20T05:15:35Z","session_id":"s2-464b0410f94b","client_id":null,"type":"order","product_id":"ws25-std2","quantity":4,"order_id":"o-00146","account_id":"acc-016"}
+{"ts":"2026-05-20T05:15:35Z","session_id":"s2-464b0410f94b","client_id":null,"type":"order","product_id":"wscal25-d1","quantity":15,"order_id":"o-00146","account_id":"acc-016"}
+{"ts":"2026-05-20T05:45:26Z","session_id":"s2-8eb62d49ed61","client_id":null,"type":"search","query":"продление гарантии hpe dl380 gen10","results_count":0}
+{"ts":"2026-05-20T06:52:23Z","session_id":"s2-507ebf58d2f0","client_id":null,"type":"search","query":"cal","results_count":13}
+{"ts":"2026-05-20T06:52:59Z","session_id":"s2-507ebf58d2f0","client_id":null,"type":"click","product_id":"wscal-d1","position":2}
+{"ts":"2026-05-20T07:30:56Z","session_id":"s2-134d5ead2eda","client_id":null,"type":"search","query":"windows server 2022 standard на 20 пользователей","results_count":4}
+{"ts":"2026-05-20T07:31:13Z","session_id":"s2-134d5ead2eda","client_id":null,"type":"click","product_id":"ws22-std2","position":3}
+{"ts":"2026-05-20T11:37:44Z","session_id":"s2-9de4dc363f69","client_id":null,"type":"search","query":"ноутбук без операционной системы","results_count":0}
+{"ts":"2026-05-20T11:52:14Z","session_id":"s2-2bf7b548658f","client_id":null,"type":"add_to_cart","product_id":"srv-r740-s4210"}
+{"ts":"2026-05-20T11:53:32Z","session_id":"s2-2bf7b548658f","client_id":null,"type":"add_to_cart","product_id":"mem-dell-64g-d4"}
+{"ts":"2026-05-20T11:54:32Z","session_id":"s2-2bf7b548658f","client_id":null,"type":"add_to_cart","product_id":"svc-dell-ps-r740-3y"}
+{"ts":"2026-05-20T11:59:07Z","session_id":"s2-dd2c373d06df","client_id":null,"type":"search","query":"оснастить офис на 10 человек ноутбуками и офисом","results_count":0}
+{"ts":"2026-05-20T12:04:20Z","session_id":"s2-2bf7b548658f","client_id":null,"type":"order","product_id":"srv-r740-s4210","quantity":2,"order_id":"o-00147","account_id":"acc-011"}
+{"ts":"2026-05-20T12:04:20Z","session_id":"s2-2bf7b548658f","client_id":null,"type":"order","product_id":"mem-dell-64g-d4","quantity":4,"order_id":"o-00147","account_id":"acc-011"}
+{"ts":"2026-05-20T12:04:20Z","session_id":"s2-2bf7b548658f","client_id":null,"type":"order","product_id":"svc-dell-ps-r740-3y","quantity":1,"order_id":"o-00147","account_id":"acc-011"}
+{"ts":"2026-05-20T12:10:41Z","session_id":"s2-7c7642175a4f","client_id":null,"type":"add_to_cart","product_id":"mon-dell-p2725h"}
+{"ts":"2026-05-20T12:14:44Z","session_id":"s2-7c7642175a4f","client_id":null,"type":"order","product_id":"mon-dell-p2725h","quantity":1,"order_id":"o-00148","account_id":"acc-003"}
+{"ts":"2026-05-20T12:42:35Z","session_id":"s2-d4c168274014","client_id":null,"type":"search","query":"P00924-B21","results_count":0}
+{"ts":"2026-05-20T12:43:09Z","session_id":"s2-a90ecc2e3a94","client_id":null,"type":"search","query":"монитор 24-27 дюймов","results_count":0}
+{"ts":"2026-05-20T13:08:46Z","session_id":"s2-f6246b74295c","client_id":null,"type":"search","query":"kingston для dell r750","results_count":0}
+{"ts":"2026-05-20T13:14:04Z","session_id":"s2-0b7558bbc3da","client_id":null,"type":"search","query":"20 ноутбуков с 16 гб оперативной памяти","results_count":0}
+{"ts":"2026-05-20T13:33:17Z","session_id":"s2-fb3c96d3094b","client_id":null,"type":"add_to_cart","product_id":"nb-lat5540-i5-16-512"}
+{"ts":"2026-05-20T13:33:39Z","session_id":"s2-fb3c96d3094b","client_id":null,"type":"add_to_cart","product_id":"off24-hb"}
+{"ts":"2026-05-20T13:33:56Z","session_id":"s2-fb3c96d3094b","client_id":null,"type":"add_to_cart","product_id":"kes-std10"}
+{"ts":"2026-05-20T13:34:22Z","session_id":"s2-fb3c96d3094b","client_id":null,"type":"add_to_cart","product_id":"mon-dell-p2725h"}
+{"ts":"2026-05-20T13:42:58Z","session_id":"s2-fb3c96d3094b","client_id":null,"type":"order","product_id":"nb-lat5540-i5-16-512","quantity":5,"order_id":"o-00149","account_id":"acc-012"}
+{"ts":"2026-05-20T13:42:58Z","session_id":"s2-fb3c96d3094b","client_id":null,"type":"order","product_id":"off24-hb","quantity":5,"order_id":"o-00149","account_id":"acc-012"}
+{"ts":"2026-05-20T13:42:58Z","session_id":"s2-fb3c96d3094b","client_id":null,"type":"order","product_id":"kes-std10","quantity":1,"order_id":"o-00149","account_id":"acc-012"}
+{"ts":"2026-05-20T13:42:58Z","session_id":"s2-fb3c96d3094b","client_id":null,"type":"order","product_id":"mon-dell-p2725h","quantity":5,"order_id":"o-00149","account_id":"acc-012"}
+{"ts":"2026-05-20T13:45:30Z","session_id":"s2-ebba46f974f7","client_id":null,"type":"search","query":"оперативная память для hpe dl380 gen10","results_count":0}
+{"ts":"2026-05-20T16:13:39Z","session_id":"s2-88eaa055cfe1","client_id":null,"type":"add_to_cart","product_id":"sql22-stdsrv"}
+{"ts":"2026-05-20T16:14:33Z","session_id":"s2-88eaa055cfe1","client_id":null,"type":"add_to_cart","product_id":"sql22-cal"}
+{"ts":"2026-05-20T16:17:03Z","session_id":"s2-88eaa055cfe1","client_id":null,"type":"order","product_id":"sql22-stdsrv","quantity":1,"order_id":"o-00150","account_id":"acc-034"}
+{"ts":"2026-05-20T16:17:03Z","session_id":"s2-88eaa055cfe1","client_id":null,"type":"order","product_id":"sql22-cal","quantity":25,"order_id":"o-00150","account_id":"acc-034"}
+{"ts":"2026-05-21T06:48:19Z","session_id":"s2-a9cf792836ae","client_id":null,"type":"search","query":"коммутатор 48 портов","results_count":0}
+{"ts":"2026-05-21T07:40:33Z","session_id":"s2-7c12aa2486cf","client_id":null,"type":"search","query":"sql server 2022 standard по ядрам на 4 ядра","results_count":0}
+{"ts":"2026-05-21T07:41:55Z","session_id":"s2-83246a39592d","client_id":null,"type":"search","query":"ноутбук 16 гб 512 гб","results_count":11}
+{"ts":"2026-05-21T07:42:02Z","session_id":"s2-0946a37df25c","client_id":null,"type":"search","query":"ST8000NM000A","results_count":0}
+{"ts":"2026-05-21T07:42:07Z","session_id":"s2-83246a39592d","client_id":null,"type":"click","product_id":"nb-ns685-i5-16-512","position":5}
+{"ts":"2026-05-21T08:32:49Z","session_id":"s2-a4afc0533546","client_id":null,"type":"add_to_cart","product_id":"nb-mbd16-i5-16-512"}
+{"ts":"2026-05-21T08:34:05Z","session_id":"s2-a4afc0533546","client_id":null,"type":"add_to_cart","product_id":"m365b-bp"}
+{"ts":"2026-05-21T08:35:19Z","session_id":"s2-a4afc0533546","client_id":null,"type":"add_to_cart","product_id":"kes-std50"}
+{"ts":"2026-05-21T08:36:34Z","session_id":"s2-196279beda93","client_id":null,"type":"add_to_cart","product_id":"nb-ns685-i5-8-256"}
+{"ts":"2026-05-21T08:36:46Z","session_id":"s2-196279beda93","client_id":null,"type":"add_to_cart","product_id":"kes-std25"}
+{"ts":"2026-05-21T08:37:07Z","session_id":"s2-196279beda93","client_id":null,"type":"add_to_cart","product_id":"w11p-oem"}
+{"ts":"2026-05-21T08:40:54Z","session_id":"s2-a4afc0533546","client_id":null,"type":"order","product_id":"nb-mbd16-i5-16-512","quantity":5,"order_id":"o-00151","account_id":"acc-015"}
+{"ts":"2026-05-21T08:40:54Z","session_id":"s2-a4afc0533546","client_id":null,"type":"order","product_id":"m365b-bp","quantity":5,"order_id":"o-00151","account_id":"acc-015"}
+{"ts":"2026-05-21T08:40:54Z","session_id":"s2-a4afc0533546","client_id":null,"type":"order","product_id":"kes-std50","quantity":1,"order_id":"o-00151","account_id":"acc-015"}
+{"ts":"2026-05-21T08:40:56Z","session_id":"s2-196279beda93","client_id":null,"type":"order","product_id":"nb-ns685-i5-8-256","quantity":1,"order_id":"o-00152","account_id":"acc-003"}
+{"ts":"2026-05-21T08:40:56Z","session_id":"s2-196279beda93","client_id":null,"type":"order","product_id":"kes-std25","quantity":1,"order_id":"o-00152","account_id":"acc-003"}
+{"ts":"2026-05-21T08:40:56Z","session_id":"s2-196279beda93","client_id":null,"type":"order","product_id":"w11p-oem","quantity":1,"order_id":"o-00152","account_id":"acc-003"}
+{"ts":"2026-05-21T08:51:01Z","session_id":"s2-1b6b5a3d3de3","client_id":null,"type":"add_to_cart","product_id":"nb-t14g4-i5-16-512"}
+{"ts":"2026-05-21T08:51:54Z","session_id":"s2-1b6b5a3d3de3","client_id":null,"type":"add_to_cart","product_id":"m365b-bp"}
+{"ts":"2026-05-21T08:53:13Z","session_id":"s2-1b6b5a3d3de3","client_id":null,"type":"add_to_cart","product_id":"kes-std50"}
+{"ts":"2026-05-21T09:02:26Z","session_id":"s2-1b6b5a3d3de3","client_id":null,"type":"order","product_id":"nb-t14g4-i5-16-512","quantity":25,"order_id":"o-00153","account_id":"acc-033"}
+{"ts":"2026-05-21T09:02:26Z","session_id":"s2-1b6b5a3d3de3","client_id":null,"type":"order","product_id":"m365b-bp","quantity":25,"order_id":"o-00153","account_id":"acc-033"}
+{"ts":"2026-05-21T09:02:26Z","session_id":"s2-1b6b5a3d3de3","client_id":null,"type":"order","product_id":"kes-std50","quantity":1,"order_id":"o-00153","account_id":"acc-033"}
+{"ts":"2026-05-21T09:05:37Z","session_id":"s2-46257f0dd69b","client_id":null,"type":"add_to_cart","product_id":"nb-mbd16-i5-16-512"}
+{"ts":"2026-05-21T09:06:11Z","session_id":"s2-46257f0dd69b","client_id":null,"type":"add_to_cart","product_id":"m365b-bs"}
+{"ts":"2026-05-21T09:07:21Z","session_id":"s2-46257f0dd69b","client_id":null,"type":"add_to_cart","product_id":"kes-std10"}
+{"ts":"2026-05-21T09:08:30Z","session_id":"s2-33a7b8a03db7","client_id":null,"type":"search","query":"сервер под 1с на 50 пользователей","results_count":0}
+{"ts":"2026-05-21T09:09:42Z","session_id":"s2-46257f0dd69b","client_id":null,"type":"order","product_id":"nb-mbd16-i5-16-512","quantity":1,"order_id":"o-00154","account_id":"acc-025"}
+{"ts":"2026-05-21T09:09:42Z","session_id":"s2-46257f0dd69b","client_id":null,"type":"order","product_id":"m365b-bs","quantity":1,"order_id":"o-00154","account_id":"acc-025"}
+{"ts":"2026-05-21T09:09:42Z","session_id":"s2-46257f0dd69b","client_id":null,"type":"order","product_id":"kes-std10","quantity":1,"order_id":"o-00154","account_id":"acc-025"}
+{"ts":"2026-05-21T09:27:10Z","session_id":"s2-b8a1b3f9f4e4","client_id":null,"type":"search","query":"закупка 10 ноутбуков и мониторов","results_count":0}
+{"ts":"2026-05-21T09:48:57Z","session_id":"s2-2a7e511cbc5e","client_id":null,"type":"search","query":"thinkpad t14 gen 4","results_count":2}
+{"ts":"2026-05-21T09:49:11Z","session_id":"s2-2a7e511cbc5e","client_id":null,"type":"click","product_id":"nb-t14g4-i5-16-512","position":2}
+{"ts":"2026-05-21T09:51:49Z","session_id":"s2-89b1412b1ead","client_id":"client-c","type":"add_to_cart","product_id":"mem-samsung-64g-d4"}
+{"ts":"2026-05-21T09:56:37Z","session_id":"s2-89b1412b1ead","client_id":"client-c","type":"order","product_id":"mem-samsung-64g-d4","quantity":2,"order_id":"o-00155","account_id":"client-c"}
+{"ts":"2026-05-21T10:00:42Z","session_id":"s2-f79899abbdf5","client_id":null,"type":"search","query":"рабочее место бухгалтера","results_count":4}
+{"ts":"2026-05-21T10:01:11Z","session_id":"s2-f79899abbdf5","client_id":null,"type":"click","product_id":"1cbuh-prof","position":3}
+{"ts":"2026-05-21T10:01:50Z","session_id":"s2-42628ed7a965","client_id":null,"type":"search","query":"dell","results_count":20}
+{"ts":"2026-05-21T10:03:30Z","session_id":"s2-f79899abbdf5","client_id":null,"type":"add_to_cart","product_id":"1cbuh-prof"}
+{"ts":"2026-05-21T10:20:50Z","session_id":"s2-2ecfd5231192","client_id":null,"type":"search","query":"rds cal для windows server 2025","results_count":1}
+{"ts":"2026-05-21T10:24:35Z","session_id":"s2-3c8e43f4d9ad","client_id":null,"type":"search","query":"лицензия windows server 2025 на 32 ядра","results_count":23}
+{"ts":"2026-05-21T10:24:49Z","session_id":"s2-3c8e43f4d9ad","client_id":null,"type":"click","product_id":"ws25-std16","position":2}
+{"ts":"2026-05-21T10:33:32Z","session_id":"s2-6e787c77ac92","client_id":null,"type":"search","query":"лицензия windows server 2025 на 32 ядра","results_count":23}
+{"ts":"2026-05-21T10:34:00Z","session_id":"s2-6e787c77ac92","client_id":null,"type":"click","product_id":"ws25-std16","position":2}
+{"ts":"2026-05-21T10:40:33Z","session_id":"s2-2e735a52c125","client_id":null,"type":"add_to_cart","product_id":"nb-pb450g10-i5-8-256"}
+{"ts":"2026-05-21T10:48:06Z","session_id":"s2-2e735a52c125","client_id":null,"type":"order","product_id":"nb-pb450g10-i5-8-256","quantity":10,"order_id":"o-00156","account_id":"acc-029"}
+{"ts":"2026-05-21T11:18:25Z","session_id":"s2-33ed9279da36","client_id":null,"type":"price_request","product_id":"srv-dl380g11-5418y"}
+{"ts":"2026-05-21T11:18:25Z","session_id":"s2-33ed9279da36","client_id":null,"type":"add_to_cart","product_id":"srv-dl380g11-5418y"}
+{"ts":"2026-05-21T11:19:30Z","session_id":"s2-33ed9279da36","client_id":null,"type":"add_to_cart","product_id":"mem-hpe-16g-d5"}
+{"ts":"2026-05-21T11:19:45Z","session_id":"s2-33ed9279da36","client_id":null,"type":"add_to_cart","product_id":"hdd-hpe-2400-sas"}
+{"ts":"2026-05-21T11:23:39Z","session_id":"s2-33ed9279da36","client_id":null,"type":"order","product_id":"srv-dl380g11-5418y","quantity":1,"order_id":"o-00157","account_id":"acc-015"}
+{"ts":"2026-05-21T11:23:39Z","session_id":"s2-33ed9279da36","client_id":null,"type":"order","product_id":"mem-hpe-16g-d5","quantity":8,"order_id":"o-00157","account_id":"acc-015"}
+{"ts":"2026-05-21T11:23:39Z","session_id":"s2-33ed9279da36","client_id":null,"type":"order","product_id":"hdd-hpe-2400-sas","quantity":4,"order_id":"o-00157","account_id":"acc-015"}
+{"ts":"2026-05-21T11:35:46Z","session_id":"s2-5f0f691cd032","client_id":null,"type":"add_to_cart","product_id":"nb-pb450g10-i5-8-256"}
+{"ts":"2026-05-21T11:37:13Z","session_id":"s2-5f0f691cd032","client_id":null,"type":"add_to_cart","product_id":"m365b-bb"}
+{"ts":"2026-05-21T11:38:01Z","session_id":"s2-5f0f691cd032","client_id":null,"type":"add_to_cart","product_id":"w11p-oem"}
+{"ts":"2026-05-21T11:46:46Z","session_id":"s2-5f0f691cd032","client_id":null,"type":"order","product_id":"nb-pb450g10-i5-8-256","quantity":2,"order_id":"o-00158","account_id":"acc-024"}
+{"ts":"2026-05-21T11:46:46Z","session_id":"s2-5f0f691cd032","client_id":null,"type":"order","product_id":"m365b-bb","quantity":2,"order_id":"o-00158","account_id":"acc-024"}
+{"ts":"2026-05-21T11:46:46Z","session_id":"s2-5f0f691cd032","client_id":null,"type":"order","product_id":"w11p-oem","quantity":2,"order_id":"o-00158","account_id":"acc-024"}
+{"ts":"2026-05-21T12:39:37Z","session_id":"s2-67757f7bcc37","client_id":null,"type":"search","query":"оперативная память для hpe dl380 gen10","results_count":0}
+{"ts":"2026-05-21T12:51:43Z","session_id":"s2-ff94a0ce1658","client_id":null,"type":"search","query":"монитор 144 гц","results_count":7}
+{"ts":"2026-05-21T12:52:06Z","session_id":"s2-ff94a0ce1658","client_id":null,"type":"click","product_id":"mon-samsung-g5-27","position":5}
+{"ts":"2026-05-21T12:52:28Z","session_id":"s2-ff94a0ce1658","client_id":null,"type":"add_to_cart","product_id":"mon-samsung-g5-27"}
+{"ts":"2026-05-21T15:25:26Z","session_id":"s2-8a32fe3cba90","client_id":null,"type":"search","query":"kingston для dell r750","results_count":0}
+{"ts":"2026-05-22T05:56:23Z","session_id":"s2-8ede95518150","client_id":null,"type":"search","query":"microsoft 365 business standard годовая подписка","results_count":0}
+{"ts":"2026-05-22T07:47:12Z","session_id":"s2-a61f6230ddc1","client_id":null,"type":"search","query":"сервер под 1с на 50 пользователей","results_count":0}
+{"ts":"2026-05-22T07:59:53Z","session_id":"s2-301c04269c11","client_id":null,"type":"search","query":"MES2324B","results_count":2}
+{"ts":"2026-05-22T08:00:16Z","session_id":"s2-301c04269c11","client_id":null,"type":"click","product_id":"sw-eltex-mes2324b","position":1}
+{"ts":"2026-05-22T08:20:29Z","session_id":"s2-3f8cd5de4e5e","client_id":null,"type":"price_request","product_id":"srv-r750-g6338"}
+{"ts":"2026-05-22T08:20:29Z","session_id":"s2-3f8cd5de4e5e","client_id":null,"type":"add_to_cart","product_id":"srv-r750-g6338"}
+{"ts":"2026-05-22T08:21:06Z","session_id":"s2-3f8cd5de4e5e","client_id":null,"type":"add_to_cart","product_id":"mem-dell-64g-d4"}
+{"ts":"2026-05-22T08:23:03Z","session_id":"s2-3f8cd5de4e5e","client_id":null,"type":"order","product_id":"srv-r750-g6338","quantity":1,"order_id":"o-00159","account_id":"acc-034"}
+{"ts":"2026-05-22T08:23:03Z","session_id":"s2-3f8cd5de4e5e","client_id":null,"type":"order","product_id":"mem-dell-64g-d4","quantity":8,"order_id":"o-00159","account_id":"acc-034"}
+{"ts":"2026-05-22T08:29:50Z","session_id":"s2-507d3d75c50e","client_id":null,"type":"search","query":"память 32 гб для dell poweredge r750","results_count":0}
+{"ts":"2026-05-22T08:42:47Z","session_id":"s2-b9d72c08bb52","client_id":null,"type":"search","query":"sql server 2022 standard server cal на 15 пользователей","results_count":1}
+{"ts":"2026-05-22T08:42:55Z","session_id":"s2-b9d72c08bb52","client_id":null,"type":"click","product_id":"sql22-stdsrv","position":1}
+{"ts":"2026-05-22T08:44:43Z","session_id":"s2-b9d72c08bb52","client_id":null,"type":"add_to_cart","product_id":"sql22-stdsrv"}
+{"ts":"2026-05-22T08:51:58Z","session_id":"s2-e184dac3f785","client_id":null,"type":"search","query":"370-AEVQ","results_count":0}
+{"ts":"2026-05-22T09:04:35Z","session_id":"s2-6e579aa65da9","client_id":null,"type":"search","query":"коммутатор 24 порта poe","results_count":0}
+{"ts":"2026-05-22T09:07:01Z","session_id":"s2-b06669d1661d","client_id":null,"type":"search","query":"гарантия для poweredge r740","results_count":1}
+{"ts":"2026-05-22T09:07:18Z","session_id":"s2-b06669d1661d","client_id":null,"type":"click","product_id":"svc-dell-ps-r740-3y","position":1}
+{"ts":"2026-05-22T11:58:51Z","session_id":"s2-4eb4479841e5","client_id":null,"type":"search","query":"закупка 10 ноутбуков и мониторов","results_count":0}
+{"ts":"2026-05-22T12:17:53Z","session_id":"s2-7becf87d2927","client_id":null,"type":"add_to_cart","product_id":"srv-dl380g11-4410y"}
+{"ts":"2026-05-22T12:25:33Z","session_id":"s2-7becf87d2927","client_id":null,"type":"order","product_id":"srv-dl380g11-4410y","quantity":2,"order_id":"o-00160","account_id":"acc-004"}
+{"ts":"2026-05-22T12:54:16Z","session_id":"s2-4b60f24c6228","client_id":null,"type":"search","query":"sql server 2022 standard server cal на 15 пользователей","results_count":1}
+{"ts":"2026-05-22T12:54:17Z","session_id":"s2-417bc978b168","client_id":null,"type":"add_to_cart","product_id":"nb-mbd16-i5-16-512"}
+{"ts":"2026-05-22T12:54:24Z","session_id":"s2-4b60f24c6228","client_id":null,"type":"click","product_id":"sql22-stdsrv","position":1}
+{"ts":"2026-05-22T12:55:42Z","session_id":"s2-417bc978b168","client_id":null,"type":"add_to_cart","product_id":"kes-std25"}
+{"ts":"2026-05-22T12:57:49Z","session_id":"s2-e022804d2ebe","client_id":null,"type":"price_request","product_id":"srv-r750-g6338"}
+{"ts":"2026-05-22T12:57:49Z","session_id":"s2-e022804d2ebe","client_id":null,"type":"add_to_cart","product_id":"srv-r750-g6338"}
+{"ts":"2026-05-22T12:58:36Z","session_id":"s2-e022804d2ebe","client_id":null,"type":"add_to_cart","product_id":"mem-dell-64g-d4"}
+{"ts":"2026-05-22T12:58:51Z","session_id":"s2-417bc978b168","client_id":null,"type":"order","product_id":"nb-mbd16-i5-16-512","quantity":5,"order_id":"o-00161","account_id":"acc-021"}
+{"ts":"2026-05-22T12:58:51Z","session_id":"s2-417bc978b168","client_id":null,"type":"order","product_id":"kes-std25","quantity":1,"order_id":"o-00161","account_id":"acc-021"}
+{"ts":"2026-05-22T12:59:59Z","session_id":"s2-e022804d2ebe","client_id":null,"type":"add_to_cart","product_id":"hdd-dell-2400-sas"}
+{"ts":"2026-05-22T13:01:27Z","session_id":"s2-e022804d2ebe","client_id":null,"type":"add_to_cart","product_id":"svc-dell-ps-r750-3y"}
+{"ts":"2026-05-22T13:02:46Z","session_id":"s2-e022804d2ebe","client_id":null,"type":"add_to_cart","product_id":"ups-ippon-rt-6000"}
+{"ts":"2026-05-22T13:06:54Z","session_id":"s2-e022804d2ebe","client_id":null,"type":"order","product_id":"srv-r750-g6338","quantity":1,"order_id":"o-00162","account_id":"acc-031"}
+{"ts":"2026-05-22T13:06:54Z","session_id":"s2-e022804d2ebe","client_id":null,"type":"order","product_id":"mem-dell-64g-d4","quantity":4,"order_id":"o-00162","account_id":"acc-031"}
+{"ts":"2026-05-22T13:06:54Z","session_id":"s2-e022804d2ebe","client_id":null,"type":"order","product_id":"hdd-dell-2400-sas","quantity":2,"order_id":"o-00162","account_id":"acc-031"}
+{"ts":"2026-05-22T13:06:54Z","session_id":"s2-e022804d2ebe","client_id":null,"type":"order","product_id":"svc-dell-ps-r750-3y","quantity":1,"order_id":"o-00162","account_id":"acc-031"}
+{"ts":"2026-05-22T13:06:54Z","session_id":"s2-e022804d2ebe","client_id":null,"type":"order","product_id":"ups-ippon-rt-6000","quantity":1,"order_id":"o-00162","account_id":"acc-031"}
+{"ts":"2026-05-22T13:48:32Z","session_id":"s2-e208b8850b6d","client_id":null,"type":"search","query":"ssd для r740","results_count":2}
+{"ts":"2026-05-22T13:48:57Z","session_id":"s2-6a3fef8c18a7","client_id":null,"type":"search","query":"рабочее место для 20 сотрудников","results_count":0}
+{"ts":"2026-05-22T14:02:17Z","session_id":"s2-f9bcd8e6c695","client_id":null,"type":"search","query":"память 32 гб для dell poweredge r750","results_count":0}
+{"ts":"2026-05-22T14:29:01Z","session_id":"s2-e7e307b88dd6","client_id":null,"type":"price_request","product_id":"srv-dl380g11-5418y"}
+{"ts":"2026-05-22T14:29:01Z","session_id":"s2-e7e307b88dd6","client_id":null,"type":"add_to_cart","product_id":"srv-dl380g11-5418y"}
+{"ts":"2026-05-22T14:30:11Z","session_id":"s2-e7e307b88dd6","client_id":null,"type":"add_to_cart","product_id":"mem-hpe-32g-d5"}
+{"ts":"2026-05-22T14:30:54Z","session_id":"s2-e7e307b88dd6","client_id":null,"type":"add_to_cart","product_id":"ssd-hpe-1920-sata"}
+{"ts":"2026-05-22T14:38:05Z","session_id":"s2-e7e307b88dd6","client_id":null,"type":"order","product_id":"srv-dl380g11-5418y","quantity":1,"order_id":"o-00163","account_id":"acc-017"}
+{"ts":"2026-05-22T14:38:05Z","session_id":"s2-e7e307b88dd6","client_id":null,"type":"order","product_id":"mem-hpe-32g-d5","quantity":4,"order_id":"o-00163","account_id":"acc-017"}
+{"ts":"2026-05-22T14:38:05Z","session_id":"s2-e7e307b88dd6","client_id":null,"type":"order","product_id":"ssd-hpe-1920-sata","quantity":4,"order_id":"o-00163","account_id":"acc-017"}
+{"ts":"2026-05-22T14:52:30Z","session_id":"s2-f066fa7b3d4a","client_id":null,"type":"search","query":"серверная память","results_count":14}
+{"ts":"2026-05-22T15:17:11Z","session_id":"s2-fafb283591a4","client_id":null,"type":"search","query":"memory for server","results_count":0}
+{"ts":"2026-05-22T15:23:37Z","session_id":"s2-957bcfbc138d","client_id":null,"type":"search","query":"память ddr5 для proliant dl380 gen11","results_count":0}
+{"ts":"2026-05-23T09:04:22Z","session_id":"s2-36589df212be","client_id":null,"type":"add_to_cart","product_id":"nb-ns685-i5-8-256"}
+{"ts":"2026-05-23T09:05:09Z","session_id":"s2-36589df212be","client_id":null,"type":"add_to_cart","product_id":"m365b-bp"}
+{"ts":"2026-05-23T09:06:20Z","session_id":"s2-36589df212be","client_id":null,"type":"add_to_cart","product_id":"kes-std25"}
+{"ts":"2026-05-23T09:07:03Z","session_id":"s2-36589df212be","client_id":null,"type":"add_to_cart","product_id":"w11p-oem"}
+{"ts":"2026-05-23T09:07:50Z","session_id":"s2-36589df212be","client_id":null,"type":"add_to_cart","product_id":"mon-dell-p2725h"}
+{"ts":"2026-05-23T09:12:13Z","session_id":"s2-36589df212be","client_id":null,"type":"order","product_id":"nb-ns685-i5-8-256","quantity":2,"order_id":"o-00164","account_id":"acc-004"}
+{"ts":"2026-05-23T09:12:13Z","session_id":"s2-36589df212be","client_id":null,"type":"order","product_id":"m365b-bp","quantity":2,"order_id":"o-00164","account_id":"acc-004"}
+{"ts":"2026-05-23T09:12:13Z","session_id":"s2-36589df212be","client_id":null,"type":"order","product_id":"kes-std25","quantity":1,"order_id":"o-00164","account_id":"acc-004"}
+{"ts":"2026-05-23T09:12:13Z","session_id":"s2-36589df212be","client_id":null,"type":"order","product_id":"w11p-oem","quantity":2,"order_id":"o-00164","account_id":"acc-004"}
+{"ts":"2026-05-23T09:12:13Z","session_id":"s2-36589df212be","client_id":null,"type":"order","product_id":"mon-dell-p2725h","quantity":2,"order_id":"o-00164","account_id":"acc-004"}
+{"ts":"2026-05-23T10:58:00Z","session_id":"s2-f56a3198a9d1","client_id":null,"type":"add_to_cart","product_id":"nb-pb450g10-i5-16-512"}
+{"ts":"2026-05-23T10:58:28Z","session_id":"s2-f56a3198a9d1","client_id":null,"type":"add_to_cart","product_id":"kes-std50"}
+{"ts":"2026-05-23T11:01:12Z","session_id":"s2-f56a3198a9d1","client_id":null,"type":"order","product_id":"nb-pb450g10-i5-16-512","quantity":10,"order_id":"o-00165","account_id":"acc-022"}
+{"ts":"2026-05-23T11:01:12Z","session_id":"s2-f56a3198a9d1","client_id":null,"type":"order","product_id":"kes-std50","quantity":1,"order_id":"o-00165","account_id":"acc-022"}
+{"ts":"2026-05-23T14:49:37Z","session_id":"s2-1cbb75d77233","client_id":null,"type":"search","query":"ST8000NM000A","results_count":0}
+{"ts":"2026-05-24T07:13:27Z","session_id":"s2-34d51e9e345c","client_id":null,"type":"search","query":"windows server 2025 с cal на 30 пользователей","results_count":9}
+{"ts":"2026-05-24T07:13:42Z","session_id":"s2-34d51e9e345c","client_id":null,"type":"click","product_id":"wscal25-u1","position":7}
+{"ts":"2026-05-24T07:15:41Z","session_id":"s2-34d51e9e345c","client_id":null,"type":"add_to_cart","product_id":"wscal25-u1"}
+{"ts":"2026-05-24T13:38:49Z","session_id":"s2-8667757a5787","client_id":null,"type":"add_to_cart","product_id":"ws25-std16"}
+{"ts":"2026-05-24T13:39:19Z","session_id":"s2-8667757a5787","client_id":null,"type":"add_to_cart","product_id":"wscal-u1"}
+{"ts":"2026-05-24T13:39:41Z","session_id":"s2-8667757a5787","client_id":null,"type":"add_to_cart","product_id":"rdscal25-u1"}
+{"ts":"2026-05-24T13:41:42Z","session_id":"s2-8667757a5787","client_id":null,"type":"order","product_id":"ws25-std16","quantity":1,"order_id":"o-00166","account_id":"acc-014"}
+{"ts":"2026-05-24T13:41:42Z","session_id":"s2-8667757a5787","client_id":null,"type":"order","product_id":"wscal-u1","quantity":5,"order_id":"o-00166","account_id":"acc-014"}
+{"ts":"2026-05-24T13:41:42Z","session_id":"s2-8667757a5787","client_id":null,"type":"order","product_id":"rdscal25-u1","quantity":2,"order_id":"o-00166","account_id":"acc-014"}
+{"ts":"2026-05-24T13:43:26Z","session_id":"s2-32e044ed9d1c","client_id":null,"type":"search","query":"память 16 гб для poweredge r740","results_count":0}
+{"ts":"2026-05-24T14:14:40Z","session_id":"s2-c48baabbed73","client_id":null,"type":"price_request","product_id":"srv-dl380g11-5418y"}
+{"ts":"2026-05-24T14:14:40Z","session_id":"s2-c48baabbed73","client_id":null,"type":"add_to_cart","product_id":"srv-dl380g11-5418y"}
+{"ts":"2026-05-24T14:14:53Z","session_id":"s2-c48baabbed73","client_id":null,"type":"add_to_cart","product_id":"mem-hpe-64g-d5"}
+{"ts":"2026-05-24T14:15:06Z","session_id":"s2-c48baabbed73","client_id":null,"type":"add_to_cart","product_id":"hdd-hpe-2400-sas"}
+{"ts":"2026-05-24T14:16:26Z","session_id":"s2-c48baabbed73","client_id":null,"type":"add_to_cart","product_id":"svc-hpe-tc-g11-5y"}
+{"ts":"2026-05-24T14:22:22Z","session_id":"s2-c48baabbed73","client_id":null,"type":"order","product_id":"srv-dl380g11-5418y","quantity":1,"order_id":"o-00167","account_id":"acc-025"}
+{"ts":"2026-05-24T14:22:22Z","session_id":"s2-c48baabbed73","client_id":null,"type":"order","product_id":"mem-hpe-64g-d5","quantity":2,"order_id":"o-00167","account_id":"acc-025"}
+{"ts":"2026-05-24T14:22:22Z","session_id":"s2-c48baabbed73","client_id":null,"type":"order","product_id":"hdd-hpe-2400-sas","quantity":2,"order_id":"o-00167","account_id":"acc-025"}
+{"ts":"2026-05-24T14:22:22Z","session_id":"s2-c48baabbed73","client_id":null,"type":"order","product_id":"svc-hpe-tc-g11-5y","quantity":1,"order_id":"o-00167","account_id":"acc-025"}
+{"ts":"2026-05-24T15:57:13Z","session_id":"s2-26a752006fae","client_id":null,"type":"price_request","product_id":"srv-vegman-r220-max"}
+{"ts":"2026-05-24T15:57:13Z","session_id":"s2-26a752006fae","client_id":null,"type":"add_to_cart","product_id":"srv-vegman-r220-max"}
+{"ts":"2026-05-24T15:57:52Z","session_id":"s2-26a752006fae","client_id":null,"type":"add_to_cart","product_id":"mem-yadro-32g-d4"}
+{"ts":"2026-05-24T15:58:21Z","session_id":"s2-26a752006fae","client_id":null,"type":"add_to_cart","product_id":"ssd-yadro-960"}
+{"ts":"2026-05-24T16:07:25Z","session_id":"s2-26a752006fae","client_id":null,"type":"order","product_id":"srv-vegman-r220-max","quantity":1,"order_id":"o-00168","account_id":"acc-006"}
+{"ts":"2026-05-24T16:07:25Z","session_id":"s2-26a752006fae","client_id":null,"type":"order","product_id":"mem-yadro-32g-d4","quantity":8,"order_id":"o-00168","account_id":"acc-006"}
+{"ts":"2026-05-24T16:07:25Z","session_id":"s2-26a752006fae","client_id":null,"type":"order","product_id":"ssd-yadro-960","quantity":4,"order_id":"o-00168","account_id":"acc-006"}
+{"ts":"2026-05-25T06:48:45Z","session_id":"s2-9292baa5b5e8","client_id":null,"type":"price_request","product_id":"srv-r750-g6338"}
+{"ts":"2026-05-25T06:48:45Z","session_id":"s2-9292baa5b5e8","client_id":null,"type":"add_to_cart","product_id":"srv-r750-g6338"}
+{"ts":"2026-05-25T06:49:44Z","session_id":"s2-9292baa5b5e8","client_id":null,"type":"add_to_cart","product_id":"mem-dell-64g-d4"}
+{"ts":"2026-05-25T06:50:17Z","session_id":"s2-9292baa5b5e8","client_id":null,"type":"add_to_cart","product_id":"ssd-dell-960-sata"}
+{"ts":"2026-05-25T06:50:46Z","session_id":"s2-9292baa5b5e8","client_id":null,"type":"add_to_cart","product_id":"svc-dell-ps-r750-3y"}
+{"ts":"2026-05-25T06:52:08Z","session_id":"s2-9292baa5b5e8","client_id":null,"type":"add_to_cart","product_id":"ups-ippon-rt-3000"}
+{"ts":"2026-05-25T06:55:53Z","session_id":"s2-9292baa5b5e8","client_id":null,"type":"order","product_id":"srv-r750-g6338","quantity":2,"order_id":"o-00169","account_id":"acc-011"}
+{"ts":"2026-05-25T06:55:53Z","session_id":"s2-9292baa5b5e8","client_id":null,"type":"order","product_id":"mem-dell-64g-d4","quantity":2,"order_id":"o-00169","account_id":"acc-011"}
+{"ts":"2026-05-25T06:55:53Z","session_id":"s2-9292baa5b5e8","client_id":null,"type":"order","product_id":"ssd-dell-960-sata","quantity":4,"order_id":"o-00169","account_id":"acc-011"}
+{"ts":"2026-05-25T06:55:53Z","session_id":"s2-9292baa5b5e8","client_id":null,"type":"order","product_id":"svc-dell-ps-r750-3y","quantity":1,"order_id":"o-00169","account_id":"acc-011"}
+{"ts":"2026-05-25T06:55:53Z","session_id":"s2-9292baa5b5e8","client_id":null,"type":"order","product_id":"ups-ippon-rt-3000","quantity":1,"order_id":"o-00169","account_id":"acc-011"}
+{"ts":"2026-05-25T07:52:35Z","session_id":"s2-076942202c86","client_id":null,"type":"search","query":"бесплатный антивирус","results_count":0}
+{"ts":"2026-05-25T08:40:35Z","session_id":"s2-d28b4947c683","client_id":null,"type":"add_to_cart","product_id":"nb-e14g5-i5-16-512"}
+{"ts":"2026-05-25T08:42:23Z","session_id":"s2-d28b4947c683","client_id":null,"type":"order","product_id":"nb-e14g5-i5-16-512","quantity":1,"order_id":"o-00170","account_id":"acc-030"}
+{"ts":"2026-05-25T08:45:33Z","session_id":"s2-a8990a5471cf","client_id":null,"type":"search","query":"ноутбук 16 гб 512 гб","results_count":11}
+{"ts":"2026-05-25T08:45:58Z","session_id":"s2-a8990a5471cf","client_id":null,"type":"click","product_id":"nb-mbd16-i5-16-512","position":8}
+{"ts":"2026-05-25T08:54:50Z","session_id":"s2-7d4aaf208964","client_id":null,"type":"search","query":"рабочее место бухгалтера","results_count":4}
+{"ts":"2026-05-25T08:55:05Z","session_id":"s2-7d4aaf208964","client_id":null,"type":"click","product_id":"1cbuh-prof","position":3}
+{"ts":"2026-05-25T08:55:32Z","session_id":"s2-1290625a1a73","client_id":null,"type":"search","query":"20 ноутбуков с 16 гб оперативной памяти","results_count":0}
+{"ts":"2026-05-25T08:57:14Z","session_id":"s2-7d4aaf208964","client_id":null,"type":"add_to_cart","product_id":"1cbuh-prof"}
+{"ts":"2026-05-25T09:05:31Z","session_id":"s2-ead9f69baa71","client_id":null,"type":"price_request","product_id":"srv-r740-g6230"}
+{"ts":"2026-05-25T09:05:31Z","session_id":"s2-ead9f69baa71","client_id":null,"type":"add_to_cart","product_id":"srv-r740-g6230"}
+{"ts":"2026-05-25T09:06:35Z","session_id":"s2-ead9f69baa71","client_id":null,"type":"add_to_cart","product_id":"mem-dell-32g-d4"}
+{"ts":"2026-05-25T09:07:38Z","session_id":"s2-ead9f69baa71","client_id":null,"type":"add_to_cart","product_id":"ssd-dell-960-sata"}
+{"ts":"2026-05-25T09:07:56Z","session_id":"s2-ead9f69baa71","client_id":null,"type":"add_to_cart","product_id":"svc-dell-ps-r740-3y"}
+{"ts":"2026-05-25T09:12:40Z","session_id":"s2-ead9f69baa71","client_id":null,"type":"order","product_id":"srv-r740-g6230","quantity":1,"order_id":"o-00171","account_id":"acc-004"}
+{"ts":"2026-05-25T09:12:40Z","session_id":"s2-ead9f69baa71","client_id":null,"type":"order","product_id":"mem-dell-32g-d4","quantity":2,"order_id":"o-00171","account_id":"acc-004"}
+{"ts":"2026-05-25T09:12:40Z","session_id":"s2-ead9f69baa71","client_id":null,"type":"order","product_id":"ssd-dell-960-sata","quantity":2,"order_id":"o-00171","account_id":"acc-004"}
+{"ts":"2026-05-25T09:12:40Z","session_id":"s2-ead9f69baa71","client_id":null,"type":"order","product_id":"svc-dell-ps-r740-3y","quantity":1,"order_id":"o-00171","account_id":"acc-004"}
+{"ts":"2026-05-25T10:06:51Z","session_id":"s2-11c98e1437ae","client_id":null,"type":"add_to_cart","product_id":"ws22-std16"}
+{"ts":"2026-05-25T10:07:36Z","session_id":"s2-11c98e1437ae","client_id":null,"type":"add_to_cart","product_id":"wscal25-u1"}
+{"ts":"2026-05-25T10:11:04Z","session_id":"s2-effee7dc46cc","client_id":null,"type":"add_to_cart","product_id":"sw-huawei-s5735-24"}
+{"ts":"2026-05-25T10:11:35Z","session_id":"s2-11c98e1437ae","client_id":null,"type":"order","product_id":"ws22-std16","quantity":1,"order_id":"o-00172","account_id":"acc-014"}
+{"ts":"2026-05-25T10:11:35Z","session_id":"s2-11c98e1437ae","client_id":null,"type":"order","product_id":"wscal25-u1","quantity":10,"order_id":"o-00172","account_id":"acc-014"}
+{"ts":"2026-05-25T10:18:40Z","session_id":"s2-effee7dc46cc","client_id":null,"type":"order","product_id":"sw-huawei-s5735-24","quantity":1,"order_id":"o-00173","account_id":"acc-022"}
+{"ts":"2026-05-25T11:21:26Z","session_id":"s2-6e75505dad17","client_id":null,"type":"search","query":"windows server 2025 standard на 50 пользователей","results_count":4}
+{"ts":"2026-05-25T11:38:20Z","session_id":"s2-01053a133e49","client_id":null,"type":"search","query":"windows server 2025 на 50 устройств","results_count":23}
+{"ts":"2026-05-25T11:38:36Z","session_id":"s2-01053a133e49","client_id":null,"type":"click","product_id":"ws25-std2","position":14}
+{"ts":"2026-05-25T11:39:28Z","session_id":"s2-01053a133e49","client_id":null,"type":"add_to_cart","product_id":"ws25-std2"}
+{"ts":"2026-05-25T11:50:15Z","session_id":"s2-6260974f52a4","client_id":null,"type":"search","query":"удаленный рабочий стол windows server 2025 на 10 пользователей","results_count":0}
+{"ts":"2026-05-25T11:54:16Z","session_id":"s2-f77d0c13bf5c","client_id":null,"type":"search","query":"коммутатор 48 портов","results_count":0}
+{"ts":"2026-05-25T12:24:05Z","session_id":"s2-d3fd54d2cdf8","client_id":null,"type":"search","query":"ssd 960 гб sata","results_count":4}
+{"ts":"2026-05-25T12:24:29Z","session_id":"s2-d3fd54d2cdf8","client_id":null,"type":"click","product_id":"ssd-dell-960-sata","position":4}
+{"ts":"2026-05-25T12:29:49Z","session_id":"s2-38c910b90765","client_id":null,"type":"add_to_cart","product_id":"nb-lat5540-i7-32-1t"}
+{"ts":"2026-05-25T12:31:06Z","session_id":"s2-38c910b90765","client_id":null,"type":"add_to_cart","product_id":"w11p-oem"}
+{"ts":"2026-05-25T12:33:11Z","session_id":"s2-38c910b90765","client_id":null,"type":"order","product_id":"nb-lat5540-i7-32-1t","quantity":5,"order_id":"o-00174","account_id":"acc-001"}
+{"ts":"2026-05-25T12:33:11Z","session_id":"s2-38c910b90765","client_id":null,"type":"order","product_id":"w11p-oem","quantity":5,"order_id":"o-00174","account_id":"acc-001"}
+{"ts":"2026-05-25T12:49:40Z","session_id":"s2-d678b3e7b1bd","client_id":null,"type":"search","query":"KSM32RD4/32HDR","results_count":0}
+{"ts":"2026-05-25T12:53:59Z","session_id":"s2-e0feaf9d6f68","client_id":null,"type":"search","query":"комплект для нового сотрудника ноутбук офис антивирус","results_count":0}
+{"ts":"2026-05-25T13:15:21Z","session_id":"s2-2cde65915ae8","client_id":null,"type":"search","query":"память ddr5 для proliant dl380 gen11","results_count":0}
+{"ts":"2026-05-25T13:16:25Z","session_id":"s2-5215a6c0cc32","client_id":null,"type":"search","query":"монитор 144 гц","results_count":7}
+{"ts":"2026-05-25T13:38:49Z","session_id":"s2-e8a72c6d19b0","client_id":null,"type":"search","query":"cal 2025 на 25 пользователей","results_count":13}
+{"ts":"2026-05-25T13:39:25Z","session_id":"s2-e8a72c6d19b0","client_id":null,"type":"click","product_id":"wscal25-u5","position":9}
+{"ts":"2026-05-25T14:03:55Z","session_id":"s2-3cb8b1a83316","client_id":null,"type":"search","query":"16 гб","results_count":40}
+{"ts":"2026-05-25T15:01:08Z","session_id":"s2-69c476babc3b","client_id":null,"type":"search","query":"office 2024 для дома и бизнеса 10 пк","results_count":2}
+{"ts":"2026-05-25T15:01:31Z","session_id":"s2-69c476babc3b","client_id":null,"type":"click","product_id":"off24-hb","position":2}
+{"ts":"2026-05-25T15:02:37Z","session_id":"s2-69c476babc3b","client_id":null,"type":"add_to_cart","product_id":"off24-hb"}
+{"ts":"2026-05-25T15:14:54Z","session_id":"s2-a566d40eeedd","client_id":null,"type":"search","query":"rds cal 2025","results_count":3}
+{"ts":"2026-05-25T15:15:26Z","session_id":"s2-a566d40eeedd","client_id":null,"type":"click","product_id":"rdscal25-d1","position":1}
+{"ts":"2026-05-25T15:16:04Z","session_id":"s2-a566d40eeedd","client_id":null,"type":"add_to_cart","product_id":"rdscal25-d1"}
+{"ts":"2026-05-25T15:57:53Z","session_id":"s2-659075d16dad","client_id":null,"type":"search","query":"ddr5 для dell r740","results_count":0}
+{"ts":"2026-05-25T16:36:02Z","session_id":"s2-5aa3d12962b9","client_id":null,"type":"add_to_cart","product_id":"wscal25-u1"}
+{"ts":"2026-05-25T16:44:12Z","session_id":"s2-5aa3d12962b9","client_id":null,"type":"order","product_id":"wscal25-u1","quantity":1,"order_id":"o-00175","account_id":"acc-004"}
+{"ts":"2026-05-25T16:50:46Z","session_id":"s2-12add9d90daa","client_id":null,"type":"search","query":"память для dell r740","results_count":0}
+{"ts":"2026-05-26T06:21:36Z","session_id":"s2-95e85ad60b50","client_id":null,"type":"add_to_cart","product_id":"nb-lat5540-i7-32-1t"}
+{"ts":"2026-05-26T06:22:29Z","session_id":"s2-95e85ad60b50","client_id":null,"type":"add_to_cart","product_id":"off24-hb"}
+{"ts":"2026-05-26T06:22:42Z","session_id":"s2-95e85ad60b50","client_id":null,"type":"add_to_cart","product_id":"kes-std50"}
+{"ts":"2026-05-26T06:23:19Z","session_id":"s2-95e85ad60b50","client_id":null,"type":"add_to_cart","product_id":"w11p-oem"}
+{"ts":"2026-05-26T06:23:34Z","session_id":"s2-95e85ad60b50","client_id":null,"type":"add_to_cart","product_id":"mon-dell-p2425h"}
+{"ts":"2026-05-26T06:29:54Z","session_id":"s2-95e85ad60b50","client_id":null,"type":"order","product_id":"nb-lat5540-i7-32-1t","quantity":20,"order_id":"o-00176","account_id":"acc-004"}
+{"ts":"2026-05-26T06:29:54Z","session_id":"s2-95e85ad60b50","client_id":null,"type":"order","product_id":"off24-hb","quantity":20,"order_id":"o-00176","account_id":"acc-004"}
+{"ts":"2026-05-26T06:29:54Z","session_id":"s2-95e85ad60b50","client_id":null,"type":"order","product_id":"kes-std50","quantity":1,"order_id":"o-00176","account_id":"acc-004"}
+{"ts":"2026-05-26T06:29:54Z","session_id":"s2-95e85ad60b50","client_id":null,"type":"order","product_id":"w11p-oem","quantity":20,"order_id":"o-00176","account_id":"acc-004"}
+{"ts":"2026-05-26T06:29:54Z","session_id":"s2-95e85ad60b50","client_id":null,"type":"order","product_id":"mon-dell-p2425h","quantity":20,"order_id":"o-00176","account_id":"acc-004"}
+{"ts":"2026-05-26T07:08:19Z","session_id":"s2-5e35dbbf6cf5","client_id":null,"type":"search","query":"оперативная память для hpe dl380 gen10","results_count":0}
+{"ts":"2026-05-26T07:39:27Z","session_id":"s2-35d09cd1bd4a","client_id":null,"type":"search","query":"JL253A","results_count":0}
+{"ts":"2026-05-26T08:51:29Z","session_id":"s2-aa673b1c661d","client_id":null,"type":"search","query":"память 32 гб для dell poweredge r750","results_count":0}
+{"ts":"2026-05-26T09:01:21Z","session_id":"s2-0a9e960c2ce2","client_id":null,"type":"search","query":"windows server без cal","results_count":9}
+{"ts":"2026-05-26T09:04:47Z","session_id":"s2-1ea25adf0eb6","client_id":null,"type":"search","query":"жесткий диск sas для dell r750","results_count":0}
+{"ts":"2026-05-26T09:12:46Z","session_id":"s2-0d39ec39e30f","client_id":null,"type":"search","query":"память для dell r740","results_count":0}
+{"ts":"2026-05-26T09:17:42Z","session_id":"s2-deaaa6dc0f10","client_id":null,"type":"add_to_cart","product_id":"sw-eltex-mes2348b"}
+{"ts":"2026-05-26T09:19:45Z","session_id":"s2-51ccbe3e7af1","client_id":null,"type":"search","query":"dell poweredge r740","results_count":3}
+{"ts":"2026-05-26T09:26:49Z","session_id":"s2-deaaa6dc0f10","client_id":null,"type":"order","product_id":"sw-eltex-mes2348b","quantity":3,"order_id":"o-00177","account_id":"acc-005"}
+{"ts":"2026-05-26T09:29:17Z","session_id":"s2-b35b55ebec0d","client_id":null,"type":"search","query":"ram_gb:32","results_count":0}
+{"ts":"2026-05-26T09:36:52Z","session_id":"s2-2fa8d55f1550","client_id":null,"type":"search","query":"microsoft 365 business premium на 30 пользователей","results_count":1}
+{"ts":"2026-05-26T09:39:53Z","session_id":"s2-2fa74f7c1452","client_id":null,"type":"search","query":"microsoft 365 business premium на 30 пользователей","results_count":1}
+{"ts":"2026-05-26T09:40:32Z","session_id":"s2-2fa74f7c1452","client_id":null,"type":"click","product_id":"m365b-bp","position":1}
+{"ts":"2026-05-26T10:40:29Z","session_id":"s2-dd1455f23a9e","client_id":null,"type":"search","query":"сумка для ноутбука","results_count":0}
+{"ts":"2026-05-26T11:47:27Z","session_id":"s2-4c360f4cf468","client_id":null,"type":"search","query":"ноутбук от 32 гб озу","results_count":0}
+{"ts":"2026-05-26T12:34:07Z","session_id":"s2-2a80901b9c65","client_id":null,"type":"search","query":"коммутатор 48 портов","results_count":0}
+{"ts":"2026-05-26T13:28:12Z","session_id":"s2-5116278564fe","client_id":null,"type":"search","query":"сервер 1с проф 64 бит","results_count":0}
+{"ts":"2026-05-26T13:48:02Z","session_id":"s2-448468d7c06e","client_id":null,"type":"search","query":"windows server 2025 на 50 устройств","results_count":23}
+{"ts":"2026-05-26T15:40:28Z","session_id":"s2-40cf85a734d0","client_id":null,"type":"add_to_cart","product_id":"nb-e14g5-i5-16-512"}
+{"ts":"2026-05-26T15:41:31Z","session_id":"s2-40cf85a734d0","client_id":null,"type":"add_to_cart","product_id":"nb-pb450g10-i5-8-256"}
+{"ts":"2026-05-26T15:51:24Z","session_id":"s2-40cf85a734d0","client_id":null,"type":"order","product_id":"nb-e14g5-i5-16-512","quantity":1,"order_id":"o-00178","account_id":"acc-004"}
+{"ts":"2026-05-26T15:51:24Z","session_id":"s2-40cf85a734d0","client_id":null,"type":"order","product_id":"nb-pb450g10-i5-8-256","quantity":1,"order_id":"o-00178","account_id":"acc-004"}
+{"ts":"2026-05-26T16:52:32Z","session_id":"s2-cd4a8cc86792","client_id":null,"type":"price_request","product_id":"ups-eaton-9sx-3000"}
+{"ts":"2026-05-26T16:52:32Z","session_id":"s2-cd4a8cc86792","client_id":null,"type":"add_to_cart","product_id":"ups-eaton-9sx-3000"}
+{"ts":"2026-05-26T17:01:40Z","session_id":"s2-cd4a8cc86792","client_id":null,"type":"order","product_id":"ups-eaton-9sx-3000","quantity":3,"order_id":"o-00179","account_id":"acc-007"}

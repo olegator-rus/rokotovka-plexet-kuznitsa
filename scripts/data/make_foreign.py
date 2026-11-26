@@ -30,7 +30,8 @@ MSK = timezone(timedelta(hours=3))
 
 ORIGIN = {"ru": "Россия", "foreign": "США"}
 SEGMENT = {"smb": "Малый бизнес", "enterprise": "Крупный бизнес", "gov": "Госсектор", "individual": "Физлицо"}
-RELATION = {"substitute": "Аналог", "complement": "Сопутствующий", "renewal": "Продление", "compatibility": "Совместимость"}
+RELATION = {"substitute": "Аналог", "complement": "Сопутствующий", "renewal": "Продление", "compatibility": "Совместимость",
+            "upgrade": "Старшая редакция"}
 ACTION = {"search": "Поиск", "click": "Переход в карточку", "add_to_cart": "Добавление в корзину", "order": "Заказ оформлен",
           "price_request": "Запрос цены", "manager_request": "Запрос менеджеру"}
 

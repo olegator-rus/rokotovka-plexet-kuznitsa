@@ -1,5 +1,9 @@
 {
-  "version": "mock-1",
+  "version": "mock-2",
+  "synthetic": [
+    "margin",
+    "orders"
+  ],
   "products": [
     {
       "id": "w11h-esd",
@@ -215,7 +219,8 @@
       "category_id": "os-server",
       "description": "Серверная операционная система Microsoft. Лицензируется по физическим ядрам: минимум 16 ядер на сервер, дополнительные ядра докупаются пакетами по 2. Для подключения пользователей нужны CAL. Лицензия: бессрочная; 16 ядер.",
       "attributes": {
-        "edition": "Standard"
+        "edition": "Standard",
+        "version": "2022"
       },
       "license": {
         "type": "perpetual",
@@ -242,7 +247,8 @@
       "description": "Серверная операционная система Microsoft. Лицензируется по физическим ядрам: минимум 16 ядер на сервер, дополнительные ядра докупаются пакетами по 2. Для подключения пользователей нужны CAL. Лицензия: бессрочная; 2 ядра; продаётся поштучно, количество указывается при заказе.",
       "attributes": {
         "edition": "Standard",
-        "purchase": "поштучно"
+        "purchase": "поштучно",
+        "version": "2022"
       },
       "license": {
         "type": "perpetual",
@@ -268,7 +274,8 @@
       "category_id": "os-server",
       "description": "Серверная операционная система Microsoft. Лицензируется по физическим ядрам: минимум 16 ядер на сервер, дополнительные ядра докупаются пакетами по 2. Для подключения пользователей нужны CAL. Лицензия: бессрочная; 16 ядер.",
       "attributes": {
-        "edition": "Datacenter"
+        "edition": "Datacenter",
+        "version": "2022"
       },
       "license": {
         "type": "perpetual",
@@ -295,7 +302,8 @@
       "description": "Клиентские лицензии доступа к Windows Server 2022: на пользователя или на устройство. Покупаются в дополнение к серверной лицензии. Лицензия: бессрочная; 1 пользователь; продаётся поштучно, количество указывается при заказе.",
       "attributes": {
         "edition": "User CAL",
-        "purchase": "поштучно"
+        "purchase": "поштучно",
+        "version": "2022"
       },
       "license": {
         "type": "perpetual",
@@ -322,7 +330,8 @@
       "description": "Клиентские лицензии доступа к Windows Server 2022: на пользователя или на устройство. Покупаются в дополнение к серверной лицензии. Лицензия: бессрочная; 1 устройство; продаётся поштучно, количество указывается при заказе.",
       "attributes": {
         "edition": "Device CAL",
-        "purchase": "поштучно"
+        "purchase": "поштучно",
+        "version": "2022"
       },
       "license": {
         "type": "perpetual",
@@ -348,7 +357,8 @@
       "category_id": "os-server",
       "description": "Клиентские лицензии доступа к Windows Server 2022: на пользователя или на устройство. Покупаются в дополнение к серверной лицензии. Лицензия: бессрочная; 5 пользователей.",
       "attributes": {
-        "edition": "User CAL"
+        "edition": "User CAL",
+        "version": "2022"
       },
       "license": {
         "type": "perpetual",
@@ -374,7 +384,8 @@
       "category_id": "os-server",
       "description": "Клиентские лицензии доступа к Windows Server 2022: на пользователя или на устройство. Покупаются в дополнение к серверной лицензии. Лицензия: бессрочная; 5 устройств.",
       "attributes": {
-        "edition": "Device CAL"
+        "edition": "Device CAL",
+        "version": "2022"
       },
       "license": {
         "type": "perpetual",
@@ -401,7 +412,8 @@
       "description": "Клиентские лицензии доступа к Windows Server 2022: на пользователя или на устройство. Покупаются в дополнение к серверной лицензии. Нужна для работы пользователей с сервером терминалов. Лицензия: бессрочная; 1 пользователь; продаётся поштучно, количество указывается при заказе.",
       "attributes": {
         "edition": "RDS CAL",
-        "purchase": "поштучно"
+        "purchase": "поштучно",
+        "version": "2022"
       },
       "license": {
         "type": "perpetual",
@@ -427,7 +439,8 @@
       "category_id": "os-server",
       "description": "Актуальная версия серверной ОС Microsoft с горячим обновлением и улучшенным Active Directory. Лицензируется по ядрам: базовый пакет на 16 ядер и дополнительные пакеты по 2 ядра. Лицензия: бессрочная; 16 ядер.",
       "attributes": {
-        "edition": "Standard"
+        "edition": "Standard",
+        "version": "2025"
       },
       "license": {
         "type": "perpetual",
@@ -454,7 +467,8 @@
       "description": "Актуальная версия серверной ОС Microsoft с горячим обновлением и улучшенным Active Directory. Лицензируется по ядрам: базовый пакет на 16 ядер и дополнительные пакеты по 2 ядра. Лицензия: бессрочная; 2 ядра; продаётся поштучно, количество указывается при заказе.",
       "attributes": {
         "edition": "Standard",
-        "purchase": "поштучно"
+        "purchase": "поштучно",
+        "version": "2025"
       },
       "license": {
         "type": "perpetual",
@@ -480,7 +494,8 @@
       "category_id": "os-server",
       "description": "Актуальная версия серверной ОС Microsoft с горячим обновлением и улучшенным Active Directory. Лицензируется по ядрам: базовый пакет на 16 ядер и дополнительные пакеты по 2 ядра. Лицензия: бессрочная; 16 ядер.",
       "attributes": {
-        "edition": "Datacenter"
+        "edition": "Datacenter",
+        "version": "2025"
       },
       "license": {
         "type": "perpetual",
@@ -507,7 +522,8 @@
       "description": "Реляционная СУБД Microsoft для учётных и аналитических систем. Доступны лицензирование по ядрам и модель «сервер + клиентские лицензии». Лицензия: бессрочная; 2 ядра; продаётся поштучно, количество указывается при заказе.",
       "attributes": {
         "edition": "Standard",
-        "purchase": "поштучно"
+        "purchase": "поштучно",
+        "version": "2022"
       },
       "license": {
         "type": "perpetual",
@@ -533,7 +549,8 @@
       "category_id": "dbms",
       "description": "Реляционная СУБД Microsoft для учётных и аналитических систем. Доступны лицензирование по ядрам и модель «сервер + клиентские лицензии». Лицензия: бессрочная; 1 сервер.",
       "attributes": {
-        "edition": "Standard"
+        "edition": "Standard",
+        "version": "2022"
       },
       "license": {
         "type": "perpetual",
@@ -560,7 +577,8 @@
       "description": "Реляционная СУБД Microsoft для учётных и аналитических систем. Доступны лицензирование по ядрам и модель «сервер + клиентские лицензии». Лицензия: бессрочная; 1 пользователь; продаётся поштучно, количество указывается при заказе.",
       "attributes": {
         "edition": "CAL",
-        "purchase": "поштучно"
+        "purchase": "поштучно",
+        "version": "2022"
       },
       "license": {
         "type": "perpetual",
@@ -587,7 +605,8 @@
       "description": "Реляционная СУБД Microsoft для учётных и аналитических систем. Доступны лицензирование по ядрам и модель «сервер + клиентские лицензии». Лицензия: бессрочная; 2 ядра; продаётся поштучно, количество указывается при заказе.",
       "attributes": {
         "edition": "Enterprise",
-        "purchase": "поштучно"
+        "purchase": "поштучно",
+        "version": "2022"
       },
       "license": {
         "type": "perpetual",
@@ -6091,6 +6110,2934 @@
       "in_reestr": true,
       "popularity": 0.346,
       "margin": 0.28
+    },
+    {
+      "id": "wscal25-u1",
+      "sku": "R18-07473",
+      "family_id": "windows-server-cal-2025",
+      "family_name": "Microsoft Windows Server 2025 CAL",
+      "title": "Microsoft Windows Server 2025 CAL, клиентская лицензия на 1 пользователя",
+      "vendor_id": "microsoft",
+      "category_id": "os-server",
+      "description": "Клиентская лицензия доступа к Windows Server 2025. Нужна каждому пользователю, который обращается к серверу, если у компании нет действующих CAL той же или более новой версии. Подходит и для серверов Windows Server 2022 и более ранних.",
+      "attributes": {
+        "edition": "User CAL",
+        "version": "2025",
+        "purchase": "поштучно"
+      },
+      "license": {
+        "type": "perpetual",
+        "metric": "user",
+        "quantity": 1,
+        "duration_months": null,
+        "edition": "User CAL"
+      },
+      "price_rub": 5790,
+      "price_on_request": false,
+      "origin": "foreign",
+      "in_reestr": false,
+      "popularity": 0.981,
+      "margin": 0.168,
+      "kind": "software",
+      "mpn": "",
+      "specs": {},
+      "compatible_with": [],
+      "model_id": null,
+      "price_mode": "fixed"
+    },
+    {
+      "id": "wscal25-d1",
+      "sku": "R18-07455",
+      "family_id": "windows-server-cal-2025",
+      "family_name": "Microsoft Windows Server 2025 CAL",
+      "title": "Microsoft Windows Server 2025 CAL, клиентская лицензия на 1 устройство",
+      "vendor_id": "microsoft",
+      "category_id": "os-server",
+      "description": "Клиентская лицензия доступа к Windows Server 2025. Нужна каждому устройству, который обращается к серверу, если у компании нет действующих CAL той же или более новой версии. Подходит и для серверов Windows Server 2022 и более ранних.",
+      "attributes": {
+        "edition": "Device CAL",
+        "version": "2025",
+        "purchase": "поштучно"
+      },
+      "license": {
+        "type": "perpetual",
+        "metric": "device",
+        "quantity": 1,
+        "duration_months": null,
+        "edition": "Device CAL"
+      },
+      "price_rub": 5190,
+      "price_on_request": false,
+      "origin": "foreign",
+      "in_reestr": false,
+      "popularity": 0.722,
+      "margin": 0.154,
+      "kind": "software",
+      "mpn": "",
+      "specs": {},
+      "compatible_with": [],
+      "model_id": null,
+      "price_mode": "fixed"
+    },
+    {
+      "id": "wscal25-u5",
+      "sku": "R18-07482",
+      "family_id": "windows-server-cal-2025",
+      "family_name": "Microsoft Windows Server 2025 CAL",
+      "title": "Microsoft Windows Server 2025 CAL, 5 клиентских лицензий на пользователя",
+      "vendor_id": "microsoft",
+      "category_id": "os-server",
+      "description": "Клиентская лицензия доступа к Windows Server 2025. Нужна каждому пользователю, который обращается к серверу, если у компании нет действующих CAL той же или более новой версии. Подходит и для серверов Windows Server 2022 и более ранних.",
+      "attributes": {
+        "edition": "User CAL",
+        "version": "2025"
+      },
+      "license": {
+        "type": "perpetual",
+        "metric": "user",
+        "quantity": 5,
+        "duration_months": null,
+        "edition": "User CAL"
+      },
+      "price_rub": 27490,
+      "price_on_request": false,
+      "origin": "foreign",
+      "in_reestr": false,
+      "popularity": 0.905,
+      "margin": 0.158,
+      "kind": "software",
+      "mpn": "",
+      "specs": {},
+      "compatible_with": [],
+      "model_id": null,
+      "price_mode": "fixed"
+    },
+    {
+      "id": "wscal25-d5",
+      "sku": "R18-07464",
+      "family_id": "windows-server-cal-2025",
+      "family_name": "Microsoft Windows Server 2025 CAL",
+      "title": "Microsoft Windows Server 2025 CAL, 5 клиентских лицензий на устройство",
+      "vendor_id": "microsoft",
+      "category_id": "os-server",
+      "description": "Клиентская лицензия доступа к Windows Server 2025. Нужна каждому устройству, который обращается к серверу, если у компании нет действующих CAL той же или более новой версии. Подходит и для серверов Windows Server 2022 и более ранних.",
+      "attributes": {
+        "edition": "Device CAL",
+        "version": "2025"
+      },
+      "license": {
+        "type": "perpetual",
+        "metric": "device",
+        "quantity": 5,
+        "duration_months": null,
+        "edition": "Device CAL"
+      },
+      "price_rub": 24290,
+      "price_on_request": false,
+      "origin": "foreign",
+      "in_reestr": false,
+      "popularity": 0.301,
+      "margin": 0.165,
+      "kind": "software",
+      "mpn": "",
+      "specs": {},
+      "compatible_with": [],
+      "model_id": null,
+      "price_mode": "fixed"
+    },
+    {
+      "id": "rdscal25-u1",
+      "sku": "6VC-04788",
+      "family_id": "rds-cal-2025",
+      "family_name": "Microsoft Remote Desktop Services 2025 CAL",
+      "title": "Microsoft Remote Desktop Services 2025 CAL, клиентская лицензия на 1 пользователя",
+      "vendor_id": "microsoft",
+      "category_id": "os-server",
+      "description": "Лицензия на подключение к удалённому рабочему столу Windows Server 2025 для одного пользователю. Покупается в дополнение к обычной CAL. RDS CAL прежних версий к серверу 2025 не подходят.",
+      "attributes": {
+        "edition": "RDS CAL",
+        "version": "2025",
+        "purchase": "поштучно"
+      },
+      "license": {
+        "type": "perpetual",
+        "metric": "user",
+        "quantity": 1,
+        "duration_months": null,
+        "edition": "RDS CAL"
+      },
+      "price_rub": 13990,
+      "price_on_request": false,
+      "origin": "foreign",
+      "in_reestr": false,
+      "popularity": 0.853,
+      "margin": 0.15,
+      "kind": "software",
+      "mpn": "",
+      "specs": {},
+      "compatible_with": [],
+      "model_id": null,
+      "price_mode": "fixed"
+    },
+    {
+      "id": "rdscal25-d1",
+      "sku": "6VC-04770",
+      "family_id": "rds-cal-2025",
+      "family_name": "Microsoft Remote Desktop Services 2025 CAL",
+      "title": "Microsoft Remote Desktop Services 2025 CAL, клиентская лицензия на 1 устройство",
+      "vendor_id": "microsoft",
+      "category_id": "os-server",
+      "description": "Лицензия на подключение к удалённому рабочему столу Windows Server 2025 для одного устройству. Покупается в дополнение к обычной CAL. RDS CAL прежних версий к серверу 2025 не подходят.",
+      "attributes": {
+        "edition": "RDS CAL",
+        "version": "2025",
+        "purchase": "поштучно"
+      },
+      "license": {
+        "type": "perpetual",
+        "metric": "device",
+        "quantity": 1,
+        "duration_months": null,
+        "edition": "RDS CAL"
+      },
+      "price_rub": 12490,
+      "price_on_request": false,
+      "origin": "foreign",
+      "in_reestr": false,
+      "popularity": 0.301,
+      "margin": 0.16,
+      "kind": "software",
+      "mpn": "",
+      "specs": {},
+      "compatible_with": [],
+      "model_id": null,
+      "price_mode": "fixed"
+    },
+    {
+      "id": "srv-r740-s4210",
+      "sku": "",
+      "family_id": "dell-poweredge-r740",
+      "family_name": "Dell PowerEdge R740",
+      "title": "Сервер Dell PowerEdge R740, 2× Xeon Silver 4210R, 64 ГБ, 2× SSD 960 ГБ",
+      "vendor_id": "dell",
+      "category_id": "server-systems",
+      "description": "Двухпроцессорный сервер 2U для виртуализации и баз данных. 24 слота DDR4 RDIMM, восемь отсеков 2,5 дюйма, два блока питания 750 Вт.",
+      "attributes": {
+        "cpu": "2× Intel Xeon Silver 4210R",
+        "memory_type": "DDR4",
+        "drive_bays": "8× 2,5\"",
+        "raid": "PERC H730P"
+      },
+      "license": {
+        "type": null,
+        "metric": null,
+        "quantity": null,
+        "duration_months": null,
+        "edition": ""
+      },
+      "price_rub": 689000,
+      "price_on_request": false,
+      "origin": "foreign",
+      "in_reestr": false,
+      "popularity": 0.582,
+      "margin": 0.064,
+      "kind": "hardware",
+      "mpn": "PER740-2S4210R-64G",
+      "specs": {
+        "form_factor_u": 2,
+        "cpu_cores": 20,
+        "ram_gb": 64,
+        "storage_gb": 1920,
+        "power_w": 750
+      },
+      "compatible_with": [],
+      "model_id": "dell-poweredge-r740",
+      "price_mode": "fixed"
+    },
+    {
+      "id": "srv-r740-g6230",
+      "sku": "",
+      "family_id": "dell-poweredge-r740",
+      "family_name": "Dell PowerEdge R740",
+      "title": "Сервер Dell PowerEdge R740, 2× Xeon Gold 6230R, 256 ГБ, 4× SSD 1,92 ТБ",
+      "vendor_id": "dell",
+      "category_id": "server-systems",
+      "description": "Старшая конфигурация R740 под нагруженные базы данных и VDI. Цена зависит от сборки и сроков поставки, рассчитывается по запросу.",
+      "attributes": {
+        "cpu": "2× Intel Xeon Gold 6230R",
+        "memory_type": "DDR4",
+        "drive_bays": "16× 2,5\"",
+        "raid": "PERC H740P"
+      },
+      "license": {
+        "type": null,
+        "metric": null,
+        "quantity": null,
+        "duration_months": null,
+        "edition": ""
+      },
+      "price_rub": null,
+      "price_on_request": true,
+      "origin": "foreign",
+      "in_reestr": false,
+      "popularity": 0.757,
+      "margin": 0.061,
+      "kind": "hardware",
+      "mpn": "PER740-2G6230R-256G",
+      "specs": {
+        "form_factor_u": 2,
+        "cpu_cores": 52,
+        "ram_gb": 256,
+        "storage_gb": 7680,
+        "power_w": 1100
+      },
+      "compatible_with": [],
+      "model_id": "dell-poweredge-r740",
+      "price_mode": "quote_required"
+    },
+    {
+      "id": "srv-r750-s4314",
+      "sku": "",
+      "family_id": "dell-poweredge-r750",
+      "family_name": "Dell PowerEdge R750",
+      "title": "Сервер Dell PowerEdge R750, 2× Xeon Silver 4314, 128 ГБ, 2× SSD 1,92 ТБ",
+      "vendor_id": "dell",
+      "category_id": "server-systems",
+      "description": "Сервер 2U на Xeon Scalable третьего поколения, 32 слота DDR4-3200. Цена указана за базовую сборку, итог зависит от конфигурации.",
+      "attributes": {
+        "cpu": "2× Intel Xeon Silver 4314",
+        "memory_type": "DDR4",
+        "drive_bays": "8× 2,5\"",
+        "raid": "PERC H755"
+      },
+      "license": {
+        "type": null,
+        "metric": null,
+        "quantity": null,
+        "duration_months": null,
+        "edition": ""
+      },
+      "price_rub": 1149000,
+      "price_on_request": false,
+      "origin": "foreign",
+      "in_reestr": false,
+      "popularity": 0.782,
+      "margin": 0.071,
+      "kind": "hardware",
+      "mpn": "PER750-2S4314-128G",
+      "specs": {
+        "form_factor_u": 2,
+        "cpu_cores": 32,
+        "ram_gb": 128,
+        "storage_gb": 3840,
+        "power_w": 1100
+      },
+      "compatible_with": [],
+      "model_id": "dell-poweredge-r750",
+      "price_mode": "from"
+    },
+    {
+      "id": "srv-r750-g6338",
+      "sku": "",
+      "family_id": "dell-poweredge-r750",
+      "family_name": "Dell PowerEdge R750",
+      "title": "Сервер Dell PowerEdge R750, 2× Xeon Gold 6338, 512 ГБ, 8× SSD 3,84 ТБ",
+      "vendor_id": "dell",
+      "category_id": "server-systems",
+      "description": "Конфигурация R750 под кластер виртуализации. Поставка под проект, цена по запросу.",
+      "attributes": {
+        "cpu": "2× Intel Xeon Gold 6338",
+        "memory_type": "DDR4",
+        "drive_bays": "24× 2,5\"",
+        "raid": "PERC H755"
+      },
+      "license": {
+        "type": null,
+        "metric": null,
+        "quantity": null,
+        "duration_months": null,
+        "edition": ""
+      },
+      "price_rub": null,
+      "price_on_request": true,
+      "origin": "foreign",
+      "in_reestr": false,
+      "popularity": 0.863,
+      "margin": 0.086,
+      "kind": "hardware",
+      "mpn": "PER750-2G6338-512G",
+      "specs": {
+        "form_factor_u": 2,
+        "cpu_cores": 64,
+        "ram_gb": 512,
+        "storage_gb": 30720,
+        "power_w": 1400
+      },
+      "compatible_with": [],
+      "model_id": "dell-poweredge-r750",
+      "price_mode": "quote_required"
+    },
+    {
+      "id": "srv-dl380g10-4210",
+      "sku": "",
+      "family_id": "hpe-proliant-dl380-gen10",
+      "family_name": "HPE ProLiant DL380 Gen10",
+      "title": "Сервер HPE ProLiant DL380 Gen10, 2× Xeon Silver 4210R, 64 ГБ, 2× SSD 960 ГБ",
+      "vendor_id": "hpe",
+      "category_id": "server-systems",
+      "description": "Сервер 2U предыдущего поколения. Снят с производства, остатки распроданы: позиция осталась в каталоге для истории заказов.",
+      "attributes": {
+        "cpu": "2× Intel Xeon Silver 4210R",
+        "memory_type": "DDR4",
+        "drive_bays": "8× SFF",
+        "raid": "S100i"
+      },
+      "license": {
+        "type": null,
+        "metric": null,
+        "quantity": null,
+        "duration_months": null,
+        "edition": ""
+      },
+      "price_rub": 598000,
+      "price_on_request": false,
+      "origin": "foreign",
+      "in_reestr": false,
+      "popularity": 0.01,
+      "margin": 0.093,
+      "kind": "hardware",
+      "mpn": "P24842-B21",
+      "specs": {
+        "form_factor_u": 2,
+        "cpu_cores": 20,
+        "ram_gb": 64,
+        "storage_gb": 1920,
+        "power_w": 800
+      },
+      "compatible_with": [],
+      "model_id": "hpe-proliant-dl380-gen10",
+      "price_mode": "unavailable"
+    },
+    {
+      "id": "srv-dl380g10-5218",
+      "sku": "",
+      "family_id": "hpe-proliant-dl380-gen10",
+      "family_name": "HPE ProLiant DL380 Gen10",
+      "title": "Сервер HPE ProLiant DL380 Gen10, 2× Xeon Gold 5218, 128 ГБ, 4× SSD 960 ГБ",
+      "vendor_id": "hpe",
+      "category_id": "server-systems",
+      "description": "Проверенная платформа 2U для 1С и виртуализации. 24 слота DDR4 HPE Smart Memory, контроллер P408i-a.",
+      "attributes": {
+        "cpu": "2× Intel Xeon Gold 5218",
+        "memory_type": "DDR4",
+        "drive_bays": "8× SFF",
+        "raid": "P408i-a"
+      },
+      "license": {
+        "type": null,
+        "metric": null,
+        "quantity": null,
+        "duration_months": null,
+        "edition": ""
+      },
+      "price_rub": 845000,
+      "price_on_request": false,
+      "origin": "foreign",
+      "in_reestr": false,
+      "popularity": 0.746,
+      "margin": 0.062,
+      "kind": "hardware",
+      "mpn": "P20249-B21",
+      "specs": {
+        "form_factor_u": 2,
+        "cpu_cores": 32,
+        "ram_gb": 128,
+        "storage_gb": 3840,
+        "power_w": 800
+      },
+      "compatible_with": [],
+      "model_id": "hpe-proliant-dl380-gen10",
+      "price_mode": "fixed"
+    },
+    {
+      "id": "srv-dl380g11-4410y",
+      "sku": "",
+      "family_id": "hpe-proliant-dl380-gen11",
+      "family_name": "HPE ProLiant DL380 Gen11",
+      "title": "Сервер HPE ProLiant DL380 Gen11, 2× Xeon Silver 4410Y, 64 ГБ DDR5, 2× SSD 960 ГБ",
+      "vendor_id": "hpe",
+      "category_id": "server-systems",
+      "description": "Сервер 2U на Xeon Scalable четвёртого поколения с памятью DDR5-4800. Отсеки только 2,5 дюйма.",
+      "attributes": {
+        "cpu": "2× Intel Xeon Silver 4410Y",
+        "memory_type": "DDR5",
+        "drive_bays": "8× SFF",
+        "raid": "MR408i-o"
+      },
+      "license": {
+        "type": null,
+        "metric": null,
+        "quantity": null,
+        "duration_months": null,
+        "edition": ""
+      },
+      "price_rub": 1290000,
+      "price_on_request": false,
+      "origin": "foreign",
+      "in_reestr": false,
+      "popularity": 0.702,
+      "margin": 0.079,
+      "kind": "hardware",
+      "mpn": "P52534-B21",
+      "specs": {
+        "form_factor_u": 2,
+        "cpu_cores": 24,
+        "ram_gb": 64,
+        "storage_gb": 1920,
+        "power_w": 1000
+      },
+      "compatible_with": [],
+      "model_id": "hpe-proliant-dl380-gen11",
+      "price_mode": "fixed"
+    },
+    {
+      "id": "srv-dl380g11-5418y",
+      "sku": "",
+      "family_id": "hpe-proliant-dl380-gen11",
+      "family_name": "HPE ProLiant DL380 Gen11",
+      "title": "Сервер HPE ProLiant DL380 Gen11, 2× Xeon Gold 5418Y, 256 ГБ DDR5, 4× NVMe 3,84 ТБ",
+      "vendor_id": "hpe",
+      "category_id": "server-systems",
+      "description": "Старшая конфигурация Gen11 с NVMe-корзиной под высоконагруженные СУБД. Цена по запросу.",
+      "attributes": {
+        "cpu": "2× Intel Xeon Gold 5418Y",
+        "memory_type": "DDR5",
+        "drive_bays": "8× SFF NVMe",
+        "raid": "MR416i-o"
+      },
+      "license": {
+        "type": null,
+        "metric": null,
+        "quantity": null,
+        "duration_months": null,
+        "edition": ""
+      },
+      "price_rub": null,
+      "price_on_request": true,
+      "origin": "foreign",
+      "in_reestr": false,
+      "popularity": 0.875,
+      "margin": 0.098,
+      "kind": "hardware",
+      "mpn": "P52562-B21",
+      "specs": {
+        "form_factor_u": 2,
+        "cpu_cores": 48,
+        "ram_gb": 256,
+        "storage_gb": 15360,
+        "power_w": 1600
+      },
+      "compatible_with": [],
+      "model_id": "hpe-proliant-dl380-gen11",
+      "price_mode": "quote_required"
+    },
+    {
+      "id": "srv-vegman-r220-base",
+      "sku": "",
+      "family_id": "yadro-vegman-r220-g2",
+      "family_name": "YADRO VEGMAN R220 G2",
+      "title": "Сервер YADRO VEGMAN R220 G2, 2× Xeon Gold 6330, 256 ГБ, 2× SSD 960 ГБ",
+      "vendor_id": "yadro",
+      "category_id": "server-systems",
+      "description": "Российский сервер 2U, внесён в реестр российской промышленной продукции. Цена за базовую сборку.",
+      "attributes": {
+        "cpu": "2× Intel Xeon Gold 6330",
+        "memory_type": "DDR4",
+        "drive_bays": "12× 2,5\"",
+        "raid": "программный"
+      },
+      "license": {
+        "type": null,
+        "metric": null,
+        "quantity": null,
+        "duration_months": null,
+        "edition": ""
+      },
+      "price_rub": 1420000,
+      "price_on_request": false,
+      "origin": "ru",
+      "in_reestr": true,
+      "popularity": 0.569,
+      "margin": 0.073,
+      "kind": "hardware",
+      "mpn": "VEG-R220G2-6330-256",
+      "specs": {
+        "form_factor_u": 2,
+        "cpu_cores": 56,
+        "ram_gb": 256,
+        "storage_gb": 1920,
+        "power_w": 1300
+      },
+      "compatible_with": [],
+      "model_id": "yadro-vegman-r220-g2",
+      "price_mode": "from"
+    },
+    {
+      "id": "srv-vegman-r220-max",
+      "sku": "",
+      "family_id": "yadro-vegman-r220-g2",
+      "family_name": "YADRO VEGMAN R220 G2",
+      "title": "Сервер YADRO VEGMAN R220 G2, 2× Xeon Gold 6348, 1 ТБ, 8× SSD 3,84 ТБ",
+      "vendor_id": "yadro",
+      "category_id": "server-systems",
+      "description": "Максимальная конфигурация VEGMAN R220 под импортозамещение кластеров. Цена по запросу.",
+      "attributes": {
+        "cpu": "2× Intel Xeon Gold 6348",
+        "memory_type": "DDR4",
+        "drive_bays": "24× 2,5\"",
+        "raid": "программный"
+      },
+      "license": {
+        "type": null,
+        "metric": null,
+        "quantity": null,
+        "duration_months": null,
+        "edition": ""
+      },
+      "price_rub": null,
+      "price_on_request": true,
+      "origin": "ru",
+      "in_reestr": true,
+      "popularity": 0.617,
+      "margin": 0.065,
+      "kind": "hardware",
+      "mpn": "VEG-R220G2-6348-1T",
+      "specs": {
+        "form_factor_u": 2,
+        "cpu_cores": 56,
+        "ram_gb": 1024,
+        "storage_gb": 30720,
+        "power_w": 1600
+      },
+      "compatible_with": [],
+      "model_id": "yadro-vegman-r220-g2",
+      "price_mode": "quote_required"
+    },
+    {
+      "id": "mem-dell-16g-d4",
+      "sku": "",
+      "family_id": "dell-rdimm-ddr4",
+      "family_name": "Dell RDIMM DDR4",
+      "title": "Модуль памяти Dell 16 ГБ DDR4-3200 RDIMM",
+      "vendor_id": "dell",
+      "category_id": "server-memory",
+      "description": "Оригинальный модуль Dell для серверов PowerEdge. Одноранговый RDIMM с коррекцией ошибок.",
+      "attributes": {
+        "memory_type": "DDR4",
+        "speed_mts": 3200,
+        "module": "RDIMM"
+      },
+      "license": {
+        "type": null,
+        "metric": null,
+        "quantity": null,
+        "duration_months": null,
+        "edition": ""
+      },
+      "price_rub": 14900,
+      "price_on_request": false,
+      "origin": "foreign",
+      "in_reestr": false,
+      "popularity": 0.569,
+      "margin": 0.193,
+      "kind": "hardware",
+      "mpn": "370-AEXY",
+      "specs": {
+        "ram_gb": 16
+      },
+      "compatible_with": [
+        "dell-poweredge-r740",
+        "dell-poweredge-r750"
+      ],
+      "model_id": null,
+      "price_mode": "fixed"
+    },
+    {
+      "id": "mem-dell-32g-d4",
+      "sku": "",
+      "family_id": "dell-rdimm-ddr4",
+      "family_name": "Dell RDIMM DDR4",
+      "title": "Модуль памяти Dell 32 ГБ DDR4-3200 RDIMM",
+      "vendor_id": "dell",
+      "category_id": "server-memory",
+      "description": "Оригинальный модуль Dell для PowerEdge 14-го и 15-го поколений. Двухранговый RDIMM.",
+      "attributes": {
+        "memory_type": "DDR4",
+        "speed_mts": 3200,
+        "module": "RDIMM"
+      },
+      "license": {
+        "type": null,
+        "metric": null,
+        "quantity": null,
+        "duration_months": null,
+        "edition": ""
+      },
+      "price_rub": 24900,
+      "price_on_request": false,
+      "origin": "foreign",
+      "in_reestr": false,
+      "popularity": 0.702,
+      "margin": 0.182,
+      "kind": "hardware",
+      "mpn": "370-AEVQ",
+      "specs": {
+        "ram_gb": 32
+      },
+      "compatible_with": [
+        "dell-poweredge-r740",
+        "dell-poweredge-r750"
+      ],
+      "model_id": null,
+      "price_mode": "fixed"
+    },
+    {
+      "id": "mem-dell-64g-d4",
+      "sku": "",
+      "family_id": "dell-rdimm-ddr4",
+      "family_name": "Dell RDIMM DDR4",
+      "title": "Модуль памяти Dell 64 ГБ DDR4-3200 RDIMM",
+      "vendor_id": "dell",
+      "category_id": "server-memory",
+      "description": "Оригинальный модуль Dell большой ёмкости. Двухранговый RDIMM для плотных конфигураций.",
+      "attributes": {
+        "memory_type": "DDR4",
+        "speed_mts": 3200,
+        "module": "RDIMM"
+      },
+      "license": {
+        "type": null,
+        "metric": null,
+        "quantity": null,
+        "duration_months": null,
+        "edition": ""
+      },
+      "price_rub": 46900,
+      "price_on_request": false,
+      "origin": "foreign",
+      "in_reestr": false,
+      "popularity": 0.903,
+      "margin": 0.193,
+      "kind": "hardware",
+      "mpn": "370-AEVP",
+      "specs": {
+        "ram_gb": 64
+      },
+      "compatible_with": [
+        "dell-poweredge-r740",
+        "dell-poweredge-r750"
+      ],
+      "model_id": null,
+      "price_mode": "fixed"
+    },
+    {
+      "id": "mem-dell-32g-d4-2933",
+      "sku": "",
+      "family_id": "dell-rdimm-ddr4",
+      "family_name": "Dell RDIMM DDR4",
+      "title": "Модуль памяти Dell 32 ГБ DDR4-2933 RDIMM",
+      "vendor_id": "dell",
+      "category_id": "server-memory",
+      "description": "Модуль Dell для PowerEdge 14-го поколения. Частота 2933 МТ/с соответствует Xeon Scalable второго поколения.",
+      "attributes": {
+        "memory_type": "DDR4",
+        "speed_mts": 2933,
+        "module": "RDIMM"
+      },
+      "license": {
+        "type": null,
+        "metric": null,
+        "quantity": null,
+        "duration_months": null,
+        "edition": ""
+      },
+      "price_rub": 22900,
+      "price_on_request": false,
+      "origin": "foreign",
+      "in_reestr": false,
+      "popularity": 0.441,
+      "margin": 0.146,
+      "kind": "hardware",
+      "mpn": "370-AEQH",
+      "specs": {
+        "ram_gb": 32
+      },
+      "compatible_with": [
+        "dell-poweredge-r740"
+      ],
+      "model_id": null,
+      "price_mode": "fixed"
+    },
+    {
+      "id": "mem-hpe-16g-d4",
+      "sku": "",
+      "family_id": "hpe-smart-memory-ddr4",
+      "family_name": "HPE Smart Memory DDR4",
+      "title": "Модуль памяти HPE 16 ГБ DDR4-2933 RDIMM",
+      "vendor_id": "hpe",
+      "category_id": "server-memory",
+      "description": "Модуль HPE Smart Memory для ProLiant Gen10. Прошивка HPE, работает с функциями мониторинга iLO.",
+      "attributes": {
+        "memory_type": "DDR4",
+        "speed_mts": 2933,
+        "module": "RDIMM"
+      },
+      "license": {
+        "type": null,
+        "metric": null,
+        "quantity": null,
+        "duration_months": null,
+        "edition": ""
+      },
+      "price_rub": 16900,
+      "price_on_request": false,
+      "origin": "foreign",
+      "in_reestr": false,
+      "popularity": 0.465,
+      "margin": 0.162,
+      "kind": "hardware",
+      "mpn": "P00920-B21",
+      "specs": {
+        "ram_gb": 16
+      },
+      "compatible_with": [
+        "hpe-proliant-dl380-gen10"
+      ],
+      "model_id": null,
+      "price_mode": "fixed"
+    },
+    {
+      "id": "mem-hpe-32g-d4",
+      "sku": "",
+      "family_id": "hpe-smart-memory-ddr4",
+      "family_name": "HPE Smart Memory DDR4",
+      "title": "Модуль памяти HPE 32 ГБ DDR4-2933 RDIMM",
+      "vendor_id": "hpe",
+      "category_id": "server-memory",
+      "description": "Модуль HPE Smart Memory для ProLiant Gen10. Двухранговый RDIMM.",
+      "attributes": {
+        "memory_type": "DDR4",
+        "speed_mts": 2933,
+        "module": "RDIMM"
+      },
+      "license": {
+        "type": null,
+        "metric": null,
+        "quantity": null,
+        "duration_months": null,
+        "edition": ""
+      },
+      "price_rub": 28900,
+      "price_on_request": false,
+      "origin": "foreign",
+      "in_reestr": false,
+      "popularity": 0.646,
+      "margin": 0.2,
+      "kind": "hardware",
+      "mpn": "P00924-B21",
+      "specs": {
+        "ram_gb": 32
+      },
+      "compatible_with": [
+        "hpe-proliant-dl380-gen10"
+      ],
+      "model_id": null,
+      "price_mode": "fixed"
+    },
+    {
+      "id": "mem-hpe-64g-d4",
+      "sku": "",
+      "family_id": "hpe-smart-memory-ddr4",
+      "family_name": "HPE Smart Memory DDR4",
+      "title": "Модуль памяти HPE 64 ГБ DDR4-2933 RDIMM",
+      "vendor_id": "hpe",
+      "category_id": "server-memory",
+      "description": "Модуль HPE Smart Memory большой ёмкости для ProLiant Gen10. Двухранговый RDIMM.",
+      "attributes": {
+        "memory_type": "DDR4",
+        "speed_mts": 2933,
+        "module": "RDIMM"
+      },
+      "license": {
+        "type": null,
+        "metric": null,
+        "quantity": null,
+        "duration_months": null,
+        "edition": ""
+      },
+      "price_rub": 52900,
+      "price_on_request": false,
+      "origin": "foreign",
+      "in_reestr": false,
+      "popularity": 0.702,
+      "margin": 0.148,
+      "kind": "hardware",
+      "mpn": "P00930-B21",
+      "specs": {
+        "ram_gb": 64
+      },
+      "compatible_with": [
+        "hpe-proliant-dl380-gen10"
+      ],
+      "model_id": null,
+      "price_mode": "fixed"
+    },
+    {
+      "id": "mem-hpe-16g-d5",
+      "sku": "",
+      "family_id": "hpe-smart-memory-ddr5",
+      "family_name": "HPE Smart Memory DDR5",
+      "title": "Модуль памяти HPE 16 ГБ DDR5-4800 RDIMM",
+      "vendor_id": "hpe",
+      "category_id": "server-memory",
+      "description": "Модуль HPE Smart Memory DDR5 для ProLiant Gen11. С памятью DDR4 не смешивается.",
+      "attributes": {
+        "memory_type": "DDR5",
+        "speed_mts": 4800,
+        "module": "RDIMM"
+      },
+      "license": {
+        "type": null,
+        "metric": null,
+        "quantity": null,
+        "duration_months": null,
+        "edition": ""
+      },
+      "price_rub": 19900,
+      "price_on_request": false,
+      "origin": "foreign",
+      "in_reestr": false,
+      "popularity": 0.569,
+      "margin": 0.173,
+      "kind": "hardware",
+      "mpn": "P43322-B21",
+      "specs": {
+        "ram_gb": 16
+      },
+      "compatible_with": [
+        "hpe-proliant-dl380-gen11"
+      ],
+      "model_id": null,
+      "price_mode": "fixed"
+    },
+    {
+      "id": "mem-hpe-32g-d5",
+      "sku": "",
+      "family_id": "hpe-smart-memory-ddr5",
+      "family_name": "HPE Smart Memory DDR5",
+      "title": "Модуль памяти HPE 32 ГБ DDR5-4800 RDIMM",
+      "vendor_id": "hpe",
+      "category_id": "server-memory",
+      "description": "Модуль HPE Smart Memory DDR5 для ProLiant Gen11. Двухранговый RDIMM.",
+      "attributes": {
+        "memory_type": "DDR5",
+        "speed_mts": 4800,
+        "module": "RDIMM"
+      },
+      "license": {
+        "type": null,
+        "metric": null,
+        "quantity": null,
+        "duration_months": null,
+        "edition": ""
+      },
+      "price_rub": 33900,
+      "price_on_request": false,
+      "origin": "foreign",
+      "in_reestr": false,
+      "popularity": 0.569,
+      "margin": 0.166,
+      "kind": "hardware",
+      "mpn": "P43328-B21",
+      "specs": {
+        "ram_gb": 32
+      },
+      "compatible_with": [
+        "hpe-proliant-dl380-gen11"
+      ],
+      "model_id": null,
+      "price_mode": "fixed"
+    },
+    {
+      "id": "mem-hpe-64g-d5",
+      "sku": "",
+      "family_id": "hpe-smart-memory-ddr5",
+      "family_name": "HPE Smart Memory DDR5",
+      "title": "Модуль памяти HPE 64 ГБ DDR5-4800 RDIMM",
+      "vendor_id": "hpe",
+      "category_id": "server-memory",
+      "description": "Модуль HPE Smart Memory DDR5 большой ёмкости для ProLiant Gen11. Двухранговый RDIMM.",
+      "attributes": {
+        "memory_type": "DDR5",
+        "speed_mts": 4800,
+        "module": "RDIMM"
+      },
+      "license": {
+        "type": null,
+        "metric": null,
+        "quantity": null,
+        "duration_months": null,
+        "edition": ""
+      },
+      "price_rub": 61900,
+      "price_on_request": false,
+      "origin": "foreign",
+      "in_reestr": false,
+      "popularity": 0.746,
+      "margin": 0.208,
+      "kind": "hardware",
+      "mpn": "P43331-B21",
+      "specs": {
+        "ram_gb": 64
+      },
+      "compatible_with": [
+        "hpe-proliant-dl380-gen11"
+      ],
+      "model_id": null,
+      "price_mode": "fixed"
+    },
+    {
+      "id": "mem-kingston-32g-d4",
+      "sku": "",
+      "family_id": "kingston-server-premier",
+      "family_name": "Kingston Server Premier",
+      "title": "Модуль памяти Kingston Server Premier 32 ГБ DDR4-3200 RDIMM",
+      "vendor_id": "kingston",
+      "category_id": "server-memory",
+      "description": "Серверная память Kingston с проверкой на платформах производителей. Совместимость с конкретной моделью сервера подтверждает Kingston, а не производитель сервера.",
+      "attributes": {
+        "memory_type": "DDR4",
+        "speed_mts": 3200,
+        "module": "RDIMM"
+      },
+      "license": {
+        "type": null,
+        "metric": null,
+        "quantity": null,
+        "duration_months": null,
+        "edition": ""
+      },
+      "price_rub": 17900,
+      "price_on_request": false,
+      "origin": "foreign",
+      "in_reestr": false,
+      "popularity": 0.646,
+      "margin": 0.184,
+      "kind": "hardware",
+      "mpn": "KSM32RD4/32HDR",
+      "specs": {
+        "ram_gb": 32
+      },
+      "compatible_with": [
+        "dell-poweredge-r740",
+        "dell-poweredge-r750"
+      ],
+      "model_id": null,
+      "price_mode": "fixed"
+    },
+    {
+      "id": "mem-kingston-32g-d5",
+      "sku": "",
+      "family_id": "kingston-server-premier",
+      "family_name": "Kingston Server Premier",
+      "title": "Модуль памяти Kingston Server Premier 32 ГБ DDR5-4800 RDIMM",
+      "vendor_id": "kingston",
+      "category_id": "server-memory",
+      "description": "Серверная память Kingston DDR5. Совместимость с конкретной моделью сервера подтверждает Kingston.",
+      "attributes": {
+        "memory_type": "DDR5",
+        "speed_mts": 4800,
+        "module": "RDIMM"
+      },
+      "license": {
+        "type": null,
+        "metric": null,
+        "quantity": null,
+        "duration_months": null,
+        "edition": ""
+      },
+      "price_rub": 21900,
+      "price_on_request": false,
+      "origin": "foreign",
+      "in_reestr": false,
+      "popularity": 0.441,
+      "margin": 0.142,
+      "kind": "hardware",
+      "mpn": "KSM48R40BD8-32HA",
+      "specs": {
+        "ram_gb": 32
+      },
+      "compatible_with": [
+        "hpe-proliant-dl380-gen11"
+      ],
+      "model_id": null,
+      "price_mode": "fixed"
+    },
+    {
+      "id": "mem-samsung-64g-d4",
+      "sku": "",
+      "family_id": "samsung-rdimm",
+      "family_name": "Samsung RDIMM",
+      "title": "Модуль памяти Samsung 64 ГБ DDR4-3200 RDIMM",
+      "vendor_id": "samsung",
+      "category_id": "server-memory",
+      "description": "Серверный модуль Samsung без привязки к производителю сервера. Списка подтверждённых платформ у магазина нет.",
+      "attributes": {
+        "memory_type": "DDR4",
+        "speed_mts": 3200,
+        "module": "RDIMM"
+      },
+      "license": {
+        "type": null,
+        "metric": null,
+        "quantity": null,
+        "duration_months": null,
+        "edition": ""
+      },
+      "price_rub": 31900,
+      "price_on_request": false,
+      "origin": "foreign",
+      "in_reestr": false,
+      "popularity": 0.465,
+      "margin": 0.198,
+      "kind": "hardware",
+      "mpn": "M393A8G40AB2-CWE",
+      "specs": {
+        "ram_gb": 64
+      },
+      "compatible_with": [],
+      "model_id": null,
+      "price_mode": "fixed"
+    },
+    {
+      "id": "mem-yadro-32g-d4",
+      "sku": "",
+      "family_id": "yadro-memory",
+      "family_name": "YADRO RDIMM",
+      "title": "Модуль памяти YADRO 32 ГБ DDR4-3200 RDIMM",
+      "vendor_id": "yadro",
+      "category_id": "server-memory",
+      "description": "Модуль памяти из списка совместимости VEGMAN. Поставляется с гарантией YADRO.",
+      "attributes": {
+        "memory_type": "DDR4",
+        "speed_mts": 3200,
+        "module": "RDIMM"
+      },
+      "license": {
+        "type": null,
+        "metric": null,
+        "quantity": null,
+        "duration_months": null,
+        "edition": ""
+      },
+      "price_rub": 26900,
+      "price_on_request": false,
+      "origin": "ru",
+      "in_reestr": true,
+      "popularity": 0.813,
+      "margin": 0.213,
+      "kind": "hardware",
+      "mpn": "YM-RD4-32G-3200",
+      "specs": {
+        "ram_gb": 32
+      },
+      "compatible_with": [
+        "yadro-vegman-r220-g2"
+      ],
+      "model_id": null,
+      "price_mode": "fixed"
+    },
+    {
+      "id": "ssd-dell-960-sata",
+      "sku": "",
+      "family_id": "dell-server-drives",
+      "family_name": "Dell диски для PowerEdge",
+      "title": "SSD Dell 960 ГБ SATA 2,5\" для PowerEdge",
+      "vendor_id": "dell",
+      "category_id": "server-storage",
+      "description": "Серверный SSD Dell с салазками для PowerEdge 14-го и 15-го поколений. Ресурс — интенсивное чтение.",
+      "attributes": {
+        "drive_type": "SSD",
+        "interface": "SATA",
+        "drive_form_factor": "2.5"
+      },
+      "license": {
+        "type": null,
+        "metric": null,
+        "quantity": null,
+        "duration_months": null,
+        "edition": ""
+      },
+      "price_rub": 39900,
+      "price_on_request": false,
+      "origin": "foreign",
+      "in_reestr": false,
+      "popularity": 0.655,
+      "margin": 0.144,
+      "kind": "hardware",
+      "mpn": "400-BDUK",
+      "specs": {
+        "storage_gb": 960
+      },
+      "compatible_with": [
+        "dell-poweredge-r740",
+        "dell-poweredge-r750"
+      ],
+      "model_id": null,
+      "price_mode": "fixed"
+    },
+    {
+      "id": "ssd-dell-1920-sata",
+      "sku": "",
+      "family_id": "dell-server-drives",
+      "family_name": "Dell диски для PowerEdge",
+      "title": "SSD Dell 1,92 ТБ SATA 2,5\" для PowerEdge",
+      "vendor_id": "dell",
+      "category_id": "server-storage",
+      "description": "Серверный SSD Dell с салазками. Подходит для системных томов и баз данных среднего размера.",
+      "attributes": {
+        "drive_type": "SSD",
+        "interface": "SATA",
+        "drive_form_factor": "2.5"
+      },
+      "license": {
+        "type": null,
+        "metric": null,
+        "quantity": null,
+        "duration_months": null,
+        "edition": ""
+      },
+      "price_rub": 69900,
+      "price_on_request": false,
+      "origin": "foreign",
+      "in_reestr": false,
+      "popularity": 0.646,
+      "margin": 0.151,
+      "kind": "hardware",
+      "mpn": "400-BDUO",
+      "specs": {
+        "storage_gb": 1920
+      },
+      "compatible_with": [
+        "dell-poweredge-r740",
+        "dell-poweredge-r750"
+      ],
+      "model_id": null,
+      "price_mode": "fixed"
+    },
+    {
+      "id": "ssd-dell-960-sas",
+      "sku": "",
+      "family_id": "dell-server-drives",
+      "family_name": "Dell диски для PowerEdge",
+      "title": "SSD Dell 960 ГБ SAS 12 Гбит/с 2,5\" для PowerEdge",
+      "vendor_id": "dell",
+      "category_id": "server-storage",
+      "description": "SAS SSD смешанной нагрузки. Нужен RAID-контроллер с поддержкой SAS.",
+      "attributes": {
+        "drive_type": "SSD",
+        "interface": "SAS",
+        "drive_form_factor": "2.5"
+      },
+      "license": {
+        "type": null,
+        "metric": null,
+        "quantity": null,
+        "duration_months": null,
+        "edition": ""
+      },
+      "price_rub": 64900,
+      "price_on_request": false,
+      "origin": "foreign",
+      "in_reestr": false,
+      "popularity": 0.441,
+      "margin": 0.153,
+      "kind": "hardware",
+      "mpn": "400-BEGJ",
+      "specs": {
+        "storage_gb": 960
+      },
+      "compatible_with": [
+        "dell-poweredge-r740",
+        "dell-poweredge-r750"
+      ],
+      "model_id": null,
+      "price_mode": "fixed"
+    },
+    {
+      "id": "hdd-dell-2400-sas",
+      "sku": "",
+      "family_id": "dell-server-drives",
+      "family_name": "Dell диски для PowerEdge",
+      "title": "Жёсткий диск Dell 2,4 ТБ SAS 10K 2,5\" для PowerEdge",
+      "vendor_id": "dell",
+      "category_id": "server-storage",
+      "description": "Жёсткий диск 10 000 об/мин для файловых хранилищ. Салазки Dell в комплекте.",
+      "attributes": {
+        "drive_type": "HDD",
+        "interface": "SAS",
+        "drive_form_factor": "2.5"
+      },
+      "license": {
+        "type": null,
+        "metric": null,
+        "quantity": null,
+        "duration_months": null,
+        "edition": ""
+      },
+      "price_rub": 42900,
+      "price_on_request": false,
+      "origin": "foreign",
+      "in_reestr": false,
+      "popularity": 0.646,
+      "margin": 0.179,
+      "kind": "hardware",
+      "mpn": "401-ABHQ",
+      "specs": {
+        "storage_gb": 2400
+      },
+      "compatible_with": [
+        "dell-poweredge-r740",
+        "dell-poweredge-r750"
+      ],
+      "model_id": null,
+      "price_mode": "fixed"
+    },
+    {
+      "id": "hdd-dell-8000-sas",
+      "sku": "",
+      "family_id": "dell-server-drives",
+      "family_name": "Dell диски для PowerEdge",
+      "title": "Жёсткий диск Dell 8 ТБ SAS 7,2K 3,5\" для PowerEdge",
+      "vendor_id": "dell",
+      "category_id": "server-storage",
+      "description": "Диск 3,5 дюйма для архивов и резервных копий. Устанавливается только в шасси с отсеками 3,5 дюйма.",
+      "attributes": {
+        "drive_type": "HDD",
+        "interface": "SAS",
+        "drive_form_factor": "3.5"
+      },
+      "license": {
+        "type": null,
+        "metric": null,
+        "quantity": null,
+        "duration_months": null,
+        "edition": ""
+      },
+      "price_rub": 54900,
+      "price_on_request": false,
+      "origin": "foreign",
+      "in_reestr": false,
+      "popularity": 0.646,
+      "margin": 0.14,
+      "kind": "hardware",
+      "mpn": "401-ABHX",
+      "specs": {
+        "storage_gb": 8000
+      },
+      "compatible_with": [
+        "dell-poweredge-r740",
+        "dell-poweredge-r750"
+      ],
+      "model_id": null,
+      "price_mode": "fixed"
+    },
+    {
+      "id": "ssd-hpe-960-sata",
+      "sku": "",
+      "family_id": "hpe-server-drives",
+      "family_name": "HPE диски для ProLiant",
+      "title": "SSD HPE 960 ГБ SATA 2,5\" SFF",
+      "vendor_id": "hpe",
+      "category_id": "server-storage",
+      "description": "Серверный SSD HPE в салазках Smart Carrier. Для ProLiant Gen10 и Gen11.",
+      "attributes": {
+        "drive_type": "SSD",
+        "interface": "SATA",
+        "drive_form_factor": "2.5"
+      },
+      "license": {
+        "type": null,
+        "metric": null,
+        "quantity": null,
+        "duration_months": null,
+        "edition": ""
+      },
+      "price_rub": 44900,
+      "price_on_request": false,
+      "origin": "foreign",
+      "in_reestr": false,
+      "popularity": 0.655,
+      "margin": 0.178,
+      "kind": "hardware",
+      "mpn": "P18424-B21",
+      "specs": {
+        "storage_gb": 960
+      },
+      "compatible_with": [
+        "hpe-proliant-dl380-gen10",
+        "hpe-proliant-dl380-gen11"
+      ],
+      "model_id": null,
+      "price_mode": "fixed"
+    },
+    {
+      "id": "ssd-hpe-1920-sata",
+      "sku": "",
+      "family_id": "hpe-server-drives",
+      "family_name": "HPE диски для ProLiant",
+      "title": "SSD HPE 1,92 ТБ SATA 2,5\" SFF",
+      "vendor_id": "hpe",
+      "category_id": "server-storage",
+      "description": "Серверный SSD HPE в салазках Smart Carrier. Интенсивное чтение.",
+      "attributes": {
+        "drive_type": "SSD",
+        "interface": "SATA",
+        "drive_form_factor": "2.5"
+      },
+      "license": {
+        "type": null,
+        "metric": null,
+        "quantity": null,
+        "duration_months": null,
+        "edition": ""
+      },
+      "price_rub": 78900,
+      "price_on_request": false,
+      "origin": "foreign",
+      "in_reestr": false,
+      "popularity": 0.672,
+      "margin": 0.165,
+      "kind": "hardware",
+      "mpn": "P18426-B21",
+      "specs": {
+        "storage_gb": 1920
+      },
+      "compatible_with": [
+        "hpe-proliant-dl380-gen10",
+        "hpe-proliant-dl380-gen11"
+      ],
+      "model_id": null,
+      "price_mode": "fixed"
+    },
+    {
+      "id": "ssd-hpe-960-sas",
+      "sku": "",
+      "family_id": "hpe-server-drives",
+      "family_name": "HPE диски для ProLiant",
+      "title": "SSD HPE 960 ГБ SAS 12 Гбит/с 2,5\" SFF",
+      "vendor_id": "hpe",
+      "category_id": "server-storage",
+      "description": "SAS SSD HPE смешанной нагрузки. Нужен контроллер с поддержкой SAS.",
+      "attributes": {
+        "drive_type": "SSD",
+        "interface": "SAS",
+        "drive_form_factor": "2.5"
+      },
+      "license": {
+        "type": null,
+        "metric": null,
+        "quantity": null,
+        "duration_months": null,
+        "edition": ""
+      },
+      "price_rub": 69900,
+      "price_on_request": false,
+      "origin": "foreign",
+      "in_reestr": false,
+      "popularity": 0.569,
+      "margin": 0.193,
+      "kind": "hardware",
+      "mpn": "P40506-B21",
+      "specs": {
+        "storage_gb": 960
+      },
+      "compatible_with": [
+        "hpe-proliant-dl380-gen10",
+        "hpe-proliant-dl380-gen11"
+      ],
+      "model_id": null,
+      "price_mode": "fixed"
+    },
+    {
+      "id": "hdd-hpe-2400-sas",
+      "sku": "",
+      "family_id": "hpe-server-drives",
+      "family_name": "HPE диски для ProLiant",
+      "title": "Жёсткий диск HPE 2,4 ТБ SAS 10K 2,5\" SFF",
+      "vendor_id": "hpe",
+      "category_id": "server-storage",
+      "description": "Жёсткий диск HPE 10 000 об/мин в салазках Smart Carrier. Для файловых хранилищ и резервных копий.",
+      "attributes": {
+        "drive_type": "HDD",
+        "interface": "SAS",
+        "drive_form_factor": "2.5"
+      },
+      "license": {
+        "type": null,
+        "metric": null,
+        "quantity": null,
+        "duration_months": null,
+        "edition": ""
+      },
+      "price_rub": 47900,
+      "price_on_request": false,
+      "origin": "foreign",
+      "in_reestr": false,
+      "popularity": 0.646,
+      "margin": 0.173,
+      "kind": "hardware",
+      "mpn": "881457-B21",
+      "specs": {
+        "storage_gb": 2400
+      },
+      "compatible_with": [
+        "hpe-proliant-dl380-gen10",
+        "hpe-proliant-dl380-gen11"
+      ],
+      "model_id": null,
+      "price_mode": "fixed"
+    },
+    {
+      "id": "ssd-hpe-3840-nvme",
+      "sku": "",
+      "family_id": "hpe-server-drives",
+      "family_name": "HPE диски для ProLiant",
+      "title": "SSD HPE 3,84 ТБ NVMe 2,5\" SFF",
+      "vendor_id": "hpe",
+      "category_id": "server-storage",
+      "description": "NVMe SSD для высоконагруженных баз данных. Нужна NVMe-корзина в сервере.",
+      "attributes": {
+        "drive_type": "SSD",
+        "interface": "NVMe",
+        "drive_form_factor": "2.5"
+      },
+      "license": {
+        "type": null,
+        "metric": null,
+        "quantity": null,
+        "duration_months": null,
+        "edition": ""
+      },
+      "price_rub": null,
+      "price_on_request": true,
+      "origin": "foreign",
+      "in_reestr": false,
+      "popularity": 0.01,
+      "margin": 0.156,
+      "kind": "hardware",
+      "mpn": "P47843-B21",
+      "specs": {
+        "storage_gb": 3840
+      },
+      "compatible_with": [
+        "hpe-proliant-dl380-gen11"
+      ],
+      "model_id": null,
+      "price_mode": "quote_required"
+    },
+    {
+      "id": "ssd-samsung-pm893-960",
+      "sku": "",
+      "family_id": "samsung-pm893",
+      "family_name": "Samsung PM893",
+      "title": "SSD Samsung PM893 960 ГБ SATA 2,5\"",
+      "vendor_id": "samsung",
+      "category_id": "server-storage",
+      "description": "Серверный SSD Samsung без салазок. Совместимость с конкретными серверами магазином не проверялась.",
+      "attributes": {
+        "drive_type": "SSD",
+        "interface": "SATA",
+        "drive_form_factor": "2.5"
+      },
+      "license": {
+        "type": null,
+        "metric": null,
+        "quantity": null,
+        "duration_months": null,
+        "edition": ""
+      },
+      "price_rub": 18900,
+      "price_on_request": false,
+      "origin": "foreign",
+      "in_reestr": false,
+      "popularity": 0.01,
+      "margin": 0.157,
+      "kind": "hardware",
+      "mpn": "MZ7L3960HCJR-00A07",
+      "specs": {
+        "storage_gb": 960
+      },
+      "compatible_with": [],
+      "model_id": null,
+      "price_mode": "fixed"
+    },
+    {
+      "id": "hdd-seagate-exos-8tb",
+      "sku": "",
+      "family_id": "seagate-exos",
+      "family_name": "Seagate Exos",
+      "title": "Жёсткий диск Seagate Exos 7E10 8 ТБ SATA 3,5\"",
+      "vendor_id": "seagate",
+      "category_id": "server-storage",
+      "description": "Корпоративный диск 3,5 дюйма для хранилищ. Поставляется без салазок.",
+      "attributes": {
+        "drive_type": "HDD",
+        "interface": "SATA",
+        "drive_form_factor": "3.5"
+      },
+      "license": {
+        "type": null,
+        "metric": null,
+        "quantity": null,
+        "duration_months": null,
+        "edition": ""
+      },
+      "price_rub": 21900,
+      "price_on_request": false,
+      "origin": "foreign",
+      "in_reestr": false,
+      "popularity": 0.54,
+      "margin": 0.198,
+      "kind": "hardware",
+      "mpn": "ST8000NM000A",
+      "specs": {
+        "storage_gb": 8000
+      },
+      "compatible_with": [],
+      "model_id": null,
+      "price_mode": "fixed"
+    },
+    {
+      "id": "ssd-yadro-960",
+      "sku": "",
+      "family_id": "yadro-drives",
+      "family_name": "YADRO диски",
+      "title": "SSD YADRO 960 ГБ SATA 2,5\" для VEGMAN",
+      "vendor_id": "yadro",
+      "category_id": "server-storage",
+      "description": "SSD из списка совместимости VEGMAN с салазками YADRO. Гарантия производителя сервера.",
+      "attributes": {
+        "drive_type": "SSD",
+        "interface": "SATA",
+        "drive_form_factor": "2.5"
+      },
+      "license": {
+        "type": null,
+        "metric": null,
+        "quantity": null,
+        "duration_months": null,
+        "edition": ""
+      },
+      "price_rub": 41900,
+      "price_on_request": false,
+      "origin": "ru",
+      "in_reestr": true,
+      "popularity": 0.606,
+      "margin": 0.156,
+      "kind": "hardware",
+      "mpn": "YS-SATA-960-RI",
+      "specs": {
+        "storage_gb": 960
+      },
+      "compatible_with": [
+        "yadro-vegman-r220-g2"
+      ],
+      "model_id": null,
+      "price_mode": "fixed"
+    },
+    {
+      "id": "svc-dell-ps-r740-3y",
+      "sku": "",
+      "family_id": "dell-prosupport",
+      "family_name": "Dell ProSupport",
+      "title": "Dell ProSupport 3 года, выезд на следующий рабочий день, для PowerEdge R740",
+      "vendor_id": "dell",
+      "category_id": "server-services",
+      "description": "Расширенная гарантия Dell с выездом инженера на следующий рабочий день. Привязывается к сервисному номеру сервера.",
+      "attributes": {
+        "service_level": "NBD"
+      },
+      "license": {
+        "type": "subscription",
+        "metric": "server",
+        "quantity": 1,
+        "duration_months": 36,
+        "edition": ""
+      },
+      "price_rub": 89900,
+      "price_on_request": false,
+      "origin": "foreign",
+      "in_reestr": false,
+      "popularity": 0.716,
+      "margin": 0.309,
+      "kind": "hardware",
+      "mpn": "PS-R740-3Y-NBD",
+      "specs": {},
+      "compatible_with": [
+        "dell-poweredge-r740"
+      ],
+      "model_id": null,
+      "price_mode": "fixed"
+    },
+    {
+      "id": "svc-dell-ps-r750-3y",
+      "sku": "",
+      "family_id": "dell-prosupport",
+      "family_name": "Dell ProSupport",
+      "title": "Dell ProSupport 3 года, выезд на следующий рабочий день, для PowerEdge R750",
+      "vendor_id": "dell",
+      "category_id": "server-services",
+      "description": "Расширенная гарантия Dell для R750. Привязывается к сервисному номеру сервера.",
+      "attributes": {
+        "service_level": "NBD"
+      },
+      "license": {
+        "type": "subscription",
+        "metric": "server",
+        "quantity": 1,
+        "duration_months": 36,
+        "edition": ""
+      },
+      "price_rub": 109900,
+      "price_on_request": false,
+      "origin": "foreign",
+      "in_reestr": false,
+      "popularity": 0.782,
+      "margin": 0.356,
+      "kind": "hardware",
+      "mpn": "PS-R750-3Y-NBD",
+      "specs": {},
+      "compatible_with": [
+        "dell-poweredge-r750"
+      ],
+      "model_id": null,
+      "price_mode": "fixed"
+    },
+    {
+      "id": "svc-hpe-tc-g10-3y",
+      "sku": "",
+      "family_id": "hpe-tech-care",
+      "family_name": "HPE Tech Care",
+      "title": "HPE Tech Care Essential 3 года для ProLiant DL380 Gen10",
+      "vendor_id": "hpe",
+      "category_id": "server-services",
+      "description": "Сервисный пакет HPE: замена компонентов на следующий рабочий день и доступ к специалистам. Только для DL380 Gen10.",
+      "attributes": {
+        "service_level": "NBD"
+      },
+      "license": {
+        "type": "subscription",
+        "metric": "server",
+        "quantity": 1,
+        "duration_months": 36,
+        "edition": ""
+      },
+      "price_rub": 94900,
+      "price_on_request": false,
+      "origin": "foreign",
+      "in_reestr": false,
+      "popularity": 0.646,
+      "margin": 0.322,
+      "kind": "hardware",
+      "mpn": "H70N0E",
+      "specs": {},
+      "compatible_with": [
+        "hpe-proliant-dl380-gen10"
+      ],
+      "model_id": null,
+      "price_mode": "fixed"
+    },
+    {
+      "id": "svc-hpe-tc-g11-5y",
+      "sku": "",
+      "family_id": "hpe-tech-care",
+      "family_name": "HPE Tech Care",
+      "title": "HPE Tech Care Essential 5 лет для ProLiant DL380 Gen11",
+      "vendor_id": "hpe",
+      "category_id": "server-services",
+      "description": "Сервисный пакет HPE на пять лет для DL380 Gen11. Замена компонентов на следующий рабочий день.",
+      "attributes": {
+        "service_level": "NBD"
+      },
+      "license": {
+        "type": "subscription",
+        "metric": "server",
+        "quantity": 1,
+        "duration_months": 60,
+        "edition": ""
+      },
+      "price_rub": 189900,
+      "price_on_request": false,
+      "origin": "foreign",
+      "in_reestr": false,
+      "popularity": 0.569,
+      "margin": 0.294,
+      "kind": "hardware",
+      "mpn": "H72Y3E",
+      "specs": {},
+      "compatible_with": [
+        "hpe-proliant-dl380-gen11"
+      ],
+      "model_id": null,
+      "price_mode": "fixed"
+    },
+    {
+      "id": "svc-yadro-3y",
+      "sku": "",
+      "family_id": "yadro-support",
+      "family_name": "YADRO Сервис",
+      "title": "YADRO Сервис 3 года, выезд на следующий рабочий день, для VEGMAN R220",
+      "vendor_id": "yadro",
+      "category_id": "server-services",
+      "description": "Сервисная поддержка YADRO на территории России. Выезд инженера на следующий рабочий день.",
+      "attributes": {
+        "service_level": "NBD"
+      },
+      "license": {
+        "type": "subscription",
+        "metric": "server",
+        "quantity": 1,
+        "duration_months": 36,
+        "edition": ""
+      },
+      "price_rub": 129900,
+      "price_on_request": false,
+      "origin": "ru",
+      "in_reestr": true,
+      "popularity": 0.569,
+      "margin": 0.305,
+      "kind": "hardware",
+      "mpn": "YS-R220-3Y-NBD",
+      "specs": {},
+      "compatible_with": [
+        "yadro-vegman-r220-g2"
+      ],
+      "model_id": null,
+      "price_mode": "fixed"
+    },
+    {
+      "id": "ups-ippon-rt-3000",
+      "sku": "",
+      "family_id": "ippon-innova-rt-ii",
+      "family_name": "Ippon Innova RT II",
+      "title": "ИБП Ippon Innova RT II 3000, 2700 Вт, 2U",
+      "vendor_id": "ippon",
+      "category_id": "ups",
+      "description": "Онлайн-ИБП с двойным преобразованием для серверной стойки. Стойка или башня, сменные батареи.",
+      "attributes": {
+        "topology": "online",
+        "mount": "стойка"
+      },
+      "license": {
+        "type": null,
+        "metric": null,
+        "quantity": null,
+        "duration_months": null,
+        "edition": ""
+      },
+      "price_rub": 98900,
+      "price_on_request": false,
+      "origin": "foreign",
+      "in_reestr": false,
+      "popularity": 0.813,
+      "margin": 0.17,
+      "kind": "hardware",
+      "mpn": "INNOVA-RT-II-3000",
+      "specs": {
+        "power_w": 2700,
+        "form_factor_u": 2
+      },
+      "compatible_with": [],
+      "model_id": null,
+      "price_mode": "fixed"
+    },
+    {
+      "id": "ups-ippon-rt-6000",
+      "sku": "",
+      "family_id": "ippon-innova-rt-ii",
+      "family_name": "Ippon Innova RT II",
+      "title": "ИБП Ippon Innova RT II 6000, 5400 Вт, 3U",
+      "vendor_id": "ippon",
+      "category_id": "ups",
+      "description": "Онлайн-ИБП для двух-трёх серверов. Подключение внешних батарейных модулей.",
+      "attributes": {
+        "topology": "online",
+        "mount": "стойка"
+      },
+      "license": {
+        "type": null,
+        "metric": null,
+        "quantity": null,
+        "duration_months": null,
+        "edition": ""
+      },
+      "price_rub": 189900,
+      "price_on_request": false,
+      "origin": "foreign",
+      "in_reestr": false,
+      "popularity": 0.702,
+      "margin": 0.157,
+      "kind": "hardware",
+      "mpn": "INNOVA-RT-II-6000",
+      "specs": {
+        "power_w": 5400,
+        "form_factor_u": 3
+      },
+      "compatible_with": [],
+      "model_id": null,
+      "price_mode": "fixed"
+    },
+    {
+      "id": "ups-ippon-spp-2200",
+      "sku": "",
+      "family_id": "ippon-smart-power-pro-ii",
+      "family_name": "Ippon Smart Power Pro II",
+      "title": "ИБП Ippon Smart Power Pro II 2200, 1200 Вт",
+      "vendor_id": "ippon",
+      "category_id": "ups",
+      "description": "Линейно-интерактивный ИБП для коммутаторов и небольших стоек. Время автономии до 10 минут на половине нагрузки.",
+      "attributes": {
+        "topology": "line-interactive",
+        "mount": "стойка"
+      },
+      "license": {
+        "type": null,
+        "metric": null,
+        "quantity": null,
+        "duration_months": null,
+        "edition": ""
+      },
+      "price_rub": 38900,
+      "price_on_request": false,
+      "origin": "foreign",
+      "in_reestr": false,
+      "popularity": 0.782,
+      "margin": 0.125,
+      "kind": "hardware",
+      "mpn": "SPP-II-2200",
+      "specs": {
+        "power_w": 1200,
+        "form_factor_u": 2
+      },
+      "compatible_with": [],
+      "model_id": null,
+      "price_mode": "fixed"
+    },
+    {
+      "id": "ups-eaton-9sx-3000",
+      "sku": "",
+      "family_id": "eaton-9sx",
+      "family_name": "Eaton 9SX",
+      "title": "ИБП Eaton 9SX 3000i RT3U, 2700 Вт",
+      "vendor_id": "eaton",
+      "category_id": "ups",
+      "description": "Онлайн-ИБП для серверных стоек с ЖК-панелью. Цена указана с батареями.",
+      "attributes": {
+        "topology": "online",
+        "mount": "стойка"
+      },
+      "license": {
+        "type": null,
+        "metric": null,
+        "quantity": null,
+        "duration_months": null,
+        "edition": ""
+      },
+      "price_rub": null,
+      "price_on_request": true,
+      "origin": "foreign",
+      "in_reestr": false,
+      "popularity": 0.617,
+      "margin": 0.153,
+      "kind": "hardware",
+      "mpn": "9SX3KIRT",
+      "specs": {
+        "power_w": 2700,
+        "form_factor_u": 3
+      },
+      "compatible_with": [],
+      "model_id": null,
+      "price_mode": "quote_required"
+    },
+    {
+      "id": "nb-e14g5-i5-16-512",
+      "sku": "",
+      "family_id": "lenovo-thinkpad-e14-gen5",
+      "family_name": "Lenovo ThinkPad E14 Gen 5",
+      "title": "Ноутбук Lenovo ThinkPad E14 Gen 5, 14\", Core i5-1335U, 16 ГБ, SSD 512 ГБ, без ОС",
+      "vendor_id": "lenovo",
+      "category_id": "laptops",
+      "description": "Офисный ноутбук 14 дюймов в металлическом корпусе. Поставляется без операционной системы.",
+      "attributes": {
+        "cpu": "Intel Core i5-1335U",
+        "os": "без ОС"
+      },
+      "license": {
+        "type": null,
+        "metric": null,
+        "quantity": null,
+        "duration_months": null,
+        "edition": ""
+      },
+      "price_rub": 84900,
+      "price_on_request": false,
+      "origin": "foreign",
+      "in_reestr": false,
+      "popularity": 0.866,
+      "margin": 0.058,
+      "kind": "hardware",
+      "mpn": "21JK0083RT",
+      "specs": {
+        "ram_gb": 16,
+        "storage_gb": 512,
+        "screen_inch": 14.0,
+        "cpu_cores": 10
+      },
+      "compatible_with": [],
+      "model_id": "lenovo-thinkpad-e14-gen5",
+      "price_mode": "fixed"
+    },
+    {
+      "id": "nb-e14g5-i7-16-1t",
+      "sku": "",
+      "family_id": "lenovo-thinkpad-e14-gen5",
+      "family_name": "Lenovo ThinkPad E14 Gen 5",
+      "title": "Ноутбук Lenovo ThinkPad E14 Gen 5, 14\", Core i7-1355U, 16 ГБ, SSD 1 ТБ, с предустановленной ОС",
+      "vendor_id": "lenovo",
+      "category_id": "laptops",
+      "description": "Старшая конфигурация E14 с предустановленной операционной системой. Подходит для аналитиков и бухгалтерии.",
+      "attributes": {
+        "cpu": "Intel Core i7-1355U",
+        "os": "предустановлена"
+      },
+      "license": {
+        "type": null,
+        "metric": null,
+        "quantity": null,
+        "duration_months": null,
+        "edition": ""
+      },
+      "price_rub": 112900,
+      "price_on_request": false,
+      "origin": "foreign",
+      "in_reestr": false,
+      "popularity": 0.813,
+      "margin": 0.089,
+      "kind": "hardware",
+      "mpn": "21JK00C5RT",
+      "specs": {
+        "ram_gb": 16,
+        "storage_gb": 1000,
+        "screen_inch": 14.0,
+        "cpu_cores": 10
+      },
+      "compatible_with": [],
+      "model_id": "lenovo-thinkpad-e14-gen5",
+      "price_mode": "fixed"
+    },
+    {
+      "id": "nb-t14g4-i5-16-512",
+      "sku": "",
+      "family_id": "lenovo-thinkpad-t14-gen4",
+      "family_name": "Lenovo ThinkPad T14 Gen 4",
+      "title": "Ноутбук Lenovo ThinkPad T14 Gen 4, 14\", Core i5-1345U, 16 ГБ, SSD 512 ГБ, с предустановленной ОС",
+      "vendor_id": "lenovo",
+      "category_id": "laptops",
+      "description": "Бизнес-ноутбук с vPro для корпоративного управления. Операционная система предустановлена.",
+      "attributes": {
+        "cpu": "Intel Core i5-1345U",
+        "os": "предустановлена"
+      },
+      "license": {
+        "type": null,
+        "metric": null,
+        "quantity": null,
+        "duration_months": null,
+        "edition": ""
+      },
+      "price_rub": 129900,
+      "price_on_request": false,
+      "origin": "foreign",
+      "in_reestr": false,
+      "popularity": 0.752,
+      "margin": 0.065,
+      "kind": "hardware",
+      "mpn": "21HD0053RT",
+      "specs": {
+        "ram_gb": 16,
+        "storage_gb": 512,
+        "screen_inch": 14.0,
+        "cpu_cores": 10
+      },
+      "compatible_with": [],
+      "model_id": "lenovo-thinkpad-t14-gen4",
+      "price_mode": "fixed"
+    },
+    {
+      "id": "nb-t14g4-i7-32-1t",
+      "sku": "",
+      "family_id": "lenovo-thinkpad-t14-gen4",
+      "family_name": "Lenovo ThinkPad T14 Gen 4",
+      "title": "Ноутбук Lenovo ThinkPad T14 Gen 4, 14\", Core i7-1365U, 32 ГБ, SSD 1 ТБ, с предустановленной ОС",
+      "vendor_id": "lenovo",
+      "category_id": "laptops",
+      "description": "Старшая конфигурация T14 для разработчиков и руководителей. 32 ГБ памяти, операционная система предустановлена.",
+      "attributes": {
+        "cpu": "Intel Core i7-1365U",
+        "os": "предустановлена"
+      },
+      "license": {
+        "type": null,
+        "metric": null,
+        "quantity": null,
+        "duration_months": null,
+        "edition": ""
+      },
+      "price_rub": 164900,
+      "price_on_request": false,
+      "origin": "foreign",
+      "in_reestr": false,
+      "popularity": 0.606,
+      "margin": 0.073,
+      "kind": "hardware",
+      "mpn": "21HD0097RT",
+      "specs": {
+        "ram_gb": 32,
+        "storage_gb": 1000,
+        "screen_inch": 14.0,
+        "cpu_cores": 10
+      },
+      "compatible_with": [],
+      "model_id": "lenovo-thinkpad-t14-gen4",
+      "price_mode": "fixed"
+    },
+    {
+      "id": "nb-pb450g10-i5-8-256",
+      "sku": "",
+      "family_id": "hp-probook-450-g10",
+      "family_name": "HP ProBook 450 G10",
+      "title": "Ноутбук HP ProBook 450 G10, 15,6\", Core i5-1335U, 8 ГБ, SSD 256 ГБ, без ОС",
+      "vendor_id": "hp",
+      "category_id": "laptops",
+      "description": "Недорогой ноутбук 15,6 дюйма с цифровым блоком клавиатуры. Поставляется без операционной системы.",
+      "attributes": {
+        "cpu": "Intel Core i5-1335U",
+        "os": "без ОС"
+      },
+      "license": {
+        "type": null,
+        "metric": null,
+        "quantity": null,
+        "duration_months": null,
+        "edition": ""
+      },
+      "price_rub": 69900,
+      "price_on_request": false,
+      "origin": "foreign",
+      "in_reestr": false,
+      "popularity": 0.903,
+      "margin": 0.082,
+      "kind": "hardware",
+      "mpn": "816P8EA",
+      "specs": {
+        "ram_gb": 8,
+        "storage_gb": 256,
+        "screen_inch": 15.6,
+        "cpu_cores": 10
+      },
+      "compatible_with": [],
+      "model_id": "hp-probook-450-g10",
+      "price_mode": "fixed"
+    },
+    {
+      "id": "nb-pb450g10-i5-16-512",
+      "sku": "",
+      "family_id": "hp-probook-450-g10",
+      "family_name": "HP ProBook 450 G10",
+      "title": "Ноутбук HP ProBook 450 G10, 15,6\", Core i5-1335U, 16 ГБ, SSD 512 ГБ, с предустановленной ОС",
+      "vendor_id": "hp",
+      "category_id": "laptops",
+      "description": "Ноутбук 15,6 дюйма для офиса с предустановленной операционной системой. Цифровой блок клавиатуры.",
+      "attributes": {
+        "cpu": "Intel Core i5-1335U",
+        "os": "предустановлена"
+      },
+      "license": {
+        "type": null,
+        "metric": null,
+        "quantity": null,
+        "duration_months": null,
+        "edition": ""
+      },
+      "price_rub": 94900,
+      "price_on_request": false,
+      "origin": "foreign",
+      "in_reestr": false,
+      "popularity": 0.709,
+      "margin": 0.054,
+      "kind": "hardware",
+      "mpn": "85B04EA",
+      "specs": {
+        "ram_gb": 16,
+        "storage_gb": 512,
+        "screen_inch": 15.6,
+        "cpu_cores": 10
+      },
+      "compatible_with": [],
+      "model_id": "hp-probook-450-g10",
+      "price_mode": "fixed"
+    },
+    {
+      "id": "nb-lat5540-i5-16-512",
+      "sku": "",
+      "family_id": "dell-latitude-5540",
+      "family_name": "Dell Latitude 5540",
+      "title": "Ноутбук Dell Latitude 5540, 15,6\", Core i5-1345U, 16 ГБ, SSD 512 ГБ, с предустановленной ОС",
+      "vendor_id": "dell",
+      "category_id": "laptops",
+      "description": "Корпоративный ноутбук 15,6 дюйма с vPro. Операционная система предустановлена.",
+      "attributes": {
+        "cpu": "Intel Core i5-1345U",
+        "os": "предустановлена"
+      },
+      "license": {
+        "type": null,
+        "metric": null,
+        "quantity": null,
+        "duration_months": null,
+        "edition": ""
+      },
+      "price_rub": 109900,
+      "price_on_request": false,
+      "origin": "foreign",
+      "in_reestr": false,
+      "popularity": 0.875,
+      "margin": 0.066,
+      "kind": "hardware",
+      "mpn": "N008L554015RU",
+      "specs": {
+        "ram_gb": 16,
+        "storage_gb": 512,
+        "screen_inch": 15.6,
+        "cpu_cores": 10
+      },
+      "compatible_with": [],
+      "model_id": "dell-latitude-5540",
+      "price_mode": "fixed"
+    },
+    {
+      "id": "nb-lat5540-i7-32-1t",
+      "sku": "",
+      "family_id": "dell-latitude-5540",
+      "family_name": "Dell Latitude 5540",
+      "title": "Ноутбук Dell Latitude 5540, 15,6\", Core i7-1365U, 32 ГБ, SSD 1 ТБ, без ОС",
+      "vendor_id": "dell",
+      "category_id": "laptops",
+      "description": "Старшая конфигурация Latitude без операционной системы. 32 ГБ памяти, SSD 1 ТБ.",
+      "attributes": {
+        "cpu": "Intel Core i7-1365U",
+        "os": "без ОС"
+      },
+      "license": {
+        "type": null,
+        "metric": null,
+        "quantity": null,
+        "duration_months": null,
+        "edition": ""
+      },
+      "price_rub": 139900,
+      "price_on_request": false,
+      "origin": "foreign",
+      "in_reestr": false,
+      "popularity": 0.702,
+      "margin": 0.068,
+      "kind": "hardware",
+      "mpn": "N012L554015RU",
+      "specs": {
+        "ram_gb": 32,
+        "storage_gb": 1000,
+        "screen_inch": 15.6,
+        "cpu_cores": 10
+      },
+      "compatible_with": [],
+      "model_id": "dell-latitude-5540",
+      "price_mode": "fixed"
+    },
+    {
+      "id": "nb-mbd16-i5-16-512",
+      "sku": "",
+      "family_id": "huawei-matebook-d16",
+      "family_name": "Huawei MateBook D 16",
+      "title": "Ноутбук Huawei MateBook D 16, 16\", Core i5-12450H, 16 ГБ, SSD 512 ГБ, с предустановленной ОС",
+      "vendor_id": "huawei",
+      "category_id": "laptops",
+      "description": "Ноутбук 16 дюймов в металлическом корпусе. Предустановлена домашняя редакция ОС; для работы в домене нужна профессиональная.",
+      "attributes": {
+        "cpu": "Intel Core i5-12450H",
+        "os": "предустановлена"
+      },
+      "license": {
+        "type": null,
+        "metric": null,
+        "quantity": null,
+        "duration_months": null,
+        "edition": ""
+      },
+      "price_rub": 74900,
+      "price_on_request": false,
+      "origin": "foreign",
+      "in_reestr": false,
+      "popularity": 0.866,
+      "margin": 0.069,
+      "kind": "hardware",
+      "mpn": "53013WXF",
+      "specs": {
+        "ram_gb": 16,
+        "storage_gb": 512,
+        "screen_inch": 16.0,
+        "cpu_cores": 8
+      },
+      "compatible_with": [],
+      "model_id": "huawei-matebook-d16",
+      "price_mode": "fixed"
+    },
+    {
+      "id": "nb-ns685-i5-8-256",
+      "sku": "",
+      "family_id": "aquarius-cmp-ns685",
+      "family_name": "Аквариус Cmp NS685",
+      "title": "Ноутбук Аквариус Cmp NS685U R11, 15,6\", Core i5-1135G7, 8 ГБ, SSD 256 ГБ, без ОС",
+      "vendor_id": "aquarius",
+      "category_id": "laptops",
+      "description": "Российский ноутбук из реестра промышленной продукции. Поставляется без ОС, совместим с Astra Linux и РЕД ОС.",
+      "attributes": {
+        "cpu": "Intel Core i5-1135G7",
+        "os": "без ОС"
+      },
+      "license": {
+        "type": null,
+        "metric": null,
+        "quantity": null,
+        "duration_months": null,
+        "edition": ""
+      },
+      "price_rub": 79900,
+      "price_on_request": false,
+      "origin": "ru",
+      "in_reestr": true,
+      "popularity": 0.746,
+      "margin": 0.088,
+      "kind": "hardware",
+      "mpn": "NS685U-R11-8-256",
+      "specs": {
+        "ram_gb": 8,
+        "storage_gb": 256,
+        "screen_inch": 15.6,
+        "cpu_cores": 4
+      },
+      "compatible_with": [],
+      "model_id": "aquarius-cmp-ns685",
+      "price_mode": "fixed"
+    },
+    {
+      "id": "nb-ns685-i5-16-512",
+      "sku": "",
+      "family_id": "aquarius-cmp-ns685",
+      "family_name": "Аквариус Cmp NS685",
+      "title": "Ноутбук Аквариус Cmp NS685U R11, 15,6\", Core i5-1135G7, 16 ГБ, SSD 512 ГБ, без ОС",
+      "vendor_id": "aquarius",
+      "category_id": "laptops",
+      "description": "Российский ноутбук из реестра промышленной продукции, 16 ГБ памяти. Поставляется без ОС.",
+      "attributes": {
+        "cpu": "Intel Core i5-1135G7",
+        "os": "без ОС"
+      },
+      "license": {
+        "type": null,
+        "metric": null,
+        "quantity": null,
+        "duration_months": null,
+        "edition": ""
+      },
+      "price_rub": 92900,
+      "price_on_request": false,
+      "origin": "ru",
+      "in_reestr": true,
+      "popularity": 0.709,
+      "margin": 0.062,
+      "kind": "hardware",
+      "mpn": "NS685U-R11-16-512",
+      "specs": {
+        "ram_gb": 16,
+        "storage_gb": 512,
+        "screen_inch": 15.6,
+        "cpu_cores": 4
+      },
+      "compatible_with": [],
+      "model_id": "aquarius-cmp-ns685",
+      "price_mode": "fixed"
+    },
+    {
+      "id": "mon-dell-p2425h",
+      "sku": "",
+      "family_id": "dell-p2425h",
+      "family_name": "Dell P2425H",
+      "title": "Монитор Dell P2425H, 23,8\", IPS, 1920×1080, 100 Гц",
+      "vendor_id": "dell",
+      "category_id": "monitors",
+      "description": "Офисный монитор с регулировкой высоты и поворотом. Порт USB-C для подключения ноутбука.",
+      "attributes": {
+        "resolution": "1920×1080",
+        "panel": "IPS"
+      },
+      "license": {
+        "type": null,
+        "metric": null,
+        "quantity": null,
+        "duration_months": null,
+        "edition": ""
+      },
+      "price_rub": 21900,
+      "price_on_request": false,
+      "origin": "foreign",
+      "in_reestr": false,
+      "popularity": 0.767,
+      "margin": 0.099,
+      "kind": "hardware",
+      "mpn": "P2425H",
+      "specs": {
+        "screen_inch": 23.8,
+        "refresh_hz": 100
+      },
+      "compatible_with": [],
+      "model_id": null,
+      "price_mode": "fixed"
+    },
+    {
+      "id": "mon-dell-p2725h",
+      "sku": "",
+      "family_id": "dell-p2725h",
+      "family_name": "Dell P2725H",
+      "title": "Монитор Dell P2725H, 27\", IPS, 1920×1080, 100 Гц",
+      "vendor_id": "dell",
+      "category_id": "monitors",
+      "description": "Монитор 27 дюймов для офиса. Регулировка высоты, поворот в портретный режим.",
+      "attributes": {
+        "resolution": "1920×1080",
+        "panel": "IPS"
+      },
+      "license": {
+        "type": null,
+        "metric": null,
+        "quantity": null,
+        "duration_months": null,
+        "edition": ""
+      },
+      "price_rub": 27900,
+      "price_on_request": false,
+      "origin": "foreign",
+      "in_reestr": false,
+      "popularity": 0.782,
+      "margin": 0.1,
+      "kind": "hardware",
+      "mpn": "P2725H",
+      "specs": {
+        "screen_inch": 27.0,
+        "refresh_hz": 100
+      },
+      "compatible_with": [],
+      "model_id": null,
+      "price_mode": "fixed"
+    },
+    {
+      "id": "mon-dell-u2724d",
+      "sku": "",
+      "family_id": "dell-u2724d",
+      "family_name": "Dell UltraSharp U2724D",
+      "title": "Монитор Dell UltraSharp U2724D, 27\", IPS, 2560×1440, 120 Гц",
+      "vendor_id": "dell",
+      "category_id": "monitors",
+      "description": "Монитор QHD для дизайнеров и аналитиков. Заводская калибровка цвета.",
+      "attributes": {
+        "resolution": "2560×1440",
+        "panel": "IPS"
+      },
+      "license": {
+        "type": null,
+        "metric": null,
+        "quantity": null,
+        "duration_months": null,
+        "edition": ""
+      },
+      "price_rub": 46900,
+      "price_on_request": false,
+      "origin": "foreign",
+      "in_reestr": false,
+      "popularity": 0.441,
+      "margin": 0.104,
+      "kind": "hardware",
+      "mpn": "U2724D",
+      "specs": {
+        "screen_inch": 27.0,
+        "refresh_hz": 120
+      },
+      "compatible_with": [],
+      "model_id": null,
+      "price_mode": "fixed"
+    },
+    {
+      "id": "mon-hp-e24g5",
+      "sku": "",
+      "family_id": "hp-e24-g5",
+      "family_name": "HP E24 G5",
+      "title": "Монитор HP E24 G5, 23,8\", IPS, 1920×1080, 75 Гц",
+      "vendor_id": "hp",
+      "category_id": "monitors",
+      "description": "Офисный монитор HP с тонкой рамкой. Удобен для сборки двух экранов на рабочем месте.",
+      "attributes": {
+        "resolution": "1920×1080",
+        "panel": "IPS"
+      },
+      "license": {
+        "type": null,
+        "metric": null,
+        "quantity": null,
+        "duration_months": null,
+        "edition": ""
+      },
+      "price_rub": 18900,
+      "price_on_request": false,
+      "origin": "foreign",
+      "in_reestr": false,
+      "popularity": 0.702,
+      "margin": 0.089,
+      "kind": "hardware",
+      "mpn": "6N4E2AA",
+      "specs": {
+        "screen_inch": 23.8,
+        "refresh_hz": 75
+      },
+      "compatible_with": [],
+      "model_id": null,
+      "price_mode": "fixed"
+    },
+    {
+      "id": "mon-lenovo-l27i",
+      "sku": "",
+      "family_id": "lenovo-l27i-40",
+      "family_name": "Lenovo L27i-40",
+      "title": "Монитор Lenovo L27i-40, 27\", IPS, 1920×1080, 100 Гц",
+      "vendor_id": "lenovo",
+      "category_id": "monitors",
+      "description": "Монитор 27 дюймов в тонком корпусе. Встроенные динамики, наклон экрана.",
+      "attributes": {
+        "resolution": "1920×1080",
+        "panel": "IPS"
+      },
+      "license": {
+        "type": null,
+        "metric": null,
+        "quantity": null,
+        "duration_months": null,
+        "edition": ""
+      },
+      "price_rub": 19900,
+      "price_on_request": false,
+      "origin": "foreign",
+      "in_reestr": false,
+      "popularity": 0.441,
+      "margin": 0.092,
+      "kind": "hardware",
+      "mpn": "67ACKAC4EU",
+      "specs": {
+        "screen_inch": 27.0,
+        "refresh_hz": 100
+      },
+      "compatible_with": [],
+      "model_id": null,
+      "price_mode": "fixed"
+    },
+    {
+      "id": "mon-samsung-g5-27",
+      "sku": "",
+      "family_id": "samsung-odyssey-g5",
+      "family_name": "Samsung Odyssey G5",
+      "title": "Монитор Samsung Odyssey G5, 27\", VA, 2560×1440, 165 Гц",
+      "vendor_id": "samsung",
+      "category_id": "monitors",
+      "description": "Изогнутый монитор с частотой 165 Гц. Подходит для работы с графикой и видео.",
+      "attributes": {
+        "resolution": "2560×1440",
+        "panel": "VA"
+      },
+      "license": {
+        "type": null,
+        "metric": null,
+        "quantity": null,
+        "duration_months": null,
+        "edition": ""
+      },
+      "price_rub": 29900,
+      "price_on_request": false,
+      "origin": "foreign",
+      "in_reestr": false,
+      "popularity": 0.301,
+      "margin": 0.109,
+      "kind": "hardware",
+      "mpn": "LC27G55TQBIXCI",
+      "specs": {
+        "screen_inch": 27.0,
+        "refresh_hz": 165
+      },
+      "compatible_with": [],
+      "model_id": null,
+      "price_mode": "fixed"
+    },
+    {
+      "id": "mon-huawei-se24",
+      "sku": "",
+      "family_id": "huawei-mateview-se",
+      "family_name": "Huawei MateView SE",
+      "title": "Монитор Huawei MateView SE, 23,8\", IPS, 1920×1080, 75 Гц",
+      "vendor_id": "huawei",
+      "category_id": "monitors",
+      "description": "Бюджетный монитор для офиса. Наклон и регулировка высоты.",
+      "attributes": {
+        "resolution": "1920×1080",
+        "panel": "IPS"
+      },
+      "license": {
+        "type": null,
+        "metric": null,
+        "quantity": null,
+        "duration_months": null,
+        "edition": ""
+      },
+      "price_rub": 15900,
+      "price_on_request": false,
+      "origin": "foreign",
+      "in_reestr": false,
+      "popularity": 0.01,
+      "margin": 0.109,
+      "kind": "hardware",
+      "mpn": "SSN-24BZ",
+      "specs": {
+        "screen_inch": 23.8,
+        "refresh_hz": 75
+      },
+      "compatible_with": [],
+      "model_id": null,
+      "price_mode": "fixed"
+    },
+    {
+      "id": "sw-eltex-mes2324b",
+      "sku": "",
+      "family_id": "eltex-mes2300",
+      "family_name": "Элтекс MES2300",
+      "title": "Коммутатор Элтекс MES2324B, 24× 1 Гбит/с, 4× 10G SFP+",
+      "vendor_id": "eltex",
+      "category_id": "switches",
+      "description": "Управляемый коммутатор доступа L2+ российского производства. Четыре аплинка 10 Гбит/с.",
+      "attributes": {
+        "poe": false,
+        "layer": "L2+"
+      },
+      "license": {
+        "type": null,
+        "metric": null,
+        "quantity": null,
+        "duration_months": null,
+        "edition": ""
+      },
+      "price_rub": 89900,
+      "price_on_request": false,
+      "origin": "ru",
+      "in_reestr": true,
+      "popularity": 0.16,
+      "margin": 0.134,
+      "kind": "hardware",
+      "mpn": "MES2324B",
+      "specs": {
+        "ports_count": 24,
+        "net_gbps": 10,
+        "form_factor_u": 1
+      },
+      "compatible_with": [],
+      "model_id": null,
+      "price_mode": "fixed"
+    },
+    {
+      "id": "sw-eltex-mes2324p",
+      "sku": "",
+      "family_id": "eltex-mes2300",
+      "family_name": "Элтекс MES2300",
+      "title": "Коммутатор Элтекс MES2324P, 24× 1 Гбит/с PoE+, 4× 10G SFP+, 410 Вт",
+      "vendor_id": "eltex",
+      "category_id": "switches",
+      "description": "Коммутатор PoE+ для IP-телефонов и точек доступа. Бюджет PoE 410 Вт.",
+      "attributes": {
+        "poe": true,
+        "layer": "L2+"
+      },
+      "license": {
+        "type": null,
+        "metric": null,
+        "quantity": null,
+        "duration_months": null,
+        "edition": ""
+      },
+      "price_rub": 129900,
+      "price_on_request": false,
+      "origin": "ru",
+      "in_reestr": true,
+      "popularity": 0.839,
+      "margin": 0.125,
+      "kind": "hardware",
+      "mpn": "MES2324P_AC",
+      "specs": {
+        "ports_count": 24,
+        "net_gbps": 10,
+        "form_factor_u": 1,
+        "power_w": 410
+      },
+      "compatible_with": [],
+      "model_id": null,
+      "price_mode": "fixed"
+    },
+    {
+      "id": "sw-eltex-mes2348b",
+      "sku": "",
+      "family_id": "eltex-mes2300",
+      "family_name": "Элтекс MES2300",
+      "title": "Коммутатор Элтекс MES2348B, 48× 1 Гбит/с, 4× 10G SFP+",
+      "vendor_id": "eltex",
+      "category_id": "switches",
+      "description": "Коммутатор доступа на 48 портов российского производства. Четыре аплинка 10 Гбит/с.",
+      "attributes": {
+        "poe": false,
+        "layer": "L2+"
+      },
+      "license": {
+        "type": null,
+        "metric": null,
+        "quantity": null,
+        "duration_months": null,
+        "edition": ""
+      },
+      "price_rub": 139900,
+      "price_on_request": false,
+      "origin": "ru",
+      "in_reestr": true,
+      "popularity": 0.441,
+      "margin": 0.114,
+      "kind": "hardware",
+      "mpn": "MES2348B",
+      "specs": {
+        "ports_count": 48,
+        "net_gbps": 10,
+        "form_factor_u": 1
+      },
+      "compatible_with": [],
+      "model_id": null,
+      "price_mode": "fixed"
+    },
+    {
+      "id": "sw-huawei-s5735-24",
+      "sku": "",
+      "family_id": "huawei-s5735",
+      "family_name": "Huawei S5735",
+      "title": "Коммутатор Huawei S5735-L24T4S-A1, 24× 1 Гбит/с, 4× 10G SFP+",
+      "vendor_id": "huawei",
+      "category_id": "switches",
+      "description": "Управляемый коммутатор доступа Huawei. Стекирование до девяти устройств.",
+      "attributes": {
+        "poe": false,
+        "layer": "L2+"
+      },
+      "license": {
+        "type": null,
+        "metric": null,
+        "quantity": null,
+        "duration_months": null,
+        "edition": ""
+      },
+      "price_rub": 84900,
+      "price_on_request": false,
+      "origin": "foreign",
+      "in_reestr": false,
+      "popularity": 0.465,
+      "margin": 0.16,
+      "kind": "hardware",
+      "mpn": "S5735-L24T4S-A1",
+      "specs": {
+        "ports_count": 24,
+        "net_gbps": 10,
+        "form_factor_u": 1
+      },
+      "compatible_with": [],
+      "model_id": null,
+      "price_mode": "fixed"
+    },
+    {
+      "id": "sw-huawei-s5735-48p",
+      "sku": "",
+      "family_id": "huawei-s5735",
+      "family_name": "Huawei S5735",
+      "title": "Коммутатор Huawei S5735-L48P4X-A1, 48× 1 Гбит/с PoE+, 4× 10G SFP+, 740 Вт",
+      "vendor_id": "huawei",
+      "category_id": "switches",
+      "description": "Коммутатор PoE+ на 48 портов. Бюджет PoE 740 Вт.",
+      "attributes": {
+        "poe": true,
+        "layer": "L2+"
+      },
+      "license": {
+        "type": null,
+        "metric": null,
+        "quantity": null,
+        "duration_months": null,
+        "edition": ""
+      },
+      "price_rub": 219900,
+      "price_on_request": false,
+      "origin": "foreign",
+      "in_reestr": false,
+      "popularity": 0.01,
+      "margin": 0.129,
+      "kind": "hardware",
+      "mpn": "S5735-L48P4X-A1",
+      "specs": {
+        "ports_count": 48,
+        "net_gbps": 10,
+        "form_factor_u": 1,
+        "power_w": 740
+      },
+      "compatible_with": [],
+      "model_id": null,
+      "price_mode": "fixed"
+    },
+    {
+      "id": "sw-aruba-2930f-24",
+      "sku": "",
+      "family_id": "hpe-aruba-2930f",
+      "family_name": "HPE Aruba 2930F",
+      "title": "Коммутатор HPE Aruba 2930F 24G 4SFP+, 24× 1 Гбит/с, 4× 10G SFP+",
+      "vendor_id": "hpe",
+      "category_id": "switches",
+      "description": "Коммутатор доступа уровня L3 lite. Управление через Aruba Central.",
+      "attributes": {
+        "poe": false,
+        "layer": "L2+"
+      },
+      "license": {
+        "type": null,
+        "metric": null,
+        "quantity": null,
+        "duration_months": null,
+        "edition": ""
+      },
+      "price_rub": 149900,
+      "price_on_request": false,
+      "origin": "foreign",
+      "in_reestr": false,
+      "popularity": 0.01,
+      "margin": 0.149,
+      "kind": "hardware",
+      "mpn": "JL253A",
+      "specs": {
+        "ports_count": 24,
+        "net_gbps": 10,
+        "form_factor_u": 1
+      },
+      "compatible_with": [],
+      "model_id": null,
+      "price_mode": "fixed"
+    },
+    {
+      "id": "sw-aruba-cx6100-48p",
+      "sku": "",
+      "family_id": "hpe-aruba-cx6100",
+      "family_name": "HPE Aruba CX 6100",
+      "title": "Коммутатор HPE Aruba CX 6100 48G Class4 PoE 4SFP+, 370 Вт",
+      "vendor_id": "hpe",
+      "category_id": "switches",
+      "description": "Коммутатор PoE на 48 портов с ОС AOS-CX. Бюджет PoE 370 Вт.",
+      "attributes": {
+        "poe": true,
+        "layer": "L2+"
+      },
+      "license": {
+        "type": null,
+        "metric": null,
+        "quantity": null,
+        "duration_months": null,
+        "edition": ""
+      },
+      "price_rub": null,
+      "price_on_request": true,
+      "origin": "foreign",
+      "in_reestr": false,
+      "popularity": 0.01,
+      "margin": 0.156,
+      "kind": "hardware",
+      "mpn": "JL675A",
+      "specs": {
+        "ports_count": 48,
+        "net_gbps": 10,
+        "form_factor_u": 1,
+        "power_w": 370
+      },
+      "compatible_with": [],
+      "model_id": null,
+      "price_mode": "quote_required"
+    },
+    {
+      "id": "sw-dlink-dgs1210-28",
+      "sku": "",
+      "family_id": "dlink-dgs-1210",
+      "family_name": "D-Link DGS-1210",
+      "title": "Коммутатор D-Link DGS-1210-28, 24× 1 Гбит/с, 4× SFP",
+      "vendor_id": "dlink",
+      "category_id": "switches",
+      "description": "Простой настраиваемый коммутатор для небольшого офиса. Аплинки 1 Гбит/с.",
+      "attributes": {
+        "poe": false,
+        "layer": "L2"
+      },
+      "license": {
+        "type": null,
+        "metric": null,
+        "quantity": null,
+        "duration_months": null,
+        "edition": ""
+      },
+      "price_rub": 24900,
+      "price_on_request": false,
+      "origin": "foreign",
+      "in_reestr": false,
+      "popularity": 0.702,
+      "margin": 0.128,
+      "kind": "hardware",
+      "mpn": "DGS-1210-28/F3A",
+      "specs": {
+        "ports_count": 24,
+        "net_gbps": 1,
+        "form_factor_u": 1
+      },
+      "compatible_with": [],
+      "model_id": null,
+      "price_mode": "fixed"
     }
   ]
 }

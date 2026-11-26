@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Проверка mock-данных по формату данных.
+"""Проверка mock-данных по формату данных и (контур коммерции).
 
     python3.13 scripts/data/validate.py                  # проверить data/mock
     python3.13 scripts/data/validate.py --stats          # + таблицы для data/README.md
@@ -11,6 +11,7 @@
 import argparse
 import hashlib
 import json
+import math
 import re
 import subprocess
 import sys
@@ -22,6 +23,25 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 FILES = ["catalog.json", "vendors.json", "categories.json", "relations.json", "aliases.json", "clients.json",
          "queries.json", "events.jsonl"]
+P2_FILES = ["license_rules.json", "compatibility_rules.json", "attribute_definitions.json", "solution_templates.json",
+            "companion_pairs.json"]
+DIGEST_FILES = FILES + P2_FILES + ["PLANTED.md"]
+# Заморозка контура поиска: хэш списка (id, text, set, judgments) запросов вне p2 и первых строк events.jsonl.
+P1_QUERIES_SHA = "36ad647ff56c61c3088d3fe17ea05ea464a1d095d67e2f35a5e8b093ef07de13"
+P1_EVENTS_SHA = "f2608dff36743b08848ac1a917e1c3c1fdd0ef8b38127e1e63d74f57487e7b7a"
+P1_EVENTS_LINES = 5121
+P2_SESSION = "s2-"
+P2_QUERY_TYPES = {"p2_license": 20, "p2_mpn": 20, "p2_specs": 20, "p2_compat": 25, "p2_bundle": 15, "p2_negative": 20}
+PAIR_CLASSES = ["required", "compatible", "conditional", "incompatible", "unknown", "complement", "upgrade",
+                "irrelevant"]
+RELATION_TYPES = {"substitute", "complement", "renewal", "compatibility", "upgrade"}
+REQUIREMENTS = {"conditional_required", "recommended", "optional"}
+COMPAT_STATES = {"verified", "conditional", "incompatible", "unknown"}
+QTY_STRATEGIES = {"per_user", "per_device", "per_server", "per_core", "per_seat", "one", "none"}
+SOURCES = {"vendor_documentation", "catalog_rule", "expert", "co_purchase", "agent_proposal"}
+PRICE_MODES = {"fixed", "from", "quote_required", "customer_specific", "unavailable"}
+SPEC_KEYS = {"ram_gb", "storage_gb", "screen_inch", "ports_count", "refresh_hz", "power_w", "net_gbps",
+             "form_factor_u", "cpu_cores"}
 QUERY_TYPES = ["exact", "sku", "typo", "layout", "slang", "purpose", "license", "analog", "absent", "alias_gap",
                "non_product", "noise", "renewal"]
 SETS = ["tune", "test", "regression", "demo"]
@@ -55,7 +75,7 @@ class Report:
 
 def load(d, r):
     data = {}
-    for name in FILES:
+    for name in FILES + P2_FILES:
         path = d / name
         if not r.check(path.exists(), f"нет файла {name}"):
             continue
@@ -103,19 +123,31 @@ def check_catalog(data, vendors, cats, r):
         r.check(p.get("category_id") in cats, f"{where}: нет категории {p.get('category_id')}")
         r.check(isinstance(p.get("attributes"), dict), f"{where}: attributes")
         lic = p.get("license", {})
-        r.check(lic.get("type") in LICENSE_TYPES, f"{where}: license.type {lic.get('type')}")
-        r.check(lic.get("metric") in METRICS, f"{where}: license.metric {lic.get('metric')}")
-        q, mo = lic.get("quantity"), lic.get("duration_months")
-        r.check(q is None or (isinstance(q, int) and q > 0), f"{where}: license.quantity")
-        r.check(mo is None or (isinstance(mo, int) and mo > 0), f"{where}: license.duration_months")
-        if lic.get("type") in ("perpetual", "oem", "upgrade"):
-            r.check(mo is None, f"{where}: бессрочная лицензия со сроком")
-        if lic.get("type") in ("subscription", "renewal"):
-            r.check(mo is not None, f"{where}: подписка без срока")
-        r.check(lic.get("metric") != "org" or q is None, f"{where}: metric org с количеством")
+        if p.get("kind") == "hardware" and lic.get("type") is None:
+            r.check(lic.get("metric") is None and lic.get("quantity") is None and lic.get("duration_months") is None,
+                    f"{where}: у оборудования без лицензии заполнены поля license")
+            lic = None
+        if lic is None:
+            pass
+        elif not r.check(lic.get("type") in LICENSE_TYPES, f"{where}: license.type {lic.get('type')}"):
+            pass
+        else:
+            r.check(lic.get("metric") in METRICS, f"{where}: license.metric {lic.get('metric')}")
+            q, mo = lic.get("quantity"), lic.get("duration_months")
+            r.check(q is None or (isinstance(q, int) and q > 0), f"{where}: license.quantity")
+            r.check(mo is None or (isinstance(mo, int) and mo > 0), f"{where}: license.duration_months")
+            if lic.get("type") in ("perpetual", "oem", "upgrade"):
+                r.check(mo is None, f"{where}: бессрочная лицензия со сроком")
+            if lic.get("type") in ("subscription", "renewal"):
+                r.check(mo is not None, f"{where}: подписка без срока")
+            r.check(lic.get("metric") != "org" or q is None, f"{where}: metric org с количеством")
         por, price = p.get("price_on_request"), p.get("price_rub")
         r.check(isinstance(por, bool), f"{where}: price_on_request")
-        r.check((price is None) == bool(por), f"{where}: price_rub/price_on_request не согласованы")
+        mode = p.get("price_mode", "quote_required" if por else "fixed")
+        r.check(mode in PRICE_MODES, f"{where}: price_mode {mode}")
+        r.check(bool(por) == (mode == "quote_required"), f"{where}: price_on_request не согласован с price_mode")
+        if mode in ("fixed", "from", "quote_required"):
+            r.check((price is None) == bool(por), f"{where}: price_rub/price_on_request не согласованы")
         r.check(price is None or (isinstance(price, int) and price > 0), f"{where}: price_rub")
         r.check(p.get("origin") in ("ru", "foreign"), f"{where}: origin")
         if p.get("vendor_id") in vendors:
@@ -136,12 +168,14 @@ def check_catalog(data, vendors, cats, r):
 def check_dicts(data, vendors, cats, fams, by_id, r):
     seen = set()
     for rel in data["relations.json"]:
-        key = (rel.get("from_family"), rel.get("to_family"), rel.get("type"))
+        key = (rel.get("from_family"), rel.get("to_family"), rel.get("type"), rel.get("from_product"),
+               rel.get("to_product"))
         r.check(key not in seen, f"relation {key}: повтор")
         seen.add(key)
         r.check(rel.get("from_family") in fams and rel.get("to_family") in fams, f"relation {key}: нет семейства")
-        r.check(rel.get("from_family") != rel.get("to_family"), f"relation {key}: связь на себя")
-        r.check(rel.get("type") in ("substitute", "complement", "renewal", "compatibility"), f"relation {key}: type")
+        if not (rel.get("from_product") or rel.get("to_product")):
+            r.check(rel.get("from_family") != rel.get("to_family"), f"relation {key}: связь на себя")
+        r.check(rel.get("type") in RELATION_TYPES, f"relation {key}: type")
     targets = {"vendor": vendors, "family": fams, "category": cats}
     aliases = set()
     for a in data["aliases.json"]:
@@ -180,10 +214,13 @@ def catalog_text(products, vendors, cats):
 
 
 def check_queries(data, by_id, clients, vendors, cats, r):
-    queries = data["queries.json"]
-    ids = Counter(q.get("id") for q in queries)
+    all_queries = data["queries.json"]
+    ids = Counter(q.get("id") for q in all_queries)
     r.check(all(n == 1 for n in ids.values()), "queries: повтор id")
     cluster_sets = defaultdict(set)
+    for q in all_queries:
+        cluster_sets[q.get("cluster")].add(q.get("set"))
+    queries = [q for q in all_queries if q.get("set") != "p2"]
     for q in queries:
         where = f"query {q.get('id')} «{q.get('text')}»"
         r.check(isinstance(q.get("text"), str) and q["text"].strip(), f"{where}: text")
@@ -205,7 +242,6 @@ def check_queries(data, by_id, clients, vendors, cats, r):
             r.check(top >= 2, f"{where}: нет подходящего товара")
         else:
             r.check(top == 3, f"{where}: нет товара с оценкой 3")
-        cluster_sets[q.get("cluster")].add(q.get("set"))
     for cl, s in cluster_sets.items():
         r.check(len(s) == 1, f"cluster {cl}: в нескольких наборах {sorted(s)}")
 
@@ -243,16 +279,23 @@ def check_queries(data, by_id, clients, vendors, cats, r):
         r.check(bool(terms), f"absent {cl}: не задан term")
         for term in terms:
             r.check(term.lower() not in ctext, f"absent {cl}: «{term}» встречается в каталоге")
-    return queries
+    sha = hashlib.sha256(json.dumps([(q["id"], q["text"], q["set"], q["judgments"]) for q in queries],
+                                    ensure_ascii=False, sort_keys=True).encode()).hexdigest()
+    r.check(sha == P1_QUERIES_SHA, "queries: запросы контура поиска (id, text, set, judgments) изменились — test заморожен")
+    return all_queries
 
 
 def check_events(data, queries, by_id, clients, r):
     events = data["events.jsonl"]
-    r.check(3000 <= len(events) <= 6000, f"events: {len(events)} вне 3–6 тыс.")
+    r.check(3000 <= len(events) <= 9000, f"events: {len(events)} вне 3–9 тыс.")
     end = LOG_START + timedelta(days=LOG_DAYS)
-    prev_ts, days = "", set()
+    prev_ts, days, in_p2 = "", set(), False
     for i, e in enumerate(events):
         where = f"event #{i + 1}"
+        p2 = str(e.get("session_id", "")).startswith(P2_SESSION)
+        r.check(p2 == (i >= P1_EVENTS_LINES), f"{where}: событие {'коммерции' if p2 else 'поиска'} не в своём блоке")
+        if p2 and not in_p2:
+            in_p2, prev_ts = True, ""  # блок контура коммерции дописан в конец и отсортирован отдельно
         try:
             ts = datetime.strptime(e.get("ts", ""), "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=timezone.utc)
         except ValueError:
@@ -275,6 +318,11 @@ def check_events(data, queries, by_id, clients, r):
             r.check(isinstance(e.get("position"), int) and e["position"] >= 1, f"{where}: position")
         if e["type"] == "order":
             r.check(e.get("client_id") != "client-b", f"{where}: заказ у client-b (у него нет истории)")
+            if p2:
+                r.check(isinstance(e.get("order_id"), str) and isinstance(e.get("account_id"), str),
+                        f"{where}: заказ контура коммерции без order_id/account_id")
+                r.check(e.get("client_id") in (None, e.get("account_id")), f"{where}: client_id ≠ account_id")
+                r.check(isinstance(e.get("quantity"), int) and e["quantity"] >= 1, f"{where}: quantity")
     r.check(len(days) == LOG_DAYS, f"events: покрыто {len(days)} дней из {LOG_DAYS}")
 
     freq = Counter()
@@ -309,7 +357,14 @@ def check_events(data, queries, by_id, clients, r):
     return events, reform
 
 
-def check_popularity(products, events, r):
+def check_popularity(all_products, all_events, r):
+    for part in (False, True):
+        products = [p for p in all_products if ("kind" in p) == part]
+        events = [e for e in all_events if e["session_id"].startswith(P2_SESSION) == part]
+        _check_popularity(products, events, r)
+
+
+def _check_popularity(products, events, r):
     w = {"order": 5, "add_to_cart": 2, "price_request": 2, "click": 1}
     score = Counter()
     for e in events:
@@ -327,8 +382,257 @@ def check_popularity(products, events, r):
         r.check(lo > hi, "popularity: товар с заказами ниже товара без событий")
 
 
+# ------------------------------------------------------------------ контур коммерции
+def fisher_greater(a, b, c, d):
+    n1, k, n = a + b, a + c, a + b + c + d
+    return sum(math.comb(k, x) * math.comb(n - k, n1 - x) for x in range(a, min(n1, k) + 1)) / math.comb(n, n1)
+
+
+def _version_ok(rule_value, value, anchor_version):
+    if rule_value.startswith(">=anchor.version"):
+        return value is not None and anchor_version is not None and str(value) >= str(anchor_version)
+    return str(value) in rule_value.split("|")
+
+
+def check_p2(d, data, by_id, fams, cats, vendors, queries, events, r):
+    products = list(by_id.values())
+    p2 = [p for p in products if "kind" in p]
+    hw = [p for p in p2 if p["kind"] == "hardware"]
+    cat = data["catalog.json"]
+    r.check(cat.get("version") == "mock-2", "catalog.version не mock-2")
+    r.check(cat.get("synthetic") == ["margin", "orders"], "catalog.synthetic")
+    r.check(70 <= len(hw) <= 90, f"catalog: оборудования {len(hw)} вне 70–90")
+    raw = (d / "events.jsonl").read_bytes().split(b"\n")
+    r.check(hashlib.sha256(b"\n".join(raw[:P1_EVENTS_LINES]) + b"\n").hexdigest() == P1_EVENTS_SHA,
+            "events: строки контура поиска изменились")
+
+    # реестр атрибутов
+    adefs = {}
+    for x in data["attribute_definitions.json"]:
+        r.check(x.get("category_id") in cats, f"attribute_definitions: нет категории {x.get('category_id')}")
+        keys = [a["key"] for a in x.get("attrs", [])]
+        r.check(len(keys) == len(set(keys)), f"attribute_definitions {x.get('category_id')}: повтор ключа")
+        for a in x.get("attrs", []):
+            r.check(a.get("type") in ("number", "enum", "bool"), f"attribute_definitions {a.get('key')}: type")
+            r.check(isinstance(a.get("label"), str) and a["label"], f"attribute_definitions {a.get('key')}: label")
+            r.check(isinstance(a.get("unit_aliases"), list), f"attribute_definitions {a.get('key')}: unit_aliases")
+            if a.get("type") == "number":
+                r.check(a["key"] in SPEC_KEYS, f"attribute_definitions {a['key']}: числовой ключ вне specs")
+        adefs[x.get("category_id")] = {a["key"]: a for a in x.get("attrs", [])}
+    all_attr_keys = {k for v in adefs.values() for k in v}
+
+    # позиции контура коммерции
+    models, mpns = set(), Counter()
+    for p in p2:
+        where = f"product {p['id']}"
+        r.check(p["kind"] in ("software", "hardware"), f"{where}: kind")
+        r.check(isinstance(p.get("mpn"), str), f"{where}: mpn")
+        r.check(isinstance(p.get("specs"), dict) and isinstance(p.get("compatible_with"), list), f"{where}: specs")
+        if p.get("model_id"):
+            models.add(p["model_id"])
+        if p["kind"] == "software":
+            r.check(p["mpn"] == "", f"{where}: у ПО mpn не пустой")
+            continue
+        r.check(bool(re.fullmatch(r"[A-Z0-9][A-Z0-9/_-]{3,}", p["mpn"])) and re.search(r"\d", p["mpn"])
+                and re.search(r"[A-Z]", p["mpn"]), f"{where}: неправдоподобный mpn {p['mpn']}")
+        mpns[p["mpn"]] += 1
+        defs = adefs.get(p["category_id"])
+        r.check(defs is not None, f"{where}: нет attribute_definitions для {p['category_id']}")
+        for k, v in p["specs"].items():
+            r.check(k in SPEC_KEYS and isinstance(v, (int, float)) and not isinstance(v, bool),
+                    f"{where}: specs.{k} не число из списка")
+            r.check(defs is None or k in defs, f"{where}: specs.{k} нет в attribute_definitions {p['category_id']}")
+        if p["category_id"] in ("server-systems", "laptops"):
+            r.check(bool(p.get("model_id")), f"{where}: у системы нет model_id")
+    r.check(all(n == 1 for n in mpns.values()), "catalog: повтор mpn")
+    for p in p2:
+        for m in p["compatible_with"]:
+            r.check(m in models, f"product {p['id']}: compatible_with {m} — нет такой модели")
+    r.check(any(p.get("price_mode") == "quote_required" for p in hw), "catalog: нет оборудования quote_required")
+    for p in products:
+        if p.get("family_id") in ("windows-server-2022", "windows-server-2025", "windows-server-cal",
+                                  "windows-server-cal-2025", "rds-cal-2025", "sql-server-2022"):
+            r.check(p["attributes"].get("version") in ("2022", "2025"), f"product {p['id']}: нет attributes.version")
+
+    # связи
+    rels = data["relations.json"]
+    rel_ids = [x.get("id") for x in rels]
+    r.check(all(rel_ids) and len(rel_ids) == len(set(rel_ids)), "relations: id пустые или повторяются")
+    for x in rels:
+        w = f"relation {x.get('id')}"
+        r.check(x.get("requirement", "optional") in REQUIREMENTS, f"{w}: requirement")
+        r.check(x.get("compatibility", "unknown") in COMPAT_STATES, f"{w}: compatibility")
+        r.check(x.get("quantity_strategy", "none") in QTY_STRATEGIES, f"{w}: quantity_strategy")
+        r.check(x.get("source", "catalog_rule") in SOURCES, f"{w}: source")
+        r.check(re.fullmatch(r"E[0-5]", x.get("evidence_level", "E0")) is not None, f"{w}: evidence_level")
+        r.check(x.get("review_status", "approved") in ("approved", "pending", "rejected"), f"{w}: review_status")
+        for side in ("from", "to"):
+            pid = x.get(f"{side}_product")
+            if pid:
+                r.check(by_id.get(pid, {}).get("family_id") == x[f"{side}_family"], f"{w}: {side}_product не из семьи")
+        if x.get("type") == "upgrade":
+            r.check(bool(x.get("upgrade_adds")) and x.get("from_product") and x.get("to_product"),
+                    f"{w}: upgrade без upgrade_adds или позиций")
+    r.check(any(x["type"] == "upgrade" for x in rels), "relations: нет upgrade")
+
+    # правила лицензирования
+    lrules = {x["id"]: x for x in data["license_rules.json"]}
+    for x in lrules.values():
+        w = f"license_rule {x['id']}"
+        r.check(x.get("vendor_id") in vendors and x.get("anchor_family") in fams, f"{w}: вендор/семейство")
+        r.check(x.get("requires_category") in cats, f"{w}: requires_category")
+        r.check(not x.get("requires_family") or x["requires_family"] in fams, f"{w}: requires_family")
+        r.check(not x.get("anchor_product") or x["anchor_product"] in by_id, f"{w}: anchor_product")
+        r.check(x.get("class") in ("conditional_required", "recommended", "optional"), f"{w}: class")
+        r.check(x.get("quantity_strategy") in QTY_STRATEGIES, f"{w}: quantity_strategy")
+        r.check(x.get("source") in SOURCES and x.get("reason"), f"{w}: source/reason")
+        anchor_v = next((p["attributes"].get("version") for p in products if p["family_id"] == x["anchor_family"]),
+                        None)
+        targets = [p for p in products if p["category_id"] == x["requires_category"]
+                   and (not x.get("requires_family") or p["family_id"] == x["requires_family"])
+                   and all(_version_ok(v, p["attributes"].get(k if k != "edition" else "edition")
+                                       or p["license"].get(k), anchor_v)
+                           for k, v in x.get("requires_attrs", {}).items())]
+        r.check(bool(targets), f"{w}: ни одна позиция не удовлетворяет правилу")
+
+    # совместимость
+    crules = data["compatibility_rules.json"]
+    states = Counter()
+    seen = set()
+    for x in crules:
+        w = f"compatibility_rule {x.get('id')}"
+        r.check(x.get("product_id") in by_id or x.get("family_id") in fams, f"{w}: позиция/семейство")
+        r.check(x.get("target_model") in models, f"{w}: target_model {x.get('target_model')}")
+        r.check(x.get("state") in ("verified", "conditional", "incompatible"), f"{w}: state")
+        r.check(x.get("state") != "conditional" or x.get("condition"), f"{w}: conditional без условия")
+        r.check(x.get("source") in SOURCES and isinstance(x.get("rule_version"), int) and x.get("date"), f"{w}: поля")
+        key = (x.get("product_id") or x.get("family_id"), x.get("target_model"))
+        r.check(key not in seen, f"{w}: повтор пары")
+        seen.add(key)
+        states[x.get("state")] += 1
+    r.check(all(states[s_] for s_ in ("verified", "conditional", "incompatible")), "compatibility_rules: не все состояния")
+    cstate = {(x["product_id"], x["target_model"]): x["state"] for x in crules if x.get("product_id")}
+    comps = [p for p in hw if p["category_id"] in ("server-memory", "server-storage")]
+    r.check(any((p["id"], m) not in cstate for p in comps for m in models), "compatibility: нет пар unknown")
+
+    # шаблоны решений
+    tmpl = data["solution_templates.json"]
+    r.check(len(tmpl) == 3, f"solution_templates: {len(tmpl)} вместо 3")
+    for t in tmpl:
+        r.check(t.get("triggers") and isinstance(t.get("approved"), bool) and t.get("slots"), f"template {t.get('id')}")
+        for sl in t.get("slots", []):
+            r.check(sl.get("category_id") in cats, f"template {t['id']}/{sl.get('id')}: категория")
+            r.check(sl.get("quantity_strategy") in QTY_STRATEGIES, f"template {t['id']}/{sl.get('id')}: quantity")
+    tmpl_ids = {t["id"] for t in tmpl}
+
+    # набор p2
+    p2q = [q for q in queries if q.get("set") == "p2"]
+    types = Counter(q["type"] for q in p2q)
+    r.check(dict(types) == P2_QUERY_TYPES, f"queries p2: состав {dict(types)}")
+    p1_texts = {q["text"].lower() for q in queries if q.get("set") != "p2"}
+    texts = Counter(q["text"].lower() for q in p2q)
+    for q in p2q:
+        w = f"query {q['id']} «{q['text']}»"
+        r.check(q["text"].lower() not in p1_texts, f"{w}: текст совпадает с запросом контура поиска")
+        r.check(texts[q["text"].lower()] == 1, f"{w}: повтор текста в p2")
+        r.check(isinstance(q.get("expect"), dict), f"{w}: нет expect")
+        for pid, g in q["judgments"].items():
+            r.check(pid in by_id and isinstance(g, int) and 1 <= g <= 3, f"{w}: разметка {pid}={g}")
+        top = max(q["judgments"].values(), default=0)
+        if q["type"] in ("p2_license", "p2_mpn", "p2_specs"):
+            r.check(top == 3, f"{w}: нет товара с оценкой 3")
+        if q["type"] == "p2_bundle":
+            r.check(top >= 2, f"{w}: нет подходящего товара")
+        ex = q.get("expect", {})
+        for pid in ex.get("incompatible", []) + ex.get("unknown", []):
+            r.check(pid in by_id and pid not in q["judgments"], f"{w}: {pid} в incompatible/unknown размечен")
+        if ex.get("template_id"):
+            r.check(ex["template_id"] in tmpl_ids, f"{w}: нет шаблона {ex['template_id']}")
+        for f in ex.get("filters", []):
+            r.check(f.get("key") in all_attr_keys | {"price_rub", "cpu_cores"}, f"{w}: фильтр {f.get('key')}")
+            r.check(f.get("op") in ("eq", "gte", "lte", "range", "not"), f"{w}: op {f.get('op')}")
+        tgt = ex.get("compat_target")
+        if q["type"] == "p2_compat":
+            r.check(tgt in models or tgt in fams, f"{w}: compat_target {tgt}")
+            r.check(bool(q["judgments"]) or ex.get("incompatible") or ex.get("unknown") or ex.get("filters"),
+                    f"{w}: пустая разметка без объяснения")
+            if tgt in models:
+                for pid in q["judgments"]:
+                    st = cstate.get((pid, tgt), "unknown")
+                    r.check(st in ("verified", "conditional"), f"{w}: размечен {pid} с совместимостью {st}")
+        if ex.get("mpn"):
+            r.check(any(p.get("mpn") == ex["mpn"] and q["judgments"].get(p["id"]) == 3 for p in p2),
+                    f"{w}: mpn {ex['mpn']} не размечен 3")
+        for req in ex.get("required", []):
+            r.check(req.get("family_id") in fams or req.get("product_id") in by_id, f"{w}: required {req}")
+    for p in products:
+        if p.get("price_mode") == "unavailable":
+            r.check(all(q["judgments"].get(p["id"], 0) <= 1 for q in p2q), f"product {p['id']}: снят, но размечен > 1")
+
+    # пары «якорь → кандидат»
+    pairs = data["companion_pairs.json"]
+    r.check(130 <= len(pairs) <= 170, f"companion_pairs: {len(pairs)} вне 130–170")
+    pc = Counter(x.get("class") for x in pairs)
+    r.check(set(pc) == set(PAIR_CLASSES), f"companion_pairs: классы {dict(pc)}")
+    for x in pairs:
+        w = f"pair {x.get('anchor_product')} → {x.get('candidate_product')}"
+        a, c = by_id.get(x.get("anchor_product")), by_id.get(x.get("candidate_product"))
+        if not r.check(a is not None and c is not None, f"{w}: нет позиции"):
+            continue
+        if a.get("model_id") and a["category_id"] == "server-systems" and x["class"] in (
+                "compatible", "conditional", "incompatible", "unknown"):
+            st = cstate.get((c["id"], a["model_id"]), "unknown")
+            want = {"compatible": "verified"}.get(x["class"], x["class"])
+            r.check(st == want, f"{w}: класс {x['class']}, а правило {st}")
+        if x["class"] == "required" and a["family_id"] in ("windows-server-2022", "windows-server-2025"):
+            r.check(c["attributes"].get("version", "0") >= a["attributes"].get("version", "9"),
+                    f"{w}: required CAL старше сервера")
+
+    # заказы с аккаунтами и пара без связи
+    fam_of = {p["id"]: p["family_id"] for p in products}
+    baskets, acc = defaultdict(set), {}
+    for e in events:
+        if e["type"] == "order" and e.get("account_id"):
+            baskets[e["order_id"]].add(fam_of[e["product_id"]])
+            acc[e["order_id"]] = e["account_id"]
+    single, pair, pacc = Counter(), Counter(), defaultdict(set)
+    for oid, fs in baskets.items():
+        fs = sorted(fs)
+        single.update(fs)
+        for i in range(len(fs)):
+            for j in range(i + 1, len(fs)):
+                pair[(fs[i], fs[j])] += 1
+                pacc[(fs[i], fs[j])].add(acc[oid])
+    n = len(baskets)
+    r.check(any(len(fs) >= 2 for fs in baskets.values()), "events: нет многопозиционных заказов")
+    nb = defaultdict(set)
+    for x in rels:
+        nb[x["from_family"]].add(x["to_family"])
+        nb[x["to_family"]].add(x["from_family"])
+    tested = {k: a for k, a in pair.items() if len(pacc[k]) >= 3}
+    bonf = 0.01 / max(1, len(tested))
+    unexpl = sorted((fisher_greater(a, single[k[0]] - a, single[k[1]] - a, n - single[k[0]] - single[k[1]] + a), k)
+                    for k, a in tested.items() if k[1] not in nb[k[0]] and not (nb[k[0]] & nb[k[1]]))
+    unexpl = [(pv, k) for pv, k in unexpl if pv < bonf]
+    planted = ("dell-poweredge-r750", "ippon-innova-rt-ii")
+    r.check(bool(unexpl) and unexpl[0][1] == planted, f"events: заложенная пара не первая среди значимых: {unexpl[:3]}")
+    stray = [k for _, k in unexpl if not set(k) & {"ippon-innova-rt-ii"}]
+    r.check(not stray, f"events: лишние значимые пары без связи: {stray}")
+
+    # заложенное для агента
+    rel_key = {(x["from_family"], x["to_family"], x["type"]) for x in rels}
+    r.check(("windows-server-2025", "windows-server-cal", "complement") in rel_key, "P2-01: нет сломанной связи")
+    r.check("lr-ws25-rds" in lrules and ("windows-server-2025", "rds-cal-2025", "complement") not in rel_key,
+            "P2-02: пропущенное обязательное не заложено")
+    planted_md = (d / "PLANTED.md")
+    r.check(planted_md.exists() and all(f"P2-0{i}" in planted_md.read_text(encoding="utf-8") for i in range(1, 5)),
+            "PLANTED.md: нет списка P2-01…P2-04")
+    return dict(hw=len(hw), p2=len(p2), rules=len(lrules), crules=len(crules), pairs=len(pairs), orders=n,
+                p2_queries=len(p2q))
+
+
 def digest(d):
-    return {name: hashlib.sha256((d / name).read_bytes()).hexdigest() for name in FILES}
+    return {name: hashlib.sha256((d / name).read_bytes()).hexdigest() for name in DIGEST_FILES}
 
 
 def check_determinism(d, r):
@@ -340,7 +644,7 @@ def check_determinism(d, r):
         r.check(h1 == h2, "determinism: два прогона генератора дали разные файлы")
         if d.exists():
             cur = digest(d)
-            diff = [n for n in FILES if cur.get(n) != h1.get(n)]
+            diff = [n for n in DIGEST_FILES if cur.get(n) != h1.get(n)]
             r.check(not diff, f"determinism: {d} отличается от свежей генерации: {diff}")
     return h1
 
@@ -407,6 +711,39 @@ def print_stats(data, queries, events, reform, fams):
     print(f"\nСессий {len(sess)}; поисков с пустой выдачей {zero} ({zero / len(searches):.1%}); "
           f"переформулировок за <60 с без клика {reform}; сессий с заказом {with_order} "
           f"({with_order / len(sess):.1%}).")
+    print_p2_stats(data, queries, events)
+
+
+def print_p2_stats(data, queries, events):
+    products = data["catalog.json"]["products"]
+    p2 = [p for p in products if "kind" in p]
+    print("\n## Контур коммерции")
+    print("| Категория | Позиций | Из них quote_required |\n| --- | --- | --- |")
+    for c, n in Counter(p["category_id"] for p in p2).most_common():
+        q = sum(p["category_id"] == c and p["price_mode"] == "quote_required" for p in p2)
+        print(f"| {c} | {n} | {q} |")
+    print("price_mode: " + ", ".join(f"{k} {v}" for k, v in Counter(p["price_mode"] for p in p2).most_common()))
+    print("compatibility_rules: " + ", ".join(
+        f"{k} {v}" for k, v in Counter(x["state"] for x in data["compatibility_rules.json"]).most_common()))
+    print(f"license_rules {len(data['license_rules.json'])}, solution_templates {len(data['solution_templates.json'])}, "
+          f"attribute_definitions {len(data['attribute_definitions.json'])} категорий")
+    print("companion_pairs: " + ", ".join(
+        f"{k} {v}" for k, v in Counter(x["class"] for x in data["companion_pairs.json"]).most_common())
+          + f" (всего {len(data['companion_pairs.json'])})")
+    p2q = [q for q in queries if q["set"] == "p2"]
+    print("\n| Тип p2 | Запросов | freq | Пустая разметка |\n| --- | --- | --- | --- |")
+    for t in P2_QUERY_TYPES:
+        qs = [q for q in p2q if q["type"] == t]
+        print(f"| {t} | {len(qs)} | {sum(q['freq'] for q in qs)} | {sum(not q['judgments'] for q in qs)} |")
+    ev2 = [e for e in events if e["session_id"].startswith(P2_SESSION)]
+    orders = defaultdict(set)
+    for e in ev2:
+        if e["type"] == "order":
+            orders[e["order_id"]].add(e["account_id"])
+    lines = Counter(e["order_id"] for e in ev2 if e["type"] == "order")
+    print("\nСобытия контура коммерции: " + ", ".join(f"{k} {v}" for k, v in Counter(e["type"] for e in ev2).most_common())
+          + f"; заказов {len(orders)}, многопозиционных {sum(n >= 2 for n in lines.values())}, "
+          f"аккаунтов {len({a for v in orders.values() for a in v})}")
 
 
 def main():
@@ -427,8 +764,11 @@ def main():
     queries = check_queries(data, by_id, clients, vendors, cats, r)
     events, reform = check_events(data, queries, by_id, clients, r)
     check_popularity(data["catalog.json"]["products"], events, r)
-    r.check(50 <= len(fams) <= 70, f"catalog: семейств {len(fams)} вне 50–70")
-    r.check(180 <= len(by_id) <= 300, f"catalog: позиций {len(by_id)} вне 180–300")
+    p1 = [p for p in by_id.values() if "kind" not in p]
+    p1_fams = {p["family_id"] for p in p1}
+    r.check(50 <= len(p1_fams) <= 70, f"catalog: семейств контура поиска {len(p1_fams)} вне 50–70")
+    r.check(180 <= len(p1) <= 300, f"catalog: позиций контура поиска {len(p1)} вне 180–300")
+    check_p2(d, data, by_id, fams, cats, vendors, queries, events, r)
     if args.determinism:
         check_determinism(d, r)
     for w in r.warnings:

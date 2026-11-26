@@ -1,0 +1,451 @@
+[
+  {
+    "category_id": "server-systems",
+    "attrs": [
+      {
+        "key": "form_factor_u",
+        "label": "Высота в стойке",
+        "unit": "U",
+        "type": "number",
+        "facet": true,
+        "unit_aliases": [
+          "u",
+          "юнит",
+          "юнита",
+          "юнитов"
+        ]
+      },
+      {
+        "key": "cpu_cores",
+        "label": "Ядер процессора",
+        "unit": "ядер",
+        "type": "number",
+        "facet": false,
+        "unit_aliases": [
+          "ядро",
+          "ядра",
+          "ядер",
+          "core",
+          "cores"
+        ]
+      },
+      {
+        "key": "ram_gb",
+        "label": "Память",
+        "unit": "ГБ",
+        "type": "number",
+        "facet": true,
+        "unit_aliases": [
+          "гб",
+          "gb",
+          "г",
+          "гиг",
+          "гигабайт",
+          "гигабайта"
+        ]
+      },
+      {
+        "key": "storage_gb",
+        "label": "Накопитель",
+        "unit": "ГБ",
+        "type": "number",
+        "facet": true,
+        "unit_aliases": [
+          "гб",
+          "gb",
+          "г",
+          "гиг",
+          "гигабайт",
+          "гигабайта"
+        ],
+        "unit_convert": {
+          "тб": 1000,
+          "tb": 1000,
+          "терабайт": 1000
+        }
+      },
+      {
+        "key": "power_w",
+        "label": "Мощность",
+        "unit": "Вт",
+        "type": "number",
+        "facet": true,
+        "unit_aliases": [
+          "вт",
+          "w",
+          "ватт"
+        ],
+        "unit_convert": {
+          "квт": 1000,
+          "kw": 1000
+        }
+      },
+      {
+        "key": "memory_type",
+        "label": "Тип памяти",
+        "unit": "",
+        "type": "enum",
+        "facet": true,
+        "unit_aliases": [],
+        "values": [
+          "DDR4",
+          "DDR5"
+        ]
+      }
+    ]
+  },
+  {
+    "category_id": "server-memory",
+    "attrs": [
+      {
+        "key": "ram_gb",
+        "label": "Память",
+        "unit": "ГБ",
+        "type": "number",
+        "facet": true,
+        "unit_aliases": [
+          "гб",
+          "gb",
+          "г",
+          "гиг",
+          "гигабайт",
+          "гигабайта"
+        ]
+      },
+      {
+        "key": "memory_type",
+        "label": "Тип памяти",
+        "unit": "",
+        "type": "enum",
+        "facet": true,
+        "unit_aliases": [],
+        "values": [
+          "DDR4",
+          "DDR5"
+        ]
+      }
+    ]
+  },
+  {
+    "category_id": "server-storage",
+    "attrs": [
+      {
+        "key": "storage_gb",
+        "label": "Накопитель",
+        "unit": "ГБ",
+        "type": "number",
+        "facet": true,
+        "unit_aliases": [
+          "гб",
+          "gb",
+          "г",
+          "гиг",
+          "гигабайт",
+          "гигабайта"
+        ],
+        "unit_convert": {
+          "тб": 1000,
+          "tb": 1000,
+          "терабайт": 1000
+        }
+      },
+      {
+        "key": "drive_type",
+        "label": "Тип накопителя",
+        "unit": "",
+        "type": "enum",
+        "facet": true,
+        "unit_aliases": [],
+        "values": [
+          "SSD",
+          "HDD"
+        ]
+      },
+      {
+        "key": "interface",
+        "label": "Интерфейс",
+        "unit": "",
+        "type": "enum",
+        "facet": true,
+        "unit_aliases": [],
+        "values": [
+          "SATA",
+          "SAS",
+          "NVMe"
+        ]
+      },
+      {
+        "key": "drive_form_factor",
+        "label": "Форм-фактор",
+        "unit": "″",
+        "type": "enum",
+        "facet": true,
+        "unit_aliases": [],
+        "values": [
+          "2.5",
+          "3.5"
+        ]
+      }
+    ]
+  },
+  {
+    "category_id": "server-services",
+    "attrs": []
+  },
+  {
+    "category_id": "laptops",
+    "attrs": [
+      {
+        "key": "ram_gb",
+        "label": "Память",
+        "unit": "ГБ",
+        "type": "number",
+        "facet": true,
+        "unit_aliases": [
+          "гб",
+          "gb",
+          "г",
+          "гиг",
+          "гигабайт",
+          "гигабайта"
+        ]
+      },
+      {
+        "key": "storage_gb",
+        "label": "Накопитель",
+        "unit": "ГБ",
+        "type": "number",
+        "facet": true,
+        "unit_aliases": [
+          "гб",
+          "gb",
+          "г",
+          "гиг",
+          "гигабайт",
+          "гигабайта"
+        ],
+        "unit_convert": {
+          "тб": 1000,
+          "tb": 1000,
+          "терабайт": 1000
+        }
+      },
+      {
+        "key": "screen_inch",
+        "label": "Диагональ",
+        "unit": "″",
+        "type": "number",
+        "facet": true,
+        "unit_aliases": [
+          "дюйм",
+          "дюйма",
+          "дюймов",
+          "\"",
+          "″",
+          "in",
+          "inch"
+        ]
+      },
+      {
+        "key": "cpu_cores",
+        "label": "Ядер процессора",
+        "unit": "ядер",
+        "type": "number",
+        "facet": false,
+        "unit_aliases": [
+          "ядро",
+          "ядра",
+          "ядер",
+          "core",
+          "cores"
+        ]
+      },
+      {
+        "key": "os",
+        "label": "Операционная система",
+        "unit": "",
+        "type": "enum",
+        "facet": true,
+        "unit_aliases": [],
+        "values": [
+          "без ОС",
+          "предустановлена"
+        ]
+      }
+    ]
+  },
+  {
+    "category_id": "monitors",
+    "attrs": [
+      {
+        "key": "screen_inch",
+        "label": "Диагональ",
+        "unit": "″",
+        "type": "number",
+        "facet": true,
+        "unit_aliases": [
+          "дюйм",
+          "дюйма",
+          "дюймов",
+          "\"",
+          "″",
+          "in",
+          "inch"
+        ]
+      },
+      {
+        "key": "refresh_hz",
+        "label": "Частота обновления",
+        "unit": "Гц",
+        "type": "number",
+        "facet": true,
+        "unit_aliases": [
+          "гц",
+          "hz",
+          "герц"
+        ]
+      }
+    ]
+  },
+  {
+    "category_id": "switches",
+    "attrs": [
+      {
+        "key": "ports_count",
+        "label": "Порты",
+        "unit": "портов",
+        "type": "number",
+        "facet": true,
+        "unit_aliases": [
+          "порт",
+          "порта",
+          "портов",
+          "port",
+          "ports",
+          "x",
+          "×"
+        ]
+      },
+      {
+        "key": "net_gbps",
+        "label": "Скорость аплинка",
+        "unit": "Гбит/с",
+        "type": "number",
+        "facet": true,
+        "unit_aliases": [
+          "гбит/с",
+          "гбит",
+          "gbps",
+          "gbit",
+          "g",
+          "ge"
+        ]
+      },
+      {
+        "key": "power_w",
+        "label": "Мощность",
+        "unit": "Вт",
+        "type": "number",
+        "facet": true,
+        "unit_aliases": [
+          "вт",
+          "w",
+          "ватт"
+        ],
+        "unit_convert": {
+          "квт": 1000,
+          "kw": 1000
+        }
+      },
+      {
+        "key": "form_factor_u",
+        "label": "Высота в стойке",
+        "unit": "U",
+        "type": "number",
+        "facet": true,
+        "unit_aliases": [
+          "u",
+          "юнит",
+          "юнита",
+          "юнитов"
+        ]
+      },
+      {
+        "key": "poe",
+        "label": "PoE",
+        "unit": "",
+        "type": "bool",
+        "facet": true,
+        "unit_aliases": []
+      }
+    ]
+  },
+  {
+    "category_id": "ups",
+    "attrs": [
+      {
+        "key": "power_w",
+        "label": "Мощность",
+        "unit": "Вт",
+        "type": "number",
+        "facet": true,
+        "unit_aliases": [
+          "вт",
+          "w",
+          "ватт"
+        ],
+        "unit_convert": {
+          "квт": 1000,
+          "kw": 1000
+        }
+      },
+      {
+        "key": "form_factor_u",
+        "label": "Высота в стойке",
+        "unit": "U",
+        "type": "number",
+        "facet": true,
+        "unit_aliases": [
+          "u",
+          "юнит",
+          "юнита",
+          "юнитов"
+        ]
+      }
+    ]
+  },
+  {
+    "category_id": "os-server",
+    "attrs": [
+      {
+        "key": "version",
+        "label": "Версия",
+        "unit": "",
+        "type": "enum",
+        "facet": true,
+        "unit_aliases": [],
+        "values": [
+          "2022",
+          "2025"
+        ]
+      }
+    ]
+  },
+  {
+    "category_id": "dbms",
+    "attrs": [
+      {
+        "key": "version",
+        "label": "Версия",
+        "unit": "",
+        "type": "enum",
+        "facet": true,
+        "unit_aliases": [],
+        "values": [
+          "2022",
+          "2025"
+        ]
+      }
+    ]
+  }
+]

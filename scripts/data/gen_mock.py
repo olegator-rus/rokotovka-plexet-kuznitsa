@@ -6,7 +6,7 @@
     python3.13 scripts/data/gen_mock.py            # пишет в data/mock/
     python3.13 scripts/data/gen_mock.py --out DIR  # в другой каталог (проверка детерминизма)
 
-Описание данных — data/README.md.
+Данные контура коммерции — gen_mock_p2.py. Описание данных — data/README.md.
 """
 
 import argparse
@@ -25,9 +25,9 @@ from defs_catalog2 import FAMILIES_2
 from defs_refs import ALIASES, RELATIONS, CLIENTS
 from defs_queries import DEMO, EXACT, SKU_ITEMS, L
 from defs_queries2 import LICENSE, ANALOG, PURPOSE, RENEWAL, ABSENT, GAP, NON_PRODUCT, NOISE
+import gen_mock_p2
 
 SEED = 0x1352905
-CATALOG_VERSION = "mock-1"
 LOG_START = datetime(2026, 4, 27, tzinfo=timezone.utc)  # 30 дней: 27.04–26.05.2026
 LOG_DAYS = 30
 SET_SHARES = (("tune", 0.40), ("test", 0.80), ("regression", 1.0))
@@ -543,17 +543,25 @@ def main():
     events = build_events(queries, reforms, products, legacy, [
         {"id": c["id"], "purchases": [(x["product_id"], x["date"]) for x in c["purchases"]]} for c in clients])
     apply_popularity(products, events)
+    # Контур коммерции дописывается поверх готового контура поиска (данные контура поиска не меняются, см. gen_mock_p2.py).
+    meta2, relations, extra, events2, planted = gen_mock_p2.extend(
+        SEED, LOG_START, LOG_DAYS, weighted, products, vendors, cats_list, relations, clients, queries, events,
+        aliases, LegacySearch)
 
-    write_json(out / "catalog.json", {"version": CATALOG_VERSION, "products": products})
+    write_json(out / "catalog.json", {**meta2, "products": products})
     write_json(out / "vendors.json", vendors)
     write_json(out / "categories.json", cats_list)
     write_json(out / "relations.json", relations)
     write_json(out / "aliases.json", aliases)
     write_json(out / "clients.json", clients)
     write_json(out / "queries.json", queries)
+    for name, data in extra.items():
+        write_json(out / name, data)
+    (out / "PLANTED.md").write_text(planted, encoding="utf-8")
     with open(out / "events.jsonl", "w", encoding="utf-8") as fh:
-        for e in events:
+        for e in events + events2:
             fh.write(json.dumps(e, ensure_ascii=False, separators=(",", ":")) + "\n")
+    events = events + events2
 
     fams = {p["family_id"] for p in products}
     searches = sum(e["type"] == "search" for e in events)

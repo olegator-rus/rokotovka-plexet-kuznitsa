@@ -1,0 +1,125 @@
+[
+  {
+    "id": "lr-ws25-cal",
+    "vendor_id": "microsoft",
+    "anchor_family": "windows-server-2025",
+    "anchor_attrs": {},
+    "requires_category": "os-server",
+    "requires_attrs": {
+      "edition": "User CAL|Device CAL",
+      "version": ">=anchor.version"
+    },
+    "class": "conditional_required",
+    "conditions": [
+      "access_license_required",
+      "no_existing_equivalent_license"
+    ],
+    "quantity_strategy": "per_user",
+    "reason": "Каждому пользователю или устройству, которые обращаются к Windows Server 2025, нужна CAL версии 2025 или новее, если действующих CAL нет.",
+    "source": "vendor_documentation",
+    "source_url": "https://www.microsoft.com/en-us/licensing/product-licensing/client-access-license.aspx"
+  },
+  {
+    "id": "lr-ws25-rds",
+    "vendor_id": "microsoft",
+    "anchor_family": "windows-server-2025",
+    "anchor_attrs": {},
+    "requires_category": "os-server",
+    "requires_attrs": {
+      "edition": "RDS CAL",
+      "version": ">=anchor.version"
+    },
+    "class": "conditional_required",
+    "conditions": [
+      "remote_desktop_used",
+      "access_license_required",
+      "no_existing_equivalent_license"
+    ],
+    "quantity_strategy": "per_user",
+    "reason": "Для подключения к удалённому рабочему столу Windows Server 2025 нужна RDS CAL 2025 в дополнение к обычной CAL; RDS CAL прежних версий не подходят.",
+    "source": "vendor_documentation",
+    "source_url": "https://learn.microsoft.com/windows-server/remote/remote-desktop-services/rds-client-access-license"
+  },
+  {
+    "id": "lr-ws22-cal",
+    "vendor_id": "microsoft",
+    "anchor_family": "windows-server-2022",
+    "anchor_attrs": {},
+    "requires_category": "os-server",
+    "requires_attrs": {
+      "edition": "User CAL|Device CAL",
+      "version": ">=anchor.version"
+    },
+    "class": "conditional_required",
+    "conditions": [
+      "access_license_required",
+      "no_existing_equivalent_license"
+    ],
+    "quantity_strategy": "per_user",
+    "reason": "Каждому пользователю или устройству, которые обращаются к Windows Server 2022, нужна CAL версии 2022 или новее.",
+    "source": "vendor_documentation",
+    "source_url": "https://www.microsoft.com/en-us/licensing/product-licensing/client-access-license.aspx"
+  },
+  {
+    "id": "lr-ws22-rds",
+    "vendor_id": "microsoft",
+    "anchor_family": "windows-server-2022",
+    "anchor_attrs": {},
+    "requires_category": "os-server",
+    "requires_attrs": {
+      "edition": "RDS CAL",
+      "version": ">=anchor.version"
+    },
+    "class": "conditional_required",
+    "conditions": [
+      "remote_desktop_used",
+      "access_license_required",
+      "no_existing_equivalent_license"
+    ],
+    "quantity_strategy": "per_user",
+    "reason": "Для удалённого рабочего стола Windows Server 2022 нужна RDS CAL 2022 или новее.",
+    "source": "vendor_documentation",
+    "source_url": "https://learn.microsoft.com/windows-server/remote/remote-desktop-services/rds-client-access-license"
+  },
+  {
+    "id": "lr-sql22-cal",
+    "vendor_id": "microsoft",
+    "anchor_family": "sql-server-2022",
+    "anchor_product": "sql22-stdsrv",
+    "anchor_attrs": {
+      "edition": "Standard"
+    },
+    "requires_category": "dbms",
+    "requires_attrs": {
+      "edition": "CAL",
+      "version": ">=anchor.version"
+    },
+    "class": "conditional_required",
+    "conditions": [
+      "access_license_required",
+      "no_existing_equivalent_license"
+    ],
+    "quantity_strategy": "per_user",
+    "reason": "В модели Server + CAL каждому пользователю SQL Server нужна SQL CAL; при лицензировании по ядрам CAL не нужны.",
+    "source": "vendor_documentation",
+    "source_url": "https://www.microsoft.com/en-us/sql-server/sql-server-2022-pricing"
+  },
+  {
+    "id": "lr-1c-server-clients",
+    "vendor_id": "1c",
+    "anchor_family": "1c-server",
+    "anchor_attrs": {},
+    "requires_category": "1c-licenses",
+    "requires_attrs": {},
+    "requires_family": "1c-client-license",
+    "class": "conditional_required",
+    "conditions": [
+      "access_license_required",
+      "no_existing_equivalent_license"
+    ],
+    "quantity_strategy": "per_user",
+    "reason": "Сервер 1С не включает клиентские лицензии: на каждое одновременное подключение нужна клиентская лицензия 1С.",
+    "source": "vendor_documentation",
+    "source_url": "https://v8.1c.ru/buy/"
+  }
+]
