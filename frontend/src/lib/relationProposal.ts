@@ -8,7 +8,7 @@ import type {
   RelationPatchEval,
 } from '@/api/typesCommerce'
 import { companionsEvalLines, economicStatus, technicalStatus } from './commerce.ts'
-import { formatDecimal, formatInt, plural } from './format.ts'
+import { formatInt, formatRub, plural } from './format.ts'
 import {
   evidenceLabel,
   evidenceStrength,
@@ -40,6 +40,7 @@ export const P2_TOOL_LABELS: Record<string, string> = {
   evaluate_bundle: 'Проверка комплекта',
   verify_attach_effect: 'Эффект допродажи',
   simulate_margin_policy: 'Симуляция маржи',
+  judge: 'Судья другого семейства',
 }
 
 /** Строка основания: текст, ссылка на документ, уровень. */
@@ -143,19 +144,23 @@ export function relationProposalView(p: CommerceProposal): RelationProposalView 
   return {
     diff: relationDiff(patch, asRelations(ev.relation_before)),
     evidenceLevel: level ? evidenceLabel(level) : null,
-    strength: evidenceStrength(level),
+    strength: str(ev.strength) ?? evidenceStrength(level),
     basis: basisOf(ev),
     technical: technicalStatus(p.technical_status),
     economic: economicStatus(p.economic_status),
     notes: [str(ev.technical_note), str(ev.economic_note)].filter((x): x is string => !!x),
-    priority:
-      typeof p.priority_score === 'number'
-        ? `оценка приоритета ${formatDecimal(p.priority_score, 2)} — не прогноз`
-        : null,
+    priority: priorityLine(p.priority_score, ev.priority),
     evalLines: relationEvalLines(evaluation),
     passed: typeof evaluation?.passed === 'boolean' ? evaluation.passed : null,
     reasons: (evaluation?.reasons ?? []).filter((x): x is string => !!str(x)),
   }
+}
+
+/** Как получена оценка приоритета (само число — в шапке карточки): «оценка приоритета, не прогноз: …». */
+function priorityLine(score: number | null | undefined, info: unknown): string | null {
+  if (typeof score !== 'number' || !Number.isFinite(score)) return null
+  const formula = str((info as { formula?: unknown } | null)?.formula)
+  return `${formatRub(score)} — оценка приоритета, не прогноз${formula ? `: ${formula}` : ''}`
 }
 
 /** Номера связей, которые трогает правка: добавляемые, изменяемые, удаляемые. */

@@ -31,7 +31,18 @@ import {
   targetQueryRows,
   ticketLines,
 } from '@/lib/proposals'
+import {
+  PRIORITY_CAPTION,
+  isBundle,
+  isCopurchase,
+  isMarginProposal,
+  marginProposalView,
+  priorityValue,
+} from '@/lib/killer'
 import { isRelationPatch } from '@/lib/relationProposal'
+import BundleView from './BundleView.vue'
+import CopurchaseEvidence from './CopurchaseEvidence.vue'
+import MarginProposalView from './MarginProposalView.vue'
 import PatchDiff from './PatchDiff.vue'
 import RelationPatchView from './RelationPatchView.vue'
 
@@ -55,12 +66,20 @@ const effect = computed(() => effectLine(p.value.effect))
 const recheck = computed(() => recheckView(p.value))
 const stale = computed(() => staleReason(p.value))
 const relation = computed(() => isRelationPatch(p.value))
-// Предложение настройки маржи применяется на экране «Маржа», не из очереди.
-const marginLink = computed(() => {
-  if (p.value.action !== 'margin_policy') return null
-  const w = (p.value.patch as unknown as { weight?: unknown } | null)?.weight
-  return { path: '/margin', query: typeof w === 'number' ? { w: String(w) } : {} }
-})
+const bundle = computed(() => isBundle(p.value))
+const copurchase = computed(() => isCopurchase(p.value))
+// Контур коммерции: связь, комплект, маржа — заголовок без «Кластер», без потерянного спроса и запросов кластера.
+const commerce = computed(() => relation.value || bundle.value || isMarginProposal(p.value))
+// Комплект принимается «в работу»: справочник и выдача не меняются.
+const workItem = computed(() => ticket.value || bundle.value)
+const priority = computed(() =>
+  priorityValue(p.value as Proposal & { priority_score?: number | null }),
+)
+// Предложение настройки маржи применяется на экране «Маржа», не из очереди:
+// /margin?w=<вес>&cat=<категория>&p=<id> — песочница с теми же числами.
+const marginLink = computed(() =>
+  isMarginProposal(p.value) ? marginProposalView(p.value).link : null,
+)
 const detailsOpen = ref(false)
 const runLink = computed(() =>
   p.value.run_id
@@ -83,8 +102,12 @@ const runLink = computed(() =>
       <span :class="['badge', 'badge--tone', status.tone]">{{ status.label }}</span>
       <span class="badge">{{ diagnosisLabel(p.diagnosis) }}</span>
       <span class="t-xs t-muted">{{ proposalRoleLabel(p.role) }}</span>
+      <span v-if="priority" class="pcard__priority t-sm" data-testid="priority">
+        <strong class="t-num">{{ priority }}</strong>
+        <span class="t-xs t-muted">{{ PRIORITY_CAPTION }}</span>
+      </span>
       <span
-        v-if="!relation || p.cluster?.lost_demand"
+        v-else-if="!commerce || p.cluster?.lost_demand"
         class="pcard__demand t-xs t-muted t-num"
         title="Различные сессии, в которых поиск по запросам кластера не удался"
       >
@@ -93,7 +116,7 @@ const runLink = computed(() =>
     </header>
 
     <h3 :id="`p-${p.id}-title`" class="t-h2">
-      <template v-if="relation || marginLink">{{ p.cluster?.label }}</template>
+      <template v-if="commerce">{{ p.cluster?.label }}</template>
       <template v-else>Кластер «{{ p.cluster?.label }}»</template>
     </h3>
     <p v-if="stale" class="pcard__stale t-sm">
@@ -101,7 +124,11 @@ const runLink = computed(() =>
     </p>
     <p v-if="p.diagnosis_text" class="pcard__diag">{{ p.diagnosis_text }}</p>
 
-    <section v-if="queries.length || !relation" class="pcard__block" aria-label="Запросы кластера">
+    <section
+      v-if="!copurchase && !marginLink && (queries.length || !relation)"
+      class="pcard__block"
+      aria-label="Запросы кластера"
+    >
       <p class="pcard__label">
         Запросы кластера · {{ formatInt(queries.length) }}
         {{ plural(queries.length, ['запрос', 'запроса', 'запросов']) }}
@@ -121,7 +148,14 @@ const runLink = computed(() =>
       </ul>
     </section>
 
-    <RelationPatchView v-if="relation" :proposal="p" />
+    <MarginProposalView v-if="marginLink" :proposal="p" />
+
+    <BundleView v-else-if="bundle" :proposal="p" />
+
+    <template v-else-if="relation">
+      <RelationPatchView :proposal="p" />
+      <CopurchaseEvidence v-if="copurchase" :proposal="p" />
+    </template>
 
     <section v-else class="pcard__block" aria-label="Что предлагается">
       <p class="pcard__label">{{ ticket ? 'Что сделать' : 'Что предлагается' }}</p>
@@ -292,7 +326,7 @@ const runLink = computed(() =>
           Отклонить
         </button>
         <button type="button" class="btn btn--primary" :disabled="busy" @click="$emit('accept')">
-          {{ ticket ? 'Взять в работу' : 'Принять' }}
+          {{ workItem ? 'Взять в работу' : 'Принять' }}
         </button>
       </div>
 
@@ -307,7 +341,7 @@ const runLink = computed(() =>
           <template v-if="p.decided_comment"> · «{{ p.decided_comment }}»</template>
         </span>
         <RouterLink
-          v-if="p.status === 'accepted' && checkUrl && !ticket"
+          v-if="p.status === 'accepted' && checkUrl && !workItem && !marginLink"
           :to="checkUrl"
           class="btn btn--secondary btn--sm"
         >
@@ -333,6 +367,13 @@ const runLink = computed(() =>
   gap: var(--space-2);
 }
 .pcard__demand {
+  margin-left: auto;
+}
+.pcard__priority {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0 var(--space-1);
   margin-left: auto;
 }
 .pcard__diag {

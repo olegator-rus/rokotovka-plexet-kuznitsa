@@ -1,5 +1,6 @@
 import { http, type RequestOptions } from './http'
 import type { AnalyticsResponse, EffectResponse, ProblemsNowResponse } from './types'
+import type { EffectCommerceResponse } from './typesKiller'
 
 /** GET /api/analytics — плитки, воронка, проблемные запросы за период (у head — ещё вилка эффекта). */
 export function getAnalytics(days: number, role: string, opts?: RequestOptions) {
@@ -18,4 +19,15 @@ export function getEffect(days: number, params: Record<string, number>, opts?: R
   const q = new URLSearchParams({ days: String(days) })
   for (const [k, v] of Object.entries(params)) q.set(k, String(v))
   return http.get<EffectResponse>(`/effect?${q.toString()}`, opts)
+}
+
+/** GET /api/effect/commerce — модель эффекта контура коммерции; params — изменённые входы (ключ → значение). */
+export function getEffectCommerce(
+  days: number,
+  params: Record<string, number>,
+  opts?: RequestOptions,
+) {
+  const q = new URLSearchParams({ days: String(days) })
+  for (const [k, v] of Object.entries(params)) q.set(k, String(v))
+  return http.get<EffectCommerceResponse>(`/effect/commerce?${q.toString()}`, opts)
 }

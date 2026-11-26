@@ -12,7 +12,9 @@ import type {
   PriceMode,
   SearchFilter,
   Solution,
+  Upgrade,
 } from './typesP2'
+import type { AnalyticsCommerce } from './typesKiller'
 
 /** live — витрина: B3 на действующей (последней принятой) версии правил; лестница оценки — B0–B4. */
 export type ConfigId = 'live' | 'B0' | 'B1' | 'B2' | 'B3' | 'B4'
@@ -151,6 +153,8 @@ export interface SearchResponse {
   /** Контур коммерции: «Дополните решение» (null — блока нет), шаблон решения, фасеты категории. */
   companions?: CompanionBlock | null
   solution?: Solution | null
+  /** «Старшая редакция» к первой позиции (null — связи upgrade нет). */
+  upgrade?: Upgrade | null
   facets?: Facet[]
   trace: Trace
 }
@@ -620,6 +624,8 @@ export interface AnalyticsResponse {
   sources: Record<string, number>
   /** Только role=head: вилка эффекта с допущениями по умолчанию. */
   effect?: EffectResponse | null
+  /** Блок «Допродажи» роли (контур коммерции); null — не собран. */
+  commerce?: AnalyticsCommerce | null
 }
 
 // ── «Экономика»: GET /api/costs?limit=&offset= (backend/out/costs.go) ──

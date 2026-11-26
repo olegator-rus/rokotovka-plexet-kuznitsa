@@ -131,6 +131,25 @@ test('отклонённая гипотеза: причина из шага пр
   assert.equal(stepView(steps[4], rej).rejected, null)
 })
 
+test('лестница контура коммерции: пройденные ступени отклонённой гипотезы остаются пройденными', () => {
+  const steps = [
+    step(1, {
+      kind: 'hypothesis',
+      tool: null,
+      hypothesis_no: 1,
+      ok: false,
+      rejected_reason: 'ступень 5',
+    }),
+    step(2, { kind: 'check', tool: null, hypothesis_no: 1, ok: true }),
+    step(3, { kind: 'check', tool: null, hypothesis_no: 1, ok: false }),
+  ]
+  const rej = rejectedHypotheses(steps)
+  assert.equal(stepView(steps[1], rej).passed, true)
+  assert.equal(stepView(steps[1], rej).rejected, null)
+  assert.equal(stepView(steps[2], rej).passed, false)
+  assert.equal(stepView(steps[2], rej).rejected, 'ступень 5')
+})
+
 test('stepView: раскрывается только при непустых аргументах или ответе; подпись инструмента', () => {
   const rej = new Map<string, string>()
   assert.equal(stepView(step(1, { args: {}, result: {} }), rej).expandable, false)

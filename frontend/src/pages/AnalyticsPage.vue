@@ -1,5 +1,5 @@
 <script setup lang="ts">
-// «Аналитика». Период — в адресе (?days=30), роль — из шапки. Общие для всех ролей
+// «Аналитика» (F30 — блок «Допродажи» у каждой роли). Период — в адресе (?days=30), роль — из шапки. Общие для всех ролей
 // плитки и воронка (у руководителя — свой верхний ряд); ниже блок роли: менеджер e-com — проблемные
 // запросы, продукт-менеджер — спрос без предложения, контент-менеджер — карточки и термины. Каждое число открывает объяснение: из каких событий и как посчитано.
 import { computed, ref, watch } from 'vue'
@@ -11,6 +11,7 @@ import BlockError from '@/components/common/BlockError.vue'
 import ExplainDialog, { type Explanation } from '@/components/common/ExplainDialog.vue'
 import StatTile from '@/components/common/StatTile.vue'
 import FunnelBlock from '@/components/analytics/FunnelBlock.vue'
+import CommerceBlock from '@/components/analytics/CommerceBlock.vue'
 import ContentRole from '@/components/analytics/ContentRole.vue'
 import HeadRole from '@/components/analytics/HeadRole.vue'
 import ProblemQueries from '@/components/analytics/ProblemQueries.vue'
@@ -227,6 +228,12 @@ const sourcesLine = computed(() => {
       />
       <ProductRole v-else-if="role === 'product'" />
       <ContentRole v-else-if="role === 'content'" />
+
+      <CommerceBlock v-if="data.commerce" :commerce="data.commerce" :role="role" />
+      <p v-else class="panel analytics__nocom t-sm t-muted">
+        Блок «Допродажи» сервер не собрал для этой роли.
+        <button type="button" class="link" @click="res.load()">Обновить</button>
+      </p>
     </template>
 
     <ExplainDialog v-model:open="open" :explanation="explanation" />
@@ -273,6 +280,9 @@ const sourcesLine = computed(() => {
   flex-direction: column;
   gap: var(--space-2);
   padding: var(--space-5);
+}
+.analytics__nocom {
+  padding: var(--space-3) var(--space-4);
 }
 .analytics__periods {
   display: flex;

@@ -1,8 +1,10 @@
 <script setup lang="ts">
-// «Экономика»: четыре плитки, таблица по маршрутам A–D, блок «Месяц» с допущениями,
+// «Экономика» (F31 — вкладка «Эффект»): четыре плитки, таблица по маршрутам A–D, блок «Месяц» с допущениями,
 // журнал вызовов модели и версия прайса. Всё из GET /api/costs (llm_usage + search_events); фронт
 // ничего не пересчитывает, кроме сценариев месяца из замеров и допущений человека.
 import { computed, onMounted, ref, shallowRef } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
+import { TabsContent, TabsList, TabsRoot, TabsTrigger } from 'reka-ui'
 import { getRuns } from '@/api/agent'
 import { getCosts } from '@/api/costs'
 import type { CostRouteRow, LlmCall } from '@/api/types'
@@ -10,6 +12,7 @@ import BlockError from '@/components/common/BlockError.vue'
 import ExplainDialog, { type Explanation } from '@/components/common/ExplainDialog.vue'
 import StatTile from '@/components/common/StatTile.vue'
 import CallsJournal from '@/components/costs/CallsJournal.vue'
+import EffectCommerce from '@/components/costs/EffectCommerce.vue'
 import MonthBlock from '@/components/costs/MonthBlock.vue'
 import RouteBadge from '@/components/trace/RouteBadge.vue'
 import { useToast } from '@/components/ui/useToast'
@@ -18,6 +21,16 @@ import { isApiError } from '@/lib/apiError'
 import { agentRunCost } from '@/lib/costMonth'
 import { formatCost, formatInt, formatMs, formatPercent, plural } from '@/lib/format'
 import { ROUTE_LABELS, isRoute } from '@/lib/trace'
+
+// Вкладки: «Стоимость» и «Эффект» — модель чувствительности контура коммерции: /costs?tab=effect.
+const route = useRoute()
+const router = useRouter()
+type Tab = 'costs' | 'effect'
+const tab = computed<Tab>({
+  get: () => (route.query.tab === 'effect' ? 'effect' : 'costs'),
+  set: (t) =>
+    void router.replace({ query: { ...route.query, tab: t === 'costs' ? undefined : t } }),
+})
 
 const res = useResource((opts) => getCosts(0, opts))
 const toast = useToast()
@@ -230,132 +243,145 @@ function explainRoute(r: CostRouteRow, field: 'share' | 'avg_ms' | 'avg_cost_rub
       <p class="t-sm t-muted">Сколько стоит поиск и откуда берётся каждая цифра</p>
     </header>
 
-    <template v-if="res.status.value === 'loading' && !data">
-      <div class="costs__tiles" aria-busy="true">
-        <div v-for="i in 4" :key="i" class="panel costs__tile-skel">
-          <span class="skeleton" style="width: 60%" />
-          <span class="skeleton" style="width: 40%; height: 1.25rem" />
-        </div>
-      </div>
-      <div class="panel costs__table-skel" aria-hidden="true">
-        <span v-for="i in 4" :key="i" class="skeleton" :style="{ width: `${90 - i * 8}%` }" />
-      </div>
-    </template>
+    <TabsRoot v-model="tab" class="costs">
+      <TabsList class="tabs" aria-label="Разделы экономики">
+        <TabsTrigger value="costs" class="tabs__trigger">Стоимость</TabsTrigger>
+        <TabsTrigger value="effect" class="tabs__trigger">Эффект</TabsTrigger>
+      </TabsList>
 
-    <BlockError
-      v-else-if="res.status.value === 'error'"
-      :error="res.error.value!"
-      title="Сводка стоимости не загрузилась"
-      @retry="reload"
-    />
+      <TabsContent value="effect" class="costs">
+        <EffectCommerce />
+      </TabsContent>
 
-    <template v-else-if="data">
-      <div class="costs__tiles">
-        <StatTile
-          v-for="t in tiles"
-          :key="t.key"
-          :label="t.label"
-          :value="t.value"
-          :sub="t.sub"
-          :missing="t.missing"
-          @explain="openTile(t)"
+      <TabsContent value="costs" class="costs">
+        <template v-if="res.status.value === 'loading' && !data">
+          <div class="costs__tiles" aria-busy="true">
+            <div v-for="i in 4" :key="i" class="panel costs__tile-skel">
+              <span class="skeleton" style="width: 60%" />
+              <span class="skeleton" style="width: 40%; height: 1.25rem" />
+            </div>
+          </div>
+          <div class="panel costs__table-skel" aria-hidden="true">
+            <span v-for="i in 4" :key="i" class="skeleton" :style="{ width: `${90 - i * 8}%` }" />
+          </div>
+        </template>
+
+        <BlockError
+          v-else-if="res.status.value === 'error'"
+          :error="res.error.value!"
+          title="Сводка стоимости не загрузилась"
+          @retry="reload"
         />
-      </div>
 
-      <section class="costs__routes" aria-labelledby="routes-title">
-        <h2 id="routes-title" class="t-h2">По маршрутам</h2>
-        <p v-if="routes.length === 0" class="panel costs__empty">
-          Поисков ещё не было — распределения по маршрутам нет.
-        </p>
-        <div v-else class="data-scroll" role="region" aria-label="Маршруты" tabindex="0">
-          <table class="data-table">
-            <thead>
-              <tr>
-                <th scope="col">Маршрут</th>
-                <th scope="col" class="num">Поисков</th>
-                <th scope="col" class="num">Доля</th>
-                <th scope="col" class="num">Среднее время</th>
-                <th scope="col" class="num">Средняя стоимость</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="r in routes" :key="r.route">
-                <td><RouteBadge :route="r.route" /></td>
-                <td class="num">{{ formatInt(r.count) }}</td>
-                <td class="num">
-                  <button
-                    v-if="num(r.share)"
-                    type="button"
-                    class="num-btn"
-                    @click="explainRoute(r, 'share')"
-                  >
-                    {{ formatPercent(r.share) }}
-                  </button>
-                  <span v-else class="t-muted">—</span>
-                </td>
-                <td class="num">
-                  <button
-                    v-if="num(r.avg_ms)"
-                    type="button"
-                    class="num-btn"
-                    @click="explainRoute(r, 'avg_ms')"
-                  >
-                    {{ formatMs(r.avg_ms) }}
-                  </button>
-                  <span v-else class="t-muted">—</span>
-                </td>
-                <td class="num">
-                  <button
-                    v-if="num(r.avg_cost_rub)"
-                    type="button"
-                    class="num-btn"
-                    @click="explainRoute(r, 'avg_cost_rub')"
-                  >
-                    {{ formatCost(r.avg_cost_rub) }}
-                  </button>
-                  <span v-else class="t-muted">—</span>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </section>
+        <template v-else-if="data">
+          <div class="costs__tiles">
+            <StatTile
+              v-for="t in tiles"
+              :key="t.key"
+              :label="t.label"
+              :value="t.value"
+              :sub="t.sub"
+              :missing="t.missing"
+              @explain="openTile(t)"
+            />
+          </div>
 
-      <p v-if="summary && summary.eval_calls > 0" class="t-xs t-muted">
-        Прогоны оценки вызывали модель {{ formatInt(summary.eval_calls) }}
-        {{ plural(summary.eval_calls, ['раз', 'раза', 'раз']) }} на
-        {{ formatCost(summary.eval_cost_rub) }} — в стоимость запроса покупателя не входят.
-        Исторические логи без маршрута в таблицу не попадают.
-      </p>
+          <section class="costs__routes" aria-labelledby="routes-title">
+            <h2 id="routes-title" class="t-h2">По маршрутам</h2>
+            <p v-if="routes.length === 0" class="panel costs__empty">
+              Поисков ещё не было — распределения по маршрутам нет.
+            </p>
+            <div v-else class="data-scroll" role="region" aria-label="Маршруты" tabindex="0">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th scope="col">Маршрут</th>
+                    <th scope="col" class="num">Поисков</th>
+                    <th scope="col" class="num">Доля</th>
+                    <th scope="col" class="num">Среднее время</th>
+                    <th scope="col" class="num">Средняя стоимость</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr v-for="r in routes" :key="r.route">
+                    <td><RouteBadge :route="r.route" /></td>
+                    <td class="num">{{ formatInt(r.count) }}</td>
+                    <td class="num">
+                      <button
+                        v-if="num(r.share)"
+                        type="button"
+                        class="num-btn"
+                        @click="explainRoute(r, 'share')"
+                      >
+                        {{ formatPercent(r.share) }}
+                      </button>
+                      <span v-else class="t-muted">—</span>
+                    </td>
+                    <td class="num">
+                      <button
+                        v-if="num(r.avg_ms)"
+                        type="button"
+                        class="num-btn"
+                        @click="explainRoute(r, 'avg_ms')"
+                      >
+                        {{ formatMs(r.avg_ms) }}
+                      </button>
+                      <span v-else class="t-muted">—</span>
+                    </td>
+                    <td class="num">
+                      <button
+                        v-if="num(r.avg_cost_rub)"
+                        type="button"
+                        class="num-btn"
+                        @click="explainRoute(r, 'avg_cost_rub')"
+                      >
+                        {{ formatCost(r.avg_cost_rub) }}
+                      </button>
+                      <span v-else class="t-muted">—</span>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </section>
 
-      <MonthBlock
-        :llm-per-request-rub="monthLlmPerRequest"
-        :agent-run-rub="monthAgentRun"
-        :agent-run-note="monthAgentNote"
-        :pricing-version="pricingVersion"
-        @explain="explain"
-      />
+          <p v-if="summary && summary.eval_calls > 0" class="t-xs t-muted">
+            Прогоны оценки вызывали модель {{ formatInt(summary.eval_calls) }}
+            {{ plural(summary.eval_calls, ['раз', 'раза', 'раз']) }} на
+            {{ formatCost(summary.eval_cost_rub) }} — в стоимость запроса покупателя не входят.
+            Исторические логи без маршрута в таблицу не попадают.
+          </p>
 
-      <CallsJournal
-        :calls="calls"
-        :total="data.calls?.total ?? calls.length"
-        :loading-more="loadingMore"
-        :pricing-version="pricingVersion"
-        @more="more"
-        @explain="explain"
-      />
+          <MonthBlock
+            :llm-per-request-rub="monthLlmPerRequest"
+            :agent-run-rub="monthAgentRun"
+            :agent-run-note="monthAgentNote"
+            :pricing-version="pricingVersion"
+            @explain="explain"
+          />
 
-      <footer class="costs__pricing t-xs t-muted">
-        <span>
-          Прайс <span class="t-mono">{{ pricingVersion }}</span>
-          <template v-if="pricing?.date">, цены на {{ pricing.date }}</template>
-        </span>
-        <span v-for="p in pricing?.prices ?? []" :key="p.model">
-          <span class="t-mono">{{ p.model }}</span>: {{ formatInt(p.input_rub_per_mtok) }} /
-          {{ formatInt(p.output_rub_per_mtok) }} ₽ за 1 млн токенов (вход / выход)
-        </span>
-      </footer>
-    </template>
+          <CallsJournal
+            :calls="calls"
+            :total="data.calls?.total ?? calls.length"
+            :loading-more="loadingMore"
+            :pricing-version="pricingVersion"
+            @more="more"
+            @explain="explain"
+          />
+
+          <footer class="costs__pricing t-xs t-muted">
+            <span>
+              Прайс <span class="t-mono">{{ pricingVersion }}</span>
+              <template v-if="pricing?.date">, цены на {{ pricing.date }}</template>
+            </span>
+            <span v-for="p in pricing?.prices ?? []" :key="p.model">
+              <span class="t-mono">{{ p.model }}</span>: {{ formatInt(p.input_rub_per_mtok) }} /
+              {{ formatInt(p.output_rub_per_mtok) }} ₽ за 1 млн токенов (вход / выход)
+            </span>
+          </footer>
+        </template>
+      </TabsContent>
+    </TabsRoot>
 
     <ExplainDialog v-model:open="open" :explanation="explanation">
       <button

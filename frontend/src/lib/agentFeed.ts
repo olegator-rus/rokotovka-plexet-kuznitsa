@@ -120,6 +120,7 @@ const OUTCOME_LABELS: Record<string, string> = {
   proposal: 'правка правил — в очереди',
   ticket: 'задача человеку — в очереди',
   closed: 'правкой правил не решается',
+  rejected: 'гипотезы отклонены — предложения нет',
 }
 
 /** Итог по кластерам из episode.clusters в порядке разбора. */
@@ -181,7 +182,10 @@ export function stepView(
   const k = hypKey(step)
   const reason =
     step.rejected_reason ??
-    (k && (step.kind === 'hypothesis' || step.kind === 'check') ? (rejected.get(k) ?? null) : null)
+    // Пройденная ступень отклонённой гипотезы (лестница контура коммерции: провал на 5-й ступени) — не провал.
+    (k && (step.kind === 'hypothesis' || (step.kind === 'check' && !step.ok))
+      ? (rejected.get(k) ?? null)
+      : null)
   return {
     step,
     kind,

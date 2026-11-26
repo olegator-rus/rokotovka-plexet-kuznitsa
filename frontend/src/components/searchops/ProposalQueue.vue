@@ -1,5 +1,5 @@
 <script setup lang="ts">
-// Вкладка «Очередь»: предложения по убыванию потерянного спроса, фильтр по статусу и
+// Вкладка «Очередь»: предложения по оценке приоритета, затем по потерянному спросу; фильтр по статусу и
 // роли-адресату (в адресе: ?status=&role=). Решение — через диалог, итог — тост; после принятия тост
 // ведёт в «Поиск» на действующих правилах B4.
 import { computed, nextTick, ref, watch } from 'vue'
@@ -13,13 +13,8 @@ import UiSelect from '@/components/ui/UiSelect.vue'
 import { useToast } from '@/components/ui/useToast'
 import { useResource } from '@/composables/useResource'
 import { formatInt } from '@/lib/format'
-import {
-  PROPOSAL_ROLES,
-  PROPOSAL_STATUSES,
-  isTicket,
-  searchCheckUrl,
-  sortByLostDemand,
-} from '@/lib/proposals'
+import { PROPOSAL_ROLES, PROPOSAL_STATUSES, isTicket, searchCheckUrl } from '@/lib/proposals'
+import { isBundle, sortQueue } from '@/lib/killer'
 import { useAppStore } from '@/stores/app'
 import DecisionDialogs from './DecisionDialogs.vue'
 import ProposalCard from './ProposalCard.vue'
@@ -68,7 +63,11 @@ const res = useResource(async (opts) => {
 })
 watch([status, role], () => void res.load(), { immediate: true })
 
-const items = computed(() => sortByLostDemand(res.data.value?.items ?? []))
+// Очередь: сначала по оценке приоритета (₽), затем по потерянному спросу.
+const items = computed(() => sortQueue(res.data.value?.items ?? []))
+const hasPriority = computed(() =>
+  items.value.some((p) => typeof (p as { priority_score?: unknown }).priority_score === 'number'),
+)
 
 // ?p=<id> — переход из «Изменений» и «Памяти»: прокрутка к карточке предложения, один раз.
 let focusedProposal = ''
@@ -100,7 +99,7 @@ function onAccepted(p: Proposal, r: ApproveResponse) {
   afterDecision()
   void app.loadMeta(true)
   const url = searchCheckUrl(p)
-  if (isTicket(p)) {
+  if (isTicket(p) || isBundle(p)) {
     toast.add({ tone: 'ok', title: 'Взято в работу', detail: `Кластер «${p.cluster?.label}»` })
     return
   }
@@ -134,8 +133,13 @@ function onRejected(p: Proposal) {
     <div class="queue__filters">
       <UiSelect v-model="status" :options="STATUS_OPTIONS" label="Статус" prefix="Статус" />
       <UiSelect v-model="role" :options="ROLE_OPTIONS" label="Кому" prefix="Кому" />
-      <span v-if="res.status.value === 'ready'" class="t-sm t-muted t-num">
-        {{ formatInt(items.length) }} · по убыванию потерянного спроса
+      <span v-if="res.status.value === 'ready'" class="t-sm t-muted queue__count">
+        {{ formatInt(items.length) }} ·
+        {{
+          hasPriority
+            ? 'по оценке приоритета (не прогноз), затем по потерянному спросу'
+            : 'по убыванию потерянного спроса'
+        }}
       </span>
     </div>
 
@@ -211,6 +215,10 @@ function onRejected(p: Proposal) {
   flex-wrap: wrap;
   align-items: center;
   gap: var(--space-2) var(--space-3);
+}
+.queue__count {
+  min-width: 0;
+  font-variant-numeric: tabular-nums;
 }
 .queue__list {
   display: flex;

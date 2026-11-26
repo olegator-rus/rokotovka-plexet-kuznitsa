@@ -12,6 +12,7 @@ import UiDialog from '@/components/ui/UiDialog.vue'
 import { isApiError, MSG_UNKNOWN } from '@/lib/apiError'
 import { REJECT_REASONS, isTicket } from '@/lib/proposals'
 import { buildEvent } from '@/lib/events'
+import { isBundle } from '@/lib/killer'
 import { isRelationPatch, relationIds } from '@/lib/relationProposal'
 import { useAppStore } from '@/stores/app'
 
@@ -59,7 +60,9 @@ const rejectOpen = computed({
   },
 })
 
-const ticket = computed(() => !!props.target && isTicket(props.target.proposal))
+const bundle = computed(() => !!props.target && isBundle(props.target.proposal))
+// Комплект, как задача, берётся в работу: справочник и выдача не меняются.
+const ticket = computed(() => !!props.target && (isTicket(props.target.proposal) || bundle.value))
 const relation = computed(() => !!props.target && isRelationPatch(props.target.proposal))
 const app = useAppStore()
 
@@ -124,7 +127,11 @@ async function reject() {
   <UiDialog v-model:open="acceptOpen" :title="ticket ? 'Взять в работу?' : 'Принять правку?'">
     <div class="decision">
       <p v-if="target">Кластер «{{ target.proposal.cluster?.label }}».</p>
-      <p v-if="ticket">
+      <p v-if="bundle">
+        Справочник связей и выдача не меняются: комплект станет задачей продукт-менеджеру — собрать
+        и опубликовать его в каталоге.
+      </p>
+      <p v-else-if="ticket">
         Правила поиска не меняются: предложение станет задачей ответственному за ассортимент или
         карточку.
       </p>

@@ -2,12 +2,30 @@
 // «Маржа»: один рычаг «Приоритет маржи», кривая качество ↔ индекс показанной
 // маржи, затронутые запросы «было / стало», защиты. Все положения прогоняются одной симуляцией в песочнице;
 // движение рычага выбирает посчитанную точку и ничего не меняет в боевом поиске до «Применить».
-// Адрес: /margin?w=0.08 — подставленное положение (из карточки агента).
+// Адрес: /margin?w=0.08 — подставленное положение; /margin?w=0.08&cat=<категория>&p=<id предложения> — песочница
+// предложения агента MARGIN_OPPORTUNITY: рычаг только для позиций категории, рядом числа предложения и
+// сверка с ними; «Применить» пишет вес категории с proposal_id — предложение становится принятым.
 import { computed, onBeforeUnmount, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { CircleAlert, LoaderCircle, RotateCcw, ShieldCheck } from 'lucide-vue-next'
+import { RouterLink } from 'vue-router'
+import {
+  Bot,
+  CircleAlert,
+  CircleCheck,
+  LoaderCircle,
+  RotateCcw,
+  ShieldCheck,
+} from 'lucide-vue-next'
+import { getProposal } from '@/api/agent'
 import { postEvent } from '@/api/events'
-import { applyMarginPolicy, getMarginPolicy, getSimulateStatus, simulateMargin } from '@/api/margin'
+import {
+  applyMarginCategory,
+  applyMarginPolicy,
+  getMarginPolicy,
+  getSimulateStatus,
+  simulateMargin,
+} from '@/api/margin'
+import type { MarginProposalEval } from '@/api/typesKiller'
 import type { MarginSimulateResponse } from '@/api/typesCommerce'
 import BlockError from '@/components/common/BlockError.vue'
 import ExplainDialog, { type Explanation } from '@/components/common/ExplainDialog.vue'
@@ -37,17 +55,39 @@ import {
   queriesLabel,
   weightLabel,
 } from '@/lib/margin'
+import { indexLabel4, marginProposalView, proposalMatch } from '@/lib/killer'
 import { useAppStore } from '@/stores/app'
 
-const LAST_SIM_KEY = 'plexet.margin.lastSim'
+const LAST_SIM_BASE = 'plexet.margin.lastSim'
 
 const route = useRoute()
 const router = useRouter()
 const app = useAppStore()
 const toast = useToast()
 
+const qs = (k: string) => (typeof route.query[k] === 'string' ? (route.query[k] as string) : '')
+// Категория песочницы (?cat=) и предложение агента (?p=), из карточки F28.
+const catId = computed(() => qs('cat'))
+const proposalId = computed(() => qs('p'))
+
 const policy = useResource((opts) => getMarginPolicy(opts))
-const sim = useResource((opts) => simulateMargin(policy.data.value?.positions ?? [], opts))
+const sim = useResource((opts) =>
+  simulateMargin(policy.data.value?.positions ?? [], opts, 'tune', catId.value || undefined),
+)
+const proposal = useResource((opts) => getProposal(proposalId.value, opts))
+watch(
+  proposalId,
+  (id) => {
+    if (id) void proposal.load()
+  },
+  { immediate: true },
+)
+const proposalView = computed(() =>
+  proposal.data.value?.action === 'margin_policy' ? marginProposalView(proposal.data.value) : null,
+)
+const proposalPending = computed(
+  () => proposal.data.value?.status === 'pending' && !!proposalView.value,
+)
 
 // 503 у симуляции — базовая выдача ещё собирается в фоне: показываем прогресс и повторяем, когда готова.
 const building = ref<{ done: number; total: number } | null>(null)
@@ -77,9 +117,11 @@ async function loadSim() {
 onBeforeUnmount(() => clearTimeout(buildTimer))
 
 // Последняя удачная симуляция с датой — показывается при ошибке нового прогона.
+// Своя последняя удачная симуляция у общего рычага и у каждой категории.
+const lastKey = () => (catId.value ? `${LAST_SIM_BASE}.${catId.value}` : LAST_SIM_BASE)
 function readLast(): { at: string; data: MarginSimulateResponse } | null {
   try {
-    const raw = window.localStorage.getItem(LAST_SIM_KEY)
+    const raw = window.localStorage.getItem(lastKey())
     return raw ? (JSON.parse(raw) as { at: string; data: MarginSimulateResponse }) : null
   } catch {
     return null
@@ -93,7 +135,7 @@ watch(
     const entry = { at: d.ran_at ?? new Date().toISOString(), data: d }
     lastGood.value = entry
     try {
-      window.localStorage.setItem(LAST_SIM_KEY, JSON.stringify(entry))
+      window.localStorage.setItem(lastKey(), JSON.stringify(entry))
     } catch {
       /* хранилище недоступно — живём без него */
     }
@@ -110,9 +152,29 @@ async function loadAll() {
   if (policy.status.value === 'ready') await loadSim()
 }
 void loadAll()
+// Смена категории — новая симуляция (общий рычаг ↔ рычаг категории).
+watch(catId, () => {
+  lastGood.value = readLast()
+  if (policy.status.value === 'ready') void loadSim()
+})
 
 const positions = computed(() => policy.data.value?.positions ?? [])
-const active = computed(() => policy.data.value?.weight ?? 0)
+const globalWeight = computed(() => policy.data.value?.weight ?? 0)
+// У категории действует свой вес, иначе — общий.
+const active = computed(() => {
+  const own = catId.value ? policy.data.value?.categories?.[catId.value] : undefined
+  return typeof own === 'number' ? own : globalWeight.value
+})
+const scope = computed(() => (catId.value ? (simData.value?.scope ?? null) : null))
+const categoryName = computed(
+  () =>
+    scope.value?.category ??
+    policy.data.value?.category_names?.[catId.value] ??
+    proposalView.value?.category ??
+    catId.value,
+)
+const indexLabel = (v: number | null | undefined) =>
+  catId.value ? indexLabel4(v) : marginIndexLabel(v)
 const baseWeight = computed(
   () => policy.data.value?.base_weight ?? simData.value?.base_weight ?? 0.05,
 )
@@ -155,6 +217,25 @@ const affected = computed(() => affectedList(point.value))
 const queries = computed(() => simData.value?.judged ?? simData.value?.queries ?? null)
 const changed = computed(() => selected.value !== active.value)
 const guards = computed(() => guardIndicators(policy.data.value))
+// Сверка с предложением агента: те же ли числа даёт симуляция сейчас (до → после).
+const match = computed(() => {
+  const pv = proposalView.value
+  if (!pv || !proposal.data.value || !simData.value) return null
+  const ev = proposal.data.value.evaluation as unknown as MarginProposalEval | null
+  const from = pv.from ?? active.value
+  return proposalMatch(ev, pointFor(simData.value, from), pointFor(simData.value, pv.to))
+})
+// Применяется предложение: категория и вес совпадают с ним, предложение ещё ждёт решения.
+const applyProposal = computed(
+  () =>
+    proposalPending.value &&
+    !!proposalView.value &&
+    proposalView.value.categoryId === catId.value &&
+    Math.abs(proposalView.value.to - selected.value) < 1e-9,
+)
+function leaveCategory() {
+  void router.replace({ query: { ...route.query, cat: undefined, p: undefined, w: undefined } })
+}
 
 // ── «Как посчитано» ──
 const explain = ref<Explanation | null>(null)
@@ -193,20 +274,20 @@ function explainIndex() {
   if (!p) return
   explain.value = {
     title: 'Индекс показанной маржи',
-    value: marginIndexLabel(p.margin_index) ?? '—',
+    value: indexLabel(p.margin_index) ?? '—',
     what: 'Сколько маржи покупатель видит в первой десятке. Это индекс, не рубли и не прогноз продаж.',
     how: 'Маржа позиции — перцентиль внутри категории; сумма по первой десятке с весом по позиции. Отдельно — только по релевантным товарам.',
     rows: [
-      { label: 'Индекс, вся десятка', value: marginIndexLabel(p.margin_index) ?? '—' },
+      { label: 'Индекс, вся десятка', value: indexLabel(p.margin_index) ?? '—' },
       {
         label: 'Индекс, только релевантные',
-        value: marginIndexLabel(p.margin_index_relevant) ?? '—',
+        value: indexLabel(p.margin_index_relevant) ?? '—',
       },
       ...(base.value
         ? [
             {
               label: `Действующее положение (${weightLabel(active.value)})`,
-              value: marginIndexLabel(base.value.margin_index) ?? '—',
+              value: indexLabel(base.value.margin_index) ?? '—',
             },
           ]
         : []),
@@ -252,7 +333,14 @@ async function confirmApply() {
   applying.value = true
   applyErr.value = ''
   try {
-    const r = await applyMarginPolicy(selected.value, comment.value.trim())
+    const viaProposal = applyProposal.value
+    const r = catId.value
+      ? await applyMarginCategory(
+          { [catId.value]: selected.value },
+          comment.value.trim(),
+          viaProposal ? proposalId.value : undefined,
+        )
+      : await applyMarginPolicy(selected.value, comment.value.trim())
     applying.value = false
     applyOpen.value = false
     void postEvent(
@@ -267,8 +355,14 @@ async function confirmApply() {
     await onChanged(
       r.version,
       `Политика маржи v${r.version}`,
-      `Вес ${weightLabel(selected.value)} действует в поиске. Откат — в истории ниже.`,
+      catId.value
+        ? `Вес ${weightLabel(selected.value)} для категории «${categoryName.value}» действует в поиске.${viaProposal ? ' Предложение агента принято.' : ''} Откат — в истории ниже.`
+        : `Вес ${weightLabel(selected.value)} действует в поиске. Откат — в истории ниже.`,
     )
+    if (viaProposal) {
+      await proposal.load({ quiet: true })
+      void app.loadPending()
+    }
   } catch (e) {
     applying.value = false
     applyErr.value = isApiError(e) ? e.message : MSG_UNKNOWN
@@ -317,6 +411,71 @@ async function onChanged(
     />
 
     <template v-else-if="policy.data.value">
+      <section v-if="catId" class="panel margin__scope" aria-label="Песочница категории">
+        <div class="margin__scope-head">
+          <p>
+            Рычаг категории <strong>«{{ categoryName }}»</strong>: двигает только её позиции,
+            остальные — по действующей политике v{{ policy.data.value.version }} (общий вес
+            {{ weightLabel(globalWeight) }}).
+            <template v-if="scope">
+              Позиции категории — в {{ queriesLabel(scope.queries_in_scope) }} набора, размеченных
+              {{ formatInt(scope.judged_in_scope) }}.</template
+            >
+          </p>
+          <button type="button" class="btn btn--secondary btn--sm" @click="leaveCategory">
+            Общий рычаг
+          </button>
+        </div>
+        <div v-if="proposalId" class="margin__prop" data-testid="margin-proposal">
+          <p class="t-sm">
+            <Bot :size="14" aria-hidden="true" />
+            <template v-if="proposal.status.value === 'loading' && !proposal.data.value">
+              Загружаем предложение агента…
+            </template>
+            <template v-else-if="proposal.status.value === 'error'">
+              Предложение агента не загрузилось: {{ proposal.error.value?.message }}.
+              <button type="button" class="link" @click="proposal.load()">Повторить</button>
+            </template>
+            <template v-else-if="proposalView">
+              Предложение агента: {{ weightLabel(proposalView.from ?? active) }} →
+              {{ weightLabel(proposalView.to)
+              }}<template v-if="proposalView.index">
+                · индекс показанной маржи {{ proposalView.index.before }} →
+                {{ proposalView.index.after }}</template
+              ><template v-if="proposalView.ndcg">
+                · NDCG@10 {{ proposalView.ndcg.before }} → {{ proposalView.ndcg.after }}</template
+              ><template v-if="proposalView.checked"> · {{ proposalView.checked }}</template
+              >.
+              <template v-if="!proposalPending">
+                Статус:
+                {{
+                  proposal.data.value?.status === 'accepted' ? 'принято' : 'решение уже принято'
+                }}.
+              </template>
+            </template>
+          </p>
+          <p
+            v-if="match"
+            :class="['t-sm margin__match', match.same ? 'status-accepted' : 'status-pending']"
+            role="status"
+          >
+            <component :is="match.same ? CircleCheck : CircleAlert" :size="14" aria-hidden="true" />
+            <span v-if="match.same">
+              Симуляция даёт те же числа, что в предложении: индекс {{ match.now }}.
+            </span>
+            <span v-else>
+              Числа разошлись с предложением: в предложении индекс {{ match.proposal }}, симуляция
+              сейчас {{ match.now }} — базовая выдача изменилась после запуска агента. Решайте по
+              текущей симуляции.
+            </span>
+          </p>
+          <RouterLink
+            :to="{ path: '/searchops', query: { tab: 'queue', status: 'all', p: proposalId } }"
+            class="link t-xs"
+            >Карточка в очереди SearchOps</RouterLink
+          >
+        </div>
+      </section>
       <div class="margin__grid">
         <div class="panel margin__lever">
           <MarginLever
@@ -418,10 +577,10 @@ async function onChanged(
           />
           <StatTile
             label="Индекс показанной маржи"
-            :value="marginIndexLabel(point.margin_index)"
+            :value="indexLabel(point.margin_index)"
             :sub="
               base && changed
-                ? `сейчас ${marginIndexLabel(base.margin_index) ?? '—'}`
+                ? `сейчас ${indexLabel(base.margin_index) ?? '—'}`
                 : 'по показам в первой десятке'
             "
             missing="маржа не посчитана"
@@ -459,8 +618,11 @@ async function onChanged(
       <div class="margin__dialog">
         <p>
           Будет создана политика v{{ (policy.data.value?.version ?? 0) + 1 }} с весом
-          {{ weightLabel(selected) }} вместо {{ weightLabel(active) }}. Она начнёт действовать в
-          поиске сразу; прежнюю можно вернуть из истории.
+          {{ weightLabel(selected) }} вместо {{ weightLabel(active)
+          }}<template v-if="catId">
+            для категории «{{ categoryName }}» (общий вес не меняется)</template
+          >. Она начнёт действовать в поиске сразу; прежнюю можно вернуть из истории.
+          <template v-if="applyProposal">Предложение агента станет принятым.</template>
         </p>
         <p v-if="point" class="t-sm t-muted">
           {{ qualityLossText(point.ndcg_delta_mean, baseWeight) }}; изменится первый результат у
@@ -516,6 +678,44 @@ async function onChanged(
   flex-direction: column;
   gap: var(--space-3);
   padding: var(--space-4);
+}
+.margin__scope {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-4);
+}
+.margin__scope-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-2) var(--space-3);
+}
+.margin__scope-head p {
+  max-width: 48rem;
+  overflow-wrap: anywhere;
+}
+.margin__prop {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  padding-top: var(--space-2);
+  border-top: var(--border-w) solid var(--border);
+  overflow-wrap: anywhere;
+}
+.margin__prop svg {
+  display: inline-block;
+  vertical-align: -2px;
+}
+.margin__match {
+  display: flex;
+  gap: var(--space-1);
+}
+.margin__match svg {
+  flex: none;
+  margin-top: 3px;
+  color: var(--tone);
 }
 .margin__grid {
   display: grid;

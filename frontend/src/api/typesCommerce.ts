@@ -2,6 +2,7 @@
 // (backend/out/margin.go, relations.go, commerce_eval.go, agent.go). Отдельный файл, чтобы не пересекаться с типами
 // витрины в types.ts. Необязательные поля сервер может не прислать — экран тогда не показывает строку.
 import type { Proposal } from './types'
+import type { MarginScope } from './typesKiller'
 
 // ── Маржа ──
 
@@ -14,6 +15,8 @@ export interface MarginPolicyVersion {
   author?: string
   comment?: string
   created_at: string | null
+  categories?: Record<string, number>
+  proposal_id?: string | null
 }
 
 export interface MarginPolicy {
@@ -32,6 +35,9 @@ export interface MarginPolicy {
   /** Флаг FEATURE_MARGIN_POLICY: выключен — политика в поиске не применяется. */
   enabled?: boolean
   versions?: MarginPolicyVersion[]
+  /** Веса по категориям поверх общего; {} — нет. */
+  categories?: Record<string, number>
+  category_names?: Record<string, string>
 }
 
 /** Позиция выдачи в «было / стало». */
@@ -102,6 +108,8 @@ export interface MarginSimulateResponse {
   duration_ms?: number
   note?: string
   ran_at?: string
+  /** Симуляция по одной категории; null — общий вес. */
+  scope?: MarginScope | null
 }
 
 /** GET /api/margin/simulate/status — базовая выдача собирается (503 у simulate). */
@@ -117,6 +125,9 @@ export interface MarginApplied {
   version_before?: number
   weight_before?: number
   rolled_back_to?: number
+  categories?: Record<string, number>
+  categories_before?: Record<string, number>
+  proposal_id?: string | null
 }
 
 // ── Связи ──
