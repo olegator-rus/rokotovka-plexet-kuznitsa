@@ -54,3 +54,16 @@ export function parseRubInput(raw: string): number | null {
   const n = Number(s)
   return Number.isFinite(n) && n >= 0 ? n : null
 }
+
+/**
+ * Стоимость запуска агента для сценариев месяца: среднее по полным запускам (завершён, разобран хотя бы
+ * один кластер) — отладочные и прерванные запуски цифру не занижают. Нет полных — среднее сервера.
+ */
+export function agentRunCost(
+  runs: readonly { status: string; clusters_done: number; cost_rub: number }[],
+  fallback: number | null,
+): { rub: number | null; full: number } {
+  const full = runs.filter((r) => r.status === 'done' && r.clusters_done > 0 && r.cost_rub > 0)
+  if (!full.length) return { rub: fallback, full: 0 }
+  return { rub: full.reduce((n, r) => n + r.cost_rub, 0) / full.length, full: full.length }
+}

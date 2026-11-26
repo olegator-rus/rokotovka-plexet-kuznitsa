@@ -279,6 +279,7 @@ func agentEnv(t *testing.T, model *scriptModel) (*Services, *memStore) {
 	ms.searches, ms.behavior = failedLog()
 	s.agentStoreOverride = ms
 	s.agent = newAgentService(s, model, AgentOptions{})
+	s.llm = newLLMGuard(llmModeOn, true, 0, time.Now, nil)
 	return s, ms
 }
 
@@ -600,5 +601,155 @@ func TestInferredTextCalls(t *testing.T) {
 	got := textToolCalls("Проверим поиск. ```json {\"query\":\"кис\"} ``` и каталог ```json {\"expand\":true,\"query\":\"кис\"}```")
 	if len(got) != 2 || got[0].Function.Name != "get_search_trace" || got[1].Function.Name != "search_catalog" {
 		t.Fatalf("вызовы по аргументам: %+v", got)
+	}
+}
+
+// winrar (запуск 01a20fe5): расширенный поиск ничего не нашёл, модель «закрывает» кластер с ASSORTMENT_GAP —
+// это задача продукт-менеджеру, а не отказ; попытка закрыть как UNKNOWN при доказанном отсутствии
+// отклоняется один раз с подсказкой.
+func TestAgentAssortmentGapNotUnknown(t *testing.T) {
+	model := &scriptModel{}
+	s, ms := agentEnv(t, model)
+	model.turns = [][]llm.ToolCall{
+		{tc("search_catalog", map[string]any{"query": "winrar", "expand": true})},
+		{tc("close_cluster", map[string]any{"diagnosis": "UNKNOWN", "reason": "товара нет"})},
+		{tc("close_cluster", map[string]any{"diagnosis": "ASSORTMENT_GAP", "reason": "WinRAR и аналогов нет в каталоге, спрос без предложения"})},
+	}
+	r, err := s.StartAgentRun(t.Context(), in.AgentRunRequest{MaxClusters: 1})
+	if err != nil {
+		t.Fatal(err)
+	}
+	run := waitRun(t, s, r.RunID)
+	list, _ := s.Proposals(t.Context(), domain.ProposalPending, "")
+	if run.ProposalsCreated != 1 || len(list.Items) != 1 || list.Items[0].Diagnosis != domain.DiagAssortmentGap ||
+		list.Items[0].Action != domain.ActionTicket || list.Items[0].Role != domain.RoleProduct {
+		t.Fatalf("ожидалась задача ASSORTMENT_GAP: %+v %+v", run, list)
+	}
+	hinted := false
+	for _, st := range ms.steps {
+		if st.Tool != nil && *st.Tool == "close_cluster" && !st.OK && strings.Contains(st.Title, "это ASSORTMENT_GAP") {
+			hinted = true
+		}
+	}
+	if !hinted || run.StopReason != "" {
+		t.Fatalf("UNKNOWN при доказанном отсутствии должен отклоняться с подсказкой: %+v", run)
+	}
+}
+
+// RANKING_FAILURE: правка ухудшила запрос, нужное семейство в выдаче вторым — подсказка прогона и задача
+// менеджеру e-com; без доказательства (семейство не видели в выдаче) задача отклоняется.
+func TestAgentRankingFailure(t *testing.T) {
+	model := &scriptModel{}
+	s, ms := agentEnv(t, model)
+	s.agent.evalHook = func(context.Context, *failedCluster, RulePatch) (*patchEval, error) {
+		ev := evalResult(1, 1, 0)
+		ev.Target.Worse = 1
+		ev.Target.Queries = []targetQueryEval{{Text: "кис продление", Judged: true, BeforeFound: true, AfterFound: false,
+			BeforeTop: []string{"kaspersky-internet-security"}, AfterTop: []string{"kaspersky-small-office-security", "kaspersky-internet-security"}}}
+		ev.Passed, ev.Reasons = false, []string{"в целевом кластере ухудшилось запросов: 1"}
+		return ev, nil
+	}
+	model.turns = [][]llm.ToolCall{
+		{tc("create_assortment_ticket", map[string]any{"diagnosis": "RANKING_FAILURE", "text": "стоит низко", "family_id": "kaspersky-internet-security"})},
+		{tc("create_sandbox_patch", map[string]any{"diagnosis": "ALIAS_GAP", "hypothesis": "кис — KIS",
+			"add": []map[string]any{{"alias": "кис", "canonical": "kaspersky internet security", "target": "family",
+				"target_id": "kaspersky-internet-security", "term_vendor": "Kaspersky"}}})},
+		{tc("run_evaluation", map[string]any{"patch_id": "p1"})},
+		{tc("create_assortment_ticket", map[string]any{"diagnosis": "RANKING_FAILURE", "family_id": "kaspersky-internet-security",
+			"text": "«кис продление»: KIS в выдаче вторым после KSOS — эксперимент с ранжированием"})},
+	}
+	r, err := s.StartAgentRun(t.Context(), in.AgentRunRequest{MaxClusters: 1})
+	if err != nil {
+		t.Fatal(err)
+	}
+	waitRun(t, s, r.RunID)
+	list, _ := s.Proposals(t.Context(), domain.ProposalPending, "")
+	if len(list.Items) != 1 || list.Items[0].Diagnosis != domain.DiagRankingFailure || list.Items[0].Role != domain.RoleEcom {
+		t.Fatalf("ожидалась задача RANKING_FAILURE менеджеру e-com: %+v", list)
+	}
+	var refused, hint bool
+	for _, st := range ms.steps {
+		if st.Tool == nil {
+			continue
+		}
+		if *st.Tool == "create_assortment_ticket" && !st.OK && strings.Contains(st.Title, "не первым") {
+			refused = true
+		}
+		if *st.Tool == "run_evaluation" && strings.Contains(string(st.Result), "RANKING_FAILURE") {
+			hint = true
+		}
+	}
+	if !refused || !hint {
+		t.Fatalf("отказ без доказательства и подсказка прогона: refused=%v hint=%v", refused, hint)
+	}
+}
+
+// Лимит вызовов на кластер считается по каждому вызову, и запуск честно говорит step_limit.
+func TestAgentStepLimit(t *testing.T) {
+	model := &scriptModel{}
+	s, ms := agentEnv(t, model)
+	var burst []llm.ToolCall
+	for i := 0; i < agentToolCallsPerCluster+5; i++ {
+		burst = append(burst, tc("get_active_rules", map[string]any{"term": "кис"}))
+	}
+	model.turns = [][]llm.ToolCall{burst, burst}
+	r, err := s.StartAgentRun(t.Context(), in.AgentRunRequest{MaxClusters: 1})
+	if err != nil {
+		t.Fatal(err)
+	}
+	run := waitRun(t, s, r.RunID)
+	executed := 0
+	for _, st := range ms.steps {
+		if st.Tool != nil && *st.Tool == "get_active_rules" {
+			executed++
+		}
+	}
+	if run.StopReason != StopStepLimit || executed != agentToolCallsPerCluster || run.ToolCalls != agentToolCallsPerCluster ||
+		!strings.Contains(run.Summary, "лимит") {
+		t.Fatalf("step_limit: %+v, выполнено %d", run, executed)
+	}
+}
+
+// Агент не запускается в режиме без LLM и при исчерпанном бюджете.
+func TestAgentRespectsModeAndBudget(t *testing.T) {
+	s, _ := agentEnv(t, &scriptModel{})
+	s.llm = newLLMGuard(llmModeOff, true, 0, time.Now, nil)
+	if _, err := s.StartAgentRun(t.Context(), in.AgentRunRequest{}); !isConflict(err) {
+		t.Fatalf("режим off — 409: %v", err)
+	}
+	s.llm = newLLMGuard(llmModeOn, true, 1, time.Now, nil)
+	s.llm.add(2)
+	if _, err := s.StartAgentRun(t.Context(), in.AgentRunRequest{}); !isStatus(err, 503) {
+		t.Fatalf("бюджет исчерпан — 503: %v", err)
+	}
+}
+
+// CONTENT_GAP — только для семейства, к которому покупатели кластера приходят после переформулировки
+// («счёт на оплату» → 1С по подстроке в запуске 01a21002 — отказ, это NON_PRODUCT).
+func TestAgentContentGapNeedsEvidence(t *testing.T) {
+	model := &scriptModel{}
+	s, ms := agentEnv(t, model)
+	model.turns = [][]llm.ToolCall{
+		{tc("create_assortment_ticket", map[string]any{"diagnosis": "CONTENT_GAP", "family_id": "1c-accounting", "text": "нет слова «кис»"})},
+		{tc("create_assortment_ticket", map[string]any{"diagnosis": "CONTENT_GAP", "family_id": "kaspersky-internet-security",
+			"text": "покупатели пишут «кис», находят KIS после переформулировки — добавить сокращение в карточку"})},
+	}
+	r, err := s.StartAgentRun(t.Context(), in.AgentRunRequest{MaxClusters: 1})
+	if err != nil {
+		t.Fatal(err)
+	}
+	waitRun(t, s, r.RunID)
+	list, _ := s.Proposals(t.Context(), domain.ProposalPending, "")
+	if len(list.Items) != 1 || list.Items[0].Diagnosis != domain.DiagContentGap || list.Items[0].Role != domain.RoleContent {
+		t.Fatalf("задача контент-менеджеру: %+v", list)
+	}
+	refused := false
+	for _, st := range ms.steps {
+		if st.Tool != nil && *st.Tool == "create_assortment_ticket" && !st.OK && strings.Contains(string(st.Result), "NON_PRODUCT") {
+			refused = true
+		}
+	}
+	if !refused {
+		t.Fatal("CONTENT_GAP без доказательства должен отклоняться")
 	}
 }

@@ -53,7 +53,8 @@ async function runSide(which: 'left' | 'right', config: ConfigId, q: string, sig
     { sessionId: app.sessionId, defaultConfig: config, limit: COMPARE_LIMIT },
   )
   try {
-    const resp = await postSearch(body, { signal })
+    // compare: поиск виден в журнале и трассах, но не попадает в аналитику и стоимость запроса.
+    const resp = await postSearch({ ...body, source: 'compare' }, { signal })
     if (signal.aborted) return
     sides.value = { ...sides.value, [which]: { status: 'ready', resp, error: null } }
   } catch (e) {

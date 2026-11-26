@@ -9,7 +9,8 @@ import (
 // envKeys — все переменные, которые читает пакет.
 var envKeys = []string{"APP_ENV", "PORT", "PUBLIC_ORIGIN", "DATABASE_URL", "TRUSTED_PROXIES", "OPENSEARCH_URL",
 	"EMBEDDER_URL", "RERANKER_URL", "DATA_DIR", "LLM_PROVIDER", "LLM_BASE_URL", "LLM_MODEL", "LLM_FOLDER_ID",
-	"LLM_API_KEY", "LLM_MODE", "LLM_INTENT_MODEL", "LLM_FALLBACK_MODEL", "LLM_JUDGE_MODEL"}
+	"LLM_API_KEY", "LLM_MODE", "LLM_INTENT_MODEL", "LLM_FALLBACK_MODEL", "LLM_JUDGE_MODEL",
+	"ADMIN_ENABLED", "RATE_LIMIT_PER_MIN", "LLM_DAILY_BUDGET_RUB"}
 
 // clearEnv — окружение без наших переменных: t.Setenv запоминает значение для восстановления, Unsetenv
 // убирает переменную (для адресов сервисов «не задана» и «пустая» означают разное).
@@ -204,5 +205,31 @@ func TestLLMConfig(t *testing.T) {
 	t.Setenv("LLM_API_KEY", "k")
 	if _, err := LoadLLM(); err == nil || !strings.Contains(err.Error(), "LLM_FOLDER_ID") {
 		t.Fatalf("Yandex без каталога должен отклоняться: %v", err)
+	}
+}
+
+// Защита стенда: администрирование по умолчанию только в development, лимиты читаются и проверяются.
+func TestLoadOps(t *testing.T) {
+	clearEnv(t)
+	c, err := Load()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !c.Ops.AdminEnabled || c.Ops.RatePerMinute != defaultRatePerMinute || c.Ops.DailyBudgetRub != defaultDailyBudgetRub {
+		t.Fatalf("development по умолчанию: %+v", c.Ops)
+	}
+	t.Setenv("APP_ENV", "production")
+	t.Setenv("PUBLIC_ORIGIN", "https://example.ru")
+	t.Setenv("DATABASE_URL", "postgres://x")
+	t.Setenv("TRUSTED_PROXIES", "10.0.0.1")
+	t.Setenv("LLM_DAILY_BUDGET_RUB", "250,5")
+	t.Setenv("RATE_LIMIT_PER_MIN", "0")
+	if c, err = Load(); err != nil || c.Ops.AdminEnabled || c.Ops.DailyBudgetRub != 250.5 || c.Ops.RatePerMinute != 0 {
+		t.Fatalf("production: %+v %v", c.Ops, err)
+	}
+	t.Setenv("ADMIN_ENABLED", "maybe")
+	t.Setenv("LLM_DAILY_BUDGET_RUB", "-1")
+	if _, err = Load(); err == nil || !strings.Contains(err.Error(), "ADMIN_ENABLED") || !strings.Contains(err.Error(), "LLM_DAILY_BUDGET_RUB") {
+		t.Fatalf("ошибки настроек: %v", err)
 	}
 }

@@ -21,7 +21,9 @@ func (h *Handler) Search(c *fiber.Ctx) error {
 
 // Meta — GET /api/meta: режим LLM, версии каталога и правил, конфигурации, клиенты.
 func (h *Handler) Meta(c *fiber.Ctx) error {
-	return c.JSON(h.services.Meta())
+	m := h.services.Meta()
+	m.AdminEnabled, m.RateLimitPerMin = h.admin, h.rate
+	return c.JSON(m)
 }
 
 // Events — POST /api/events: событие поведения, 204.

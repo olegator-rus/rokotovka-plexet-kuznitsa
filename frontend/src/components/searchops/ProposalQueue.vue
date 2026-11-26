@@ -2,7 +2,7 @@
 // Вкладка «Очередь»: предложения по убыванию потерянного спроса, фильтр по статусу и
 // роли-адресату (в адресе: ?status=&role=). Решение — через диалог, итог — тост; после принятия тост
 // ведёт в «Поиск» на действующих правилах B4.
-import { computed, ref, watch } from 'vue'
+import { computed, nextTick, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { storeToRefs } from 'pinia'
 import { Bot, Play } from 'lucide-vue-next'
@@ -66,6 +66,22 @@ const res = useResource((opts) =>
 watch([status, role], () => void res.load(), { immediate: true })
 
 const items = computed(() => sortByLostDemand(res.data.value?.items ?? []))
+
+// ?p=<id> — переход из «Изменений» и «Памяти»: прокрутка к карточке предложения, один раз.
+let focusedProposal = ''
+watch(
+  items,
+  async (list) => {
+    const id = typeof route.query.p === 'string' ? route.query.p : ''
+    if (!id || focusedProposal === id || !list.some((x) => x.id === id)) return
+    focusedProposal = id
+    await nextTick()
+    const el = document.getElementById(`proposal-${id}`)
+    el?.scrollIntoView({ block: 'start' })
+    el?.focus({ preventScroll: true })
+  },
+  { immediate: true },
+)
 const filtered = computed(() => status.value !== 'pending' || role.value !== ALL)
 
 const target = ref<{ proposal: Proposal; mode: 'accept' | 'reject' } | null>(null)

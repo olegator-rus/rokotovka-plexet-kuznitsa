@@ -8,7 +8,7 @@ COMPOSE := docker compose -f deploy/docker-compose.yml --env-file .env
 DEV_COMPOSE := docker compose -f deploy/docker-compose.dev.yml --env-file deploy/.env.dev
 
 .DEFAULT_GOAL := help
-.PHONY: help env db db-down ml import eval install dev run web test test-live lint check check-secrets build deploy
+.PHONY: help env db db-down ml import eval install dev run web test test-live e2e e2e-video lint check check-secrets build deploy
 
 help: ## показать список целей
 	@grep -hE '^[a-zA-Z0-9_-]+:.*?## ' $(MAKEFILE_LIST) \
@@ -62,6 +62,16 @@ test: ## go vet + go test бэкенда, node --test фронта
 test-live: ## живой тест поиска на локальных OpenSearch и эмбеддере (свой индекс itest_products)
 	cd backend && OPENSEARCH_URL=http://127.0.0.1:9201 EMBEDDER_URL=http://127.0.0.1:8089 \
 		go test -tags integration ./services/ -run Live -count=1 -v
+
+# Сквозные тесты: нужны API :8088 и эмбеддер :8089 (make dev, make ml); Vite :5177 поднимется сам, если не запущен.
+# Демо не меняют: запуск агента, решения по предложениям и откат обрываются, клики не пишутся в аналитику.
+e2e: ## сквозные тесты Playwright F1–F10 + быстрый прогон сценария видео (без @destructive)
+	@test -d e2e/node_modules || (cd e2e && pnpm install)
+	cd e2e && VIDEO_PACE=0 pnpm exec playwright test --project=flows --project=video
+
+e2e-video: ## запись сценария видео 1920×1080 в artifacts/video/run (VIDEO_ACCEPT=1 — принятие на подменах)
+	@test -d e2e/node_modules || (cd e2e && pnpm install)
+	cd e2e && VIDEO_PACE=1 pnpm exec playwright test --project=video
 
 lint: ## gofmt + go vet, eslint + prettier + vue-tsc
 	@out=$$(cd backend && gofmt -l .); if [ -n "$$out" ]; then echo "gofmt: $$out"; exit 1; fi

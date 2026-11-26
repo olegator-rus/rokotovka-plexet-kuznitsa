@@ -20,6 +20,8 @@ const props = defineProps<{
   selected: string | null
   /** Показывать крестик (на десктопе панель закрывается переключателем и крестиком). */
   closable?: boolean
+  /** Панель внутри окна со своим заголовком: свой заголовок только для скринридера. */
+  embedded?: boolean
 }>()
 
 const emit = defineEmits<{ select: [productId: string]; close: [] }>()
@@ -59,7 +61,7 @@ async function copyJson() {
 <template>
   <section class="trace" aria-labelledby="trace-title">
     <header class="trace__head">
-      <h2 id="trace-title" class="t-h2">Трасса запроса</h2>
+      <h2 id="trace-title" :class="embedded ? 'sr-only' : 't-h2'">Трасса запроса</h2>
       <div class="trace__tools">
         <button type="button" class="btn btn--ghost btn--sm" :disabled="!trace" @click="copyJson">
           <Copy :size="14" aria-hidden="true" />

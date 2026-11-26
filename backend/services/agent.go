@@ -46,13 +46,16 @@ const (
 	MsgAgentNoModel  = "Модель агента не настроена (LLM_API_KEY, AGENT_MODEL): запуск невозможен"
 	MsgAgentRunning  = "Агент уже работает — дождитесь окончания запуска или остановите его"
 	MsgAgentNotFound = "Запуск не найден"
+	MsgAgentLLMOff   = "Режим LLM выключен: агенту нужна модель — включите режим (POST /api/admin/llm-mode)"
 )
 
 // Причины остановки запуска (run.stop_reason; пусто — разобраны все выбранные кластеры).
 const (
-	StopUser            = "user"
-	StopStepLimit       = "step_limit"
-	StopTokenLimit      = "token_limit"
+	StopUser       = "user"
+	StopStepLimit  = "step_limit"
+	StopTokenLimit = "token_limit"
+	// StopBudget — дневной бюджет LLM исчерпан посреди запуска (LLM_DAILY_BUDGET_RUB).
+	StopBudget          = "budget_limit"
 	StopTimeout         = "timeout"
 	StopLLMError        = "llm_error"
 	StopNoFailedQueries = "no_failed_queries"
@@ -118,6 +121,12 @@ func (s *Services) StartAgentRun(ctx context.Context, req in.AgentRunRequest) (*
 	}
 	if a.model == nil {
 		return nil, errs.NewUnavailableError(MsgAgentNoModel)
+	}
+	if s.LLMMode() != llmModeOn {
+		return nil, errs.NewConflictError(MsgAgentLLMOff)
+	}
+	if s.guard().exceeded(ctx) {
+		return nil, errs.NewUnavailableError(MsgBudgetExceeded)
 	}
 	days, clusters := req.Days, req.MaxClusters
 	var bad []errs.FieldError

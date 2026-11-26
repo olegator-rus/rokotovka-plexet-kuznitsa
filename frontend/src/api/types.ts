@@ -41,6 +41,8 @@ export interface SearchRequest {
   /** Ответ на уточняющий вопрос: { атрибут: выбранное значение }. */
   clarify: Record<string, string>
   limit: number
+  /** compare — поиск из «Одного запроса»: пишется в журнал, но не входит в аналитику и стоимость. */
+  source?: 'live' | 'compare'
 }
 
 export interface Correction {
@@ -115,6 +117,35 @@ export interface SearchResponse {
   /** Только когда точного товара нет; `items` при этом может содержать аналоги. */
   empty?: EmptyInfo | null
   related_queries: string[]
+  /** «С этим покупают»: связи complement для первой позиции, до 3 семейств; B0–B2 — пусто. */
+  complements?: Complement[]
+  trace: Trace
+}
+
+export interface Complement {
+  family_id: string
+  family_name: string
+  product_id: string
+  title: string
+  vendor: string
+  category: string
+  license_line: string
+  price_rub: number | null
+  price_on_request: boolean
+  /** Пояснение связи из справочника. */
+  note: string
+}
+
+/** GET /api/traces/{request_id} — сохранённая трасса поиска и исходный запрос. */
+export interface TraceRecord {
+  request_id: string
+  query: string
+  normalized: string
+  config: ConfigId | string
+  route: Route | string
+  source: string
+  client_id: string | null
+  created_at: string
   trace: Trace
 }
 
@@ -325,9 +356,34 @@ export interface EvalJob {
   finished_at?: string
   run_id?: string
   error?: string
-  /** Обработано запросов и всего — сервер пока не присылает; без них показываем время прогона. */
+  /** Выполнено поисков прогона и всего (запросы × конфигурации); total 0 — набор ещё не загружен. */
   done?: number
   total?: number
+}
+
+/** Последний прогон LLM-судьи на наборе: согласие с ручной разметкой и NDCG по обеим оценкам. */
+export interface JudgeAgreement {
+  run_id: string
+  set: string
+  set_hash: string
+  model: string
+  prompt_version: string
+  configs: string[]
+  created_at: string
+  pairs: number
+  judged: number
+  /** До какой глубины выдачи пул пар полный (NDCG@depth). */
+  depth: number
+  exact: number
+  within1: number
+  kappa: number
+  /** 4×4: строка — разметка, столбец — судья. */
+  confusion: number[][]
+  by_config: { config: string; ndcg_labels: number; ndcg_judge: number }[]
+  same_order: boolean
+  calls: number
+  cost_rub: number
+  duration_ms: number
 }
 
 export interface EvaluationsResponse {
@@ -335,6 +391,7 @@ export interface EvaluationsResponse {
   configs: EvaluationView[]
   running: EvalJob | null
   last_job: EvalJob | null
+  judge_agreement?: JudgeAgreement | null
 }
 
 export interface EvalRunRequest {
@@ -439,7 +496,7 @@ export interface CostRouteRow {
   cache_hits: number
 }
 
-export type LlmCallKind = 'search' | 'eval' | 'agent' | 'other'
+export type LlmCallKind = 'search' | 'eval' | 'agent' | 'judge' | 'other'
 
 export interface LlmCall {
   id: string
@@ -447,6 +504,8 @@ export interface LlmCall {
   kind: LlmCallKind | string
   created_at: string
   request_id: string | null
+  /** Исходный запрос поиска по request_id; null — вызов не из записанного поиска. */
+  query?: string | null
   agent_run_id: string | null
   provider: string
   model: string
@@ -494,8 +553,43 @@ export interface AgentRun {
   stop_reason: string | null
   summary: string | null
   current_cluster: { id: string; label: string } | null
-  /** Лимит вызовов инструментов на кластер — если сервер присылает. */
+  /** Лимит вызовов инструментов на запуск (15 × выбранные кластеры). */
   max_tool_calls?: number
+  days?: number
+  max_clusters?: number
+  model?: string
+  /** Версия правил, на которой работал запуск. */
+  rules_version?: number
+  limits?: {
+    tool_calls_per_cluster?: number
+    hypotheses?: number
+    tokens_per_run?: number
+    timeout_sec?: number
+  }
+  episode?: RunEpisode | null
+}
+
+/** Итог запуска: метрики периода, итог каждого кластера, эффект принятых правок. */
+export interface RunEpisode {
+  metrics?: {
+    days?: number
+    searches?: number
+    failed_queries?: number
+    failed_searches?: number
+    distinct_queries?: number
+  }
+  clusters?: {
+    cluster_id: string
+    label: string
+    /** proposal | ticket | closed */
+    outcome: string
+    diagnosis: string
+    hypotheses: number
+    rejected: number
+    tool_calls: number
+    proposal_id: string
+  }[]
+  applied_effects?: AppliedEffect[] | null
 }
 
 export type AgentStepKind =
@@ -566,19 +660,84 @@ export interface FoundOf {
   total: number
 }
 
+/** Запрос целевого кластера в прогоне: находился ли нужный товар до и после правки. */
+export interface TargetQuery {
+  text: string
+  freq: number
+  judged?: boolean
+  before_found: boolean
+  after_found: boolean
+  before_top?: string[]
+  after_top?: string[]
+  after_empty?: boolean
+}
+
 export interface ProposalEvaluation {
-  target: { before: FoundOf; after: FoundOf }
-  regression: { worse: number; better: number; total: number }
+  target: { before: FoundOf; after: FoundOf; worse?: number; queries?: TargetQuery[] }
+  regression: {
+    worse: number
+    better: number
+    total: number
+    sets?: string[]
+    worse_queries?: unknown[]
+  }
   exact_worse: number
   constraint_violations_new: number
+  false_rescue_new?: number
   passed: boolean
+  reasons?: string[]
+  rules_version?: number
+  ms?: number
 }
 
 export interface ProposalCluster {
   id: string
   label: string
-  queries: { text: string; freq: number }[]
+  queries: { text: string; freq: number; failures?: number }[]
   lost_demand: number
+}
+
+/** Гипотеза, которую агент проверил прогоном (в т. ч. отклонённая). */
+export interface HypothesisEvidence {
+  no: number
+  hypothesis: string
+  patch: RulePatch | null
+  passed: boolean
+  reason?: string | null
+  evaluation?: ProposalEvaluation | null
+}
+
+/** Как отвечает действующий поиск на запрос кластера. */
+export interface CurrentSearch {
+  query: string
+  route?: string
+  total: number
+  empty: boolean
+  solved?: boolean
+  top: { title: string; family_id: string; group: string }[]
+}
+
+export interface ProposalEvidence {
+  terms?: string[]
+  hypotheses?: HypothesisEvidence[] | null
+  memory?: unknown[] | null
+  current_search?: CurrentSearch[] | null
+  reformulations?: { from: string; to: string; count: number; clicked: number }[] | null
+  substitutes?: { name: string; vendor: string; family_id: string }[] | null
+  [key: string]: unknown
+}
+
+/** Эффект принятой правки: проверка verify_applied_change на действующих правилах. */
+export interface AppliedEffect {
+  before?: FoundOf
+  promised?: FoundOf
+  now?: FoundOf
+  holds?: boolean
+  summary?: string
+  checked_at?: string
+  cluster_label?: string
+  queries?: { text: string; found: boolean; top?: string[] }[]
+  [key: string]: unknown
 }
 
 export interface Proposal {
@@ -596,7 +755,13 @@ export interface Proposal {
   created_at: string
   decided_at: string | null
   decided_reason: string | null
+  decided_comment?: string | null
   config_version: number | null
+  evidence?: ProposalEvidence | null
+  base_version?: number
+  effect?: AppliedEffect | null
+  /** Запрос для «Проверить в поиске». */
+  check_query?: string | null
 }
 
 export interface ProposalsResponse {
@@ -607,7 +772,7 @@ export type ProposalRejectReason = 'too_broad' | 'wrong_product' | 'not_now' | '
 
 export interface ApproveResponse {
   proposal: Proposal
-  config_version: number
+  config_version: number | null
 }
 
 export interface ConfigVersion {
@@ -617,7 +782,18 @@ export interface ConfigVersion {
   description: string
   proposal_id: string | null
   diff: RulePatch | null
-  effect: Record<string, unknown> | null
+  effect: AppliedEffect | null
+  /** import | agent | rollback */
+  source?: string
+  /** Число алиасов в версии. */
+  aliases?: number
+}
+
+/** POST /api/configs/rollback */
+export interface RollbackResponse {
+  version: number
+  rolled_back_to: number
+  rolled_back_proposals: string[]
 }
 
 export interface ConfigsResponse {
@@ -630,6 +806,9 @@ export interface MemoryItem {
   proposal_id: string | null
   decision: string
   reason: string | null
+  comment?: string | null
+  diagnosis?: string
+  cluster_key?: string
   ts: string
 }
 

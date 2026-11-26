@@ -11,6 +11,7 @@ import { LoaderCircle, Play, RotateCcw } from 'lucide-vue-next'
 import { getEvaluations, runEvaluation } from '@/api/evaluations'
 import type { ConfigId, EvalJob } from '@/api/types'
 import BlockError from '@/components/common/BlockError.vue'
+import JudgeAgreement from '@/components/compare/JudgeAgreement.vue'
 import MetricsTable from '@/components/compare/MetricsTable.vue'
 import OneQueryCompare from '@/components/compare/OneQueryCompare.vue'
 import RegressionsList from '@/components/compare/RegressionsList.vue'
@@ -38,6 +39,7 @@ const columns = computed(() => evalColumns(evals.data.value))
 const repro = computed(() => reproducibility(columns.value))
 const regressionTotal = computed(() => regressionCount(columns.value))
 const latest = computed(() => latestRun(columns.value))
+const judge = computed(() => evals.data.value?.judge_agreement ?? null)
 
 // ── Адрес ──
 const str = (v: unknown) => (typeof v === 'string' ? v : '')
@@ -173,10 +175,15 @@ onBeforeUnmount(() => {
           <Play v-else :size="16" aria-hidden="true" />
           {{ running ? 'Идёт прогон' : 'Запустить прогон' }}
         </button>
-        <p v-if="running" class="t-xs t-muted t-num" role="status">
+        <p v-if="running" class="t-xs t-muted compare__progress" role="status">
           <template v-if="progress">
-            Обработано {{ formatInt(progress.done) }} из {{ formatInt(progress.total) }}
-            {{ plural(progress.total, ['запроса', 'запросов', 'запросов']) }}
+            Выполнено {{ formatInt(progress.done) }} из {{ formatInt(progress.total) }}
+            {{ plural(progress.total, ['поиска', 'поисков', 'поисков']) }}
+            ({{ job?.configs.length }}
+            {{
+              plural(job?.configs.length ?? 0, ['конфигурация', 'конфигурации', 'конфигураций'])
+            }})
+            <template v-if="elapsed !== null"> · {{ formatMs(elapsed) }}</template>
           </template>
           <template v-else-if="job?.status === 'running'">
             {{ job.configs.join(', ') }} на наборе {{ job.set }}
@@ -251,7 +258,11 @@ onBeforeUnmount(() => {
               Внимание: столбцы посчитаны на разных версиях набора.
             </span>
           </p>
-          <MetricsTable :columns="columns" @regressions="onRegressions" />
+          <MetricsTable
+            :columns="columns"
+            :judge="judge?.set === repro?.set ? judge : null"
+            @regressions="onRegressions"
+          />
           <p v-if="repro" class="t-xs t-muted compare__repro">
             Воспроизводимость: хэш набора
             <span class="t-mono" :title="repro.setHash">{{ shortHash(repro.setHash) }}</span>
@@ -263,6 +274,7 @@ onBeforeUnmount(() => {
             · <span class="t-mono">make eval</span> · последний прогон
             {{ latest ? formatDateTime(latest.created_at) : '—' }}
           </p>
+          <JudgeAgreement v-if="judge" :judge="judge" />
           <p
             v-if="evals.status.value === 'error' && evals.error.value"
             class="t-xs compare__stale"
@@ -320,6 +332,10 @@ onBeforeUnmount(() => {
   align-items: flex-end;
   gap: var(--space-1);
 }
+.compare__progress {
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
 .compare__failed {
   padding: var(--space-3) var(--space-4);
   border-color: var(--danger-bg);
@@ -374,6 +390,9 @@ onBeforeUnmount(() => {
 @media (max-width: 639px) {
   .compare__run {
     align-items: flex-start;
+  }
+  .compare__progress {
+    text-align: left;
   }
 }
 </style>

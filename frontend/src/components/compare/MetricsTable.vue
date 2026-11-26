@@ -2,15 +2,15 @@
 // Вкладка «Метрики»: строки — метрики, столбцы — посчитанные конфигурации лестницы. В ячейке значение
 // и изменение к предыдущему столбцу. Ячейка — кнопка: открывает объяснение метрики и разбивку по типам.
 import { computed, ref } from 'vue'
-import type { EvaluationView } from '@/api/types'
+import type { EvaluationView, JudgeAgreement } from '@/api/types'
 import DeltaMark from '@/components/common/DeltaMark.vue'
 import ExplainDialog, { type Explanation } from '@/components/common/ExplainDialog.vue'
 import { configHint } from '@/lib/configs'
 import { type MetricCell, metricByType, metricRows, queryTypeLabel } from '@/lib/evalView'
-import { formatDateTime, formatInt } from '@/lib/format'
+import { formatDateTime, formatInt, formatPercent } from '@/lib/format'
 import { formatMetric, metricDef } from '@/lib/metrics'
 
-const props = defineProps<{ columns: EvaluationView[] }>()
+const props = defineProps<{ columns: EvaluationView[]; judge?: JudgeAgreement | null }>()
 const emit = defineEmits<{ regressions: [config: string] }>()
 
 const rows = computed(() => metricRows(props.columns))
@@ -86,6 +86,9 @@ function toRegressions() {
             <span class="metrics__dir">
               {{ metricDef(row.key).better === 'up' ? 'больше — лучше' : 'меньше — лучше' }}
             </span>
+            <a v-if="row.key === 'ndcg10' && judge" href="#judge" class="link metrics__judge">
+              LLM-судья: согласие {{ formatPercent(judge.within1, 0) }} (±1 балл)
+            </a>
           </th>
           <td v-for="(cell, i) in row.cells" :key="cell.config" class="metrics__cell">
             <button
@@ -173,6 +176,13 @@ thead .metrics__name {
 }
 .metrics__name span {
   display: block;
+}
+.metrics__judge {
+  display: block;
+  margin-top: 2px;
+  font-size: var(--fs-xs);
+  line-height: var(--lh-xs);
+  color: var(--text-2);
 }
 .metrics__dir {
   color: var(--text-3);

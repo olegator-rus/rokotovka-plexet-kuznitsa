@@ -56,11 +56,11 @@ func agentTools() []llm.Tool {
 			`{"type":"object","properties":{"patch_id":{"type":"string"}},"required":["patch_id"]}`),
 		def("submit_proposal", "Отправить прошедшую прогон правку человеку в очередь.",
 			`{"type":"object","properties":{"patch_id":{"type":"string"},"diagnosis_text":{"type":"string"}},"required":["patch_id","diagnosis_text"]}`),
-		def("create_assortment_ticket", "Задача человеку: SUBSTITUTE_AVAILABLE (есть аналог), ASSORTMENT_GAP (спрос без предложения), CONTENT_GAP (правка карточки).",
-			`{"type":"object","properties":{"diagnosis":{"type":"string","enum":["SUBSTITUTE_AVAILABLE","ASSORTMENT_GAP","CONTENT_GAP"]},"text":{"type":"string"},`+
+		def("create_assortment_ticket", "Задача человеку: SUBSTITUTE_AVAILABLE (есть аналог), ASSORTMENT_GAP (спрос без предложения), CONTENT_GAP (правка карточки), RANKING_FAILURE (товар в выдаче, но не первым — менеджеру e-com).",
+			`{"type":"object","properties":{"diagnosis":{"type":"string","enum":["SUBSTITUTE_AVAILABLE","ASSORTMENT_GAP","CONTENT_GAP","RANKING_FAILURE"]},"text":{"type":"string"},`+
 				`"substitute_family_ids":{"type":"array","items":{"type":"string"},"maxItems":5},"family_id":{"type":"string"}},"required":["diagnosis","text"]}`),
-		def("close_cluster", "Закрыть кластер без предложения (NOISE, NON_PRODUCT, UNKNOWN, RANKING_FAILURE, CONSTRAINT_CONFLICT или после трёх отклонённых гипотез).",
-			`{"type":"object","properties":{"diagnosis":{"type":"string","enum":["ALIAS_GAP","TYPO","RANKING_FAILURE","CONSTRAINT_CONFLICT","NON_PRODUCT","NOISE","UNKNOWN"]},"reason":{"type":"string"}},"required":["diagnosis","reason"]}`),
+		def("close_cluster", "Закрыть кластер без предложения и без задачи (NOISE, NON_PRODUCT, CONSTRAINT_CONFLICT, UNKNOWN или ALIAS_GAP/TYPO после трёх отклонённых гипотез). Спрос без предложения, аналог, карточка и ранжирование — create_assortment_ticket.",
+			`{"type":"object","properties":{"diagnosis":{"type":"string","enum":["ALIAS_GAP","TYPO","CONSTRAINT_CONFLICT","NON_PRODUCT","NOISE","UNKNOWN"]},"reason":{"type":"string"}},"required":["diagnosis","reason"]}`),
 		def("verify_applied_change", "Эффект принятой ранее правки: сколько запросов её кластера находится сейчас.",
 			`{"type":"object","properties":{"proposal_id":{"type":"string"}},"required":["proposal_id"]}`),
 	}
@@ -183,6 +183,16 @@ func (cr *clusterRun) dispatch(ctx context.Context, name, raw string) (any, stri
 	return nil, "", terr("инструмента %q нет", name)
 }
 
+// noteNotFirst — семейство стоит в выдаче запроса кластера, но не первым (доказательство RANKING_FAILURE).
+func (cr *clusterRun) noteNotFirst(familyID, query string) {
+	if familyID == "" {
+		return
+	}
+	if _, ok := cr.notFirst[familyID]; !ok {
+		cr.notFirst[familyID] = query
+	}
+}
+
 // checkText — строковый аргумент: обязательный, не длиннее n символов.
 func checkText(field, v string, n int) (string, error) {
 	v = strings.TrimSpace(v)
@@ -247,6 +257,7 @@ func (cr *clusterRun) toolSearchCatalog(ctx context.Context, raw string) (any, s
 	cr.searched = true
 	if args.Expand {
 		cr.expanded = true
+		cr.expandedFound = cr.expandedFound || len(hits) > 0
 	}
 	mode := "обычный"
 	if args.Expand {
@@ -306,8 +317,11 @@ func (cr *clusterRun) toolSearchTrace(ctx context.Context, raw string) (any, str
 		res["empty"] = resp.Empty.Message
 	}
 	var items []map[string]any
-	for _, it := range resp.Items {
+	for i, it := range resp.Items {
 		items = append(items, map[string]any{"family_id": it.FamilyID, "title": it.Title, "vendor": it.Vendor, "group": it.Group})
+		if i > 0 && it.FamilyID != resp.Items[0].FamilyID {
+			cr.noteNotFirst(it.FamilyID, q)
+		}
 	}
 	res["items"] = nonNil(items)
 	if tr := resp.Trace; tr != nil {
@@ -403,6 +417,11 @@ func (cr *clusterRun) toolSimilarSuccessful(ctx context.Context, raw string) (an
 	}
 	if len(hits) > args.Limit {
 		hits = hits[:args.Limit]
+	}
+	for _, h := range hits {
+		if h.Family != "" {
+			cr.foundBy[h.Family] = true
+		}
 	}
 	title := fmt.Sprintf("найдено %d", len(hits))
 	if len(hits) > 0 {

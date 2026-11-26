@@ -124,6 +124,9 @@ func (s *Services) recordLLMUsage(ctx context.Context, c llmCall) float64 {
 		zap.L().Warn("llm: модели нет в прайсе — стоимость 0", zap.String("model", llmModelName(c.Model)),
 			zap.String("pricing_version", PricingVersion))
 	}
+	if s.llm != nil {
+		s.llm.add(cost)
+	}
 	if !s.repos.Enabled() {
 		return cost
 	}

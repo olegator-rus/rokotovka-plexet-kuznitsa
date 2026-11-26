@@ -19,7 +19,10 @@ import (
 // выбирает вызовы (нативные tool_calls), код проверяет аргументы по структурам, выполняет инструмент и
 // пишет шаг. Кластер заканчивается предложением, задачей или закрытием — либо лимитом.
 
-var errTokenLimit = errors.New("лимит токенов на запуск исчерпан")
+var (
+	errTokenLimit = errors.New("лимит токенов на запуск исчерпан")
+	errBudget     = errors.New("дневной бюджет LLM исчерпан")
+)
 
 // clusterResult — итог кластера для эпизода запуска.
 type clusterResult struct {
@@ -45,11 +48,21 @@ type clusterRun struct {
 	patches    map[string]*sandboxPatch
 	searched   bool
 	expanded   bool
-	finished   bool
-	result     clusterResult
-	tried      []map[string]any
-	pending    []*domain.AgentStep
-	evidence   map[string]any
+	// expandedFound — расширенный поиск по каталогу нашёл хотя бы одно семейство.
+	expandedFound bool
+	// notFirst — семейства, которые действующий поиск или прогон гипотезы показал в выдаче запроса кластера,
+	// но не первыми: доказательство для RANKING_FAILURE (семейство → запрос).
+	notFirst map[string]string
+	// foundBy — семейства, к которым покупатели этого кластера пришли после переформулировки (клик) или к
+	// которым ведут похожие успешные запросы: доказательство для CONTENT_GAP.
+	foundBy map[string]bool
+	// unknownHinted — модель уже получила отказ закрыть кластер как UNKNOWN при доказанном отсутствии товара.
+	unknownHinted bool
+	finished      bool
+	result        clusterResult
+	tried         []map[string]any
+	pending       []*domain.AgentStep
+	evidence      map[string]any
 }
 
 // sandboxPatch — гипотеза: правка в песочнице и её прогон.
@@ -68,7 +81,17 @@ type sandboxPatch struct {
 func (rc *runCtx) investigate(ctx context.Context, c *failedCluster) clusterResult {
 	ctx, cancel := context.WithTimeout(ctx, agentClusterTimeout)
 	defer cancel()
-	cr := &clusterRun{rc: rc, c: c, patches: map[string]*sandboxPatch{}, evidence: map[string]any{"terms": c.Terms}}
+	cr := &clusterRun{rc: rc, c: c, patches: map[string]*sandboxPatch{}, evidence: map[string]any{"terms": c.Terms},
+		notFirst: map[string]string{}, foundBy: map[string]bool{}}
+	for _, q := range c.Queries {
+		for _, r := range q.ReformulatedTo {
+			if r.Clicked > 0 {
+				if f := rc.cat.familyOfProduct(r.ClickedOn); f != "" {
+					cr.foundBy[f] = true
+				}
+			}
+		}
+	}
 	cr.memory = rc.memoryFor(c.Key, c.Terms)
 	a, rs := rc.a, rc.rs
 	id := c.ID
@@ -107,6 +130,11 @@ func (rc *runCtx) investigate(ctx context.Context, c *failedCluster) clusterResu
 			cr.result.Err = errTokenLimit
 			break
 		}
+		if rc.a.s.guard().exceeded(ctx) {
+			cr.finish("limit", diagOr(cr.diagnosis), "дневной бюджет LLM исчерпан")
+			cr.result.Err = errBudget
+			break
+		}
 		if cr.toolCalls >= agentToolCallsPerCluster {
 			a.step(ctx, rs, &domain.AgentStep{Kind: domain.StepCheck, ClusterID: &id, OK: false,
 				Title: fmt.Sprintf("Лимит вызовов инструментов на кластер (%d) исчерпан — кластер закрыт без предложения", agentToolCallsPerCluster)})
@@ -132,7 +160,8 @@ func (rc *runCtx) investigate(ctx context.Context, c *failedCluster) clusterResu
 		if len(m.ToolCalls) == 0 {
 			nudges++
 			if nudges > 2 {
-				cr.finish("closed", diagOr(cr.diagnosis), "модель не вызвала завершающий инструмент")
+				// Не «закрыт»: кластер остался без итога, в эпизоде и сводке запуска это видно.
+				cr.finish("unfinished", diagOr(cr.diagnosis), "модель не вызвала завершающий инструмент")
 				break
 			}
 			// Текст без вызова в историю не кладём: модель начинает подражать ему и дальше пишет вызовы текстом.
@@ -150,9 +179,13 @@ func (rc *runCtx) investigate(ctx context.Context, c *failedCluster) clusterResu
 		msgs = append(msgs, llm.Message{Role: "assistant", Content: m.Content, ToolCalls: m.ToolCalls})
 		for _, call := range m.ToolCalls {
 			var content string
-			if cr.finished {
+			switch {
+			case cr.finished:
 				content = `{"error":"кластер уже закрыт"}`
-			} else {
+			case cr.toolCalls >= agentToolCallsPerCluster:
+				// Лимит считается по каждому вызову: модель может прислать несколько за один ход.
+				content = `{"error":"лимит вызовов инструментов на кластер исчерпан — вызов не выполнен"}`
+			default:
 				content = cr.call(ctx, call)
 			}
 			msgs = append(msgs, llm.Message{Role: "tool", ToolCallID: call.ID, Name: call.Function.Name, Content: content})

@@ -1,0 +1,1138 @@
+openapi: 3.1.0
+info:
+  title: PLEXeT SearchOps API
+  version: "2026-05-27"
+  summary: Умный поиск для B2B-магазина ПО и агент SearchOps
+  description: |
+    HTTP API бэкенда PLEXeT SearchOps. Всё, что видит витрина, доступно через этот API: в пилоте магазин
+    может подключить поиск, аналитику, очередь предложений агента и экономику к своему интерфейсу без нашей
+    витрины.
+
+    Общие правила:
+    - JSON в UTF-8; ответы `/api/*` не кешируются (`Cache-Control: no-store`).
+    - Ошибка — всегда конверт `{"error": {"code", "message", "traceId", "details"?}}` (схема `Error`).
+      `traceId` совпадает с заголовком `X-Request-Id` и строкой журнала сервера.
+    - Изменяющие запросы (POST) принимаются только с заголовком `Origin`, равным `PUBLIC_ORIGIN` магазина
+      (защита от CSRF); иначе 403.
+    - Лимит частоты — `RATE_LIMIT_PER_MIN` запросов в минуту с одного адреса (по умолчанию 600; `/api/health`
+      и поток SSE не считаются). Сверх лимита — 429 и заголовки `X-Ratelimit-*`.
+    - Срок обработки запроса — 25 с (кроме импорта каталога и потока SSE).
+    - Доли — числа 0..1; деньги — рубли; непосчитанное — `null`, а не ноль.
+    - Тексты запросов покупателей не пишутся в журнал сервера; в модель уходят только текст запроса и
+      обезличенный сегмент покупателя (без идентификаторов клиента и сессии).
+servers:
+  - url: http://127.0.0.1:8088
+    description: локальная разработка (make dev)
+tags:
+  - name: Поиск
+  - name: Аналитика
+  - name: Экономика
+  - name: Оценка
+  - name: Агент
+  - name: Предложения и правила
+  - name: Служебное
+paths:
+  /health:
+    get:
+      tags: [Служебное]
+      summary: Проверка живости (вне /api, для compose и мониторинга)
+      operationId: healthRoot
+      responses:
+        "200": { $ref: "#/components/responses/Health" }
+  /api/health:
+    get:
+      tags: [Служебное]
+      summary: Проверка живости
+      description: Всегда 200, пока процесс отвечает; состояние базы, OpenSearch и эмбеддера — в полях.
+      operationId: health
+      responses:
+        "200": { $ref: "#/components/responses/Health" }
+  /api/meta:
+    get:
+      tags: [Служебное]
+      summary: Справочная информация для витрины
+      description: Режим LLM и плашка режима, версия каталога и правил, конфигурации поиска, покупатели для переключателя.
+      operationId: meta
+      responses:
+        "200":
+          description: Метаданные
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Meta" }
+  /api/admin/llm-mode:
+    post:
+      tags: [Служебное]
+      summary: Переключить режим LLM без перезапуска
+      description: |
+        `off` — сложные запросы (маршрут D) разбираются правилами и кэшем, агент не запускается. `on` — только
+        если модель настроена. Доступно, когда `ADMIN_ENABLED=on` (по умолчанию — только в development).
+      operationId: setLLMMode
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [mode]
+              properties:
+                mode: { type: string, enum: [on, off] }
+      responses:
+        "200":
+          description: Новое состояние (как meta.llm)
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/LLMState" }
+        "403": { $ref: "#/components/responses/Error" }
+        "409": { $ref: "#/components/responses/Error" }
+        "422": { $ref: "#/components/responses/Error" }
+  /api/search:
+    post:
+      tags: [Поиск]
+      summary: Поиск по каталогу
+      description: |
+        Каскад: нормализация (раскладка, опечатки, словари) → маршрут A–D → BM25 + векторы + RRF → атрибуты
+        лицензии и бизнес-слой. Модель вызывается только на маршруте D и только для разбора намерения; её ответ
+        сверяется со справочниками. Поиск пишется в журнал (`search_events`), трасса — в `search_traces`.
+      operationId: search
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/SearchRequest" }
+      responses:
+        "200":
+          description: Выдача с трассой
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SearchResponse" }
+        "422": { $ref: "#/components/responses/Error" }
+        "503": { $ref: "#/components/responses/Error" }
+  /api/suggest:
+    get:
+      tags: [Поиск]
+      summary: Подсказки при наборе
+      operationId: suggest
+      parameters:
+        - { name: q, in: query, required: true, schema: { type: string } }
+        - { name: client_id, in: query, schema: { type: string } }
+      responses:
+        "200":
+          description: Не больше 8 строк суммарно
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [groups]
+                properties:
+                  groups:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        type: { type: string, enum: [query, product, vendor, category] }
+                        label: { type: string }
+                        items:
+                          type: array
+                          items:
+                            type: object
+                            properties:
+                              text: { type: string }
+                              id: { type: [string, "null"] }
+                              highlight: { type: array, items: { type: integer }, minItems: 2, maxItems: 2 }
+  /api/events:
+    post:
+      tags: [Поиск]
+      summary: Событие поведения покупателя
+      description: Клик, корзина, заказ и действия с выдачей. Событие `search` пишет сам `POST /api/search`.
+      operationId: event
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [type]
+              properties:
+                type:
+                  type: string
+                  enum: [click, add_to_cart, order, price_request, manager_request, suggest_pick, correction_undo, chip_remove, clarify_answer]
+                request_id: { type: string }
+                session_id: { type: string }
+                client_id: { type: string }
+                product_id: { type: string }
+                position: { type: [integer, "null"] }
+                payload: { type: object }
+      responses:
+        "204": { description: Записано }
+        "422": { $ref: "#/components/responses/Error" }
+  /api/traces/{request_id}:
+    get:
+      tags: [Поиск]
+      summary: Сохранённая трасса поиска
+      operationId: trace
+      parameters:
+        - { name: request_id, in: path, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: Трасса и исходный запрос
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  request_id: { type: string }
+                  query: { type: string }
+                  normalized: { type: string }
+                  config: { type: string }
+                  route: { type: string, enum: [A, B, C, D] }
+                  source: { type: string, enum: [live, compare, mock_log, ""] }
+                  client_id: { type: [string, "null"] }
+                  created_at: { type: string, format: date-time }
+                  trace: { $ref: "#/components/schemas/Trace" }
+        "404": { $ref: "#/components/responses/Error" }
+  /api/catalog/import:
+    post:
+      tags: [Служебное]
+      summary: Импорт каталога в OpenSearch и PostgreSQL
+      description: Источник — `DATA_DIR`. Пересобирает индекс и справочники; срока обработки нет.
+      operationId: importCatalog
+      responses:
+        "200":
+          description: Что загружено
+          content:
+            application/json:
+              schema: { type: object, additionalProperties: true }
+        "503": { $ref: "#/components/responses/Error" }
+  /api/analytics:
+    get:
+      tags: [Аналитика]
+      summary: Плитки, воронка и проблемные запросы для роли
+      description: Для `role=head` в ответе ещё `effect` — вилка эффекта с допущениями по умолчанию (как `GET /api/effect`).
+      operationId: analytics
+      parameters:
+        - { name: days, in: query, schema: { type: integer, minimum: 1, maximum: 365, default: 30 } }
+        - { name: role, in: query, schema: { type: string, enum: [ecom, product, content, head], default: ecom } }
+      responses:
+        "200":
+          description: Аналитика за период
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Analytics" }
+        "422": { $ref: "#/components/responses/Error" }
+  /api/effect:
+    get:
+      tags: [Аналитика]
+      summary: Вилка эффекта внедрения для руководителя
+      description: |
+        Три сценария (консервативный, базовый, оптимистичный) в заказах и рублях в месяц:
+        `заказы = поиски в месяц × доля проблемных × поправка на сессии × доля спасённых × вероятность заказа`,
+        `рубли = заказы × средний чек`. Поиски, доля проблемных, поправка на сессии, вероятность заказа и средний
+        чек измеряются по журналам за период; доля спасённых — по прогону оценки B0 vs B4 на замороженном наборе
+        test, сценарии берут границы её 95% интервала Уилсона. Любое допущение можно задать параметром — тогда
+        `source: request`. Сценарная оценка на тестовых данных; фактический эффект измеряется A/B-тестом в пилоте.
+      operationId: effect
+      parameters:
+        - { name: days, in: query, schema: { type: integer, minimum: 1, maximum: 365, default: 30 } }
+        - { name: session_factor, in: query, description: "Поправка на сессии (0..1]", schema: { type: number } }
+        - { name: order_prob, in: query, description: "Вероятность заказа спасённого поиска (0..1]", schema: { type: number } }
+        - { name: avg_check_rub, in: query, description: "Средний чек, ₽", schema: { type: number } }
+      responses:
+        "200":
+          description: Вилка эффекта
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Effect" }
+        "422": { $ref: "#/components/responses/Error" }
+  /api/costs:
+    get:
+      tags: [Экономика]
+      summary: Стоимость поиска, журнал вызовов модели, месячные сценарии
+      description: |
+        Итоги по журналам `search_events` (только живые поиски) и `llm_usage`; прогоны оценки, судья и прогрев
+        кэша — отдельными строками, в стоимость запроса покупателя не входят. Месячные сценарии 20 и 200 тыс.
+        запросов: `вызовов LLM = запросы × доля маршрута D × (1 − доля попаданий в кэш)`, `итого = сервер +
+        онлайн-LLM + агент`, `на запрос = итого / запросы`. Сервер и число запусков агента — допущения.
+      operationId: costs
+      parameters:
+        - { name: limit, in: query, schema: { type: integer, minimum: 1, maximum: 200, default: 50 } }
+        - { name: offset, in: query, schema: { type: integer, minimum: 0, default: 0 } }
+        - $ref: "#/components/parameters/ServerRub20k"
+        - $ref: "#/components/parameters/ServerRub200k"
+        - $ref: "#/components/parameters/AgentRunsMonth"
+      responses:
+        "200":
+          description: Экономика
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Costs" }
+        "422": { $ref: "#/components/responses/Error" }
+        "503": { $ref: "#/components/responses/Error" }
+  /api/costs/export:
+    get:
+      tags: [Экономика]
+      summary: Данные расчёта стоимости в CSV (для шаблона организатора)
+      description: Замеры, маршруты, входные величины с источником (measured | assumed | request), оба месячных сценария, прайс и формула.
+      operationId: costsExport
+      parameters:
+        - $ref: "#/components/parameters/ServerRub20k"
+        - $ref: "#/components/parameters/ServerRub200k"
+        - $ref: "#/components/parameters/AgentRunsMonth"
+      responses:
+        "200":
+          description: "CSV, UTF-8 с BOM, колонки: раздел, показатель, ключ, значение, единица, источник, пояснение"
+          content:
+            text/csv:
+              schema: { type: string }
+        "503": { $ref: "#/components/responses/Error" }
+  /api/evaluations:
+    get:
+      tags: [Оценка]
+      summary: Последний прогон оценки каждой конфигурации на наборе
+      operationId: evaluations
+      parameters:
+        - { name: set, in: query, schema: { type: string, enum: [tune, test, regression, demo], default: test } }
+      responses:
+        "200":
+          description: Метрики B0–B4, ухудшения и улучшения, прогресс прогона, согласие LLM-судьи
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Evaluations" }
+  /api/evaluations/run:
+    post:
+      tags: [Оценка]
+      summary: Запустить прогон оценки в фоне
+      operationId: runEvaluation
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                set: { type: string, enum: [tune, test, regression, demo] }
+                configs: { type: array, items: { type: string, enum: [B0, B1, B2, B3, B4] } }
+      responses:
+        "202":
+          description: Прогон поставлен
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/EvalJob" }
+        "409": { $ref: "#/components/responses/Error" }
+        "422": { $ref: "#/components/responses/Error" }
+  /api/agent/runs:
+    get:
+      tags: [Агент]
+      summary: Запуски агента (последние 50)
+      operationId: agentRuns
+      responses:
+        "200":
+          description: Список
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items: { type: array, items: { $ref: "#/components/schemas/AgentRun" } }
+    post:
+      tags: [Агент]
+      summary: Запустить агента SearchOps
+      description: Один запуск за раз. Требует режим LLM `on` и непревышенный дневной бюджет.
+      operationId: startAgentRun
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                days: { type: integer, minimum: 1, maximum: 365, default: 30 }
+                max_clusters: { type: integer, minimum: 1, maximum: 12, default: 5 }
+                trigger: { type: string, enum: [manual, schedule], default: manual }
+      responses:
+        "202":
+          description: Запуск начат
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  run_id: { type: string, format: uuid }
+        "409": { $ref: "#/components/responses/Error" }
+        "422": { $ref: "#/components/responses/Error" }
+        "503": { $ref: "#/components/responses/Error" }
+  /api/agent/runs/{id}:
+    get:
+      tags: [Агент]
+      summary: Запуск и лента шагов
+      operationId: agentRun
+      parameters: [{ $ref: "#/components/parameters/ID" }]
+      responses:
+        "200":
+          description: Запуск и шаги
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  run: { $ref: "#/components/schemas/AgentRun" }
+                  steps: { type: array, items: { $ref: "#/components/schemas/AgentStep" } }
+        "404": { $ref: "#/components/responses/Error" }
+  /api/agent/runs/{id}/stream:
+    get:
+      tags: [Агент]
+      summary: Лента шагов по SSE
+      description: |
+        `event: step` (data — AgentStep; обновление шага приходит с тем же id/seq), `event: status` (data —
+        AgentRun), `event: done` (data — AgentRun). `id:` = seq. Поток живёт ≤25 с; EventSource
+        переподключается с `Last-Event-ID` (или `?after=seq`) и получает только новые шаги.
+      operationId: agentRunStream
+      parameters:
+        - { $ref: "#/components/parameters/ID" }
+        - { name: after, in: query, schema: { type: integer } }
+      responses:
+        "200":
+          description: Поток событий
+          content:
+            text/event-stream:
+              schema: { type: string }
+        "404": { $ref: "#/components/responses/Error" }
+  /api/agent/runs/{id}/stop:
+    post:
+      tags: [Агент]
+      summary: Остановить запуск
+      operationId: stopAgentRun
+      parameters: [{ $ref: "#/components/parameters/ID" }]
+      responses:
+        "202": { description: Остановка запрошена }
+        "404": { $ref: "#/components/responses/Error" }
+  /api/agent/memory:
+    get:
+      tags: [Агент]
+      summary: Память агента — решения человека по предложениям
+      operationId: agentMemory
+      responses:
+        "200":
+          description: Решения
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        cluster_label: { type: string }
+                        cluster_key: { type: string }
+                        proposal_id: { type: string }
+                        diagnosis: { $ref: "#/components/schemas/Diagnosis" }
+                        decision: { type: string, enum: [accepted, rejected, rolled_back] }
+                        reason: { type: string }
+                        comment: { type: string }
+                        ts: { type: string, format: date-time }
+  /api/proposals:
+    get:
+      tags: [Предложения и правила]
+      summary: Очередь предложений агента
+      operationId: proposals
+      parameters:
+        - { name: status, in: query, schema: { type: string, enum: [pending, accepted, rejected, rolled_back] } }
+        - { name: role, in: query, schema: { type: string, enum: [ecom, product, content] } }
+      responses:
+        "200":
+          description: Предложения
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items: { type: array, items: { $ref: "#/components/schemas/Proposal" } }
+  /api/proposals/{id}:
+    get:
+      tags: [Предложения и правила]
+      summary: Предложение с доказательствами
+      operationId: proposal
+      parameters: [{ $ref: "#/components/parameters/ID" }]
+      responses:
+        "200":
+          description: Предложение
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Proposal" }
+        "404": { $ref: "#/components/responses/Error" }
+  /api/proposals/{id}/approve:
+    post:
+      tags: [Предложения и правила]
+      summary: Принять предложение
+      description: 'Правка правил — новая версия правил (B4); задача (`action: ticket`) — «взять в работу», версия не создаётся.'
+      operationId: approveProposal
+      parameters: [{ $ref: "#/components/parameters/ID" }]
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                comment: { type: string }
+      responses:
+        "200":
+          description: Решение
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ProposalDecision" }
+        "404": { $ref: "#/components/responses/Error" }
+        "409": { $ref: "#/components/responses/Error" }
+  /api/proposals/{id}/reject:
+    post:
+      tags: [Предложения и правила]
+      summary: Отклонить предложение (агент запомнит причину)
+      operationId: rejectProposal
+      parameters: [{ $ref: "#/components/parameters/ID" }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [reason]
+              properties:
+                reason: { type: string, enum: [too_broad, wrong_product, not_now, other] }
+                comment: { type: string, description: "обязателен для reason=other" }
+      responses:
+        "200":
+          description: Решение
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ProposalDecision" }
+        "404": { $ref: "#/components/responses/Error" }
+        "409": { $ref: "#/components/responses/Error" }
+        "422": { $ref: "#/components/responses/Error" }
+  /api/configs:
+    get:
+      tags: [Предложения и правила]
+      summary: Версии правил поиска
+      operationId: configs
+      responses:
+        "200":
+          description: Версии, новые сверху
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  active: { type: integer }
+                  items:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        version: { type: integer }
+                        created_at: { type: string, format: date-time }
+                        author: { type: string, enum: [agent+human, human, system] }
+                        source: { type: string, enum: [import, agent, rollback] }
+                        description: '{ type: string }'
+                        proposal_id: { type: [string, "null"] }
+                        aliases: { type: integer }
+                        diff: { $ref: "#/components/schemas/RulePatch" }
+                        effect: { type: [object, "null"] }
+  /api/configs/rollback:
+    post:
+      tags: [Предложения и правила]
+      summary: Откат правил — новая версия, равная выбранной
+      operationId: rollbackConfig
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [to_version]
+              properties:
+                to_version: { type: integer, minimum: 1 }
+                comment: { type: string }
+      responses:
+        "200":
+          description: Новая версия
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  version: { type: integer }
+                  rolled_back_to: { type: integer }
+                  rolled_back_proposals: { type: array, items: { type: string } }
+        "409": { $ref: "#/components/responses/Error" }
+        "422": { $ref: "#/components/responses/Error" }
+components:
+  parameters:
+    ID: { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+    ServerRub20k: { name: server_rub_20k, in: query, description: "Допущение: сервер при 20 тыс. запросов, ₽/мес (7500)", schema: { type: number, minimum: 0 } }
+    ServerRub200k: { name: server_rub_200k, in: query, description: "Допущение: сервер при 200 тыс. запросов, ₽/мес (22000)", schema: { type: number, minimum: 0 } }
+    AgentRunsMonth: { name: agent_runs_month, in: query, description: "Допущение: запусков агента в месяц (30)", schema: { type: number, minimum: 0 } }
+  responses:
+    Error:
+      description: Ошибка в едином конверте
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+    Health:
+      description: Процесс жив
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              status: { type: string, const: ok }
+              db: { type: string, enum: [ok, down] }
+              search: { type: string, enum: [ok, down] }
+              embedder: { type: string, enum: [ok, down, off] }
+              time: { type: string, format: date-time }
+  schemas:
+    Error:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: object
+          required: [code, message, traceId]
+          properties:
+            code:
+              type: string
+              examples: [VALIDATION_FAILED, PERMISSION_DENIED, NOT_FOUND, CONFLICT, TOO_MANY_REQUESTS, UPSTREAM_UNAVAILABLE]
+            message: { type: string, description: Текст для человека по-русски }
+            traceId: { type: string }
+            details:
+              type: array
+              items:
+                type: object
+                properties:
+                  field: { type: string }
+                  code: { type: string }
+                  message: { type: string }
+    Diagnosis:
+      type: string
+      enum: [ALIAS_GAP, TYPO, ASSORTMENT_GAP, SUBSTITUTE_AVAILABLE, CONTENT_GAP, RANKING_FAILURE, CONSTRAINT_CONFLICT, NON_PRODUCT, NOISE, UNKNOWN]
+    LLMState:
+      type: object
+      properties:
+        mode: { type: string, enum: [on, off] }
+        online: { type: boolean, description: Модель настроена }
+        changed_at: { type: [string, "null"], format: date-time }
+        budget:
+          type: object
+          properties:
+            day: { type: string, format: date, description: Сутки по Москве }
+            daily_rub: { type: [number, "null"], description: "LLM_DAILY_BUDGET_RUB; null — без потолка" }
+            spent_today_rub: { type: number }
+            exceeded: { type: boolean }
+        banner: { type: [string, "null"], description: Текст плашки режима в шапке }
+    Meta:
+      type: object
+      properties:
+        llm_mode: { type: string, enum: [on, off] }
+        catalog_version: { type: string }
+        rules_version: { type: integer }
+        configs: { type: array, items: { type: string } }
+        default_config: { type: string }
+        clients:
+          type: array
+          items:
+            type: object
+            properties:
+              id: { type: string }
+              name: { type: string }
+              segment: { type: string, enum: [smb, enterprise, gov, individual] }
+              hint: { type: string }
+        llm: { $ref: "#/components/schemas/LLMState" }
+        admin_enabled: { type: boolean }
+        rate_limit_per_min: { type: integer }
+    SearchRequest:
+      type: object
+      required: [query]
+      properties:
+        query: { type: string, maxLength: 200 }
+        client_id: { type: string, description: "guest или id покупателя; влияет на контекст ранжирования, в модель не уходит" }
+        session_id: { type: string }
+        config: { type: string, enum: [B0, B1, B2, B3, B4], default: B3 }
+        as_typed: { type: boolean, description: Искать как набрано, без исправления }
+        removed_chips:
+          type: array
+          items:
+            type: object
+            properties:
+              field: { type: string }
+              value: { type: string }
+        clarify: { type: object, additionalProperties: { type: string } }
+        limit: { type: integer, minimum: 1, maximum: 50, default: 20 }
+        source: { type: string, enum: [live, compare], description: "compare — в журнал, но не в аналитику и стоимость" }
+    SearchItem:
+      type: object
+      properties:
+        product_id: { type: string }
+        family_id: { type: string }
+        title: { type: string }
+        vendor: { type: string }
+        category: { type: string }
+        license_line: { type: string }
+        price_rub: { type: [number, "null"] }
+        price_on_request: { type: boolean }
+        group: { type: string, enum: [exact, match, analog] }
+        matches_query: { type: boolean }
+        purchased_before: { type: boolean }
+        final: { type: number }
+        variants: { type: array, items: { $ref: "#/components/schemas/SearchItem" } }
+    SearchResponse:
+      type: object
+      properties:
+        request_id: { type: string }
+        query: { type: string }
+        normalized: { type: string }
+        config: { type: string }
+        correction:
+          type: object
+          properties:
+            from: { type: string }
+            to: { type: string }
+            confidence: { type: string, enum: [high, medium] }
+            applied: { type: boolean }
+        chips:
+          type: array
+          items:
+            type: object
+            properties:
+              field: { type: string }
+              value: { type: string }
+              label: { type: string }
+              strict: { type: boolean }
+        clarify:
+          type: object
+          properties:
+            attribute: { type: string }
+            question: { type: string }
+            options:
+              type: array
+              items:
+                type: object
+                properties:
+                  value: { type: string }
+                  label: { type: string }
+        total: { type: integer }
+        items: { type: array, items: { $ref: "#/components/schemas/SearchItem" } }
+        relaxed:
+          type: array
+          items:
+            type: object
+            properties:
+              field: { type: string }
+              message: { type: string }
+        empty:
+          type: object
+          description: Только когда точного товара нет; items могут содержать аналоги
+          properties:
+            message: { type: string }
+            show_manager: { type: boolean }
+        related_queries: { type: array, items: { type: string } }
+        complements:
+          type: array
+          description: «С этим покупают» (связи complement)
+          items: { type: object, additionalProperties: true }
+        trace: { $ref: "#/components/schemas/Trace" }
+    Trace:
+      type: object
+      description: Трасса запроса. Пропущенный шаг — skipped:true с причиной; числа — замеры.
+      properties:
+        request_id: { type: string }
+        route: { type: string, enum: [A, B, C, D] }
+        parse_source: { type: string, enum: [rules, cache, llm] }
+        config: { type: string }
+        rules_version: { type: integer }
+        total_ms: { type: number }
+        cost_rub: { type: number }
+        steps: { type: array, items: { type: object, additionalProperties: true } }
+        items: { type: array, items: { type: object, additionalProperties: true } }
+        rejected: { type: array, items: { type: object, additionalProperties: true } }
+        llm:
+          type: [object, "null"]
+          properties:
+            model: { type: string }
+            input_tokens: { type: integer }
+            output_tokens: { type: integer }
+            cached_tokens: { type: integer }
+            ms: { type: number }
+            cost_rub: { type: number }
+            calls: { type: integer }
+      additionalProperties: true
+    Analytics:
+      type: object
+      properties:
+        role: { type: string, enum: [ecom, product, content, head] }
+        days: { type: integer }
+        from: { type: string, format: date-time }
+        to: { type: string, format: date-time }
+        tiles:
+          type: object
+          properties:
+            searches: { type: integer }
+            empty: { type: integer }
+            empty_rate: { type: [number, "null"] }
+            no_click: { type: integer }
+            no_click_rate: { type: [number, "null"] }
+            orders: { type: integer }
+            order_rate: { type: [number, "null"] }
+            pending_proposals: { type: integer }
+        funnel:
+          type: array
+          items:
+            type: object
+            properties:
+              step: { type: string, enum: [searches, clicks, carts, orders] }
+              label: { type: string }
+              count: { type: integer }
+              rate: { type: [number, "null"] }
+        problems:
+          type: array
+          items:
+            type: object
+            properties:
+              query: { type: string }
+              freq: { type: integer }
+              empty: { type: integer }
+              no_click: { type: integer }
+              reformulated: { type: integer }
+              clicks: { type: integer }
+              orders: { type: integer }
+              failures: { type: integer }
+              outcome: { type: string, enum: [empty, reformulated, no_click] }
+              outcome_label: { type: string }
+              diagnosis: { type: string }
+        sources: { type: object, additionalProperties: { type: integer } }
+        effect:
+          oneOf:
+            - { $ref: "#/components/schemas/Effect" }
+            - { type: "null" }
+    EffectParam:
+      type: object
+      properties:
+        key: { type: string, enum: [session_factor, order_prob, avg_check_rub] }
+        label: { type: string }
+        value: { type: number }
+        default: { type: number }
+        source: { type: string, enum: [measured, assumed, request] }
+        unit: { type: string }
+        hint: { type: string }
+    Effect:
+      type: object
+      properties:
+        days: { type: integer }
+        from: { type: string, format: date-time }
+        to: { type: string, format: date-time }
+        note: { type: string, description: «Сценарная оценка на тестовых данных…» }
+        formula: { type: string }
+        formula_keys: { type: string }
+        measured:
+          type: object
+          properties:
+            searches: { type: integer }
+            searches_month: { type: number }
+            problem_searches: { type: integer }
+            problem_share: { type: [number, "null"] }
+            problem_sessions: { type: integer }
+            orders: { type: integer }
+            search_order_rate: { type: [number, "null"] }
+            rescued:
+              type: [object, "null"]
+              properties:
+                set: { type: string }
+                baseline: { type: string }
+                config: { type: string }
+                run_baseline: { type: string }
+                run_config: { type: string }
+                rules_version: { type: integer }
+                failed: { type: integer }
+                rescued: { type: integer }
+                share: { type: number }
+                ci_low: { type: number }
+                ci_high: { type: number }
+        assumptions: { type: array, items: { $ref: "#/components/schemas/EffectParam" } }
+        scenarios:
+          type: array
+          items:
+            type: object
+            properties:
+              id: { type: string, enum: [conservative, base, optimistic] }
+              label: { type: string }
+              rule: { type: string }
+              rescued_share: { type: number }
+              order_prob: { type: number }
+              problem_sessions_month: { type: number }
+              rescued_month: { type: number }
+              orders_month: { type: number }
+              revenue_rub_month: { type: number }
+        missing: { type: array, items: { type: string }, description: Чего не хватает для расчёта }
+    Costs:
+      type: object
+      properties:
+        llm_mode: { type: string, enum: [on, off] }
+        pricing:
+          type: object
+          properties:
+            version: { type: string }
+            date: { type: string }
+            currency: { type: string, const: RUB }
+            prices:
+              type: array
+              items:
+                type: object
+                properties:
+                  model: { type: string }
+                  input_rub_per_mtok: { type: number }
+                  output_rub_per_mtok: { type: number }
+        summary:
+          type: object
+          description: Плитки «Экономики»; непосчитанное — null
+          additionalProperties: true
+          properties:
+            searches: { type: integer }
+            avg_cost_rub: { type: [number, "null"] }
+            share_without_llm: { type: [number, "null"] }
+            llm_parses: { type: integer }
+            cache_hits: { type: integer }
+            cache_hit_share: { type: [number, "null"] }
+            search_llm_cost_rub: { type: number }
+            llm_calls: { type: integer }
+            llm_cost_rub: { type: number }
+            eval_calls: { type: integer }
+            eval_cost_rub: { type: number }
+            judge_calls: { type: integer }
+            judge_cost_rub: { type: number }
+            warmup_calls: { type: integer }
+            warmup_cost_rub: { type: number }
+            agent_runs: { type: integer }
+            agent_run_avg_cost_rub: { type: [number, "null"] }
+        routes:
+          type: array
+          items:
+            type: object
+            properties:
+              route: { type: string }
+              count: { type: integer }
+              share: { type: [number, "null"] }
+              avg_ms: { type: [number, "null"] }
+              avg_cost_rub: { type: [number, "null"] }
+              llm_parses: { type: integer }
+              cache_hits: { type: integer }
+        calls:
+          type: object
+          properties:
+            total: { type: integer }
+            limit: { type: integer }
+            offset: { type: integer }
+            items:
+              type: array
+              items:
+                type: object
+                properties:
+                  id: { type: string }
+                  kind: { type: string, enum: [search, eval, judge, warmup, agent, other] }
+                  created_at: { type: string, format: date-time }
+                  request_id: { type: [string, "null"] }
+                  query: { type: [string, "null"] }
+                  agent_run_id: { type: [string, "null"] }
+                  provider: { type: string }
+                  model: { type: string }
+                  input_tokens: { type: integer }
+                  output_tokens: { type: integer }
+                  cached_tokens: { type: integer }
+                  latency_ms: { type: integer }
+                  cost_rub: { type: number }
+                  pricing_version: { type: string }
+                  status: { type: string, enum: [ok, error, timeout, schema_error] }
+        monthly:
+          type: object
+          properties:
+            formula: { type: string }
+            params:
+              type: array
+              items:
+                type: object
+                properties:
+                  key:
+                    type: string
+                    enum: [route_d_share, cache_hit_share, llm_parse_cost_rub, agent_run_cost_rub, agent_runs_month, server_rub_20k, server_rub_200k]
+                  label: { type: string }
+                  value: { type: number }
+                  default: { type: number }
+                  source: { type: string, enum: [measured, assumed, request] }
+                  unit: { type: string }
+                  hint: { type: string }
+            scenarios:
+              type: array
+              items:
+                type: object
+                properties:
+                  requests: { type: integer, enum: [20000, 200000] }
+                  llm_calls: { type: number }
+                  server_rub: { type: number }
+                  llm_rub: { type: number }
+                  agent_rub: { type: number }
+                  total_rub: { type: number }
+                  per_request_rub: { type: number }
+                  llm_per_request_rub: { type: number }
+    EvalJob:
+      type: object
+      properties:
+        id: { type: string }
+        set: { type: string }
+        configs: { type: array, items: { type: string } }
+        status: { type: string, enum: [running, done, failed] }
+        done: { type: integer }
+        total: { type: integer }
+        started_at: { type: string, format: date-time }
+        finished_at: { type: string, format: date-time }
+        run_id: { type: string }
+        error: { type: string }
+    Evaluations:
+      type: object
+      properties:
+        set: { type: string }
+        configs:
+          type: array
+          items:
+            type: object
+            additionalProperties: true
+            properties:
+              run_id: { type: string }
+              config: { type: string }
+              rules_version: { type: integer }
+              set_hash: { type: string }
+              queries: { type: integer }
+              repro: { type: string }
+              created_at: { type: string, format: date-time }
+              metrics:
+                type: object
+                additionalProperties: true
+                properties:
+                  ndcg10: { type: [number, "null"] }
+                  mrr10: { type: [number, "null"] }
+                  recall50: { type: [number, "null"] }
+                  exact_accuracy: { type: [number, "null"] }
+                  empty_rate: { type: [number, "null"] }
+                  rescued_rate: { type: [number, "null"] }
+                  false_rescue_rate: { type: [number, "null"] }
+                  violation_rate: { type: [number, "null"] }
+              by_type: { type: object, additionalProperties: true }
+              regressions: { type: array, items: { type: object, additionalProperties: true } }
+              improvements: { type: array, items: { type: object, additionalProperties: true } }
+        running:
+          oneOf: [{ $ref: "#/components/schemas/EvalJob" }, { type: "null" }]
+        last_job:
+          oneOf: [{ $ref: "#/components/schemas/EvalJob" }, { type: "null" }]
+        judge_agreement: { type: [object, "null"], additionalProperties: true }
+    AgentRun:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        status: { type: string, enum: [running, done, stopped, failed] }
+        trigger: { type: string, enum: [manual, schedule] }
+        started_at: { type: string, format: date-time }
+        finished_at: { type: [string, "null"], format: date-time }
+        days: { type: integer }
+        max_clusters: { type: integer }
+        clusters_total: { type: integer }
+        clusters_done: { type: integer }
+        proposals_created: { type: integer }
+        tool_calls: { type: integer }
+        max_tool_calls: { type: integer }
+        input_tokens: { type: integer }
+        output_tokens: { type: integer }
+        cost_rub: { type: number }
+        stop_reason:
+          type: string
+          enum: ["", user, step_limit, token_limit, budget_limit, timeout, llm_error, no_failed_queries, error]
+        summary: '{ type: string }'
+        current_cluster:
+          type: [object, "null"]
+          properties:
+            id: { type: string }
+            label: { type: string }
+        model: { type: string }
+        rules_version: { type: integer }
+        limits:
+          type: object
+          properties:
+            tool_calls_per_cluster: { type: integer }
+            hypotheses: { type: integer }
+            tokens_per_run: { type: integer }
+            timeout_sec: { type: integer }
+        episode: { type: [object, "null"], additionalProperties: true }
+    AgentStep:
+      type: object
+      properties:
+        id: { type: string }
+        run_id: { type: string }
+        seq: { type: integer }
+        ts: { type: string, format: date-time }
+        kind: { type: string, enum: [tool_call, thought, check, memory, diagnosis, hypothesis, proposal, error] }
+        cluster_id: { type: [string, "null"] }
+        tool: { type: [string, "null"] }
+        title: { type: string }
+        args: { type: object, additionalProperties: true }
+        result: { type: object, additionalProperties: true }
+        ok: { type: boolean }
+        hypothesis_no: { type: [integer, "null"] }
+        rejected_reason: { type: [string, "null"] }
+        ms: { type: integer }
+    RulePatch:
+      type: object
+      properties:
+        add:
+          type: array
+          items:
+            type: object
+            properties:
+              kind: { type: string }
+              alias: { type: string }
+              canonical: { type: string }
+              target: { type: string, enum: [vendor, family, category, term] }
+              target_id: { type: string }
+        remove: { type: [array, "null"], items: { type: object, additionalProperties: true } }
+    Proposal:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        run_id: { type: string }
+        cluster:
+          type: object
+          properties:
+            id: { type: string }
+            label: { type: string }
+            queries:
+              type: array
+              items:
+                type: object
+                properties:
+                  text: { type: string }
+                  freq: { type: integer }
+                  failures: { type: integer }
+            lost_demand: { type: number }
+        diagnosis: { $ref: "#/components/schemas/Diagnosis" }
+        diagnosis_text: { type: string }
+        role: { type: string, enum: [ecom, product, content] }
+        action: { type: string, enum: [rules_patch, ticket] }
+        patch: { oneOf: [{ $ref: "#/components/schemas/RulePatch" }, { type: "null" }] }
+        evaluation: { type: [object, "null"], additionalProperties: true, description: "Прогон: целевой кластер до/после, регрессия, причины" }
+        evidence: { type: [object, "null"], additionalProperties: true }
+        hypotheses_tried: { type: integer }
+        base_version: { type: integer }
+        status: { type: string, enum: [pending, accepted, rejected, rolled_back] }
+        created_at: { type: string, format: date-time }
+        decided_at: { type: [string, "null"], format: date-time }
+        decided_reason: { type: [string, "null"] }
+        decided_comment: { type: [string, "null"] }
+        config_version: { type: [integer, "null"] }
+        effect: { type: [object, "null"], additionalProperties: true }
+        check_query: { type: string }
+    ProposalDecision:
+      type: object
+      properties:
+        proposal: { $ref: "#/components/schemas/Proposal" }
+        config_version: { type: [integer, "null"] }

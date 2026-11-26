@@ -2,6 +2,7 @@ package services
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"slices"
@@ -91,6 +92,20 @@ func (s *Services) Analytics(ctx context.Context, days int, role string) (*out.A
 	}
 	resp := computeAnalytics(searches, behavior)
 	resp.Role, resp.Days, resp.From, resp.To = role, days, since, now
+	if st := s.store(); st != nil {
+		ps, err := st.ListProposals(ctx, "", "")
+		if err != nil {
+			return nil, err
+		}
+		linkProposals(resp, ps)
+	}
+	if role == "head" {
+		eff, err := s.Effect(ctx, EffectRequest{Days: days})
+		if err != nil {
+			return nil, err
+		}
+		resp.Effect = eff
+	}
 	return resp, nil
 }
 
@@ -104,82 +119,9 @@ type searchOutcome struct {
 func computeAnalytics(searches []domain.SearchEvent, behavior []domain.BehaviorEvent) *out.AnalyticsResponse {
 	resp := &out.AnalyticsResponse{Funnel: []out.FunnelStep{}, Problems: []out.ProblemQuery{}, Sources: map[string]int{}}
 
-	// Поиски по сессиям, без набора до Enter.
-	bySession := map[string][]*searchOutcome{}
-	byRequest := map[string]*searchOutcome{}
-	var all []*searchOutcome
-	sort.SliceStable(searches, func(i, j int) bool { return searches[i].CreatedAt.Before(searches[j].CreatedAt) })
-	for i := range searches {
-		o := &searchOutcome{ev: &searches[i]}
-		all = append(all, o)
-		bySession[sessionKey(o.ev.SessionID, o.ev.RequestID)] = append(bySession[sessionKey(o.ev.SessionID, o.ev.RequestID)], o)
-	}
-	typing := map[*searchOutcome]bool{}
-	for _, list := range bySession {
-		for i := 0; i+1 < len(list); i++ {
-			cur, next := list[i], list[i+1]
-			a, b := foldQuery(cur.ev.Query), foldQuery(next.ev.Query)
-			if next.ev.CreatedAt.Sub(cur.ev.CreatedAt) <= typingWindow && len(b) > len(a) && strings.HasPrefix(b, a) {
-				typing[cur] = true
-			}
-		}
-	}
-	kept := all[:0]
+	all := buildOutcomes(searches, behavior)
 	for _, o := range all {
-		if !typing[o] {
-			kept = append(kept, o)
-		}
-	}
-	all = kept
-	for k := range bySession {
-		bySession[k] = slices.DeleteFunc(bySession[k], func(o *searchOutcome) bool { return typing[o] })
-	}
-	for _, o := range all {
-		byRequest[o.ev.RequestID] = o
 		resp.Sources[sourceOf(o.ev.Source)]++
-	}
-
-	// Действия покупателя → поиск.
-	for i := range behavior {
-		b := &behavior[i]
-		var o *searchOutcome
-		if b.RequestID != nil {
-			o = byRequest[*b.RequestID]
-		}
-		if o == nil && b.SessionID != nil {
-			list := bySession[*b.SessionID]
-			for j := len(list) - 1; j >= 0; j-- {
-				at := list[j].ev.CreatedAt
-				if !at.After(b.CreatedAt) {
-					if b.CreatedAt.Sub(at) <= attributionWindow {
-						o = list[j]
-					}
-					break
-				}
-			}
-		}
-		if o == nil {
-			continue
-		}
-		switch b.Type {
-		case domain.EventClick:
-			o.clicked = true
-		case domain.EventAddToCart:
-			o.clicked, o.carted = true, true
-		case domain.EventOrder:
-			o.clicked, o.carted, o.ordered = true, true, true
-		}
-	}
-
-	// Переформулировки.
-	for _, list := range bySession {
-		for i := 0; i+1 < len(list); i++ {
-			cur, next := list[i], list[i+1]
-			if !cur.clicked && next.ev.CreatedAt.Sub(cur.ev.CreatedAt) <= reformulateWindow &&
-				foldQuery(cur.ev.Query) != foldQuery(next.ev.Query) {
-				cur.reformulated = true
-			}
-		}
 	}
 
 	// Плитки и воронка.
@@ -271,6 +213,126 @@ func computeAnalytics(searches []domain.SearchEvent, behavior []domain.BehaviorE
 		resp.Problems = resp.Problems[:problemsLimit]
 	}
 	return resp
+}
+
+// linkProposals — счётчик ждущих предложений и связь проблемного запроса с предложением агента по запросам
+// кластера предложения (сравнение — foldQuery). Ждущее решения важнее решённого, новое — старого.
+func linkProposals(resp *out.AnalyticsResponse, ps []domain.Proposal) {
+	type link struct {
+		p       *domain.Proposal
+		pending bool
+	}
+	byQuery := map[string]link{}
+	for i := range ps {
+		p := &ps[i]
+		pending := p.Status == domain.ProposalPending
+		if pending {
+			resp.Tiles.PendingProposals++
+		}
+		var qs []struct {
+			Text string `json:"text"`
+		}
+		_ = json.Unmarshal(p.ClusterQueries, &qs)
+		for _, q := range qs {
+			k := foldQuery(q.Text)
+			cur, ok := byQuery[k]
+			if !ok || pending && !cur.pending || pending == cur.pending && p.CreatedAt.After(cur.p.CreatedAt) {
+				byQuery[k] = link{p: p, pending: pending}
+			}
+		}
+	}
+	for i := range resp.Problems {
+		l, ok := byQuery[resp.Problems[i].Query]
+		if !ok {
+			continue
+		}
+		id, status := l.p.ID.String(), l.p.Status
+		diag := l.p.Diagnosis
+		resp.Problems[i].ProposalID, resp.Problems[i].ProposalStatus, resp.Problems[i].ProposalDiagnosis = &id, &status, &diag
+	}
+}
+
+// buildOutcomes — исход каждого поиска: клик, корзина, заказ, переформулировка; набор до Enter отброшен.
+// searches сортируется по времени на месте.
+func buildOutcomes(searches []domain.SearchEvent, behavior []domain.BehaviorEvent) []*searchOutcome {
+	// Поиски по сессиям, без набора до Enter.
+	bySession := map[string][]*searchOutcome{}
+	byRequest := map[string]*searchOutcome{}
+	var all []*searchOutcome
+	sort.SliceStable(searches, func(i, j int) bool { return searches[i].CreatedAt.Before(searches[j].CreatedAt) })
+	for i := range searches {
+		o := &searchOutcome{ev: &searches[i]}
+		all = append(all, o)
+		bySession[sessionKey(o.ev.SessionID, o.ev.RequestID)] = append(bySession[sessionKey(o.ev.SessionID, o.ev.RequestID)], o)
+	}
+	typing := map[*searchOutcome]bool{}
+	for _, list := range bySession {
+		for i := 0; i+1 < len(list); i++ {
+			cur, next := list[i], list[i+1]
+			a, b := foldQuery(cur.ev.Query), foldQuery(next.ev.Query)
+			if next.ev.CreatedAt.Sub(cur.ev.CreatedAt) <= typingWindow && len(b) > len(a) && strings.HasPrefix(b, a) {
+				typing[cur] = true
+			}
+		}
+	}
+	kept := all[:0]
+	for _, o := range all {
+		if !typing[o] {
+			kept = append(kept, o)
+		}
+	}
+	all = kept
+	for k := range bySession {
+		bySession[k] = slices.DeleteFunc(bySession[k], func(o *searchOutcome) bool { return typing[o] })
+	}
+	for _, o := range all {
+		byRequest[o.ev.RequestID] = o
+	}
+
+	// Действия покупателя → поиск.
+	for i := range behavior {
+		b := &behavior[i]
+		var o *searchOutcome
+		if b.RequestID != nil {
+			o = byRequest[*b.RequestID]
+		}
+		if o == nil && b.SessionID != nil {
+			list := bySession[*b.SessionID]
+			for j := len(list) - 1; j >= 0; j-- {
+				at := list[j].ev.CreatedAt
+				if !at.After(b.CreatedAt) {
+					if b.CreatedAt.Sub(at) <= attributionWindow {
+						o = list[j]
+					}
+					break
+				}
+			}
+		}
+		if o == nil {
+			continue
+		}
+		switch b.Type {
+		case domain.EventClick:
+			o.clicked = true
+		case domain.EventAddToCart:
+			o.clicked, o.carted = true, true
+		case domain.EventOrder:
+			o.clicked, o.carted, o.ordered = true, true, true
+		}
+	}
+
+	// Переформулировки.
+	for _, list := range bySession {
+		for i := 0; i+1 < len(list); i++ {
+			cur, next := list[i], list[i+1]
+			if !cur.clicked && next.ev.CreatedAt.Sub(cur.ev.CreatedAt) <= reformulateWindow &&
+				foldQuery(cur.ev.Query) != foldQuery(next.ev.Query) {
+				cur.reformulated = true
+			}
+		}
+	}
+
+	return all
 }
 
 // sessionKey — сессия поиска; без сессии поиск — сам себе сессия.

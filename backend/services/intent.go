@@ -54,7 +54,6 @@ type intentService struct {
 	s        *Services
 	primary  ChatModel // nil — модели нет
 	fallback ChatModel // nil — резерва нет
-	enabled  bool      // LLM_MODE=on и модель настроена
 	prompt   prompts.Prompt
 
 	// cache — кэш разборов; nil — без базы кэша нет.
@@ -70,12 +69,11 @@ type intentCacheStore interface {
 	PutIntentCache(ctx context.Context, row *domain.IntentCache) error
 }
 
-// newIntentService — парсер; primary == nil или mode=off — работает на кэше и правилах.
-func newIntentService(s *Services, primary, fallback ChatModel, mode string) *intentService {
+// newIntentService — парсер; primary == nil или режим off — работает на кэше и правилах.
+func newIntentService(s *Services, primary, fallback ChatModel) *intentService {
 	p := &intentService{
 		s: s, primary: primary, fallback: fallback,
-		enabled: primary != nil && mode == "on",
-		prompt:  prompts.Intent(),
+		prompt: prompts.Intent(),
 	}
 	if s.repos.Enabled() {
 		p.cache = s.repos
@@ -105,11 +103,16 @@ func (p *intentService) Parse(ctx context.Context, normalized string, rulesGuess
 	if hit, ok := p.cacheGet(ctx, key); ok {
 		return hit, nil
 	}
-	if !p.enabled {
+	// Режим и бюджет проверяются на каждом разборе: LLM_MODE переключается без перезапуска.
+	switch {
+	case p.primary == nil:
+		rules.FallbackReason = fallbackNoModel
+		return rules, nil
+	case p.s.LLMMode() != llmModeOn:
 		rules.FallbackReason = fallbackLLMOff
-		if p.primary == nil {
-			rules.FallbackReason = fallbackNoModel
-		}
+		return rules, nil
+	case p.s.guard().exceeded(ctx):
+		rules.FallbackReason = fallbackBudget
 		return rules, nil
 	}
 
@@ -119,7 +122,7 @@ func (p *intentService) Parse(ctx context.Context, normalized string, rulesGuess
 		rules.FallbackReason = reason
 		return rules, nil
 	}
-	res := mergeIntent(rulesGuess, dict.validate(*parsed, normalized))
+	res := explicitOrigin(mergeIntent(rulesGuess, dict.validate(*parsed, normalized)), normalized)
 	res.Source = domain.ParseLLM
 	p.cachePut(key, normalized, clientSegment, dict.version, modelName, res)
 	res.LLM = info

@@ -9,6 +9,7 @@ import type {
   Proposal,
   ProposalRejectReason,
   ProposalsResponse,
+  RollbackResponse,
 } from './types'
 
 /** GET /api/agent/runs — прошлые запуски. */
@@ -59,7 +60,7 @@ export const getConfigs = (opts?: RequestOptions) => http.get<ConfigsResponse>('
 
 /** POST /api/configs/rollback — новая версия = копия выбранной. */
 export const rollbackConfig = (toVersion: number, comment = '') =>
-  http.post<unknown>('/configs/rollback', { to_version: toVersion, comment })
+  http.post<RollbackResponse>('/configs/rollback', { to_version: toVersion, comment })
 
 /** GET /api/agent/memory — решения человека, которые агент помнит. */
 export const getMemory = (opts?: RequestOptions) => http.get<MemoryResponse>('/agent/memory', opts)

@@ -568,3 +568,34 @@ func intentSummary(in domain.Intent) string {
 	return fmt.Sprintf("%s ref=%s cat=%s vendor=%s origin=%s c=%v p=%v drop=%v src=%s",
 		in.Kind, in.ReferenceFamily, in.CategoryID, in.VendorID, in.Origin, in.Constraints, in.Preferences, in.Dropped, in.Source)
 }
+
+// explicitOrigin — «в реестре», «отечественный», «российский» названы в запросе прямо: происхождение —
+// обязательное условие, даже если модель положила его в мягкие (q-0247 «linux для госучреждения в реестре»).
+// Домысленное («госучреждение», «импортозамещение» без этих слов) остаётся мягким.
+func explicitOrigin(in domain.Intent, normalized string) domain.Intent {
+	named := false
+	for _, w := range strings.Fields(normalized) {
+		if strings.HasPrefix(w, "реестр") || strings.HasPrefix(w, "отечествен") || strings.HasPrefix(w, "российск") {
+			named = true
+			break
+		}
+	}
+	if !named {
+		return in
+	}
+	in.Origin = "ru"
+	prefs := in.Preferences[:0:0]
+	for _, p := range in.Preferences {
+		if p.Field != domain.FieldOrigin {
+			prefs = append(prefs, p)
+		}
+	}
+	in.Preferences = prefs
+	for _, c := range in.Constraints {
+		if c.Field == domain.FieldOrigin {
+			return in
+		}
+	}
+	in.Constraints = append(in.Constraints, domain.AttrConstraint{Field: domain.FieldOrigin, Value: "ru"})
+	return in
+}

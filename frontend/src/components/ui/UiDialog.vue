@@ -14,7 +14,7 @@ import { X } from 'lucide-vue-next'
 
 const open = defineModel<boolean>('open', { default: false })
 
-defineProps<{ title: string; description?: string }>()
+defineProps<{ title: string; description?: string; wide?: boolean }>()
 </script>
 
 <template>
@@ -23,7 +23,7 @@ defineProps<{ title: string; description?: string }>()
       <DialogOverlay class="ui-scrim" />
       <DialogContent
         v-bind="description ? {} : { 'aria-describedby': undefined }"
-        class="ui-dialog"
+        :class="['ui-dialog', { 'ui-dialog--wide': wide }]"
       >
         <header class="ui-dialog__header">
           <DialogTitle class="t-h2">{{ title }}</DialogTitle>
@@ -67,6 +67,9 @@ defineProps<{ title: string; description?: string }>()
   box-shadow: var(--shadow-overlay);
   transform: translate(-50%, -50%);
   animation: ui-fade-in var(--dur-panel) var(--ease-standard);
+}
+.ui-dialog--wide {
+  max-width: var(--dialog-wide-w);
 }
 .ui-dialog:focus-visible {
   outline: none;

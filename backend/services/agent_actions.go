@@ -64,6 +64,28 @@ func (cr *clusterRun) toolRunEvaluation(ctx context.Context, raw string) (any, s
 		return nil, "", terr("прогон прерван: %v", err)
 	}
 	sp.Eval = ev
+	// Ожидаемое правкой семейство в выдаче, но не первым: ранжирование, а не словарь.
+	var expected map[string]bool
+	if cr.rc.sb != nil {
+		expected = cr.rc.sb.expectedFamilies(sp.Patch)
+	}
+	ranking := map[string]string{}
+	for _, q := range ev.Target.Queries {
+		for _, top := range [][]string{q.BeforeTop, q.AfterTop} {
+			for i, f := range top {
+				if i > 0 && f != top[0] {
+					cr.noteNotFirst(f, q.Text)
+				}
+			}
+		}
+		if q.BeforeFound && !q.AfterFound {
+			for i, f := range q.AfterTop {
+				if i > 0 && expected[f] {
+					ranking[f] = q.Text
+				}
+			}
+		}
+	}
 	title := fmt.Sprintf("гипотеза %d: целевой кластер %d/%d → %d/%d, регрессия: хуже %d из %d",
 		sp.No, ev.Target.Before.Found, ev.Target.Before.Total, ev.Target.After.Found, ev.Target.After.Total,
 		ev.Regression.Worse, ev.Regression.Total)
@@ -71,9 +93,16 @@ func (cr *clusterRun) toolRunEvaluation(ctx context.Context, raw string) (any, s
 	if !ev.Passed {
 		cr.rejectHypothesis(ctx, sp, strings.Join(ev.Reasons, "; "), map[string]any{"evaluation": ev})
 		res["hypotheses_left"] = agentMaxHypotheses - cr.hypotheses
-		if cr.hypotheses >= agentMaxHypotheses {
+		switch {
+		case len(ranking) > 0:
+			for f, q := range ranking {
+				res["hint"] = fmt.Sprintf("по запросу «%s» нужное семейство %s в выдаче, но не первым — это похоже на RANKING_FAILURE: "+
+					"задача менеджеру e-com (create_assortment_ticket, diagnosis=RANKING_FAILURE, family_id=%s) или следующая гипотеза", q, f, f)
+				break
+			}
+		case cr.hypotheses >= agentMaxHypotheses:
 			res["hint"] = "гипотезы исчерпаны: закрой кластер (close_cluster) с причиной «не решается правкой правил»"
-		} else {
+		default:
 			res["hint"] = "сформулируй следующую гипотезу уже, учитывая причины отказа"
 		}
 		return res, title + " — отклонена", nil
@@ -204,10 +233,31 @@ func (cr *clusterRun) toolTicket(ctx context.Context, raw string) (any, string, 
 		if cat.families[strings.TrimSpace(args.FamilyID)] == nil {
 			return nil, "", terr("для CONTENT_GAP укажи family_id карточки из каталога")
 		}
+		// Карточка виновата, только если покупатели этого кластера всё же приходят к семейству — после
+		// переформулировки или через похожие успешные запросы. Иначе («счёт на оплату» → 1С по подстроке)
+		// это не карточка, а NON_PRODUCT или спрос без предложения.
+		if !cr.foundBy[strings.TrimSpace(args.FamilyID)] {
+			return nil, "", terr("CONTENT_GAP — только если покупатели кластера находят семейство %s после переформулировки "+
+				"(reformulated_to) или через похожие успешные запросы (find_similar_successful_queries); иначе это NON_PRODUCT "+
+				"(запрос не о товаре) или ASSORTMENT_GAP", strings.TrimSpace(args.FamilyID))
+		}
 		role = domain.RoleContent
 		cr.evidence["family_id"] = strings.TrimSpace(args.FamilyID)
+	case domain.DiagRankingFailure:
+		fid := strings.TrimSpace(args.FamilyID)
+		if cat.families[fid] == nil {
+			return nil, "", terr("для RANKING_FAILURE укажи family_id семейства из каталога, которое стоит низко")
+		}
+		q, ok := cr.notFirst[fid]
+		if !ok {
+			return nil, "", terr("RANKING_FAILURE — только если семейство %s видно в выдаче запроса кластера, но не первым: "+
+				"сначала get_search_trace или прогон гипотезы", fid)
+		}
+		role = domain.RoleEcom
+		cr.evidence["family_id"] = fid
+		cr.evidence["ranking_query"] = q
 	default:
-		return nil, "", terr("diagnosis — SUBSTITUTE_AVAILABLE, ASSORTMENT_GAP или CONTENT_GAP")
+		return nil, "", terr("diagnosis — SUBSTITUTE_AVAILABLE, ASSORTMENT_GAP, CONTENT_GAP или RANKING_FAILURE")
 	}
 	// Память: такая же задача по кластеру уже отклонена человеком.
 	for _, h := range cr.memory {
@@ -224,7 +274,7 @@ func (cr *clusterRun) toolTicket(ctx context.Context, raw string) (any, string, 
 	cr.evidence["expanded_search"] = cr.expanded
 	p := cr.newProposal(args.Diagnosis, text, role, domain.ActionTicket)
 	p.PatchKeys = toJSON([]string{"ticket:" + args.Diagnosis + ":" + cr.c.Key})
-	who := map[string]string{domain.RoleProduct: "продукт-менеджеру", domain.RoleContent: "контент-менеджеру"}[role]
+	who := map[string]string{domain.RoleProduct: "продукт-менеджеру", domain.RoleContent: "контент-менеджеру", domain.RoleEcom: "менеджеру e-com"}[role]
 	title := fmt.Sprintf("Задача %s: %s — «%s»", who, args.Diagnosis, cr.c.Label)
 	if len(subs) > 0 {
 		var names []string
@@ -240,8 +290,11 @@ func (cr *clusterRun) toolTicket(ctx context.Context, raw string) (any, string, 
 	return map[string]any{"proposal_id": p.ID.String(), "status": p.Status, "role": role}, title, nil
 }
 
-var closeDiagnoses = []string{domain.DiagAliasGap, domain.DiagTypo, domain.DiagRankingFailure, domain.DiagConstraintConflict,
+var closeDiagnoses = []string{domain.DiagAliasGap, domain.DiagTypo, domain.DiagConstraintConflict,
 	domain.DiagNonProduct, domain.DiagNoise, domain.DiagUnknown}
+
+// ticketDiagnoses — диагнозы, итог которых — задача человеку, а не закрытие кластера.
+var ticketDiagnoses = []string{domain.DiagAssortmentGap, domain.DiagSubstitute, domain.DiagContentGap, domain.DiagRankingFailure}
 
 func (cr *clusterRun) toolClose(ctx context.Context, raw string) (any, string, error) {
 	var args struct {
@@ -255,8 +308,28 @@ func (cr *clusterRun) toolClose(ctx context.Context, raw string) (any, string, e
 	if err != nil {
 		return nil, "", err
 	}
+	// Модель путает инструменты: «закрыть» кластер с диагнозом задачи. Раньше это был отказ, и после двух
+	// отказов модель сдавалась на UNKNOWN (winrar, запуск 01a20fe5). Теперь — задача с тем же текстом: её
+	// проверки (расширенный поиск для ASSORTMENT_GAP, аналоги для SUBSTITUTE_AVAILABLE) делает toolTicket.
+	if slices.Contains(ticketDiagnoses, args.Diagnosis) {
+		ticket := map[string]any{"diagnosis": args.Diagnosis, "text": reason}
+		if args.Diagnosis == domain.DiagRankingFailure && len(cr.notFirst) == 1 {
+			for f := range cr.notFirst {
+				ticket["family_id"] = f
+			}
+		}
+		return cr.toolTicket(ctx, string(toJSON(ticket)))
+	}
 	if !slices.Contains(closeDiagnoses, args.Diagnosis) {
-		return nil, "", terr("diagnosis для закрытия — %s", strings.Join(closeDiagnoses, ", "))
+		return nil, "", terr("diagnosis для закрытия — %s; для %s — create_assortment_ticket",
+			strings.Join(closeDiagnoses, ", "), strings.Join(ticketDiagnoses, ", "))
+	}
+	// UNKNOWN при доказанном отсутствии: расширенный поиск ничего не нашёл, правки не прошли — это спрос без
+	// предложения. Один раз отказываем с подсказкой; повторное UNKNOWN принимается (модель могла увидеть аналог).
+	if args.Diagnosis == domain.DiagUnknown && cr.expanded && !cr.expandedFound && !cr.unknownHinted && !cr.anyPassed() {
+		cr.unknownHinted = true
+		return nil, "", terr("расширенный поиск по каталогу (expand=true) не нашёл ни товара, ни семейств — это ASSORTMENT_GAP, " +
+			"а не UNKNOWN: create_assortment_ticket с diagnosis=ASSORTMENT_GAP (или SUBSTITUTE_AVAILABLE, если нашёл аналог)")
 	}
 	// Правка прошла прогон — её нельзя молча выбросить.
 	for _, p := range cr.patches {
@@ -272,6 +345,16 @@ func (cr *clusterRun) toolClose(ctx context.Context, raw string) (any, string, e
 	}
 	cr.finish("closed", args.Diagnosis, reason)
 	return map[string]any{"closed": true, "diagnosis": args.Diagnosis}, args.Diagnosis + " — " + shortText(reason, 120), nil
+}
+
+// anyPassed — хоть одна гипотеза прошла прогон.
+func (cr *clusterRun) anyPassed() bool {
+	for _, p := range cr.patches {
+		if p.Eval != nil && p.Eval.Passed {
+			return true
+		}
+	}
+	return false
 }
 
 func (cr *clusterRun) toolVerify(ctx context.Context, raw string) (any, string, error) {

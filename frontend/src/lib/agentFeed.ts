@@ -99,6 +99,38 @@ export const TOOL_LABELS: Record<string, string> = {
   submit_proposal: 'Предложение в очередь',
   create_assortment_ticket: 'Задача по ассортименту',
   verify_applied_change: 'Эффект принятой правки',
+  close_cluster: 'Кластер закрыт',
+}
+
+export interface ClusterOutcomeRow {
+  id: string
+  label: string
+  diagnosis: string
+  hypotheses: number
+  rejected: number
+  /** Итог словами: «правка в очереди», «задача продукт-менеджеру», «правкой правил не решается». */
+  outcome: string
+  /** Есть предложение в очереди. */
+  proposalId: string | null
+}
+
+const OUTCOME_LABELS: Record<string, string> = {
+  proposal: 'правка правил — в очереди',
+  ticket: 'задача человеку — в очереди',
+  closed: 'правкой правил не решается',
+}
+
+/** Итог по кластерам из episode.clusters в порядке разбора. */
+export function clusterOutcomes(run: AgentRun | null): ClusterOutcomeRow[] {
+  return (run?.episode?.clusters ?? []).map((c) => ({
+    id: c.cluster_id,
+    label: c.label,
+    diagnosis: c.diagnosis,
+    hypotheses: c.hypotheses ?? 0,
+    rejected: c.rejected ?? 0,
+    outcome: OUTCOME_LABELS[c.outcome] ?? c.outcome,
+    proposalId: c.proposal_id || null,
+  }))
 }
 
 /** Ключ гипотезы: номер гипотезы в своём кластере. */
@@ -123,6 +155,8 @@ export interface StepView {
   step: AgentStep
   kind: { label: string; group: StepGroup }
   toolLabel: string | null
+  /** Строка шага без служебных вставок модели. */
+  title: string
   /** Отклонённая гипотеза: шаг зачёркнут, причина видна. */
   rejected: string | null
   /** Причину пишем один раз — у шага гипотезы; у проверки — только если шага гипотезы в ленте нет. */
@@ -150,6 +184,7 @@ export function stepView(
     step,
     kind,
     toolLabel: step.tool ? (TOOL_LABELS[step.tool] ?? step.tool) : null,
+    title: stepTitle(step.title ?? ''),
     rejected: reason,
     showReason: !!reason && (step.kind !== 'check' || !k || !hypotheses.has(k)),
     passed: kind.group === 'check' ? step.ok && !reason : null,
@@ -174,6 +209,24 @@ function labelFrom(step: AgentStep): string | null {
   return null
 }
 
+const CLUSTER_TITLE = /^Кластер «(.+?)»/
+
+/** Подпись кластера из первого шага «Кластер «…»: N запросов…». */
+function labelFromTitle(step: AgentStep): string | null {
+  if (step.kind !== 'thought' || !step.cluster_id) return null
+  return CLUSTER_TITLE.exec(step.title ?? '')?.[1] ?? null
+}
+
+/**
+ * Строка шага для ленты: модель иногда дописывает в рассуждение вызов инструмента блоком ```…``` —
+ * его в строке не показываем (полный текст остаётся в раскрытии шага).
+ */
+export function stepTitle(title: string): string {
+  const i = title.indexOf('```')
+  const head = (i >= 0 ? title.slice(0, i) : title).trim()
+  return head.replace(/[:：]\s*$/, '') || title.trim()
+}
+
 /** Шаги подряд одного кластера — один сегмент с заголовком; шаги вне кластера — свой сегмент. */
 export function segmentByCluster(steps: AgentStep[], run: AgentRun | null): ClusterSegment[] {
   const rejected = rejectedHypotheses(steps)
@@ -184,7 +237,7 @@ export function segmentByCluster(steps: AgentStep[], run: AgentRun | null): Clus
   }
   const labels = new Map<string, string>()
   for (const s of steps) {
-    const l = labelFrom(s)
+    const l = labelFrom(s) ?? labelFromTitle(s)
     if (s.cluster_id && l && !labels.has(s.cluster_id)) labels.set(s.cluster_id, l)
   }
   if (run?.current_cluster && !labels.has(run.current_cluster.id))

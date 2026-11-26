@@ -3,7 +3,7 @@
 // разница списком. «Откатить» — диалог; откат создаёт новую версию-копию, история не стирается.
 import { computed, ref } from 'vue'
 import { RouterLink, useRouter } from 'vue-router'
-import { CircleAlert, History, Undo2 } from 'lucide-vue-next'
+import { CircleAlert, CircleCheck, CircleX, History, Undo2 } from 'lucide-vue-next'
 import { getConfigs, rollbackConfig } from '@/api/agent'
 import type { ConfigVersion } from '@/api/types'
 import BlockError from '@/components/common/BlockError.vue'
@@ -13,7 +13,7 @@ import { useToast } from '@/components/ui/useToast'
 import { useResource } from '@/composables/useResource'
 import { isApiError, MSG_UNKNOWN } from '@/lib/apiError'
 import { formatDateTime } from '@/lib/format'
-import { authorLabel, sortVersions } from '@/lib/proposals'
+import { authorLabel, effectLine, sortVersions, versionDescription } from '@/lib/proposals'
 import { useAppStore } from '@/stores/app'
 
 const app = useAppStore()
@@ -38,14 +38,8 @@ const busy = ref(false)
 const err = ref('')
 const comment = ref('')
 
-/** Эффект версии — пары «ключ: значение» (форму задаёт агент, сырой JSON не показываем). */
-function effectRows(v: ConfigVersion): [string, string][] {
-  if (!v.effect) return []
-  return Object.entries(v.effect).map(([k, val]) => [
-    k,
-    typeof val === 'object' && val !== null ? JSON.stringify(val) : String(val),
-  ])
-}
+/** Эффект версии одной строкой: до правки, обещание прогона, факт на действующих правилах. */
+const effectOf = (v: ConfigVersion) => effectLine(v.effect)
 
 /** Откатить версию N = вернуть правила, действовавшие до неё (N−1). */
 const rollbackTo = computed(() => (target.value ? target.value.version - 1 : null))
@@ -61,17 +55,19 @@ async function confirmRollback() {
   busy.value = true
   err.value = ''
   const from = target.value.version
+  const to = rollbackTo.value
   try {
-    await rollbackConfig(rollbackTo.value, comment.value.trim())
+    const r = await rollbackConfig(to, comment.value.trim())
     busy.value = false
     target.value = null
     await res.load({ quiet: true })
     void app.loadMeta(true)
     void app.loadPending()
+    const back = r?.rolled_back_proposals?.length ?? 0
     toast.add({
       tone: 'ok',
       title: `Версия ${from} откачена`,
-      detail: `Действует версия ${res.data.value?.active ?? '—'} — копия правил версии ${rollbackTo.value}.`,
+      detail: `Действует версия ${r?.version ?? res.data.value?.active ?? '—'} — копия правил версии ${r?.rolled_back_to ?? to}.${back ? ` Откачено предложений: ${back}.` : ''}`,
       action: { label: 'Проверить в поиске', run: () => void router.push('/search') },
     })
   } catch (e) {
@@ -137,10 +133,10 @@ async function confirmRollback() {
             <span class="t-sm t-muted">· {{ authorLabel(v.author) }}</span>
             <RouterLink
               v-if="v.proposal_id"
-              :to="{ path: '/searchops', query: { tab: 'queue', status: 'all' } }"
+              :to="{ path: '/searchops', query: { tab: 'queue', status: 'all', p: v.proposal_id } }"
               class="link t-sm"
             >
-              предложение <span class="t-mono">{{ v.proposal_id }}</span>
+              открыть предложение
             </RouterLink>
             <button
               v-if="v.version === active && v.version > 1"
@@ -151,19 +147,41 @@ async function confirmRollback() {
               <Undo2 :size="14" aria-hidden="true" /> Откатить
             </button>
           </header>
-          <p v-if="v.description">{{ v.description }}</p>
+          <p v-if="v.description && v.version > 1">{{ versionDescription(v) }}</p>
           <PatchDiff
             v-if="v.version > 1"
             :patch="v.diff"
             empty="Разница с предыдущей версией пуста"
           />
-          <p v-else class="t-sm t-muted">Исходные словари и правила из данных каталога.</p>
-          <dl v-if="effectRows(v).length" class="ver__effect t-sm">
-            <dt class="t-xs t-muted">Эффект после применения</dt>
-            <dd v-for="[k, val] in effectRows(v)" :key="k">
-              <span class="t-muted">{{ k }}:</span> {{ val }}
-            </dd>
-          </dl>
+          <p v-else class="t-sm t-muted">{{ versionDescription(v) }}</p>
+          <div v-if="effectOf(v)" class="ver__effect">
+            <p class="t-xs t-muted">
+              Эффект после применения<template v-if="v.effect?.checked_at">
+                · проверил агент {{ formatDateTime(v.effect.checked_at) }}</template
+              >
+            </p>
+            <p
+              :class="[
+                'ver__effect-line',
+                effectOf(v)!.holds ? 'status-accepted' : 'status-rejected',
+              ]"
+            >
+              <component
+                :is="effectOf(v)!.holds ? CircleCheck : CircleX"
+                :size="14"
+                aria-hidden="true"
+              />
+              <span>
+                {{ effectOf(v)!.text }} — {{ effectOf(v)!.holds ? 'держится' : 'не держится' }}
+              </span>
+            </p>
+            <ul v-if="v.effect?.queries?.length" class="ver__effect-queries t-sm">
+              <li v-for="q in v.effect.queries" :key="q.text">
+                <span>{{ q.text }}</span>
+                <span :class="q.found ? '' : 't-muted'">{{ q.found ? 'находится' : 'нет' }}</span>
+              </li>
+            </ul>
+          </div>
           <p v-else-if="v.version > 1" class="t-xs t-muted">
             Эффект появится после следующего запуска агента: он сравнит метрики целевого кластера.
           </p>
@@ -263,11 +281,31 @@ async function confirmRollback() {
 .ver__effect {
   display: flex;
   flex-direction: column;
-  gap: 2px;
-  margin: 0;
+  gap: var(--space-1);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
 }
-.ver__effect dd {
+.ver__effect-line {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-1);
+}
+.ver__effect-line svg {
+  flex: none;
+  margin-top: 3px;
+  color: var(--tone);
+}
+.ver__effect-queries {
+  display: grid;
+  grid-template-columns: max-content max-content;
+  gap: 2px var(--space-4);
   margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.ver__effect-queries li {
+  display: contents;
 }
 .changes__dialog {
   display: flex;

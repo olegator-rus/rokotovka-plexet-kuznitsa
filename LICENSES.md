@@ -7,6 +7,8 @@
 | --- | --- | --- | --- | --- |
 | Fiber | v2.52.x | github.com/gofiber/fiber | MIT | backend |
 | fiberzap | v2.1.6 | github.com/gofiber/contrib/fiberzap | MIT | backend (журнал HTTP) |
+| tinylib/msgp | v1.2.5 | github.com/tinylib/msgp | MIT | backend (косвенно: лимитер Fiber) |
+| philhofer/fwd | v1.1.3 | github.com/philhofer/fwd | MIT | backend (косвенно: msgp) |
 | zap | v1.28.0 | go.uber.org/zap | MIT | backend (журнал) |
 | oklog/ulid | v2.1.2 | github.com/oklog/ulid | Apache-2.0 | backend (номер запроса) |
 | godotenv | v1.5.1 | github.com/joho/godotenv | MIT | backend (локальная разработка) |
@@ -32,3 +34,4 @@
 | FastAPI | 0.165.0 | github.com/fastapi/fastapi | MIT | ml (HTTP API) |
 | Uvicorn | 0.54.0 | github.com/Kludex/uvicorn | BSD-3-Clause | ml (HTTP-сервер) |
 | Прочие транзитивные пакеты ml | см. `ml/requirements.txt` | pypi.org | MIT / BSD / Apache-2.0 / ISC; исключения: tqdm — MPL-2.0 AND MIT, typing_extensions — PSF-2.0, regex — Apache-2.0 AND CNRI-Python | ml (ставятся pip, не распространяются; tqdm тянут transformers и huggingface_hub) |
+| Playwright (@playwright/test) | 1.61.1 | playwright.dev | Apache-2.0 | e2e (сквозные тесты и запись видео; Chromium из кеша Playwright) |

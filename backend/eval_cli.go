@@ -101,3 +101,24 @@ func runJudge(ctx context.Context, log *zap.Logger, svc *services.Services, args
 	}
 	fmt.Print(services.FormatJudgeTable(run))
 }
+
+// runWarmup — `go run . warmup [--limit 100] [--configs B3,B4] [--days 90]`: прогрев кэша разборов частотными
+// запросами из журнала поиска и наборов; сводка — в stdout.
+func runWarmup(ctx context.Context, log *zap.Logger, svc *services.Services, args []string) {
+	fs := flag.NewFlagSet("warmup", flag.ExitOnError)
+	limit := fs.Int("limit", 100, "сколько самых частотных запросов прогреть")
+	configs := fs.String("configs", "B3,B4", "конфигурации через запятую")
+	days := fs.Int("days", 90, "за сколько дней брать журнал поиска")
+	_ = fs.Parse(args)
+
+	svc.LoadCatalogState(ctx)
+	defer svc.Wait()
+	res, err := svc.Warmup(ctx, services.WarmupRequest{Limit: *limit, Configs: strings.Split(*configs, ","), Days: *days})
+	if err != nil {
+		if res == nil {
+			log.Fatal("прогрев", zap.Error(err))
+		}
+		log.Error("прогрев", zap.Error(err))
+	}
+	fmt.Print(res.String())
+}

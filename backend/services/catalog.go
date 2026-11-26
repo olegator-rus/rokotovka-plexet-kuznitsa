@@ -167,10 +167,11 @@ func (s *Services) indexInfo(ctx context.Context) (*indexMeta, error) {
 // Meta — GET /api/meta.
 func (s *Services) Meta() out.Meta {
 	m := out.Meta{
-		LLMMode:       s.llmMode,
+		LLMMode:       s.LLMMode(),
 		Configs:       domain.SearchConfigs,
 		DefaultConfig: domain.DefaultSearchConfig,
 		Clients:       []out.MetaClient{},
+		LLM:           s.LLMState(context.Background()),
 	}
 	st := s.catalog.Load()
 	if st == nil {

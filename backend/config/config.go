@@ -53,6 +53,8 @@ type Config struct {
 	LLM LLMConfig
 	// Agent — агент SearchOps (AGENT_*): модель, расписание, пороги допуска (agent.go).
 	Agent AgentConfig
+	// Ops — администрирование, лимит частоты, дневной бюджет LLM (ops.go).
+	Ops OpsConfig
 }
 
 func (c Config) IsProduction() bool { return c.AppEnv == EnvProduction }
@@ -84,6 +86,9 @@ func Load() (Config, error) {
 	}
 	c.LLM = llm
 	if c.Agent, err = loadAgent(llm); err != nil {
+		problems = append(problems, err.Error())
+	}
+	if c.Ops, err = loadOps(dev); err != nil {
 		problems = append(problems, err.Error())
 	}
 	for _, a := range c.TrustedProxies {
@@ -133,6 +138,7 @@ func (c Config) Summary() []string {
 		fmt.Sprintf("данные для импорта: %s", c.DataDir),
 		c.LLM.summary(),
 		c.Agent.summary(c.LLM),
+		c.Ops.summary(),
 	}
 }
 

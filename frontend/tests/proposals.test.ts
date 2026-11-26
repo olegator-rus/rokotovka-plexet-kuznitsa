@@ -159,3 +159,26 @@ test('статусы, задача вместо правки, версии но�
     [3, 1],
   )
 })
+
+test('proposalsByQuery: запрос кластера → предложение, ждущее решения важнее отклонённого', async () => {
+  const { proposalsByQuery, findProposalForQuery } = await import('../src/lib/proposals.ts')
+  const mk = (id: string, status: string, texts: string[]) =>
+    ({
+      id,
+      status,
+      created_at: '2026-05-27T00:00:00Z',
+      cluster: {
+        id: 'c' + id,
+        label: texts[0],
+        queries: texts.map((t) => ({ text: t, freq: 1 })),
+        lost_demand: 1,
+      },
+    }) as unknown as Proposal
+  const idx = proposalsByQuery([
+    mk('a', 'rejected', ['Figma']),
+    mk('b', 'pending', ['figma', 'зуп']),
+  ])
+  assert.equal(findProposalForQuery(idx, ' FIGMA ')?.id, 'b')
+  assert.equal(findProposalForQuery(idx, 'зуп')?.id, 'b')
+  assert.equal(findProposalForQuery(idx, 'кис'), null)
+})

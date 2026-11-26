@@ -11,6 +11,7 @@ import {
   rejectedHypotheses,
   runOutcomeLine,
   segmentByCluster,
+  stepTitle,
   stepView,
   stopReasonLabel,
 } from '../src/lib/agentFeed.ts'
@@ -174,4 +175,64 @@ test('колонка состояния: вызовы в текущем клас
   assert.equal(stopReasonLabel(null), null)
   assert.equal(formatDuration('2026-05-27T10:00:00Z', '2026-05-27T10:02:14Z'), '2 мин 14 с')
   assert.equal(formatDuration('2026-05-27T10:00:00Z', '2026-05-27T10:00:48Z'), '48 с')
+})
+
+test('живая лента: подпись кластера из шага «Кластер «…»», рассуждение без вставок ```', () => {
+  const steps = [
+    step(1, {
+      kind: 'thought',
+      tool: null,
+      cluster_id: 'k1',
+      title: 'Кластер «акад»: 6 запросов, потерянный спрос 37 поисков',
+      result: { terms: ['акад'], queries: [] },
+    }),
+    step(2, {
+      kind: 'thought',
+      tool: null,
+      cluster_id: 'k1',
+      title: 'Проверим трассу «акад». ```{"name":"get_search_trace"}```',
+    }),
+  ]
+  const segs = segmentByCluster(steps, run({ current_cluster: null }))
+  assert.equal(segs[0].label, 'акад')
+  assert.equal(segs[0].steps[1].title, 'Проверим трассу «акад».')
+  assert.equal(stepTitle('Сначала проверим: ```json {} ```'), 'Сначала проверим')
+  assert.equal(stepTitle('```json {}```'), '```json {}```')
+})
+
+test('clusterOutcomes: итог кластеров словами, предложение только когда есть id', async () => {
+  const { clusterOutcomes } = await import('../src/lib/agentFeed.ts')
+  const rows = clusterOutcomes(
+    run({
+      episode: {
+        clusters: [
+          {
+            cluster_id: 'k1',
+            label: 'акад',
+            outcome: 'proposal',
+            diagnosis: 'ALIAS_GAP',
+            hypotheses: 3,
+            rejected: 2,
+            tool_calls: 13,
+            proposal_id: 'p1',
+          },
+          {
+            cluster_id: 'k2',
+            label: 'кис',
+            outcome: 'closed',
+            diagnosis: 'ALIAS_GAP',
+            hypotheses: 1,
+            rejected: 1,
+            tool_calls: 11,
+            proposal_id: '',
+          },
+        ],
+      },
+    }),
+  )
+  assert.equal(rows[0].outcome, 'правка правил — в очереди')
+  assert.equal(rows[0].proposalId, 'p1')
+  assert.equal(rows[1].outcome, 'правкой правил не решается')
+  assert.equal(rows[1].proposalId, null)
+  assert.deepEqual(clusterOutcomes(null), [])
 })

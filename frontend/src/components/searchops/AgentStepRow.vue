@@ -98,8 +98,8 @@ const hasResult = computed(() => !!s.value.result && Object.keys(s.value.result)
         </template>
       </span>
       <span class="astep__title">
-        <s v-if="view.rejected && s.kind === 'hypothesis'">{{ s.title }}</s>
-        <template v-else>{{ s.title }}</template>
+        <s v-if="view.rejected && s.kind === 'hypothesis'">{{ view.title }}</s>
+        <template v-else>{{ view.title }}</template>
       </span>
       <span v-if="view.showReason" class="astep__reason">
         Гипотеза отклонена: {{ view.rejected }}
@@ -122,6 +122,16 @@ const hasResult = computed(() => !!s.value.result && Object.keys(s.value.result)
 <style scoped>
 .astep {
   border-bottom: var(--border-w) solid var(--border);
+}
+/* Живой запуск: новый шаг проявляется и чуть сдвигается вверх; история открывается без анимации. */
+:global(.run--live) .astep {
+  animation: astep-in var(--dur-panel) var(--ease-standard);
+}
+@keyframes astep-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
 }
 .astep__head {
   display: grid;

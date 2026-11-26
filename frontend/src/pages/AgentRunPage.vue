@@ -13,13 +13,15 @@ import { useToast } from '@/components/ui/useToast'
 import { useAgentRun } from '@/composables/useAgentRun'
 import { isApiError } from '@/lib/apiError'
 import {
+  clusterOutcomes,
   isRunActive,
   runOutcomeLine,
   runStatusLabel,
   segmentByCluster,
   stopReasonLabel,
 } from '@/lib/agentFeed'
-import { formatDateTime, formatRub, plural } from '@/lib/format'
+import { formatDateTime, formatInt, formatRub, plural } from '@/lib/format'
+import { diagnosisLabel, effectLine } from '@/lib/proposals'
 import { useAppStore } from '@/stores/app'
 
 const route = useRoute()
@@ -37,6 +39,25 @@ const lastStep = computed(() => steps.value[steps.value.length - 1] ?? null)
 const focusCluster = computed(() =>
   typeof route.query.cluster === 'string' ? route.query.cluster : '',
 )
+
+const outcomes = computed(() => clusterOutcomes(run.value))
+const effects = computed(() =>
+  (run.value?.episode?.applied_effects ?? [])
+    .map((e) => ({ label: e.cluster_label ?? '', line: effectLine(e) }))
+    .filter((e) => e.line),
+)
+/** Серверная сводка повторяет строку итога — показываем её, только если в ней есть что-то ещё. */
+const extraSummary = computed(() => {
+  const t = run.value?.summary ?? ''
+  return t && !t.startsWith('Разобрано кластеров') ? t : ''
+})
+
+function toCluster(id: string) {
+  const all = document.querySelectorAll<HTMLElement>(`[data-cluster="${CSS.escape(id)}"]`)
+  const el = all[0]
+  el?.scrollIntoView({ block: 'start', behavior: 'smooth' })
+  el?.focus({ preventScroll: true })
+}
 
 const stopReason = computed(() => stopReasonLabel(run.value?.stop_reason))
 const failed = computed(() => run.value?.status === 'failed' || run.value?.status === 'stopped')
@@ -123,7 +144,7 @@ onBeforeUnmount(() => window.clearInterval(clock))
 </script>
 
 <template>
-  <section class="page run" aria-labelledby="run-title">
+  <section :class="['page', 'run', { 'run--live': active }]" aria-labelledby="run-title">
     <RouterLink to="/searchops?tab=runs" class="run__back link t-sm">
       <ArrowLeft :size="14" aria-hidden="true" /> Все запуски
     </RouterLink>
@@ -195,6 +216,77 @@ onBeforeUnmount(() => window.clearInterval(clock))
           </div>
         </div>
 
+        <!-- Итог завершённого запуска -->
+        <div v-if="!active && run.status === 'done' && !noFailures" class="panel run__outcome">
+          <p class="t-h2">Итог</p>
+          <p>{{ runOutcomeLine(run) }}</p>
+          <p v-if="run.episode?.metrics?.failed_queries" class="t-sm t-muted run__metrics">
+            За {{ run.episode.metrics.days ?? run.days ?? 30 }} дней:
+            {{ formatInt(run.episode.metrics.failed_queries) }} неудачных запросов из
+            {{ formatInt(run.episode.metrics.distinct_queries ?? 0) }} различных ·
+            {{ formatInt(run.input_tokens) }} / {{ formatInt(run.output_tokens) }} токенов
+          </p>
+          <p v-if="extraSummary" class="t-sm t-muted">{{ extraSummary }}</p>
+          <ul v-if="effects.length" class="run__effects t-sm">
+            <li v-for="e in effects" :key="e.label">
+              Эффект принятой правки «{{ e.label }}»: {{ e.line!.text.toLowerCase() }} —
+              {{ e.line!.holds ? 'держится' : 'не держится' }}
+            </li>
+          </ul>
+          <div v-if="outcomes.length" class="data-scroll">
+            <table class="data-table run__outcomes">
+              <caption class="sr-only">
+                Итог по кластерам
+              </caption>
+              <thead>
+                <tr>
+                  <th scope="col">Кластер</th>
+                  <th scope="col">Диагноз</th>
+                  <th scope="col" class="num">Гипотез</th>
+                  <th scope="col">Итог</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="o in outcomes" :key="o.id">
+                  <th scope="row">
+                    <button type="button" class="link" @click="toCluster(o.id)">
+                      {{ o.label }}
+                    </button>
+                  </th>
+                  <td>{{ diagnosisLabel(o.diagnosis) }}</td>
+                  <td class="num">
+                    <template v-if="o.hypotheses">
+                      {{ o.hypotheses
+                      }}<template v-if="o.rejected">, отклонено {{ o.rejected }}</template>
+                    </template>
+                    <span v-else class="t-muted">—</span>
+                  </td>
+                  <td>
+                    <RouterLink
+                      v-if="o.proposalId"
+                      :to="{
+                        path: '/searchops',
+                        query: { tab: 'queue', status: 'all', p: o.proposalId },
+                      }"
+                      class="link"
+                      >{{ o.outcome }}</RouterLink
+                    >
+                    <span v-else class="t-muted">{{ o.outcome }}</span>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <p class="t-sm">
+            Стоимость запуска:
+            <RouterLink to="/costs" class="num-btn">{{ formatRub(run.cost_rub) }}</RouterLink>
+            <template v-if="run.proposals_created">
+              ·
+              <RouterLink to="/searchops?tab=queue" class="link">Открыть очередь</RouterLink>
+            </template>
+          </p>
+        </div>
+
         <div v-if="noFailures" class="panel run__empty">
           <p class="t-h2">Неудачных запросов за период нет</p>
           <p class="t-muted">
@@ -234,21 +326,6 @@ onBeforeUnmount(() => window.clearInterval(clock))
           <LoaderCircle :size="14" class="run__spin" aria-hidden="true" />
           Агент работает — шаги появляются по мере выполнения
         </p>
-
-        <!-- Итог завершённого запуска -->
-        <div v-if="!active && run.status === 'done' && !noFailures" class="panel run__outcome">
-          <p class="t-h2">Итог</p>
-          <p>{{ runOutcomeLine(run) }}</p>
-          <p v-if="run.summary" class="t-sm t-muted">{{ run.summary }}</p>
-          <p class="t-sm">
-            Стоимость запуска:
-            <RouterLink to="/costs" class="num-btn">{{ formatRub(run.cost_rub) }}</RouterLink>
-            <template v-if="run.proposals_created">
-              ·
-              <RouterLink to="/searchops?tab=queue" class="link">Открыть очередь</RouterLink>
-            </template>
-          </p>
-        </div>
 
         <p class="sr-only" aria-live="polite">
           <template v-if="lastStep">{{ lastStep.title }}</template>
@@ -378,6 +455,17 @@ p.run__empty {
   flex-direction: column;
   gap: var(--space-2);
   padding: var(--space-4);
+}
+.run__metrics {
+  font-variant-numeric: tabular-nums;
+}
+.run__effects {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.run__outcomes th[scope='row'] {
+  font-weight: var(--fw-regular);
 }
 .run__spin {
   animation: run-spin 1s linear infinite;

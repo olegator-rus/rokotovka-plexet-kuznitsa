@@ -8,7 +8,7 @@ import { getMemory } from '@/api/agent'
 import BlockError from '@/components/common/BlockError.vue'
 import { useResource } from '@/composables/useResource'
 import { formatDateTime } from '@/lib/format'
-import { proposalStatus, rejectReasonLabel } from '@/lib/proposals'
+import { diagnosisLabel, proposalStatus, rejectReasonLabel } from '@/lib/proposals'
 
 const res = useResource((opts) => getMemory(opts))
 void res.load()
@@ -57,14 +57,28 @@ const decision = (d: string) => proposalStatus(d)
         <span class="mem__label">Кластер «{{ m.cluster_label }}»</span>
         <span class="t-xs t-muted t-num mem__ts">{{ formatDateTime(m.ts) }}</span>
       </div>
-      <p v-if="m.reason" class="t-sm">Причина: {{ rejectReasonLabel(m.reason) }}</p>
-      <RouterLink
-        v-if="m.proposal_id"
-        :to="{ path: '/searchops', query: { tab: 'queue', status: 'all' } }"
-        class="link t-xs"
-      >
-        Предложение <span class="t-mono">{{ m.proposal_id }}</span>
-      </RouterLink>
+      <p class="t-sm">
+        <template v-if="m.diagnosis">{{ diagnosisLabel(m.diagnosis) }}</template>
+        <template v-if="m.reason && decision(m.decision).id !== 'accepted'">
+          <template v-if="m.diagnosis"> · </template>причина:
+          {{ rejectReasonLabel(m.reason).toLowerCase() }}
+        </template>
+      </p>
+      <p v-if="m.comment" class="t-sm mem__comment">«{{ m.comment }}»</p>
+      <p class="t-xs t-muted">
+        {{
+          decision(m.decision).id === 'rejected'
+            ? 'Агент прочитает это перед разбором похожего кластера и не будет предлагать то же самое.'
+            : 'Агент проверит, держится ли эффект правки, в следующем запуске.'
+        }}
+        <RouterLink
+          v-if="m.proposal_id"
+          :to="{ path: '/searchops', query: { tab: 'queue', status: 'all', p: m.proposal_id } }"
+          class="link"
+        >
+          Открыть предложение
+        </RouterLink>
+      </p>
     </li>
   </ul>
 </template>
@@ -113,6 +127,9 @@ const decision = (d: string) => proposalStatus(d)
 }
 .mem__label {
   font-weight: var(--fw-medium);
+}
+.mem__comment {
+  color: var(--text-2);
 }
 .mem__ts {
   margin-left: auto;

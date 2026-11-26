@@ -4,6 +4,7 @@ import (
 	"context"
 	"sort"
 	"strings"
+	"unicode"
 	"unicode/utf8"
 
 	"kuznica/api/domain"
@@ -96,17 +97,39 @@ func (s *Services) suggestions(ctx context.Context, lx *searchLexicon) *suggestI
 			counts[q]++
 		}
 	}
+	// Запрос из логов показывается так, как его понял поиск: набранный в неверной раскладке («1с ,e[ufknthbz»)
+	// — после исправления раскладки; то, что и после нормализации осталось мусором, отбрасывается. Одинаковые
+	// после исправления запросы складываются.
+	byText := map[string]int{}
 	for _, q := range order {
 		if empty[q] || utf8.RuneCountInString(q) > suggestMaxQuery {
 			continue
 		}
-		e := suggestEntry{kind: suggestQuery, text: q, folded: q, weight: float64(counts[q])}
 		nr := normalizeFull(q, lx, rules, false)
+		text := q
+		for _, c := range nr.changes {
+			if c.Kind == changeLayout {
+				text = foldText(nr.normalized())
+				break
+			}
+		}
+		if !readableQuery(text) {
+			continue
+		}
+		if i, ok := byText[text]; ok {
+			idx.entries[i].weight += float64(counts[q])
+			continue
+		}
+		e := suggestEntry{kind: suggestQuery, text: text, folded: text, weight: float64(counts[q])}
+		if text != q {
+			nr = normalizeFull(text, lx, rules, false)
+		}
 		if fs := lx.matchFamilies(nr.tokens); len(fs) == 1 {
 			e.family, e.category = fs[0], lx.familyCat[fs[0]]
 		} else if len(fs) > 1 && lx.familyCat[fs[0]] == lx.familyCat[fs[len(fs)-1]] {
 			e.category = lx.familyCat[fs[0]]
 		}
+		byText[text] = len(idx.entries)
 		idx.entries = append(idx.entries, e)
 	}
 	for _, f := range lx.familyOrder {
@@ -299,6 +322,22 @@ func jaccard(a, b map[string]bool) float64 {
 		}
 	}
 	return float64(inter) / float64(len(a)+len(b)-inter)
+}
+
+// readableQuery — в запросе только буквы, цифры, пробелы и знаки, которые бывают в названиях ПО (. - + / #):
+// остатки неверной раскладки («,e[»), которые нормализация не распознала, в подсказки не идут.
+func readableQuery(q string) bool {
+	letters := 0
+	for _, r := range q {
+		switch {
+		case unicode.IsLetter(r):
+			letters++
+		case unicode.IsDigit(r), unicode.IsSpace(r), strings.ContainsRune(".-+/#", r):
+		default:
+			return false
+		}
+	}
+	return letters > 0
 }
 
 // relatedQueries — 3–5 успешных запросов из логов того же семейства или категории, что и первая позиция

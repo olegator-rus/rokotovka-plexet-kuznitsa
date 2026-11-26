@@ -3,6 +3,7 @@
 package services
 
 import (
+	"context"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -24,7 +25,8 @@ type Services struct {
 	embedder *tei.Client
 	reranker *tei.Client
 	source   CatalogSource
-	llmMode  string
+	// llm — режим модели (переключается без перезапуска) и дневной бюджет (llmguard.go).
+	llm *llmGuard
 	// alias — алиас индекса каталога в OpenSearch.
 	alias string
 	// intent — разбор намерения на маршруте D (intent.go); не nil всегда: без модели — кэш и правила.
@@ -72,6 +74,8 @@ type Options struct {
 	AgentModel ChatModel
 	// Agent — пороги и наборы проверки правок агента.
 	Agent AgentOptions
+	// DailyBudgetRub — дневной бюджет LLM, ₽ (LLM_DAILY_BUDGET_RUB); 0 — без потолка.
+	DailyBudgetRub float64
 }
 
 // NewServices — граф сервисов. repos == nil — API без базы: health отдаёт db: down, поиск не пишет журнал.
@@ -92,12 +96,16 @@ func NewServices(repos *repositories.Repos, opts Options) *Services {
 		embedder: opts.Embedder,
 		reranker: opts.Reranker,
 		source:   opts.Source,
-		llmMode:  opts.LLMMode,
 		alias:    opts.IndexAlias,
 		judge:    opts.JudgeModel,
 	}
+	var load func(context.Context, time.Time) (float64, error)
+	if repos.Enabled() {
+		load = repos.LLMCostSince
+	}
+	s.llm = newLLMGuard(opts.LLMMode, opts.IntentModel != nil || opts.AgentModel != nil, opts.DailyBudgetRub, opts.Now, load)
 	s.agent = newAgentService(s, opts.AgentModel, opts.Agent)
-	s.intent = newIntentService(s, opts.IntentModel, opts.IntentFallback, opts.LLMMode)
+	s.intent = newIntentService(s, opts.IntentModel, opts.IntentFallback)
 	// Маршруту D разборщик нужен, если есть модель или кэш разборов в базе; без того и другого он вернул
 	// бы разбор правил как есть — тогда маршрут D честно работает как C (parser_not_connected).
 	if opts.IntentModel != nil || repos.Enabled() {

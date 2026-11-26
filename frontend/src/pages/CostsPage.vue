@@ -3,6 +3,7 @@
 // журнал вызовов модели и версия прайса. Всё из GET /api/costs (llm_usage + search_events); фронт
 // ничего не пересчитывает, кроме сценариев месяца из замеров и допущений человека.
 import { computed, onMounted, ref, shallowRef } from 'vue'
+import { getRuns } from '@/api/agent'
 import { getCosts } from '@/api/costs'
 import type { CostRouteRow, LlmCall } from '@/api/types'
 import BlockError from '@/components/common/BlockError.vue'
@@ -14,6 +15,7 @@ import RouteBadge from '@/components/trace/RouteBadge.vue'
 import { useToast } from '@/components/ui/useToast'
 import { useResource } from '@/composables/useResource'
 import { isApiError } from '@/lib/apiError'
+import { agentRunCost } from '@/lib/costMonth'
 import { formatCost, formatInt, formatMs, formatPercent, plural } from '@/lib/format'
 import { ROUTE_LABELS, isRoute } from '@/lib/trace'
 
@@ -28,6 +30,17 @@ const pricing = computed(() => data.value?.pricing ?? null)
 const pricingVersion = computed(() => pricing.value?.version ?? 'не указан')
 const calls = computed(() => [...(data.value?.calls?.items ?? []), ...extraCalls.value])
 const routes = computed<CostRouteRow[]>(() => data.value?.routes ?? [])
+
+// Стоимость запуска агента для «Месяца» — по полным запускам; список запусков не обязателен.
+const runs = useResource((opts) => getRuns(opts))
+const runCost = computed(() =>
+  agentRunCost(runs.data.value?.items ?? [], summary.value?.agent_run_avg_cost_rub ?? null),
+)
+const runCostNote = computed(() =>
+  runCost.value.full
+    ? `среднее по ${formatInt(runCost.value.full)} ${plural(runCost.value.full, ['полному запуску', 'полным запускам', 'полным запускам'])}`
+    : 'среднее по всем запускам из журнала',
+)
 
 async function reload() {
   extraCalls.value = []
@@ -48,7 +61,10 @@ async function more() {
     loadingMore.value = false
   }
 }
-onMounted(reload)
+onMounted(() => {
+  void reload()
+  void runs.load().catch(() => undefined)
+})
 
 const open = ref(false)
 const explanation = ref<Explanation | null>(null)
@@ -128,19 +144,35 @@ const tiles = computed(() => {
     },
     {
       key: 'agent',
-      label: 'Одно исследование агента',
-      value: num(s.agent_run_avg_cost_rub) ? formatCost(s.agent_run_avg_cost_rub) : null,
-      sub: num(s.agent_runs)
-        ? `по ${formatInt(s.agent_runs)} ${plural(s.agent_runs, ['запуску', 'запускам', 'запускам'])}`
-        : undefined,
+      label: 'Запуск агента',
+      value: num(runCost.value.rub) ? formatCost(runCost.value.rub) : null,
+      sub: runCost.value.full
+        ? runCostNote.value
+        : num(s.agent_runs)
+          ? `по ${formatInt(s.agent_runs)} ${plural(s.agent_runs, ['запуску', 'запускам', 'запускам'])}`
+          : undefined,
       missing: 'агент SearchOps ещё не запускался',
       journal: true,
       explain: () =>
         explain({
-          title: 'Стоимость одного исследования агента',
-          value: num(s.agent_run_avg_cost_rub) ? formatCost(s.agent_run_avg_cost_rub) : '—',
-          how: 'Сумма calculated_cost вызовов модели с agent_run_id / число запусков агента.',
-          rows: num(s.agent_runs) ? [{ label: 'Запусков', value: formatInt(s.agent_runs) }] : [],
+          title: 'Стоимость одного запуска агента',
+          value: num(runCost.value.rub) ? formatCost(runCost.value.rub) : '—',
+          how: 'Сумма стоимости вызовов модели с agent_run_id по завершённым запускам, разобравшим хотя бы один кластер, / число таких запусков. Отладочные и прерванные запуски цифру не занижают.',
+          rows: [
+            ...(runCost.value.full
+              ? [{ label: 'Полных запусков', value: formatInt(runCost.value.full) }]
+              : []),
+            ...(num(s.agent_runs)
+              ? [
+                  {
+                    label: `Все запуски в журнале (${formatInt(s.agent_runs)})`,
+                    value: num(s.agent_run_avg_cost_rub)
+                      ? `${formatCost(s.agent_run_avg_cost_rub)} в среднем`
+                      : '—',
+                  },
+                ]
+              : []),
+          ],
         }),
     },
   ]
@@ -283,7 +315,8 @@ function explainRoute(r: CostRouteRow, field: 'share' | 'avg_ms' | 'avg_cost_rub
 
       <MonthBlock
         :llm-per-request-rub="summary?.avg_cost_rub ?? null"
-        :agent-run-rub="summary?.agent_run_avg_cost_rub ?? null"
+        :agent-run-rub="runCost.rub"
+        :agent-run-note="runCostNote"
         :pricing-version="pricingVersion"
         @explain="explain"
       />

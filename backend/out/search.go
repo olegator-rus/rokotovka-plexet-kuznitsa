@@ -1,6 +1,10 @@
 package out
 
-import "kuznica/api/domain"
+import (
+	"time"
+
+	"kuznica/api/domain"
+)
 
 // Ответы поиска и витрины. Поля correction, clarify и empty
 // отсутствуют, когда им нечего сказать; массивы — всегда массивы.
@@ -106,6 +110,33 @@ type Meta struct {
 	Configs        []string     `json:"configs"`
 	DefaultConfig  string       `json:"default_config"`
 	Clients        []MetaClient `json:"clients"`
+	// LLM — режим модели, дневной бюджет и плашка режима для шапки.
+	LLM LLMState `json:"llm"`
+	// AdminEnabled — доступны ли служебные методы /api/admin/* (ADMIN_ENABLED).
+	AdminEnabled bool `json:"admin_enabled"`
+	// RateLimitPerMin — лимит частоты запросов к /api с одного адреса; 0 — без лимита.
+	RateLimitPerMin int `json:"rate_limit_per_min"`
+}
+
+// LLMState — режим модели и бюджет (GET /api/meta → llm, POST /api/admin/llm-mode).
+type LLMState struct {
+	// Mode — on | off: идут ли сложные запросы (маршрут D) в модель. Переключается без перезапуска.
+	Mode string `json:"mode"`
+	// Online — модель настроена (ключ задан); без неё режим on недоступен.
+	Online    bool       `json:"online"`
+	ChangedAt *time.Time `json:"changed_at"`
+	Budget    LLMBudget  `json:"budget"`
+	// Banner — текст плашки в шапке: режим без LLM или исчерпан бюджет; null — плашка не нужна.
+	Banner *string `json:"banner"`
+}
+
+// LLMBudget — дневной бюджет на модель (LLM_DAILY_BUDGET_RUB), сутки по Москве.
+type LLMBudget struct {
+	Day string `json:"day"`
+	// DailyRub — потолок, ₽; null — без потолка.
+	DailyRub      *float64 `json:"daily_rub"`
+	SpentTodayRub float64  `json:"spent_today_rub"`
+	Exceeded      bool     `json:"exceeded"`
 }
 
 // MetaClient — покупатель для переключателя «от чьего имени ищем».

@@ -1,0 +1,18 @@
+{
+  "name": "kuznica-e2e",
+  "private": true,
+  "type": "module",
+  "description": "Сквозные тесты Playwright по пользовательским сценариям и сценарий видео",
+  "scripts": {
+    "test": "playwright test --project=flows --project=video",
+    "test:flows": "playwright test --project=flows",
+    "video": "VIDEO_PACE=1 playwright test --project=video",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.61.1",
+    "@types/node": "^22.10.0",
+    "typescript": "~5.8.3"
+  },
+  "packageManager": "pnpm@11.25.0"
+}

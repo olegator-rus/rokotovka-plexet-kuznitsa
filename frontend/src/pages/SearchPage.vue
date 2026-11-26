@@ -12,6 +12,7 @@ import { postSearch } from '@/api/search'
 import type {
   Chip,
   ClarifyOption,
+  Complement,
   ConfigId,
   EventType,
   SearchItem,
@@ -26,6 +27,7 @@ import SearchBox from '@/components/search/SearchBox.vue'
 import SearchError from '@/components/search/SearchError.vue'
 import UnderstandingBar from '@/components/search/UnderstandingBar.vue'
 import TracePanel from '@/components/trace/TracePanel.vue'
+import ComplementsBlock from '@/components/search/ComplementsBlock.vue'
 import UiSwitch from '@/components/ui/UiSwitch.vue'
 import { useToast } from '@/components/ui/useToast'
 import { DESKTOP_QUERY, useMediaQuery } from '@/composables/useMediaQuery'
@@ -164,7 +166,12 @@ const titles = computed<Record<string, string>>(() => {
   return out
 })
 const relaxed = computed(() => response.value?.relaxed ?? [])
-const related = computed(() => response.value?.related_queries ?? [])
+const related = computed(() => {
+  const own = (response.value?.query ?? '').trim().toLowerCase()
+  return (response.value?.related_queries ?? []).filter((q) => q.trim().toLowerCase() !== own)
+})
+const complements = computed(() => response.value?.complements ?? [])
+const complementAnchor = computed(() => response.value?.items[0]?.title ?? '')
 const showManager = computed(
   () => blocks.value.nothing || Boolean(response.value?.empty?.show_manager),
 )
@@ -259,6 +266,24 @@ function onAction(type: ItemAction, target: SearchItemBase, position: number) {
         tone: 'ok',
         title: ACTION_TOAST[type],
         detail: `${target.title}. Демо-стенд: действие записано событием для аналитики.`,
+      }),
+    )
+    .catch((e: unknown) =>
+      toast.add({
+        tone: 'error',
+        title: 'Действие не записано',
+        detail: isApiError(e) ? e.message : MSG_UNKNOWN,
+      }),
+    )
+}
+
+function onComplement(type: 'add_to_cart' | 'price_request', c: Complement, index: number) {
+  track(type, { productId: c.product_id, position: index + 1, payload: { block: 'complements' } })
+    .then(() =>
+      toast.add({
+        tone: 'ok',
+        title: ACTION_TOAST[type],
+        detail: `${c.title}. Демо-стенд: действие записано событием для аналитики.`,
       }),
     )
     .catch((e: unknown) =>
@@ -381,6 +406,13 @@ function sendManagerRequest() {
             </li>
           </ol>
         </section>
+
+        <ComplementsBlock
+          v-if="complements.length && blocks.main.length"
+          :items="complements"
+          :anchor="complementAnchor"
+          @action="onComplement"
+        />
 
         <section v-if="related.length" class="search-page__related" aria-labelledby="related-title">
           <h2 id="related-title" class="t-sm t-muted">Похожие запросы</h2>

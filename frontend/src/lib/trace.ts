@@ -40,6 +40,13 @@ export const REJECT_REASON_LABELS: Record<string, string> = {
   license_metric_mismatch: 'не та метрика лицензии',
   below_threshold: 'ниже порога',
   version_mismatch: 'не та версия',
+  license_type_mismatch: 'не тот тип лицензии',
+  license_quantity_mismatch: 'не то количество',
+  origin_mismatch: 'не отечественный',
+  vendor_mismatch: 'не тот вендор',
+  category_mismatch: 'не та категория',
+  dense_score_too_low: 'слабое сходство по смыслу',
+  reference_product: 'сам продукт-референс',
 }
 
 /** Причина пропуска шага (поле `reason`, сервер присылает его сверх контракта). */
@@ -49,7 +56,23 @@ export const SKIP_REASON_LABELS: Record<string, string> = {
   not_configured: 'не настроен на сервере',
   llm_off: 'режим без LLM',
   not_needed: 'не понадобился',
+  disabled: 'выключен в настройках',
 }
+
+/** Почему выбран маршрут: сигналы шага route. */
+export const SIGNAL_LABELS: Record<string, string> = {
+  unknown_words: 'незнакомые слова',
+  intent_words: 'слова задачи («аналог», «для»)',
+  long_query: 'длинный запрос',
+  non_product: 'не про товар',
+  conflicting_attributes: 'условия противоречат',
+  layout_hit: 'раскладка',
+  typo_hit: 'опечатка',
+  alias_hit: 'сленг или алиас',
+  attributes: 'условия лицензии',
+}
+
+export const signalLabel = (s: string) => SIGNAL_LABELS[s] ?? s
 
 export const WEIGHT_LABELS: Record<string, string> = {
   relevance: 'релевантность',
@@ -125,7 +148,7 @@ export function stepSummary(step: TraceStep): string {
       return u > 0 ? `${head}, ${u} не разрешено` : head
     }
     case 'route': {
-      const signals = step.signals?.length ? ` · ${step.signals.join(', ')}` : ''
+      const signals = step.signals?.length ? ` · ${step.signals.map(signalLabel).join(', ')}` : ''
       return `${step.route ?? '—'}${signals}`
     }
     case 'bm25':

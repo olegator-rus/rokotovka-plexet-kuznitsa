@@ -348,7 +348,7 @@ func TestIntentCacheKey(t *testing.T) {
 			t.Errorf("%s не входит в ключ", name)
 		}
 	}
-	if v := newIntentEnv(t, "off", nil, nil, nil).PromptVersion(); !strings.HasPrefix(v, "intent-v2+") {
+	if v := newIntentEnv(t, "off", nil, nil, nil).PromptVersion(); !strings.HasPrefix(v, "intent-v3+") {
 		t.Fatalf("версия промпта: %q", v)
 	}
 }
@@ -378,13 +378,13 @@ func TestLLMCost(t *testing.T) {
 func TestCostsValidation(t *testing.T) {
 	svc := NewServices(nil, Options{})
 	for _, c := range [][2]int{{-1, 0}, {500, 0}, {10, -1}} {
-		_, err := svc.Costs(t.Context(), c[0], c[1])
+		_, err := svc.Costs(t.Context(), CostsRequest{Limit: c[0], Offset: c[1]})
 		var e *errs.Error
 		if !errors.As(err, &e) || e.HTTPStatus() != http.StatusBadRequest && e.HTTPStatus() != http.StatusUnprocessableEntity {
 			t.Errorf("%v: %v", c, err)
 		}
 	}
-	_, err := svc.Costs(t.Context(), 0, 0)
+	_, err := svc.Costs(t.Context(), CostsRequest{})
 	var e *errs.Error
 	if !errors.As(err, &e) || e.HTTPStatus() != http.StatusServiceUnavailable {
 		t.Fatalf("без базы — 503: %v", err)

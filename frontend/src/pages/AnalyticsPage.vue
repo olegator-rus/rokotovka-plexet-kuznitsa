@@ -30,6 +30,7 @@ const PERIODS = [
 const route = useRoute()
 const router = useRouter()
 const app = useAppStore()
+const pending = computed(() => app.pendingProposals)
 const { role } = storeToRefs(app)
 
 const days = computed<string>({
@@ -119,15 +120,15 @@ const tiles = computed(() => {
     {
       key: 'pending',
       label: 'Предложения ждут решения',
-      value: formatInt(t.pending_proposals),
+      value: formatInt(pending.value ?? t.pending_proposals),
       sub: 'очередь SearchOps',
       missing: undefined,
       explain: () =>
         explain({
           title: 'Предложения агента, ждущие решения',
-          value: formatInt(t.pending_proposals),
-          what: 'Правки, которые агент проверил прогоном и положил человеку на подтверждение.',
-          how: 'Число предложений в статусе «ждёт решения» на сейчас, без учёта периода. Пока агент SearchOps не запускался, их 0.',
+          value: formatInt(pending.value ?? t.pending_proposals),
+          what: 'Правки и задачи, которые агент проверил и положил человеку на подтверждение.',
+          how: 'Число предложений в статусе «ждёт решения» на сейчас, без учёта периода (GET /api/proposals?status=pending).',
         }),
     },
   ]

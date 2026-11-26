@@ -52,3 +52,15 @@ test('parseRubInput: пробелы, запятая, ₽; мусор — null', 
   assert.equal(parseRubInput('abc'), null)
   assert.equal(parseRubInput('-1'), null)
 })
+
+test('agentRunCost: среднее по полным запускам, иначе среднее сервера', async () => {
+  const { agentRunCost } = await import('../src/lib/costMonth.ts')
+  const runs = [
+    { status: 'done', clusters_done: 8, cost_rub: 30 },
+    { status: 'done', clusters_done: 8, cost_rub: 32 },
+    { status: 'failed', clusters_done: 0, cost_rub: 2 },
+    { status: 'done', clusters_done: 0, cost_rub: 0 },
+  ]
+  assert.deepEqual(agentRunCost(runs, 19.98), { rub: 31, full: 2 })
+  assert.deepEqual(agentRunCost([], 19.98), { rub: 19.98, full: 0 })
+})

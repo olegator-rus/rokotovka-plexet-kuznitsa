@@ -10,6 +10,38 @@ type Costs struct {
 	Summary CostsSummary `json:"summary"`
 	Routes  []CostsRoute `json:"routes"`
 	Calls   CostsCalls   `json:"calls"`
+	// Monthly — месячные сценарии 20 и 200 тыс. запросов.
+	Monthly CostsMonthly `json:"monthly"`
+}
+
+// CostsMonthly — месячный расчёт: допущения и замеры, сценарии, формула.
+type CostsMonthly struct {
+	Formula   string          `json:"formula"`
+	Params    []CostsParam    `json:"params"`
+	Scenarios []CostsScenario `json:"scenarios"`
+}
+
+// CostsParam — входная величина расчёта: замер (measured), допущение (assumed) или задано в запросе (request).
+type CostsParam struct {
+	Key     string  `json:"key"`
+	Label   string  `json:"label"`
+	Value   float64 `json:"value"`
+	Default float64 `json:"default"`
+	Source  string  `json:"source"`
+	Unit    string  `json:"unit"`
+	Hint    string  `json:"hint"`
+}
+
+// CostsScenario — один месяц: строки «сервер», «онлайн-LLM», «агент», «итого», «на запрос».
+type CostsScenario struct {
+	Requests         int     `json:"requests"`
+	LLMCalls         float64 `json:"llm_calls"`
+	ServerRub        float64 `json:"server_rub"`
+	LLMRub           float64 `json:"llm_rub"`
+	AgentRub         float64 `json:"agent_rub"`
+	TotalRub         float64 `json:"total_rub"`
+	PerRequestRub    float64 `json:"per_request_rub"`
+	LLMPerRequestRub float64 `json:"llm_per_request_rub"`
 }
 
 // CostsPricing — прайс, по которому посчитаны calculated_cost.
@@ -49,8 +81,11 @@ type CostsSummary struct {
 	EvalCalls   int64   `json:"eval_calls"`
 	EvalCostRub float64 `json:"eval_cost_rub"`
 	// JudgeCalls, JudgeCostRub — вызовы LLM-судьи (request_id judge-…): тоже вне стоимости запроса.
-	JudgeCalls         int64    `json:"judge_calls"`
-	JudgeCostRub       float64  `json:"judge_cost_rub"`
+	JudgeCalls   int64   `json:"judge_calls"`
+	JudgeCostRub float64 `json:"judge_cost_rub"`
+	// WarmupCalls, WarmupCostRub — прогрев кэша разборов (request_id warmup-…): вне стоимости запроса.
+	WarmupCalls        int64    `json:"warmup_calls"`
+	WarmupCostRub      float64  `json:"warmup_cost_rub"`
 	AgentRuns          int64    `json:"agent_runs"`
 	AgentRunAvgCostRub *float64 `json:"agent_run_avg_cost_rub"`
 }
@@ -77,8 +112,8 @@ type CostsCalls struct {
 // CostsCall — один вызов модели. request_id ведёт к трассе поиска, agent_run_id — к запуску агента.
 type CostsCall struct {
 	ID string `json:"id"`
-	// Kind — search (поиск покупателя) | eval (прогон оценки) | judge (LLM-судья) | agent (запуск агента) |
-	// other (ручной прогон).
+	// Kind — search (поиск покупателя) | eval (прогон оценки) | judge (LLM-судья) | warmup (прогрев кэша) |
+	// agent (запуск агента) | other (ручной прогон).
 	Kind      string    `json:"kind"`
 	CreatedAt time.Time `json:"created_at"`
 	RequestID *string   `json:"request_id"`

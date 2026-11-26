@@ -1,5 +1,7 @@
 // Живой запуск агента: снимок GET /api/agent/runs/{id}, затем лента по SSE (step, status, done).
-// SSE недоступен или оборвался — опрос GET раз в 2 с, пока запуск идёт. Завершённый запуск — только снимок.
+// Сервер закрывает поток каждые ≤25 с — EventSource переподключается сам с Last-Event-ID и получает
+// только новые шаги. Поток не поднимается несколько раз подряд — опрос GET раз в 2 с, пока запуск идёт.
+// Завершённый запуск — только снимок.
 import { onBeforeUnmount, ref, shallowRef, watch, type Ref } from 'vue'
 import { getRun, runStreamUrl } from '@/api/agent'
 import type { AgentRun, AgentStep } from '@/api/types'
@@ -7,6 +9,8 @@ import { type ApiError, isApiError, MSG_UNKNOWN } from '@/lib/apiError'
 import { EMPTY_FEED, type FeedEvent, type FeedState, feedReducer, parseSse } from '@/lib/agentFeed'
 
 export const POLL_MS = 2000
+/** Сколько ошибок потока подряд (без единого события между ними) терпим до перехода на опрос. */
+export const SSE_MAX_ERRORS = 3
 
 export type FeedTransport = 'none' | 'sse' | 'poll'
 
@@ -87,18 +91,25 @@ export function useAgentRun(runId: Ref<string>) {
     const source = new EventSource(runStreamUrl(runId.value))
     es = source
     transport.value = 'sse'
+    let errors = 0
+    source.onopen = () => (errors = 0)
     source.addEventListener('step', (e) => {
+      errors = 0
       const step = parseSse<AgentStep>((e as MessageEvent<string>).data)
       if (step) apply({ type: 'step', step })
     })
     source.addEventListener('status', (e) => {
+      errors = 0
       const run = parseSse<AgentRun>((e as MessageEvent<string>).data)
       if (run) apply({ type: 'status', run })
     })
     source.addEventListener('done', () => apply({ type: 'done' }))
     source.onerror = () => {
       if (es !== source) return
-      // Поток оборвался или не поднялся — дальше опросом, лента не теряется.
+      errors += 1
+      // Плановое закрытие потока сервером: браузер переподключится сам (readyState CONNECTING).
+      if (source.readyState === EventSource.CONNECTING && errors < SSE_MAX_ERRORS) return
+      // Поток закрыт или не поднимается — дальше опросом, лента не теряется.
       closeStream()
       if (!feed.value.done && !disposed) poll()
     }

@@ -144,3 +144,22 @@ test('shortHash: длинный — 8 символов, короткий как 
   assert.equal(shortHash('abc'), 'abc')
   assert.equal(shortHash(''), '—')
 })
+
+test('judgeView: порядок лестницы и пары, где судья расходится с разметкой', async () => {
+  const { judgeView } = await import('../src/lib/evalView.ts')
+  assert.equal(judgeView(null), null)
+  const v = judgeView({
+    by_config: [
+      { config: 'B3', ndcg_labels: 0.869, ndcg_judge: 0.785 },
+      { config: 'B0', ndcg_labels: 0.149, ndcg_judge: 0.142 },
+      { config: 'B2', ndcg_labels: 0.82, ndcg_judge: 0.805 },
+      { config: 'B1', ndcg_labels: 0.737, ndcg_judge: 0.708 },
+    ],
+  } as never)
+  assert.deepEqual(
+    v?.rows.map((r) => r.config),
+    ['B0', 'B1', 'B2', 'B3'],
+  )
+  assert.deepEqual(v?.swapped, [['B2', 'B3']])
+  assert.ok(Math.abs((v?.rows[3].diff ?? 0) + 0.084) < 1e-9)
+})

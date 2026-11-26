@@ -1,12 +1,13 @@
 <script setup lang="ts">
 // Журнал вызовов модели: время, модель, токены, задержка, стоимость, ссылка на трассу
 // поиска или запуск агента. Страницами по COSTS_PAGE; под таблицей — P50/P95 задержки показанных строк.
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { RouterLink } from 'vue-router'
 import type { LlmCall } from '@/api/types'
 import type { Explanation } from '@/components/common/ExplainDialog.vue'
 import { formatCost, formatDateTime, formatInt, formatMs } from '@/lib/format'
 import { percentile } from '@/lib/metrics'
+import TraceDialog from './TraceDialog.vue'
 
 const props = defineProps<{
   calls: LlmCall[]
@@ -26,7 +27,21 @@ const KIND: Record<string, string> = {
   search: 'поиск',
   eval: 'прогон оценки',
   agent: 'агент',
+  judge: 'LLM-судья',
   other: 'ручной прогон',
+}
+
+/** Трасса есть только у записанного поиска: прогоны оценки и судья трасс не пишут. */
+function hasTrace(c: LlmCall): boolean {
+  return !!c.request_id && (c.kind === 'search' || !!c.query)
+}
+
+const traceOpen = ref(false)
+const traceFor = ref<{ id: string; query: string | null } | null>(null)
+function openTrace(c: LlmCall) {
+  if (!c.request_id) return
+  traceFor.value = { id: c.request_id, query: c.query ?? null }
+  traceOpen.value = true
 }
 
 function explainCost(c: LlmCall) {
@@ -103,11 +118,21 @@ function explainCost(c: LlmCall) {
               <td>
                 <RouterLink
                   v-if="c.agent_run_id"
-                  :to="{ path: '/searchops', query: { run: c.agent_run_id } }"
+                  :to="`/searchops/runs/${encodeURIComponent(c.agent_run_id)}`"
                   class="link"
                 >
                   запуск агента
                 </RouterLink>
+                <button
+                  v-else-if="hasTrace(c)"
+                  type="button"
+                  class="link calls__trace"
+                  :aria-label="`Открыть трассу поиска ${c.query ? '«' + c.query + '»' : c.request_id}`"
+                  @click="openTrace(c)"
+                >
+                  <template v-if="c.query">поиск «{{ c.query }}»</template>
+                  <template v-else>трасса поиска</template>
+                </button>
                 <span v-else-if="c.request_id" class="calls__req">
                   {{ KIND[c.kind] ?? 'поиск' }}
                   <span class="t-mono" :title="c.request_id">{{ c.request_id }}</span>
@@ -135,6 +160,11 @@ function explainCost(c: LlmCall) {
         </button>
       </div>
     </template>
+    <TraceDialog
+      v-model:open="traceOpen"
+      :request-id="traceFor?.id ?? null"
+      :query="traceFor?.query"
+    />
   </section>
 </template>
 
@@ -160,6 +190,11 @@ function explainCost(c: LlmCall) {
 .calls__req {
   display: flex;
   flex-direction: column;
+}
+.calls__trace {
+  max-width: 16rem;
+  text-align: left;
+  overflow-wrap: anywhere;
 }
 .calls__status {
   margin-left: var(--space-1);

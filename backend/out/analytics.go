@@ -15,6 +15,8 @@ type AnalyticsResponse struct {
 	Problems []ProblemQuery `json:"problems"`
 	// Sources — откуда события: live (работающий поиск) и mock_log (импорт исторических логов).
 	Sources map[string]int `json:"sources"`
+	// Effect — вилка эффекта (как GET /api/effect с допущениями по умолчанию); только для role=head, иначе null.
+	Effect *Effect `json:"effect"`
 }
 
 // AnalyticsTiles — сводные доли.
@@ -29,7 +31,7 @@ type AnalyticsTiles struct {
 	// OrderRate — доля поисков, после которых в той же сессии был заказ.
 	Orders    int      `json:"orders"`
 	OrderRate *float64 `json:"order_rate"`
-	// PendingProposals — предложения агента, ждущие решения (0, пока агента нет).
+	// PendingProposals — предложения агента, ждущие решения (из очереди proposals).
 	PendingProposals int `json:"pending_proposals"`
 }
 
@@ -55,6 +57,12 @@ type ProblemQuery struct {
 	Outcome      string `json:"outcome"`
 	OutcomeLabel string `json:"outcome_label"`
 	Diagnosis    string `json:"diagnosis"`
+	// ProposalID, ProposalStatus — предложение агента, в кластер которого входит запрос (ждущее решения — в
+	// приоритете, затем самое новое); null — агент запрос не разбирал.
+	ProposalID     *string `json:"proposal_id"`
+	ProposalStatus *string `json:"proposal_status"`
+	// ProposalDiagnosis — диагноз агента (код ALIAS_GAP…); diagnosis выше остаётся подписью журнала.
+	ProposalDiagnosis *string `json:"proposal_diagnosis"`
 }
 
 // LogImportResult — импорт исторических логов.

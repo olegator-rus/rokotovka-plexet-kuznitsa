@@ -1,11 +1,18 @@
 <script setup lang="ts">
 // Таблица проблемных запросов менеджера e-com: запрос, частота, что произошло, почему,
 // что делать. Запрос — ссылка в «Поиск» с открытой трассой; предложение — в очередь SearchOps.
-import { computed, ref } from 'vue'
+import { computed, onMounted, ref, shallowRef } from 'vue'
 import { RouterLink } from 'vue-router'
-import type { ProblemQuery } from '@/api/types'
+import { getProposals, getRuns } from '@/api/agent'
+import type { Proposal, ProblemQuery } from '@/api/types'
 import type { Explanation } from '@/components/common/ExplainDialog.vue'
 import { formatInt, plural } from '@/lib/format'
+import {
+  diagnosisLabel,
+  findProposalForQuery,
+  proposalStatus,
+  proposalsByQuery,
+} from '@/lib/proposals'
 
 const props = defineProps<{ problems: ProblemQuery[] }>()
 const emit = defineEmits<{ explain: [e: Explanation] }>()
@@ -14,6 +21,40 @@ const OUTCOME_HOW: Record<string, string> = {
   empty: 'Чаще всего поиск возвращал ноль результатов.',
   no_click: 'Чаще всего выдача была, но клика по товару не было.',
   reformulated: 'Чаще всего покупатель в течение минуты без клика вводил другой запрос.',
+}
+
+// Предложения агента по запросам: сервер аналитики пока не связывает их сам — сводим по запросам кластера.
+const index = shallowRef(new Map<string, Proposal>())
+/** Кластеры, которые агент разобрал и закрыл без предложения: подпись кластера → диагноз. */
+const closed = shallowRef(new Map<string, string>())
+onMounted(async () => {
+  const [queue, runs] = await Promise.allSettled([getProposals(), getRuns()])
+  // Без очереди или списка запусков таблица остаётся как есть: «ждёт разбора агентом».
+  if (queue.status === 'fulfilled') index.value = proposalsByQuery(queue.value.items ?? [])
+  if (runs.status === 'fulfilled') {
+    const m = new Map<string, string>()
+    const ordered = [...(runs.value.items ?? [])].sort((a, b) =>
+      String(b.started_at).localeCompare(String(a.started_at)),
+    )
+    for (const r of ordered)
+      for (const c of r.episode?.clusters ?? [])
+        if (c.outcome === 'closed' && !m.has(c.label.toLowerCase()))
+          m.set(c.label.toLowerCase(), c.diagnosis)
+    closed.value = m
+  }
+})
+
+const closedOf = (p: ProblemQuery) => closed.value.get(p.query.trim().toLowerCase()) ?? null
+
+function proposalOf(p: ProblemQuery): Proposal | null {
+  const byQuery = findProposalForQuery(index.value, p.query)
+  if (p.proposal_id) return byQuery?.id === p.proposal_id ? byQuery : null
+  return byQuery
+}
+
+function proposalLink(p: ProblemQuery) {
+  const id = p.proposal_id ?? proposalOf(p)?.id
+  return id ? { path: '/searchops', query: { tab: 'queue', status: 'all', p: id } } : null
 }
 
 const FIRST = 15
@@ -81,17 +122,23 @@ function explainFreq(p: ProblemQuery) {
                 неудачных {{ formatInt(p.failures) }} из {{ formatInt(p.freq) }}
               </span>
             </td>
-            <td :class="{ 't-muted': !p.diagnosis || p.diagnosis === 'не разобрано' }">
+            <td v-if="proposalOf(p)">{{ diagnosisLabel(proposalOf(p)!.diagnosis) }}</td>
+            <td v-else-if="closedOf(p)">{{ diagnosisLabel(closedOf(p)!) }}</td>
+            <td v-else :class="{ 't-muted': !p.diagnosis || p.diagnosis === 'не разобрано' }">
               {{ p.diagnosis || 'не разобрано' }}
             </td>
             <td>
-              <RouterLink
-                v-if="p.proposal_id"
-                :to="{ path: '/searchops', query: { proposal: p.proposal_id } }"
-                class="link"
-              >
-                Предложение агента
-              </RouterLink>
+              <span v-if="proposalLink(p)" class="problems__todo">
+                <RouterLink :to="proposalLink(p)!" class="link">Предложение агента</RouterLink>
+                <span
+                  v-if="proposalOf(p)"
+                  :class="['badge', 'badge--tone', proposalStatus(proposalOf(p)!.status).tone]"
+                  >{{ proposalStatus(proposalOf(p)!.status).label }}</span
+                >
+              </span>
+              <span v-else-if="closedOf(p)" class="t-muted">
+                агент разобрал: правкой правил не решается
+              </span>
               <span v-else class="t-muted">ждёт разбора агентом</span>
             </td>
           </tr>
@@ -129,5 +176,11 @@ function explainFreq(p: ProblemQuery) {
 }
 .data-table td:first-child {
   min-width: 12rem;
+}
+.problems__todo {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-1) var(--space-2);
 }
 </style>

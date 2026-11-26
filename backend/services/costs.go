@@ -22,9 +22,16 @@ const (
 // routesOrder — маршруты в таблице, все четыре даже без поисков.
 var routesOrder = []string{domain.RouteExact, domain.RouteNormalized, domain.RouteSemantic, domain.RouteIntent}
 
-// Costs — GET /api/costs?limit=&offset=.
-func (s *Services) Costs(ctx context.Context, limit, offset int) (*out.Costs, error) {
-	var bad []errs.FieldError
+// CostsRequest — GET /api/costs: страница журнала и допущения месячного расчёта.
+type CostsRequest struct {
+	Limit, Offset int
+	Monthly       MonthlyParams
+}
+
+// Costs — GET /api/costs?limit=&offset=&server_rub_20k=&server_rub_200k=&agent_runs_month=.
+func (s *Services) Costs(ctx context.Context, req CostsRequest) (*out.Costs, error) {
+	limit, offset := req.Limit, req.Offset
+	bad := checkMonthly(req.Monthly)
 	if limit == 0 {
 		limit = defaultCostsLimit
 	}
@@ -54,7 +61,7 @@ func (s *Services) Costs(ctx context.Context, limit, offset int) (*out.Costs, er
 	}
 
 	res := &out.Costs{
-		LLMMode: s.llmMode,
+		LLMMode: s.LLMMode(),
 		Pricing: out.CostsPricing{Version: PricingVersion, Date: PricingDate, Currency: "RUB", Prices: []out.CostsPrice{}},
 		Routes:  []out.CostsRoute{},
 		Calls:   out.CostsCalls{Total: total, Limit: limit, Offset: offset, Items: []out.CostsCall{}},
@@ -110,6 +117,7 @@ func (s *Services) Costs(ctx context.Context, limit, offset int) (*out.Costs, er
 	}
 	sum.EvalCalls, sum.EvalCostRub = totals.EvalCalls, math.Round(totals.EvalCostRub*1e4)/1e4
 	sum.JudgeCalls, sum.JudgeCostRub = totals.JudgeCalls, math.Round(totals.JudgeCostRub*1e4)/1e4
+	sum.WarmupCalls, sum.WarmupCostRub = totals.WarmupCalls, math.Round(totals.WarmupCostRub*1e4)/1e4
 	sum.AgentRuns = totals.AgentRuns
 	if totals.AgentRuns > 0 {
 		sum.AgentRunAvgCostRub = costsRatio(totals.AgentCostRub, float64(totals.AgentRuns), 4)
@@ -139,6 +147,13 @@ func (s *Services) Costs(ctx context.Context, limit, offset int) (*out.Costs, er
 			PricingVersion: c.PricingVersion, Status: c.Status,
 		})
 	}
+	var runs []domain.AgentRun
+	if st := s.store(); st != nil {
+		if runs, err = st.ListAgentRuns(ctx, 50); err != nil {
+			return nil, err
+		}
+	}
+	res.Monthly = computeMonthly(res.Summary, res.Routes, runs, req.Monthly)
 	return res, nil
 }
 
@@ -160,6 +175,8 @@ func llmCallKind(c domain.LLMUsage) string {
 		return "eval"
 	case strings.HasPrefix(*c.RequestID, repositories.JudgeRequestPrefix):
 		return "judge"
+	case strings.HasPrefix(*c.RequestID, repositories.WarmupRequestPrefix):
+		return "warmup"
 	case strings.HasPrefix(*c.RequestID, "live-"):
 		return "other" // живой прогон разбора из intent_live_test
 	}

@@ -40,6 +40,9 @@ services:
       LLM_INTENT_MODEL: ${LLM_INTENT_MODEL:-}
       LLM_FALLBACK_MODEL: ${LLM_FALLBACK_MODEL:-}
       LLM_JUDGE_MODEL: ${LLM_JUDGE_MODEL:-}
+      ADMIN_ENABLED: ${ADMIN_ENABLED:-}
+      RATE_LIMIT_PER_MIN: ${RATE_LIMIT_PER_MIN:-}
+      LLM_DAILY_BUDGET_RUB: ${LLM_DAILY_BUDGET_RUB:-}
       TZ: Europe/Moscow
     depends_on:
       db:

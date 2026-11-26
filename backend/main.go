@@ -2,7 +2,8 @@
 // handlers → services → repositories; раскладка и соглашения — AGENTS.md.
 //
 // `go run .` — HTTP-сервер; `go run . import` — импорт каталога из DATA_DIR в OpenSearch и PostgreSQL
-// (то же, что POST /api/catalog/import), сводка — JSON в stdout.
+// (то же, что POST /api/catalog/import), сводка — JSON в stdout; `go run . warmup` — прогрев кэша разборов
+// частотными запросами.
 //
 // CORS не подключён намеренно: SPA и /api на одном origin (Caddy в проде, прокси Vite в dev).
 package main
@@ -70,6 +71,8 @@ func main() {
 
 		AgentModel: agentModel(cfg.LLM, cfg.Agent.Model),
 		Agent:      services.AgentOptions{MaxRegressionWorse: cfg.Agent.MaxRegressionWorse, RegressionSets: cfg.Agent.RegressionSets},
+
+		DailyBudgetRub: cfg.Ops.DailyBudgetRub,
 	})
 
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
@@ -91,13 +94,18 @@ func main() {
 		runJudge(ctx, log, svc, os.Args[2:])
 		return
 	}
+	if len(os.Args) > 1 && os.Args[1] == "warmup" {
+		runWarmup(ctx, log, svc, os.Args[2:])
+		return
+	}
 	svc.LoadCatalogState(ctx)
 	svc.RecoverAgentRuns(ctx)
 	if cfg.Agent.Schedule {
 		svc.StartAgentScheduler(ctx, cfg.Agent.Interval)
 	}
 	defer svc.Wait()
-	h := handlers.NewHandlerManager(svc, handlers.Options{PublicOrigin: cfg.PublicOrigin})
+	h := handlers.NewHandlerManager(svc, handlers.Options{PublicOrigin: cfg.PublicOrigin,
+		AdminEnabled: cfg.Ops.AdminEnabled, RatePerMinute: cfg.Ops.RatePerMinute})
 
 	app := fiber.New(handlers.WithTrustedProxies(handlers.ServerConfig(handlers.DefaultTimeouts), cfg.TrustedProxies))
 	// Порядок: recover (самый внешний) → номер запроса → fiberzap → routes.

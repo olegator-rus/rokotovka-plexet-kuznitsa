@@ -1,5 +1,5 @@
 import { http, type RequestOptions } from './http'
-import type { SearchRequest, SearchResponse, SuggestResponse } from './types'
+import type { SearchRequest, SearchResponse, SuggestResponse, TraceRecord } from './types'
 
 /** POST /api/search — выдача, строка понимания и трасса. */
 export const postSearch = (body: SearchRequest, opts?: RequestOptions) =>
@@ -11,3 +11,7 @@ export function getSuggest(q: string, clientId: string | null, opts?: RequestOpt
   if (clientId) params.set('client_id', clientId)
   return http.get<SuggestResponse>(`/suggest?${params.toString()}`, opts)
 }
+
+/** GET /api/traces/{request_id} — сохранённая трасса поиска (переход из журнала «Экономики»). */
+export const getTrace = (requestId: string, opts?: RequestOptions) =>
+  http.get<TraceRecord>(`/traces/${encodeURIComponent(requestId)}`, opts)

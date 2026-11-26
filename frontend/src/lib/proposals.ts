@@ -1,7 +1,9 @@
 // Предложения агента и версии правил: разница правил словами, результат
 // прогона двумя строками, статусы, сортировка, ссылка «Проверить в поиске». Без DOM: tests/proposals.test.ts.
 import type {
+  AppliedEffect,
   ConfigVersion,
+  FoundOf,
   Proposal,
   ProposalEvaluation,
   ProposalRejectReason,
@@ -94,9 +96,9 @@ export function clusterQueries(p: Pick<Proposal, 'cluster'>): { text: string; fr
 export const clusterFreq = (p: Pick<Proposal, 'cluster'>) =>
   (p.cluster?.queries ?? []).reduce((n, q) => n + (q.freq || 0), 0)
 
-/** «Проверить в поиске»: самый частый запрос кластера на действующих правилах (B4). */
-export function searchCheckUrl(p: Pick<Proposal, 'cluster'>): string | null {
-  const q = clusterQueries(p)[0]?.text
+/** «Проверить в поиске»: запрос от агента (check_query) или самый частый запрос кластера, на B4. */
+export function searchCheckUrl(p: Pick<Proposal, 'cluster' | 'check_query'>): string | null {
+  const q = p.check_query?.trim() || clusterQueries(p)[0]?.text
   if (!q) return null
   return `/search?${new URLSearchParams({ q, config: 'B4' }).toString()}`
 }
@@ -213,3 +215,139 @@ export const authorLabel = (a: string) => AUTHOR_LABELS[a] ?? a
 export function sortVersions(items: ConfigVersion[]): ConfigVersion[] {
   return [...items].sort((a, b) => b.version - a.version)
 }
+
+// ── Доказательства из evidence: гипотезы, запросы прогона, тикеты, эффект ──
+
+const foundOf = (f: FoundOf | undefined) =>
+  f ? `${formatInt(f.found)} из ${formatInt(f.total)}` : '—'
+
+export interface HypothesisLine {
+  no: number
+  text: string
+  passed: boolean
+  /** «3 из 6 → 5 из 6» — целевой кластер в прогоне гипотезы. */
+  target: string | null
+  reason: string | null
+}
+
+/** Все гипотезы, которые агент проверил прогоном, по номеру; отклонённые — с причиной. */
+export function hypothesisLines(p: Pick<Proposal, 'evidence'>): HypothesisLine[] {
+  const hs = p.evidence?.hypotheses ?? []
+  return [...hs]
+    .sort((a, b) => a.no - b.no)
+    .map((h) => {
+      const t = h.evaluation?.target
+      return {
+        no: h.no,
+        text:
+          h.hypothesis ||
+          diffLines(h.patch)
+            .map((d) => d.text)
+            .join(', '),
+        passed: !!h.passed,
+        target: t ? `${foundOf(t.before)} → ${foundOf(t.after)}` : null,
+        reason: h.passed ? null : (h.reason ?? null),
+      }
+    })
+}
+
+export interface TargetQueryRow {
+  text: string
+  freq: number
+  before: boolean
+  after: boolean
+  /** Нужный товар перестал находиться — ухудшение. */
+  worse: boolean
+}
+
+/** Запросы целевого кластера в прогоне принятой гипотезы: находился ли нужный товар до и после. */
+export function targetQueryRows(ev: ProposalEvaluation | null | undefined): TargetQueryRow[] {
+  return (ev?.target?.queries ?? []).map((q) => ({
+    text: q.text,
+    freq: q.freq,
+    before: !!q.before_found,
+    after: !!q.after_found,
+    worse: !!q.before_found && !q.after_found,
+  }))
+}
+
+/** Что сделать по задаче (action: ticket) — словами из доказательств агента. */
+export function ticketLines(p: Pick<Proposal, 'diagnosis' | 'evidence'>): string[] {
+  const ev = p.evidence
+  const out: string[] = []
+  const subs = ev?.substitutes ?? []
+  if (subs.length)
+    out.push(
+      `Показать покупателям замену: ${subs.map((x) => (x.vendor ? `${x.name} (${x.vendor})` : x.name)).join(', ')}`,
+    )
+  else if (p.diagnosis === 'ASSORTMENT_GAP')
+    out.push('Решить, брать ли товар в ассортимент: замены в каталоге агент не нашёл')
+  const cur = ev?.current_search ?? []
+  if (cur.length) {
+    const empty = cur.filter((c) => c.empty).length
+    out.push(
+      empty === cur.length
+        ? `Сейчас поиск отвечает «нет в каталоге» на все ${formatInt(cur.length)} ${qWord(cur.length)} кластера`
+        : `Сейчас поиск отвечает «нет в каталоге» на ${formatInt(empty)} из ${formatInt(cur.length)} ${plural(cur.length, ['запроса', 'запросов', 'запросов'])}`,
+    )
+  }
+  const ref = [...(ev?.reformulations ?? [])].sort((a, b) => b.count - a.count)[0]
+  if (ref)
+    out.push(
+      `Покупатели переформулируют: «${ref.from}» → «${ref.to}» (${formatInt(ref.count)} ${plural(ref.count, ['раз', 'раза', 'раз'])}${ref.clicked ? '' : ', без кликов'})`,
+    )
+  return out
+}
+
+/** Эффект принятой правки одной строкой: «до правки 0 из 4, прогон обещал 4, сейчас 4 из 4». */
+export function effectLine(
+  e: AppliedEffect | null | undefined,
+): { text: string; holds: boolean } | null {
+  if (!e || (!e.now && !e.summary)) return null
+  const parts: string[] = []
+  if (e.before) parts.push(`до правки находилось ${foundOf(e.before)}`)
+  if (e.promised) parts.push(`прогон обещал ${formatInt(e.promised.found)}`)
+  if (e.now) parts.push(`сейчас ${foundOf(e.now)}`)
+  const text = parts.length ? parts.join(', ') : (e.summary ?? '')
+  return { text: text.charAt(0).toUpperCase() + text.slice(1), holds: e.holds !== false }
+}
+
+/** Описание версии без кода диагноза в начале: «ALIAS_GAP: …» → «Неизвестный термин: …». */
+export function versionDescription(
+  v: Pick<ConfigVersion, 'description' | 'source' | 'aliases'>,
+): string {
+  const d = (v.description ?? '').trim()
+  if (v.source === 'import' || d.startsWith('исходные словари'))
+    return `Исходные словари и правила из данных каталога${v.aliases ? ` · ${formatInt(v.aliases)} ${plural(v.aliases, ['алиас', 'алиаса', 'алиасов'])}` : ''}`
+  const m = /^([A-Z_]+):\s*(.*)$/.exec(d)
+  if (m && DIAGNOSIS_LABELS[m[1]]) return `${DIAGNOSIS_LABELS[m[1]]}: ${m[2]}`
+  return d
+}
+
+// ── Проблемный запрос → предложение агента (пока /api/analytics не присылает proposal_id) ──
+
+const normQuery = (q: string) => q.trim().toLowerCase().replace(/\s+/g, ' ')
+
+const STATUS_RANK: Record<string, number> = { pending: 0, accepted: 1, rolled_back: 2, rejected: 3 }
+
+/**
+ * Запрос → предложение, в кластер которого он входит. Если запрос есть в нескольких предложениях,
+ * берём ждущее решения, затем принятое, затем более новое.
+ */
+export function proposalsByQuery(items: Proposal[]): Map<string, Proposal> {
+  const out = new Map<string, Proposal>()
+  const sorted = [...items].sort(
+    (a, b) =>
+      (STATUS_RANK[a.status] ?? 9) - (STATUS_RANK[b.status] ?? 9) ||
+      String(b.created_at).localeCompare(String(a.created_at)),
+  )
+  for (const p of sorted)
+    for (const q of p.cluster?.queries ?? []) {
+      const k = normQuery(q.text)
+      if (!out.has(k)) out.set(k, p)
+    }
+  return out
+}
+
+export const findProposalForQuery = (index: Map<string, Proposal>, query: string) =>
+  index.get(normQuery(query)) ?? null

@@ -60,7 +60,7 @@ test('stepSummary: пропущенный, нормализация, атриб�
   )
   assert.equal(
     stepSummary(step({ name: 'route', route: 'B', signals: ['alias_hit'] })),
-    'B · alias_hit',
+    'B · сленг или алиас',
   )
   assert.equal(stepSummary(step({ name: 'fusion', k: 60 })), 'k = 60')
   assert.equal(

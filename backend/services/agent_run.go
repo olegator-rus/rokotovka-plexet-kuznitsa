@@ -84,6 +84,12 @@ func (a *agentService) execute(ctx context.Context, rs *runState) {
 	}
 	r.Summary += fmt.Sprintf("Разобрано кластеров: %d из %d, предложений в очереди: %d, вызовов инструментов: %d, %d токенов, %.2f ₽",
 		r.ClustersDone, r.ClustersTotal, r.ProposalsCreated, r.ToolCalls, r.InputTokens+r.OutputTokens, r.CostRub)
+	if n, _ := rc.episode["clusters_limited"].(int); n > 0 {
+		r.Summary += fmt.Sprintf(". Упёрлись в лимит %d вызовов на кластер: %d", agentToolCallsPerCluster, n)
+	}
+	if n, _ := rc.episode["clusters_unfinished"].(int); n > 0 {
+		r.Summary += fmt.Sprintf(". Без итога (модель не вызвала завершающий инструмент): %d", n)
+	}
 	rs.mu.Unlock()
 	if err != nil && rs.stopReason() == "" {
 		a.step(ctx, rs, &domain.AgentStep{Kind: domain.StepError, Title: "Запуск прерван: " + shortText(err.Error(), 200)})
@@ -279,6 +285,12 @@ func (rc *runCtx) run(ctx context.Context) error {
 			rs.mu.Unlock()
 			break
 		}
+		if errors.Is(res.Err, errBudget) {
+			rs.mu.Lock()
+			rs.run.StopReason = StopBudget
+			rs.mu.Unlock()
+			break
+		}
 		if res.Err != nil && ctx.Err() != nil {
 			return ctx.Err()
 		}
@@ -289,6 +301,23 @@ func (rc *runCtx) run(ctx context.Context) error {
 			return res.Err
 		}
 	}
+	// Честный итог: кластер, упёршийся в лимит вызовов, разобран не до конца — запуск это показывает
+	// (step_limit), а не «все кластеры разобраны».
+	limited, unfinished := 0, 0
+	for _, r := range rc.results {
+		switch r["outcome"] {
+		case "limit":
+			limited++
+		case "unfinished":
+			unfinished++
+		}
+	}
+	rc.episode["clusters_limited"], rc.episode["clusters_unfinished"] = limited, unfinished
+	rs.mu.Lock()
+	if rs.run.StopReason == "" && limited > 0 {
+		rs.run.StopReason = StopStepLimit
+	}
+	rs.mu.Unlock()
 	return nil
 }
 
@@ -550,7 +579,8 @@ func (rc *runCtx) successful(ctx context.Context) ([]clusterQuery, [][]float32) 
 	}
 	rc.succDone = true
 	for _, q := range rc.stats.byText {
-		if q.Clicks >= 2 && float64(q.Clicks) >= 0.3*float64(q.Freq) {
+		// Нераспознанные остатки неверной раскладки как «успешный запрос» агенту не показываем.
+		if q.Clicks >= 2 && float64(q.Clicks) >= 0.3*float64(q.Freq) && readableQuery(q.Text) {
 			rc.succ = append(rc.succ, *q)
 		}
 	}

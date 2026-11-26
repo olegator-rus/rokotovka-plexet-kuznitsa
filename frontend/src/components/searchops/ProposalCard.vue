@@ -1,20 +1,32 @@
 <script setup lang="ts">
 // Карточка предложения агента сверху вниз: диагноз словами → запросы кластера с частотой →
 // что предлагается (разница правил) → результат прогона двумя строками → ход расследования → решение.
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
+import { CollapsibleContent, CollapsibleRoot, CollapsibleTrigger } from 'reka-ui'
 import { RouterLink } from 'vue-router'
-import { ArrowRight, CircleCheck, CircleX, Search } from 'lucide-vue-next'
+import {
+  ArrowRight,
+  ChevronDown,
+  ChevronRight,
+  CircleCheck,
+  CircleX,
+  Search,
+} from 'lucide-vue-next'
 import type { Proposal } from '@/api/types'
 import { formatDateTime, formatInt, plural } from '@/lib/format'
 import {
   clusterQueries,
   diagnosisLabel,
+  effectLine,
   evaluationLines,
+  hypothesisLines,
   isTicket,
   proposalRoleLabel,
   proposalStatus,
   rejectReasonLabel,
   searchCheckUrl,
+  targetQueryRows,
+  ticketLines,
 } from '@/lib/proposals'
 import PatchDiff from './PatchDiff.vue'
 
@@ -30,6 +42,12 @@ const more = computed(() => Math.max(0, queries.value.length - QUERIES_SHOWN))
 const ev = computed(() => evaluationLines(p.value.evaluation))
 const ticket = computed(() => isTicket(p.value))
 const checkUrl = computed(() => searchCheckUrl(p.value))
+const hypotheses = computed(() => hypothesisLines(p.value))
+const rejectedCount = computed(() => hypotheses.value.filter((h) => !h.passed).length)
+const targetRows = computed(() => targetQueryRows(p.value.evaluation))
+const todo = computed(() => (ticket.value ? ticketLines(p.value) : []))
+const effect = computed(() => effectLine(p.value.effect))
+const detailsOpen = ref(false)
 const runLink = computed(() =>
   p.value.run_id
     ? {
@@ -41,7 +59,12 @@ const runLink = computed(() =>
 </script>
 
 <template>
-  <article class="panel pcard" :aria-labelledby="`p-${p.id}-title`">
+  <article
+    :id="`proposal-${p.id}`"
+    class="panel pcard"
+    tabindex="-1"
+    :aria-labelledby="`p-${p.id}-title`"
+  >
     <header class="pcard__head">
       <span :class="['badge', 'badge--tone', status.tone]">{{ status.label }}</span>
       <span class="badge">{{ diagnosisLabel(p.diagnosis) }}</span>
@@ -76,7 +99,11 @@ const runLink = computed(() =>
 
     <section class="pcard__block" aria-label="Что предлагается">
       <p class="pcard__label">{{ ticket ? 'Что сделать' : 'Что предлагается' }}</p>
+      <ul v-if="todo.length" class="pcard__todo">
+        <li v-for="t in todo" :key="t">{{ t }}</li>
+      </ul>
       <PatchDiff
+        v-if="!ticket || !todo.length"
         :patch="p.patch"
         :empty="
           ticket
@@ -84,6 +111,7 @@ const runLink = computed(() =>
             : undefined
         "
       />
+      <p v-else class="t-xs t-muted">Правила поиска не меняются</p>
     </section>
 
     <section v-if="ev" class="pcard__block" aria-label="Результат прогона">
@@ -103,7 +131,98 @@ const runLink = computed(() =>
         <component :is="ev.passed ? CircleCheck : CircleX" :size="14" aria-hidden="true" />
         {{ ev.passed ? 'Условия допуска выполнены' : 'Условия допуска не выполнены' }}
       </p>
+
+      <CollapsibleRoot
+        v-if="hypotheses.length > 1 || targetRows.length"
+        v-model:open="detailsOpen"
+        class="pcard__details"
+      >
+        <CollapsibleTrigger class="pcard__more link t-sm">
+          <component :is="detailsOpen ? ChevronDown : ChevronRight" :size="14" aria-hidden="true" />
+          Как проверяли<template v-if="rejectedCount">
+            · {{ rejectedCount }}
+            {{
+              plural(rejectedCount, [
+                'гипотеза отклонена',
+                'гипотезы отклонены',
+                'гипотез отклонено',
+              ])
+            }}</template
+          >
+        </CollapsibleTrigger>
+        <CollapsibleContent class="pcard__details-body">
+          <ol v-if="hypotheses.length > 1" class="pcard__hyps" aria-label="Гипотезы агента">
+            <li
+              v-for="h in hypotheses"
+              :key="h.no"
+              :class="['pcard__hyp', h.passed ? 'status-accepted' : 'status-rejected']"
+            >
+              <component
+                :is="h.passed ? CircleCheck : CircleX"
+                :size="14"
+                aria-hidden="true"
+                class="pcard__hyp-icon"
+              />
+              <span class="pcard__hyp-text">
+                <span class="t-muted pcard__hyp-no">№{{ h.no }}</span>
+                <s v-if="!h.passed">{{ h.text }}</s>
+                <template v-else>{{ h.text }}</template>
+                <span v-if="h.target" class="t-num t-muted"> · {{ h.target }}</span>
+              </span>
+              <span class="pcard__hyp-verdict t-sm">
+                {{ h.passed ? 'прошла' : `отклонена: ${h.reason ?? 'не прошла прогон'}` }}
+              </span>
+            </li>
+          </ol>
+          <div v-if="targetRows.length" class="data-scroll pcard__tq-scroll">
+            <table class="data-table pcard__tq">
+              <caption class="sr-only">
+                Запросы целевого кластера до и после правки
+              </caption>
+              <thead>
+                <tr>
+                  <th scope="col">Запрос</th>
+                  <th scope="col" class="num">Частота</th>
+                  <th scope="col">До правки</th>
+                  <th scope="col">После</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="r in targetRows" :key="r.text">
+                  <th scope="row">{{ r.text }}</th>
+                  <td class="num">{{ formatInt(r.freq) }}</td>
+                  <td :class="{ 't-muted': !r.before }">{{ r.before ? 'находится' : 'нет' }}</td>
+                  <td
+                    :class="
+                      r.worse
+                        ? 'status-rejected pcard__tq-tone'
+                        : r.after && !r.before
+                          ? 'status-accepted pcard__tq-tone'
+                          : r.after
+                            ? ''
+                            : 't-muted'
+                    "
+                  >
+                    {{ r.after ? 'находится' : 'нет' }}
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </CollapsibleContent>
+      </CollapsibleRoot>
     </section>
+
+    <p
+      v-if="effect"
+      :class="['pcard__effect t-sm', effect.holds ? 'status-accepted' : 'status-rejected']"
+    >
+      <component :is="effect.holds ? CircleCheck : CircleX" :size="14" aria-hidden="true" />
+      <span
+        ><span class="pcard__effect-label">Эффект после принятия:</span> {{ effect.text
+        }}{{ effect.holds ? ' — держится' : ' — не держится' }}</span
+      >
+    </p>
 
     <footer class="pcard__foot">
       <RouterLink v-if="runLink" :to="runLink" class="link t-sm pcard__run">
@@ -124,9 +243,10 @@ const runLink = computed(() =>
           {{ status.label }}
           <template v-if="p.decided_at">{{ formatDateTime(p.decided_at) }}</template>
           <template v-if="p.config_version"> · версия правил {{ p.config_version }}</template>
-          <template v-if="p.decided_reason">
-            · причина: {{ rejectReasonLabel(p.decided_reason) }}</template
+          <template v-if="p.decided_reason && p.status !== 'accepted'">
+            · причина: {{ rejectReasonLabel(p.decided_reason).toLowerCase() }}</template
           >
+          <template v-if="p.decided_comment"> · «{{ p.decided_comment }}»</template>
         </span>
         <RouterLink
           v-if="p.status === 'accepted' && checkUrl && !ticket"
@@ -142,6 +262,7 @@ const runLink = computed(() =>
 
 <style scoped>
 .pcard {
+  scroll-margin-top: calc(var(--header-h) + var(--space-4));
   display: flex;
   flex-direction: column;
   gap: var(--space-3);
@@ -218,6 +339,82 @@ const runLink = computed(() =>
   color: var(--tone);
   font-size: var(--fs-sm);
   line-height: var(--lh-sm);
+}
+.pcard__todo {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 0;
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+  list-style: none;
+}
+.pcard__more {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  cursor: pointer;
+}
+.pcard__details-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding-top: var(--space-2);
+}
+.pcard__hyps {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.pcard__hyp {
+  display: grid;
+  grid-template-columns: var(--icon-sm) minmax(0, 1fr);
+  gap: 2px var(--space-2);
+  align-items: baseline;
+}
+.pcard__hyp-icon {
+  color: var(--tone);
+  align-self: center;
+}
+.pcard__hyp-text {
+  overflow-wrap: anywhere;
+}
+.pcard__hyp-no {
+  margin-right: var(--space-1);
+}
+.pcard__hyp-text s {
+  color: var(--text-2);
+  text-decoration-color: var(--tone);
+}
+.pcard__hyp-verdict {
+  grid-column: 2;
+  color: var(--tone);
+}
+.pcard__tq-scroll {
+  max-width: 40rem;
+}
+.pcard__tq th[scope='row'] {
+  font-weight: var(--fw-regular);
+}
+.pcard__tq-tone {
+  color: var(--tone);
+}
+.pcard__effect {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-1);
+}
+.pcard__effect svg {
+  flex: none;
+  margin-top: 2px;
+  color: var(--tone);
+}
+.pcard__effect-label {
+  color: var(--text-2);
 }
 .pcard__foot {
   display: flex;

@@ -74,12 +74,18 @@ func (s *Services) searchB3(ctx context.Context, requestID string, req in.Search
 		intentStep = skipped(domain.StepIntent, "parser_not_connected")
 		if p := s.intentParser(); p != nil {
 			t = time.Now()
-			guess := rulesGuess(attrs, ent)
+			// Разбор — по запросу как набран, без снятых чипов и ответа на уточнение: ключ кэша от них не
+			// зависит, и пересчёт после снятия чипа идёт из кэша за 0 ₽. Снятое покупателем
+			// применяется уже к итогу разбора — иначе модель возвращает условие обратно.
+			rawAttrs := extractAttrs(nr.tokens)
+			guess := rulesGuess(rawAttrs, findEntities(nr, rawAttrs, lx, rules))
 			parsed, err := p.Parse(WithRequestID(ctx, requestID), resp.Normalized, guess, st.segment(req.ClientID))
 			if err != nil {
 				parsed = guess
 			}
 			mergeParsed(parsed, &attrs, &ent, lx)
+			attrs.applyRequest(req)
+			ent.applyRemoved(removedSet(req.RemovedChips))
 			step, llmInfo, cost := IntentTrace(parsed, msSince(t))
 			intentStep = step
 			trace.ParseSource = parsed.Source

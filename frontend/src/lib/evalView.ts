@@ -7,6 +7,7 @@ import type {
   EvalMetrics,
   EvaluationView,
   EvaluationsResponse,
+  JudgeAgreement,
 } from '@/api/types'
 import { metricDef, metricDelta, orderMetricKeys, type MetricDelta } from './metrics.ts'
 
@@ -192,4 +193,41 @@ export function changeReasonLabel(r: string): string {
 /** Сколько ухудшений у NDCG — без учёта других причин; для бейджа вкладки. */
 export function regressionCount(columns: readonly EvaluationView[]): number {
   return columns.reduce((n, c) => n + (c.regressions?.length ?? 0), 0)
+}
+
+// ── LLM-судья: рядом с NDCG — согласие судьи с ручной разметкой ──
+
+export interface JudgeRow {
+  config: string
+  labels: number
+  judge: number
+  /** Судья минус разметка. */
+  diff: number
+}
+
+export interface JudgeView {
+  rows: JudgeRow[]
+  /** Пары соседних конфигураций, которые судья ставит в обратном порядке, чем разметка. */
+  swapped: [string, string][]
+}
+
+/** Строки NDCG по разметке и по судье в порядке лестницы; где порядок расходится. */
+export function judgeView(ja: JudgeAgreement | null | undefined): JudgeView | null {
+  if (!ja?.by_config?.length) return null
+  const rows = [...ja.by_config]
+    .sort((a, b) => ladderRank(a.config) - ladderRank(b.config))
+    .map((r) => ({
+      config: r.config,
+      labels: r.ndcg_labels,
+      judge: r.ndcg_judge,
+      diff: r.ndcg_judge - r.ndcg_labels,
+    }))
+  const swapped: [string, string][] = []
+  for (let i = 1; i < rows.length; i++) {
+    const a = rows[i - 1]
+    const b = rows[i]
+    if (Math.sign(b.labels - a.labels) !== Math.sign(b.judge - a.judge))
+      swapped.push([a.config, b.config])
+  }
+  return { rows, swapped }
 }
