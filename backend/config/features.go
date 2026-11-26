@@ -14,13 +14,13 @@ type Features struct {
 	Companions bool
 	// MarginPolicy — FEATURE_MARGIN_POLICY: политика маржи в ранжировании (on).
 	MarginPolicy bool
-	// Solutions — FEATURE_SOLUTIONS: шаблоны комплексных решений (off до готовности).
+	// Solutions — FEATURE_SOLUTIONS: закупка под задачу (шаблоны) и старшая редакция (on).
 	Solutions bool
 }
 
 // loadFeatures — флаги из окружения.
 func loadFeatures() (Features, error) {
-	f := Features{Hardware: true, Companions: true, MarginPolicy: true, Solutions: false}
+	f := Features{Hardware: true, Companions: true, MarginPolicy: true, Solutions: true}
 	var problems []string
 	for _, x := range []struct {
 		key string

@@ -25,20 +25,6 @@
         "quantity_strategy": "per_seat"
       },
       {
-        "id": "monitor",
-        "label": "Монитор",
-        "category_id": "monitors",
-        "query": "монитор 24 дюйма",
-        "constraints": {
-          "screen_inch": {
-            "op": "range",
-            "value": 23.8,
-            "value2": 27
-          }
-        },
-        "quantity_strategy": "per_seat"
-      },
-      {
         "id": "os",
         "label": "Операционная система (если ноутбук без ОС)",
         "category_id": "os-desktop",
@@ -120,7 +106,7 @@
         "id": "cal",
         "label": "Лицензии доступа к серверу",
         "category_id": "os-server",
-        "query": "cal 2025",
+        "query": "windows server cal 2025",
         "constraints": {
           "version": {
             "op": "gte",

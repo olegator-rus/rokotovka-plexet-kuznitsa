@@ -81,11 +81,73 @@ export interface Features {
   solutions: boolean
 }
 
-/** шаблон решения (фронт витрины пока не рисует). */
+/** Условие слота на позицию другого слота («ОС, если ноутбук без ОС»). */
+export interface SlotCondition {
+  slot: string
+  key: string
+  value: string
+  /** Позиции слота `slot` (выбранная и альтернативы), при которых слот нужен. */
+  product_ids: string[]
+}
+
+/** Слот решения: выбранная позиция, «заменить» и количество для каждой из них. */
+export interface SolutionSlot {
+  id: string
+  label: string
+  category_id: string
+  query: string
+  quantity_strategy: string
+  /** Сколько штук выбранной позиции заказать (фасовка на N мест — ⌈N / мест в позиции⌉). */
+  quantity: number
+  item: SearchItemLite | null
+  alternatives: SearchItemLite[]
+  /** Количество для выбранной позиции и каждой альтернативы. */
+  quantities: Record<string, number>
+  /** Слот входит в решение при выбранных по умолчанию позициях. */
+  active: boolean
+  condition: SlotCondition | null
+}
+
+/** Позиция слота — поля позиции выдачи, нужные карточке и спецификации. */
+export interface SearchItemLite {
+  product_id: string
+  family_id: string
+  title: string
+  vendor: string
+  category: string
+  license_line: string
+  price_rub: number | null
+  price_on_request: boolean
+  kind?: ItemKind | string
+  price_mode?: PriceMode | string
+}
+
+/** закупка под задачу по утверждённому шаблону. */
 export interface Solution {
   template_id: string
   title: string
-  slots: unknown[]
+  /** Число мест из запроса (нет — 1). */
+  seats: number
+  /** «Собрано по шаблону Softline». */
+  source: string
+  slots: SolutionSlot[]
+  /** Сумма по позициям по умолчанию — только если известны все цены. */
+  total_rub: number | null
+  on_request: number
+}
+
+/** «Старшая редакция» к первой позиции выдачи. */
+export interface Upgrade extends Companion {
+  for_product_id: string
+  relation_id: string
+}
+
+/** GET /api/companions?product_id=&quantity= — «К этой позиции» в спецификации. */
+export interface ProductCompanions {
+  product_id: string
+  required: Companion[]
+  items: Companion[]
+  upgrade: Upgrade | null
 }
 
 export type QuoteOrigin = 'search' | 'companion' | 'template'

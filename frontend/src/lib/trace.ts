@@ -2,7 +2,14 @@
 import type { ParseSource, Rejected, Route, Trace, TraceItem, TraceStep } from '@/api/types'
 import { formatDecimal, formatInt, plural } from './format.ts'
 import { MARGIN_STEP_FIELDS, marginSummary } from './traceMargin.ts'
-import { companionsSummary, hardwareSummary, isP2Field, p2HasDetails } from './traceP2.ts'
+import {
+  companionsSummary,
+  hardwareSummary,
+  isP2Field,
+  p2HasDetails,
+  solutionSummary,
+  upgradeSummary,
+} from './traceP2.ts'
 
 export const ROUTE_LABELS: Record<Route, string> = {
   A: 'точный',
@@ -32,6 +39,8 @@ export const STEP_LABELS: Record<string, string> = {
   margin: 'Маржа',
   hardware: 'Оборудование',
   companions: 'Компаньоны',
+  upgrade: 'Старшая редакция',
+  solution: 'Решение по шаблону',
 }
 
 export const CHANGE_KIND_LABELS: Record<string, string> = {
@@ -198,6 +207,10 @@ export function stepSummary(step: TraceStep): string {
       return hardwareSummary(step)
     case 'companions':
       return companionsSummary(step)
+    case 'solution':
+      return solutionSummary(step)
+    case 'upgrade':
+      return upgradeSummary(step)
     default:
       return 'выполнено'
   }

@@ -14,6 +14,7 @@ import {
   DialogTitle,
 } from 'reka-ui'
 import { CircleAlert, CircleCheck, Copy, Minus, Plus, Trash2, X } from 'lucide-vue-next'
+import SpecCompanions from '@/components/spec/SpecCompanions.vue'
 import { useToast } from '@/components/ui/useToast'
 import { formatPrice } from '@/lib/format'
 import { hasKnownPrice, originLabel, priceModeLabel, specText } from '@/lib/spec'
@@ -112,6 +113,11 @@ function startOver() {
                   <span class="badge">{{ originLabel(l) }}</span>
                   <span v-if="l.anchor" class="t-muted"> к «{{ l.anchor }}»</span>
                 </p>
+                <SpecCompanions
+                  v-if="l.origin === 'search'"
+                  :product-id="l.product_id"
+                  :title="l.title"
+                />
               </div>
               <div class="spec-line__qty" role="group" :aria-label="`Количество: ${l.title}`">
                 <button

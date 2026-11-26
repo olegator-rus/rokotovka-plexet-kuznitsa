@@ -605,9 +605,6 @@ SOLUTION_TEMPLATES = [
          approved=True, slots=[
              dict(id="laptop", label="Ноутбук", category_id="laptops", query="ноутбук 16 гб",
                   constraints={"ram_gb": {"op": "gte", "value": 16}}, quantity_strategy="per_seat"),
-             dict(id="monitor", label="Монитор", category_id="monitors", query="монитор 24 дюйма",
-                  constraints={"screen_inch": {"op": "range", "value": 23.8, "value2": 27}},
-                  quantity_strategy="per_seat"),
              dict(id="os", label="Операционная система (если ноутбук без ОС)", category_id="os-desktop",
                   query="windows 11 pro", constraints={"if_slot_attr": {"slot": "laptop", "key": "os",
                                                                        "value": "без ОС"}},
@@ -625,7 +622,7 @@ SOLUTION_TEMPLATES = [
                   constraints={"compatible_with": "slot:server"}, quantity_strategy="one"),
              dict(id="os", label="Серверная ОС", category_id="os-server", query="windows server 2025 standard",
                   constraints={"version": {"op": "eq", "value": "2025"}}, quantity_strategy="per_core"),
-             dict(id="cal", label="Лицензии доступа к серверу", category_id="os-server", query="cal 2025",
+             dict(id="cal", label="Лицензии доступа к серверу", category_id="os-server", query="windows server cal 2025",
                   constraints={"version": {"op": "gte", "value": "2025"}}, quantity_strategy="per_user"),
              dict(id="1c-server", label="Сервер 1С:Предприятие", category_id="1c-licenses", query="сервер 1с",
                   constraints={}, quantity_strategy="one"),

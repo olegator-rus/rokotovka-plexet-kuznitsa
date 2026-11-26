@@ -19,7 +19,7 @@ import type {
   SearchItemBase,
   SearchResponse,
 } from '@/api/types'
-import type { Companion, SearchFilter } from '@/api/typesP2'
+import type { Companion, SearchFilter, Upgrade } from '@/api/typesP2'
 import CompanionsBlock from '@/components/search/CompanionsBlock.vue'
 import FacetsPanel from '@/components/search/FacetsPanel.vue'
 import RequiredLine from '@/components/search/RequiredLine.vue'
@@ -32,6 +32,8 @@ import SearchError from '@/components/search/SearchError.vue'
 import UnderstandingBar from '@/components/search/UnderstandingBar.vue'
 import TracePanel from '@/components/trace/TracePanel.vue'
 import ComplementsBlock from '@/components/search/ComplementsBlock.vue'
+import SolutionCard from '@/components/search/SolutionCard.vue'
+import UpgradeCard from '@/components/search/UpgradeCard.vue'
 import UiSwitch from '@/components/ui/UiSwitch.vue'
 import { useToast } from '@/components/ui/useToast'
 import { DESKTOP_QUERY, useMediaQuery } from '@/composables/useMediaQuery'
@@ -62,7 +64,8 @@ import {
   impressionPayload,
 } from '@/lib/companions'
 import { usableFacet, withFilter } from '@/lib/facets'
-import { lineFromCompanion, lineFromItem, quantityForItem } from '@/lib/spec'
+import { type SpecLine, lineFromCompanion, lineFromItem, quantityForItem } from '@/lib/spec'
+import type { SlotChoice } from '@/lib/solution'
 
 const EXAMPLES = [
   'аналог фотошопа на 20 пользователей',
@@ -198,6 +201,58 @@ const filters = computed<SearchFilter[]>(() => state.value.filters ?? [])
 const facets = computed(() =>
   hardwareOn.value ? (response.value?.facets ?? []).filter(usableFacet) : [],
 )
+// ── закупка под задачу и старшая редакция ──
+const solutionsOn = computed(() => featureOn(features.value, 'solutions'))
+const solution = computed(() => (solutionsOn.value ? (response.value?.solution ?? null) : null))
+const upgrade = computed(() => (solutionsOn.value ? (response.value?.upgrade ?? null) : null))
+const upgradeBase = computed(
+  () =>
+    response.value?.items.find((i) => i.product_id === upgrade.value?.for_product_id)?.title ?? '',
+)
+
+function onSolutionApply(lines: SpecLine[], choice: SlotChoice) {
+  for (const l of lines) spec.add(l)
+  const sol = solution.value
+  trackQuiet('template_apply', {
+    payload: {
+      template_id: sol?.template_id ?? '',
+      positions: lines.length,
+      seats: sol?.seats ?? null,
+      choice,
+    },
+  })
+  toast.add({
+    tone: 'ok',
+    title: 'Решение добавлено в спецификацию',
+    detail: `${sol?.title ?? ''}: ${lines.length} поз.`,
+    action: openSpecAction(),
+  })
+}
+
+function onUpgradeOpen(u: Upgrade) {
+  trackQuiet('companion_click', {
+    productId: u.product_id,
+    payload: { class: 'upgrade', place: 'upgrade' },
+  })
+  submit(u.title)
+}
+
+function onUpgradeAdd(u: Upgrade) {
+  const base = response.value?.items.find((i) => i.product_id === u.for_product_id)
+  const qty = base ? quantityForItem(base, response.value?.chips ?? []) : 1
+  spec.add(lineFromCompanion(u, qty, upgradeBase.value))
+  trackQuiet('companion_add', {
+    productId: u.product_id,
+    payload: { class: 'upgrade', quantity: qty, place: 'upgrade' },
+  })
+  toast.add({
+    tone: 'ok',
+    title: 'Добавлено в спецификацию',
+    detail: u.title,
+    action: openSpecAction(),
+  })
+}
+
 const showFacets = computed(() => facets.value.length > 0 || filters.value.length > 0)
 const companionAnchor = computed(() => {
   const a = response.value?.companions?.anchor
@@ -475,6 +530,8 @@ function sendManagerRequest() {
           </li>
         </ul>
 
+        <SolutionCard v-if="solution" :solution="solution" @apply="onSolutionApply" />
+
         <section v-if="blocks.absent || blocks.nothing" class="panel search-page__absent">
           <h2 class="t-h2">
             {{
@@ -574,6 +631,14 @@ function sendManagerRequest() {
                 </ResultCard>
               </li>
             </ol>
+
+            <UpgradeCard
+              v-if="upgrade"
+              :upgrade="upgrade"
+              :base="upgradeBase"
+              @open="onUpgradeOpen"
+              @add="onUpgradeAdd"
+            />
 
             <section
               v-if="blocks.analogs.length"

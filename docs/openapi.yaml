@@ -155,6 +155,34 @@ paths:
                               text: { type: string }
                               id: { type: [string, "null"] }
                               highlight: { type: array, items: { type: integer }, minItems: 2, maxItems: 2 }
+  /api/companions:
+    get:
+      tags: [Поиск]
+      summary: Компаньоны к позиции спецификации («К этой позиции»)
+      description: |
+        Позиция добавлена в спецификацию из обычной выдачи — подбор как у блока «Дополните решение» (якорь —
+        сама позиция). Витрина, без входа. Флаг FEATURE_COMPANIONS выключен — пустые списки; upgrade — при
+        FEATURE_SOLUTIONS.
+      operationId: productCompanions
+      security: []
+      parameters:
+        - { name: product_id, in: query, required: true, schema: { type: string, maxLength: 128 } }
+        - { name: quantity, in: query, schema: { type: integer, minimum: 0, maximum: 100000 }, description: "число мест для suggested_quantity; 0 — нет" }
+      responses:
+        "200":
+          description: Обязательные, дополнения и старшая редакция
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [product_id, required, items, upgrade]
+                properties:
+                  product_id: { type: string }
+                  required: { type: array, items: { $ref: "#/components/schemas/Companion" } }
+                  items: { type: array, items: { $ref: "#/components/schemas/Companion" } }
+                  upgrade: { oneOf: [{ $ref: "#/components/schemas/Upgrade" }, { type: "null" }] }
+        "404": { description: Позиции нет в каталоге }
+        "422": { description: Нет product_id или неверное количество }
   /api/events:
     post:
       tags: [Поиск]
@@ -1243,6 +1271,15 @@ components:
             condition: { type: string }
         required: { type: array, items: { $ref: "#/components/schemas/Companion" }, description: Условно обязательное к позиции }
         variants: { type: array, items: { $ref: "#/components/schemas/SearchItem" } }
+    Upgrade:
+      description: «Старшая редакция» (связь upgrade, 1–2 строки upgrade_adds) — Companion с классом upgrade
+      allOf:
+        - $ref: "#/components/schemas/Companion"
+        - type: object
+          required: [for_product_id, relation_id]
+          properties:
+            for_product_id: { type: string }
+            relation_id: { type: string }
     Companion:
       type: object
       description: Позиция блока «Дополните решение»
@@ -1334,8 +1371,41 @@ components:
             items: { type: array, items: { $ref: "#/components/schemas/Companion" } }
         solution:
           type: [object, "null"]
-          description: Комплексное решение по шаблону; null — нет
-          additionalProperties: true
+          description: Закупка под задачу по утверждённому шаблону; null — шаблона нет
+          required: [template_id, title, seats, source, slots, total_rub, on_request]
+          properties:
+            template_id: { type: string }
+            title: { type: string }
+            seats: { type: integer, description: "число мест из запроса; нет — 1" }
+            source: { type: string, description: "«Собрано по шаблону Softline»" }
+            total_rub: { type: [number, "null"], description: "по активным слотам, только если известны все цены" }
+            on_request: { type: integer }
+            slots:
+              type: array
+              items:
+                type: object
+                required: [id, label, category_id, query, quantity_strategy, quantity, item, alternatives, quantities, active, condition]
+                properties:
+                  id: { type: string }
+                  label: { type: string }
+                  category_id: { type: string }
+                  query: { type: string }
+                  quantity_strategy: { type: string }
+                  quantity: { type: integer, description: "штук выбранной позиции: ⌈мест / мест в позиции⌉ для per_seat|per_user|per_device, иначе 1" }
+                  item: { oneOf: [{ $ref: "#/components/schemas/SearchItem" }, { type: "null" }] }
+                  alternatives: { type: array, items: { $ref: "#/components/schemas/SearchItem" } }
+                  quantities: { type: object, additionalProperties: { type: integer }, description: "количество для выбранной и каждой альтернативы" }
+                  active: { type: boolean, description: "условный слот нужен при выбранной позиции слота-условия" }
+                  condition:
+                    type: [object, "null"]
+                    properties:
+                      slot: { type: string }
+                      key: { type: string }
+                      value: { type: string }
+                      product_ids: { type: array, items: { type: string } }
+        upgrade:
+          oneOf: [{ $ref: "#/components/schemas/Upgrade" }, { type: "null" }]
+          description: «Старшая редакция» к первой позиции; null — связи upgrade нет
         facets:
           type: array
           description: Фасеты характеристик выдачи (контур коммерции); [] — нет

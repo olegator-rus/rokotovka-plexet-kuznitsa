@@ -38,6 +38,8 @@ var publicRoutes = map[string]bool{
 	fiber.MethodPost + " /api/search":              true,
 	fiber.MethodPost + " /api/events":              true,
 	fiber.MethodPost + " /api/quotes":              true,
+	// «К этой позиции» в спецификации: компаньоны из справочника, без цифр маржи.
+	fiber.MethodGet + " /api/companions": true,
 }
 
 // isPublic — запрос витрины покупателя (HEAD — как GET; OPTIONS — без тела и действия).

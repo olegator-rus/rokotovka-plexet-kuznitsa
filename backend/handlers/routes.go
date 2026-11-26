@@ -59,6 +59,8 @@ func RegisterRoutes(app *fiber.App, h *Handler) {
 	// Контур коммерции: спецификация и запрос КП; POST — витрина, GET — бэк-офис.
 	api.Post("/quotes", h.CreateQuote)
 	api.Get("/quotes", h.Quotes)
+	// Компаньоны к позиции спецификации (витрина).
+	api.Get("/companions", h.ProductCompanions)
 
 	// Служебное: режим LLM без перезапуска (ADMIN_ENABLED).
 	api.Post("/admin/llm-mode", h.SetLLMMode)

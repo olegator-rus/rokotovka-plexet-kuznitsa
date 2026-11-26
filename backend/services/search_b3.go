@@ -87,7 +87,9 @@ func (s *Services) searchB3(ctx context.Context, requestID string, req in.Search
 	}
 	if route == domain.RouteIntent {
 		intentStep = skipped(domain.StepIntent, "parser_not_connected")
-		if p := s.intentParser(); p != nil {
+		if isSlotSearch(ctx) {
+			intentStep = skipped(domain.StepIntent, solutionNested) // слот решения: модель в момент запроса не зовётся
+		} else if p := s.intentParser(); p != nil {
 			t = time.Now()
 			// Разбор — по запросу как набран, без снятых чипов и ответа на уточнение: ключ кэша от них не
 			// зависит, и пересчёт после снятия чипа идёт из кэша за 0 ₽. Снятое покупателем
@@ -456,6 +458,11 @@ func (s *Services) searchB3(ctx context.Context, requestID string, req in.Search
 			attrs.analog, resp)
 	}
 
+	// Закупка под задачу и старшая редакция (solutions.go, upgrade.go): отдельные поля ответа, выдача та же.
+	upgradeStep := s.upgradeStep(ctx, st.lex, attrs.analog, resp)
+	solStep := s.solutionStep(ctx, st, solutionInput{req: req, cfg: cfg, seats: 0, origin: attrs.origin,
+		vendors: hw.excludedVendors()}.withSeats(req.Query, attrs.quantity, hw.purchaseQuantity()), resp)
+
 	trace.Steps = []any{normStep, attrStep, routeStep, intentStep, bm.step, dn.step, fusionStep, rerankStep, businessStep, relaxStep}
 	hw.decorate(resp)
 	if hwStep := hw.step(); hwStep != nil {
@@ -463,6 +470,12 @@ func (s *Services) searchB3(ctx context.Context, requestID string, req in.Search
 	}
 	if companionsStep != nil {
 		trace.Steps = append(trace.Steps, companionsStep)
+	}
+	if upgradeStep != nil {
+		trace.Steps = append(trace.Steps, upgradeStep)
+	}
+	if solStep != nil {
+		trace.Steps = append(trace.Steps, solStep)
 	}
 	if marginStep != nil {
 		trace.Steps = append(trace.Steps, marginStep)

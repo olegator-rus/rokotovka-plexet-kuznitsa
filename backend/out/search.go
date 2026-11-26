@@ -30,8 +30,10 @@ type SearchResponse struct {
 	// Solution — комплексное решение (null), Facets — фасеты числовых характеристик ([]).
 	Companions *CompanionBlock `json:"companions"`
 	Solution   *Solution       `json:"solution"`
-	Facets     []Facet         `json:"facets"`
-	Trace      *domain.Trace   `json:"trace"`
+	// Upgrade — «Старшая редакция» рядом с выдачей; null — связи upgrade нет или флаг решений выключен.
+	Upgrade *Upgrade      `json:"upgrade"`
+	Facets  []Facet       `json:"facets"`
+	Trace   *domain.Trace `json:"trace"`
 }
 
 // Complement — сопутствующий товар: самая популярная позиция связанного семейства.
@@ -147,20 +149,49 @@ type CompanionAnchor struct {
 	Confidence string `json:"confidence"` // high | medium
 }
 
-// Solution — комплексное решение по шаблону.
+// Solution — комплексное решение по шаблону. Seats — число мест из запроса (нет — 1);
+// TotalRub — сумма по выбранным позициям, только если известны все цены, иначе null и OnRequest.
 type Solution struct {
 	TemplateID string         `json:"template_id"`
 	Title      string         `json:"title"`
+	Seats      int            `json:"seats"`
+	Source     string         `json:"source"`
 	Slots      []SolutionSlot `json:"slots"`
+	TotalRub   *float64       `json:"total_rub"`
+	OnRequest  int            `json:"on_request"`
 }
 
-// SolutionSlot — слот решения: подобранная позиция и альтернативы.
+// SolutionSlot — слот решения: подобранная позиция и альтернативы («заменить»). Quantity — сколько штук выбранной
+// позиции заказать (фасовка на N мест — ⌈N / мест в позиции⌉); Quantities — то же для каждой альтернативы.
 type SolutionSlot struct {
-	ID           string       `json:"id"`
-	Label        string       `json:"label"`
-	Quantity     int          `json:"quantity"`
-	Item         *SearchItem  `json:"item"`
-	Alternatives []SearchItem `json:"alternatives"`
+	ID           string         `json:"id"`
+	Label        string         `json:"label"`
+	CategoryID   string         `json:"category_id"`
+	Query        string         `json:"query"`
+	Strategy     string         `json:"quantity_strategy"`
+	Quantity     int            `json:"quantity"`
+	Item         *SearchItem    `json:"item"`
+	Alternatives []SearchItem   `json:"alternatives"`
+	Quantities   map[string]int `json:"quantities"`
+	// Active — слот входит в решение; условный слот («ОС, если ноутбук без ОС») активен, только когда выбранная
+	// позиция слота Condition.Slot — из Condition.ProductIDs (при замене позиции фронт сверяет по этому списку).
+	Active    bool           `json:"active"`
+	Condition *SlotCondition `json:"condition"`
+}
+
+// SlotCondition — условие слота на позицию другого слота.
+type SlotCondition struct {
+	Slot       string   `json:"slot"`
+	Key        string   `json:"key"`
+	Value      string   `json:"value"`
+	ProductIDs []string `json:"product_ids"`
+}
+
+// Upgrade — «Старшая редакция» к первой позиции выдачи: связь upgrade, 1–2 строки «что добавится».
+type Upgrade struct {
+	ForProductID string `json:"for_product_id"`
+	RelationID   string `json:"relation_id"`
+	Companion
 }
 
 // Facet — фасет числовой или перечислимой характеристики.
@@ -272,4 +303,12 @@ type ImportResult struct {
 	DatabaseMs     int64    `json:"database_ms"`
 	TotalMs        int64    `json:"total_ms"`
 	Warnings       []string `json:"warnings"`
+}
+
+// ProductCompanions — GET /api/companions: «К этой позиции» в спецификации.
+type ProductCompanions struct {
+	ProductID string      `json:"product_id"`
+	Required  []Companion `json:"required"`
+	Items     []Companion `json:"items"`
+	Upgrade   *Upgrade    `json:"upgrade"`
 }
