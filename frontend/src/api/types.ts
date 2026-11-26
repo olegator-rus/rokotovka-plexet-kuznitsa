@@ -22,6 +22,8 @@ export interface Meta {
   configs: ConfigId[]
   default_config: ConfigId
   clients: MetaClient[]
+  /** Подписанный сервером токен сессии покупателя: идёт в session_id поиска и событий. */
+  session?: string
 }
 
 /** Условие запроса, снятое пользователем крестиком на чипе. */
@@ -400,6 +402,47 @@ export interface EvaluationsResponse {
   running: EvalJob | null
   last_job: EvalJob | null
   judge_agreement?: JudgeAgreement | null
+  /** Честность правок агента в столбце B4 этого набора; null — нет B3 или B4. */
+  agent_credit?: EvalAgentCredit | null
+  /** Только holdout_week: доля спасённых для вилки эффекта (как measured.rescued в /api/effect). */
+  rescued?: EffectRescued | null
+}
+
+export interface EvalAgentCredit {
+  /** Все принятые правки B4 — из запусков после разреза журнала. */
+  counted: boolean
+  /** В B4 есть правки запусков до разреза: его числа — не независимая оценка. */
+  pre_holdout: boolean
+  note: string
+  rules_version: number
+}
+
+/** Доля спасённых поисков на реплее отложенной недели (backend/out/effect.go EffectRescued). */
+export interface EffectRescued {
+  set: string
+  set_hash: string
+  source: string
+  baseline: string
+  /** До какой конфигурации засчитано: B3 (только поиск) или B4 (поиск и честные правки агента). */
+  config: ConfigId
+  run_baseline: string
+  run_config: string
+  run_agent: string
+  rules_version: number
+  agent_rules_version: number
+  weight: string
+  failed: number
+  rescued: number
+  failed_queries: number
+  rescued_queries: number
+  share: number
+  search_share: number
+  agent_share: number
+  agent_counted: boolean
+  agent_pre_holdout?: boolean
+  agent_note: string
+  ci_low: number
+  ci_high: number
 }
 
 export interface EvalRunRequest {

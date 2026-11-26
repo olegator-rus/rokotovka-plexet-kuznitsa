@@ -7,7 +7,7 @@ import type { ConfigId, Meta, MetaClient } from '@/api/types'
 import type { ApiError } from '@/lib/apiError'
 import { isApiError } from '@/lib/apiError'
 import { SEARCH_CONFIGS_FALLBACK } from '@/lib/configs'
-import { newSessionId } from '@/lib/events'
+import { isSessionToken } from '@/lib/events'
 import { pendingCount } from '@/lib/proposals'
 import { type RoleId, isRoleId } from '@/lib/roles'
 import { GUEST_CLIENT_ID } from '@/lib/searchState'
@@ -35,12 +35,10 @@ function writeStorage(key: string, value: string) {
   }
 }
 
+/** Сохранённый токен сессии вкладки; пусто — ждём новый из /api/meta. */
 function initialSession(): string {
   const saved = readStorage(SESSION_KEY)
-  if (saved && /^s-[0-9a-f]{16}$/.test(saved)) return saved
-  const id = newSessionId()
-  writeStorage(SESSION_KEY, id)
-  return id
+  return isSessionToken(saved) ? saved : ''
 }
 
 export const useAppStore = defineStore('app', () => {
@@ -50,7 +48,8 @@ export const useAppStore = defineStore('app', () => {
   const clientId = ref<string>(readStorage(CLIENT_KEY) || GUEST_CLIENT_ID)
   const savedRole = readStorage(ROLE_KEY)
   const role = ref<RoleId>(isRoleId(savedRole) ? savedRole : 'ecom')
-  const sessionId = initialSession()
+  /** Токен сессии от сервера (GET /api/meta): до ответа meta — сохранённый или пустой. */
+  const sessionId = ref<string>(initialSession())
 
   const clients = computed<MetaClient[]>(() => {
     const list = meta.value?.clients ?? []
@@ -67,9 +66,13 @@ export const useAppStore = defineStore('app', () => {
     if (metaStatus.value === 'ready' && !force) return Promise.resolve()
     metaStatus.value = 'loading'
     metaError.value = null
-    inflight = getMeta()
+    inflight = getMeta(sessionId.value)
       .then((m) => {
         meta.value = m
+        if (isSessionToken(m.session) && m.session !== sessionId.value) {
+          sessionId.value = m.session
+          writeStorage(SESSION_KEY, m.session)
+        }
         metaStatus.value = 'ready'
         if (!clients.value.some((c) => c.id === clientId.value)) setClient(GUEST_CLIENT_ID)
       })

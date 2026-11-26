@@ -174,7 +174,7 @@ paths:
                   type: string
                   enum: [click, add_to_cart, order, price_request, manager_request, suggest_pick, correction_undo, chip_remove, clarify_answer]
                 request_id: { type: string }
-                session_id: { type: string }
+                session_id: { type: string, description: "Токен из meta.session; иной — событие пишется без сессии" }
                 client_id: { type: string }
                 product_id: { type: string }
                 position: { type: [integer, "null"] }
@@ -686,13 +686,20 @@ components:
         llm: { $ref: "#/components/schemas/LLMState" }
         admin_enabled: { type: boolean }
         rate_limit_per_min: { type: integer }
+        session:
+          type: string
+          description: >-
+            Подписанный сервером токен сессии покупателя «s-<16 hex>.<HMAC>». Фронт шлёт его в session_id поиска и
+            событий (или заголовком X-Session); в журнал попадает только номер сессии с верной подписью, самодельный
+            session_id пишется как «без сессии». X-Session с действующим токеном в запросе к /api/meta продлевает
+            сессию.
     SearchRequest:
       type: object
       required: [query]
       properties:
         query: { type: string, maxLength: 200 }
         client_id: { type: string, description: "guest или id покупателя; влияет на контекст ранжирования, в модель не уходит" }
-        session_id: { type: string }
+        session_id: { type: string, description: "Токен из meta.session; иной — поиск пишется без сессии" }
         config: { type: string, enum: [B0, B1, B2, B3, B4], default: B3 }
         as_typed: { type: boolean, description: Искать как набрано, без исправления }
         removed_chips:
@@ -909,6 +916,7 @@ components:
                 search_share: { type: number, description: "Вклад поиска B0 → B3" }
                 agent_share: { type: number, description: "Вклад агента B3 → B4; 0, если не засчитан" }
                 agent_counted: { type: boolean }
+                agent_pre_holdout: { type: boolean, description: "В B4 есть правки запусков до разреза журнала: B4 — не независимая оценка" }
                 agent_note: { type: string }
                 ci_low: { type: number }
                 ci_high: { type: number }
@@ -1087,6 +1095,18 @@ components:
         last_job:
           oneOf: [{ $ref: "#/components/schemas/EvalJob" }, { type: "null" }]
         judge_agreement: { type: [object, "null"], additionalProperties: true }
+        agent_credit:
+          type: [object, "null"]
+          description: Честность правок агента в столбце B4 этого набора (null — нет B3 или B4)
+          properties:
+            counted: { type: boolean, description: "Все принятые правки B4 — из запусков после разреза журнала" }
+            pre_holdout: { type: boolean, description: "Есть правки запусков до разреза: B4 — не независимая оценка" }
+            note: { type: string }
+            rules_version: { type: integer }
+        rescued:
+          type: [object, "null"]
+          description: Только для set=holdout_week — то же, что measured.rescued в /api/effect
+          additionalProperties: true
     AgentRun:
       type: object
       properties:

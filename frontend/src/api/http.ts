@@ -7,6 +7,8 @@ const BASE = '/api'
 
 export interface RequestOptions {
   signal?: AbortSignal
+  /** Дополнительные заголовки (X-Session в GET /api/meta). */
+  headers?: Record<string, string>
 }
 
 async function request<T>(
@@ -15,7 +17,7 @@ async function request<T>(
   body?: unknown,
   opts: RequestOptions = {},
 ): Promise<T> {
-  const headers: Record<string, string> = { Accept: 'application/json' }
+  const headers: Record<string, string> = { Accept: 'application/json', ...opts.headers }
   if (body !== undefined) headers['Content-Type'] = 'application/json'
   let resp: Response
   try {

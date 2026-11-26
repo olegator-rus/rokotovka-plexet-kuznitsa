@@ -15,6 +15,8 @@ type Handler struct {
 	rate int
 	// token — SHA-256 токена бэк-офиса (BACKOFFICE_TOKEN); nil — бэк-офис без входа (middleware_backoffice.go).
 	token []byte
+	// sessionKey — ключ HMAC сессий покупателя (session.go).
+	sessionKey []byte
 }
 
 // Options — настройки HTTP-слоя из config.
@@ -28,5 +30,5 @@ type Options struct {
 
 func NewHandlerManager(s *services.Services, opts Options) *Handler {
 	return &Handler{services: s, origin: opts.PublicOrigin, admin: opts.AdminEnabled, rate: opts.RatePerMinute,
-		token: hashToken(opts.BackofficeToken)}
+		token: hashToken(opts.BackofficeToken), sessionKey: newSessionKey(opts.BackofficeToken)}
 }

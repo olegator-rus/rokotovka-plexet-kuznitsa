@@ -43,6 +43,8 @@ const regressionTotal = computed(() => regressionCount(columns.value))
 const latest = computed(() => latestRun(columns.value))
 const judge = computed(() => evals.data.value?.judge_agreement ?? null)
 const hasB4 = computed(() => columns.value.some((c) => c.config === 'B4'))
+// Правки B4 из запусков агента до разреза журнала: на test B4 — не независимая оценка (GET /api/evaluations).
+const b4PreHoldout = computed(() => evals.data.value?.agent_credit?.pre_holdout === true)
 
 // ── Адрес ──
 const str = (v: unknown) => (typeof v === 'string' ? v : '')
@@ -265,6 +267,7 @@ onBeforeUnmount(() => {
           <MetricsTable
             :columns="columns"
             :judge="judge?.set === repro?.set ? judge : null"
+            :b4-pre-holdout="b4PreHoldout"
             @regressions="onRegressions"
           />
           <p v-if="repro" class="t-xs t-muted compare__repro">
@@ -278,7 +281,13 @@ onBeforeUnmount(() => {
             · <span class="t-mono">make eval</span> · последний прогон
             {{ latest ? formatDateTime(latest.created_at) : '—' }}
           </p>
-          <p v-if="hasB4 && repro?.set === 'test'" class="t-sm t-muted">
+          <p v-if="hasB4 && b4PreHoldout" class="t-sm">
+            Столбец B4 — не независимая оценка: действующая правка агента предложена запуском до
+            исправления оценки, когда агент ещё видел тексты test и отложенную неделю. Подробности —
+            на вкладке
+            <button type="button" class="link" @click="tab = 'effect'">«Эффект агента»</button>.
+          </p>
+          <p v-else-if="hasB4 && repro?.set === 'test'" class="t-sm t-muted">
             Столбец B4 на test — оценка обобщения правок агента на запросах, которых он не видит, а
             не их эффект. Эффект — на вкладке
             <button type="button" class="link" @click="tab = 'effect'">«Эффект агента»</button>

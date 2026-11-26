@@ -1,7 +1,9 @@
 <script setup lang="ts">
 // Вкладка «Эффект агента» (ревью B1): реплей отложенной недели журнала — набор holdout_week, B3 (без правок
 // агента) против B4 (действующие правила агента). Агент эту неделю и тексты test не видит, поэтому эффект
-// его правок меряется здесь, а не на test. Только чтение: GET /api/evaluations?set=holdout_week.
+// его правок меряется здесь, а не на test. Только чтение: GET /api/evaluations?set=holdout_week; оттуда же
+// rescued (что идёт в вилку эффекта: до B3 или B4, вклад поиска, причина) и agent_credit.pre_holdout — правки B4
+// из запусков до разреза журнала, тогда B4 подписан как не независимая оценка.
 import { computed, onMounted } from 'vue'
 import { RotateCcw } from 'lucide-vue-next'
 import { getEvaluations } from '@/api/evaluations'
@@ -10,11 +12,14 @@ import BlockError from '@/components/common/BlockError.vue'
 import DeltaMark from '@/components/common/DeltaMark.vue'
 import { useResource } from '@/composables/useResource'
 import { HOLDOUT_SET, holdoutVerdict, holdoutView, queryTypeLabel, shortHash } from '@/lib/evalView'
-import { formatDateTime, formatDecimal, formatInt, plural } from '@/lib/format'
+import { formatDateTime, formatDecimal, formatInt, formatPercent, plural } from '@/lib/format'
 import { formatMetric, metricDef } from '@/lib/metrics'
 
 const res = useResource((opts) => getEvaluations(opts, HOLDOUT_SET))
 const view = computed(() => holdoutView(res.data.value))
+// Доля спасённых для вилки эффекта (как в /api/effect) и честность правок B4 — из того же ответа.
+const rescued = computed(() => res.data.value?.rescued ?? null)
+const preHoldout = computed(() => res.data.value?.agent_credit?.pre_holdout === true)
 const verdict = computed(() => (view.value ? holdoutVerdict(view.value) : ''))
 const changes = computed(() => {
   const v = view.value
@@ -78,9 +83,53 @@ onMounted(() => void res.load())
 
   <template v-else>
     <p class="t-sm effect__intro">
-      {{ intro }} <strong>Агент не видел эту неделю и тексты test</strong> — поэтому эффект его
-      правок меряется здесь.
+      {{ intro }}
+      <template v-if="preHoldout">
+        <strong>Столбец {{ view.agent.config }} — не независимая оценка:</strong> действующая правка
+        предложена запуском до исправления оценки, когда агент ещё видел эту неделю и тексты test.
+      </template>
+      <template v-else>
+        <strong>Агент не видел эту неделю и тексты test</strong> — поэтому эффект его правок
+        меряется здесь.
+      </template>
     </p>
+
+    <section v-if="rescued" class="panel effect__fork" aria-labelledby="effect-fork-title">
+      <h2 id="effect-fork-title" class="t-sm effect__fork-title">Что идёт в вилку эффекта</h2>
+      <dl class="effect__fork-list">
+        <div>
+          <dt>Доля спасённых считается до</dt>
+          <dd>
+            <strong class="t-num">{{ rescued.config }}</strong>
+            <span class="effect__hint">{{
+              rescued.config === 'B3'
+                ? 'только поиск: вклад правок агента не засчитан'
+                : 'поиск и правки агента из честных запусков'
+            }}</span>
+          </dd>
+        </div>
+        <div>
+          <dt>Вклад поиска, {{ rescued.baseline }} → B3</dt>
+          <dd>
+            <strong class="t-num">{{ formatPercent(rescued.search_share) }}</strong>
+            <span class="effect__hint"
+              >спасено среди поисков недели, где у {{ rescued.baseline }} подходящего в топ-10 не
+              было</span
+            >
+          </dd>
+        </div>
+        <div>
+          <dt>Вклад агента, B3 → B4</dt>
+          <dd>
+            <strong class="t-num">{{ formatPercent(rescued.agent_share) }}</strong>
+            <span class="effect__hint">{{
+              rescued.agent_counted ? 'засчитан' : 'не засчитан'
+            }}</span>
+          </dd>
+        </div>
+      </dl>
+      <p class="t-xs t-muted effect__note">{{ rescued.agent_note }}</p>
+    </section>
 
     <div
       class="data-scroll"
@@ -177,7 +226,7 @@ onMounted(() => void res.load())
       </table>
     </div>
 
-    <p class="t-xs t-muted">
+    <p v-if="!rescued" class="t-xs t-muted">
       Правки, принятые до того, как агенту закрыли эту неделю и тексты test, могли их видеть — для
       них результат здесь верхняя оценка.
     </p>
@@ -227,6 +276,31 @@ onMounted(() => void res.load())
 .effect__value {
   display: block;
   font-weight: var(--fw-medium);
+}
+.effect__fork {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-4);
+}
+.effect__fork-title {
+  font-weight: var(--fw-medium);
+}
+.effect__fork-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
+  gap: var(--space-3);
+}
+.effect__fork-list dt {
+  color: var(--text-2);
+  font-size: var(--fs-xs);
+  line-height: var(--lh-xs);
+}
+.effect__fork-list dd {
+  margin: 0;
+}
+.effect__note {
+  overflow-wrap: anywhere;
 }
 .effect__verdict {
   font-weight: var(--fw-medium);

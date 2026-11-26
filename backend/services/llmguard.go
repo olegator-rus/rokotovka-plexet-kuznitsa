@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"math"
+	"net/netip"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -159,6 +160,7 @@ func (g *llmGuard) charge(cost float64, addr string) {
 	if addr == "" || g.perAddr <= 0 {
 		return
 	}
+	addr = quotaKey(addr)
 	if g.byAddr == nil || !g.addrDay.Equal(day) {
 		g.byAddr, g.addrDay = map[string]float64{}, day
 	}
@@ -187,7 +189,7 @@ func (g *llmGuard) buyerExceeded(ctx context.Context) bool {
 
 // addrExceeded — адрес из ctx (WithClientIP) выбрал суточную квоту на разборы.
 func (g *llmGuard) addrExceeded(ctx context.Context) bool {
-	addr := clientAddr(ctx)
+	addr := quotaKey(clientAddr(ctx))
 	if g.perAddr <= 0 || addr == "" {
 		return false
 	}
@@ -195,6 +197,24 @@ func (g *llmGuard) addrExceeded(ctx context.Context) bool {
 	g.mu.Lock()
 	defer g.mu.Unlock()
 	return g.addrDay.Equal(day) && g.byAddr[addr] >= g.perAddr
+}
+
+// quotaKey — ключ квоты адреса: IPv4 — сам адрес, IPv6 — его сеть /64 (ревью-2 n2: у одного клиента их 2⁶⁴,
+// перебор адресов внутри /64 не множит квоту). Неразборчивый адрес — как есть.
+func quotaKey(addr string) string {
+	ip, err := netip.ParseAddr(addr)
+	if err != nil {
+		return addr
+	}
+	ip = ip.Unmap()
+	if ip.Is4() {
+		return ip.String()
+	}
+	p, err := ip.WithZone("").Prefix(64)
+	if err != nil {
+		return addr
+	}
+	return p.String()
 }
 
 // llmGuardFor — guard сервиса; в тестах, собранных без NewServices, — выключенный режим.

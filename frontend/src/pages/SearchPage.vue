@@ -101,6 +101,9 @@ async function run(s: SearchState) {
   status.value = 'loading'
   error.value = null
   try {
+    // Сессию выдаёт сервер в /api/meta: поиск по ссылке при открытии ждёт её (meta грузится один раз).
+    if (!app.sessionId) await app.loadMeta()
+    if (ctrl !== c) return
     const body = buildSearchRequest(s, {
       sessionId: app.sessionId,
       defaultConfig: defaultConfig.value,

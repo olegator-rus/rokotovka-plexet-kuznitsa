@@ -30,6 +30,8 @@ type fakeReply struct {
 	status  int
 	content string
 	in, out int
+	// delay — задержка ответа (параллельные одинаковые разборы успевают встретиться).
+	delay time.Duration
 }
 
 func newFakeLLM(t *testing.T, replies ...fakeReply) *fakeLLM {
@@ -43,6 +45,7 @@ func newFakeLLM(t *testing.T, replies ...fakeReply) *fakeLLM {
 		f.bodies = append(f.bodies, body)
 		rep := f.replies[min(i, len(f.replies)-1)]
 		f.mu.Unlock()
+		time.Sleep(rep.delay)
 		if rep.status != 0 && rep.status != 200 {
 			w.WriteHeader(rep.status)
 			_, _ = w.Write([]byte(`{"error":{"message":"overloaded"}}`))
@@ -245,6 +248,48 @@ func TestIntentParseLLMAndCache(t *testing.T) {
 	// Другой сегмент — другой ключ: модель вызывается снова.
 	if in3, _ := p.Parse(ctx, "аналог фотошопа на 20 пользователей", rules, "gov"); in3.Source != domain.ParseLLM || f.calls() != 2 {
 		t.Fatalf("другой сегмент: %s, вызовов %d", in3.Source, f.calls())
+	}
+}
+
+// 10 одинаковых параллельных промахов кэша — один вызов модели; расход в трассе у одного, остальные — как из кэша.
+func TestIntentParseSingleflight(t *testing.T) {
+	f := newFakeLLM(t, fakeReply{content: photoshopReply, in: 120, out: 95, delay: 300 * time.Millisecond})
+	p := newIntentEnv(t, "on", f.client("aliceai-llm-flash"), nil, &memCache{rows: map[string]domain.IntentCache{}})
+	rules := domain.Intent{Constraints: []domain.AttrConstraint{{Field: domain.FieldLicenseQuantity, Value: "20"}}}
+	const n = 10
+	var (
+		wg    sync.WaitGroup
+		start = make(chan struct{})
+		res   = make([]domain.Intent, n)
+	)
+	for i := range n {
+		wg.Go(func() {
+			<-start
+			res[i], _ = p.Parse(t.Context(), "аналог фотошопа на 20 пользователей", rules, "smb")
+		})
+	}
+	close(start)
+	wg.Wait()
+	if f.calls() != 1 {
+		t.Fatalf("вызовов модели %d, ожидался 1", f.calls())
+	}
+	owners, cost := 0, 0.0
+	for _, in := range res {
+		if in.ReferenceFamily != "adobe-photoshop" {
+			t.Fatalf("разбор: %s", intentSummary(in))
+		}
+		if in.LLM != nil {
+			owners++
+			cost += in.LLM.CostRub
+			if in.Source != domain.ParseLLM {
+				t.Fatalf("с расходом — источник llm: %s", in.Source)
+			}
+		} else if in.Source != domain.ParseCache {
+			t.Fatalf("ждущий без расхода — источник cache: %s", in.Source)
+		}
+	}
+	if owners != 1 || cost != 0.031 {
+		t.Fatalf("расход должен попасть в одну трассу: владельцев %d, ₽ %v", owners, cost)
 	}
 }
 

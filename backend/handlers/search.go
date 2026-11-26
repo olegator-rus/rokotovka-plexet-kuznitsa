@@ -13,6 +13,8 @@ func (h *Handler) Search(c *fiber.Ctx) error {
 	if err := bindBody(c, &req); err != nil {
 		return err
 	}
+	// Сессия — только выданная сервером (session.go); самодельная пишется как «без сессии».
+	req.SessionID = h.requestSession(c, req.SessionID)
 	// Адрес покупателя — для суточной квоты разборов LLM (c.IP(): за Caddy — X-Real-IP от доверенного прокси).
 	resp, err := h.services.Search(services.WithClientIP(c.UserContext(), c.IP()), TraceID(c), req)
 	if err != nil {
@@ -25,6 +27,11 @@ func (h *Handler) Search(c *fiber.Ctx) error {
 func (h *Handler) Meta(c *fiber.Ctx) error {
 	m := h.services.Meta()
 	m.AdminEnabled, m.RateLimitPerMin = h.admin, h.rate
+	// Сессия покупателя: действующая (X-Session с верной подписью) продлевается, иначе выдаётся новая.
+	m.Session = c.Get(SessionHeader)
+	if h.verifySession(m.Session) == "" {
+		m.Session = h.issueSession()
+	}
 	return c.JSON(m)
 }
 
@@ -34,6 +41,7 @@ func (h *Handler) Events(c *fiber.Ctx) error {
 	if err := bindBody(c, &req); err != nil {
 		return err
 	}
+	req.SessionID = h.requestSession(c, req.SessionID)
 	if err := h.services.RecordEvent(c.UserContext(), req); err != nil {
 		return err
 	}

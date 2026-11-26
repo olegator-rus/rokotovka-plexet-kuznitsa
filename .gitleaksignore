@@ -1,0 +1,2 @@
+# Тестовая константа HMAC-ключа в session_test.go — не секрет
+d525beb8edc7f68f1a68704d795fa484fc98ce9c:backend/handlers/session_test.go:generic-api-key:55

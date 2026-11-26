@@ -3,7 +3,7 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 import type { SearchItem, SearchResponse } from '../src/api/types.ts'
 import { emptyTitle, splitResults } from '../src/lib/results.ts'
-import { buildEvent, newSessionId } from '../src/lib/events.ts'
+import { buildEvent, isSessionToken } from '../src/lib/events.ts'
 
 const item = (id: string, group: SearchItem['group']): SearchItem => ({
   product_id: id,
@@ -84,10 +84,8 @@ test('buildEvent: тело по контракту, гость по умолча
   assert.deepEqual(m.payload, { query: 'adobe' })
 })
 
-test('newSessionId: формат s- + 16 hex', () => {
-  assert.match(newSessionId(), /^s-[0-9a-f]{16}$/)
-  assert.equal(
-    newSessionId(() => 0),
-    's-0000000000000000',
-  )
+test('isSessionToken: только токен сервера s-<16 hex>.<32 hex>', () => {
+  assert.equal(isSessionToken(`s-0123456789abcdef.${'a'.repeat(32)}`), true)
+  for (const bad of ['s-0123456789abcdef', 's-1', '', null, `s-0123456789abcdeg.${'a'.repeat(32)}`])
+    assert.equal(isSessionToken(bad), false)
 })

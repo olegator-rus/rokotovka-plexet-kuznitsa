@@ -10,7 +10,12 @@ import { type MetricCell, metricByType, metricRows, queryTypeLabel } from '@/lib
 import { formatDateTime, formatInt, formatPercent } from '@/lib/format'
 import { formatMetric, metricDef } from '@/lib/metrics'
 
-const props = defineProps<{ columns: EvaluationView[]; judge?: JudgeAgreement | null }>()
+const props = defineProps<{
+  columns: EvaluationView[]
+  judge?: JudgeAgreement | null
+  /** В B4 есть правки запусков агента до разреза журнала (agent_credit.pre_holdout): B4 видел тексты набора. */
+  b4PreHoldout?: boolean
+}>()
 const emit = defineEmits<{ regressions: [config: string] }>()
 
 const rows = computed(() => metricRows(props.columns))
@@ -76,7 +81,13 @@ function toRegressions() {
           <th v-for="run in columns" :key="run.config" scope="col" class="metrics__col">
             <span class="metrics__cfg">{{ run.config }}</span>
             <span class="metrics__cfg-hint">{{ configHint(run.config) }}</span>
-            <span v-if="run.config === 'B4' && run.set === 'test'" class="metrics__cfg-note">
+            <span
+              v-if="run.config === 'B4' && b4PreHoldout"
+              class="metrics__cfg-note metrics__cfg-note--warn"
+            >
+              не независимая оценка: действующая правка предложена до исправления оценки
+            </span>
+            <span v-else-if="run.config === 'B4' && run.set === 'test'" class="metrics__cfg-note">
               на test — оценка обобщения
             </span>
           </th>
@@ -209,6 +220,10 @@ thead .metrics__name {
   line-height: var(--lh-xs);
   font-weight: var(--fw-regular);
   white-space: normal;
+}
+.metrics__cfg-note.metrics__cfg-note--warn {
+  color: var(--text);
+  font-weight: var(--fw-medium);
 }
 .metrics__cfg-note {
   display: block;

@@ -63,3 +63,30 @@ func TestParseAddrQuota(t *testing.T) {
 		t.Fatalf("другой адрес — модель: %+v", got)
 	}
 }
+
+// IPv6: квота на сеть /64 (ревью-2 n2) — адреса одной /64 делят квоту, соседняя /64 — своя; IPv4 в IPv6 — как IPv4.
+func TestLLMGuardIPv6Prefix(t *testing.T) {
+	for addr, want := range map[string]string{
+		"198.51.100.7":                     "198.51.100.7",
+		"::ffff:198.51.100.7":              "198.51.100.7",
+		"2001:db8:1:2:aaaa:bbbb:cccc:dddd": "2001:db8:1:2::/64",
+		"2001:db8:1:2::1":                  "2001:db8:1:2::/64",
+		"fe80::1%eth0":                     "fe80::/64",
+		"не адрес":                         "не адрес",
+	} {
+		if got := quotaKey(addr); got != want {
+			t.Errorf("quotaKey(%q) = %q, ожидалось %q", addr, got, want)
+		}
+	}
+	now := time.Date(2026, 5, 27, 12, 0, 0, 0, time.UTC)
+	g := newLLMGuard(llmModeOn, true, 0, func() time.Time { return now }, nil)
+	g.perAddr = 1
+	g.charge(0.6, "2001:db8:1:2::1")
+	g.charge(0.6, "2001:db8:1:2:ffff::9")
+	if !g.addrExceeded(WithClientIP(t.Context(), "2001:db8:1:2::77")) {
+		t.Fatal("1,2 ₽ из одной /64 — квота выбрана для любого её адреса")
+	}
+	if g.addrExceeded(WithClientIP(t.Context(), "2001:db8:1:3::1")) {
+		t.Fatal("соседняя /64 — своя квота")
+	}
+}

@@ -11,6 +11,7 @@ import (
 	"sort"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"kuznica/api/domain"
@@ -18,6 +19,7 @@ import (
 	"kuznica/api/prompts"
 
 	"go.uber.org/zap"
+	"golang.org/x/sync/singleflight"
 )
 
 // Разбор намерения на маршруте D (ARCHITECTURE §2.3): кэш → модель → сверка со справочниками → слияние с
@@ -61,6 +63,17 @@ type intentService struct {
 
 	mu   sync.Mutex
 	dict *intentDict
+
+	// flight — одинаковые параллельные промахи кэша (тот же ключ) ждут один вызов модели, а не зовут её каждый.
+	flight singleflight.Group
+}
+
+// intentFlight — общий результат разбора для всех ждущих одного ключа.
+type intentFlight struct {
+	parsed  *domain.Intent // nil — откат на правила
+	info    *domain.LLMCallInfo
+	reason  string
+	claimed atomic.Bool
 }
 
 // intentCacheStore — хранилище кэша разборов (repositories.Repos; в тестах — карта в памяти).
@@ -119,17 +132,41 @@ func (p *intentService) Parse(ctx context.Context, normalized string, rulesGuess
 		return rules, nil
 	}
 
-	parsed, info, reason := p.callModel(ctx, dict, normalized, clientSegment)
-	if parsed == nil {
-		rules.LLM = info
-		rules.FallbackReason = reason
+	// Вызов идёт от первого запроса ключа; его отмена (покупатель ушёл) не роняет разбор остальным ждущим.
+	// Расход и трасса LLM — у первого, ждущие получают тот же разбор как из кэша (стоимость 0).
+	v, _, shared := p.flight.Do(key, func() (any, error) {
+		parsed, info, reason := p.callModel(context.WithoutCancel(ctx), dict, normalized, clientSegment)
+		if parsed == nil {
+			return &intentFlight{info: info, reason: reason}, nil
+		}
+		res := explicitOrigin(mergeIntent(rulesGuess, dict.validate(*parsed, normalized)), normalized)
+		res.Source = domain.ParseLLM
+		p.cachePut(key, normalized, clientSegment, dict.version, modelName, res)
+		return &intentFlight{parsed: &res, info: info}, nil
+	})
+	f := v.(*intentFlight)
+	// shared — результат получили несколько ждущих: расход записан один раз, в трассу его кладёт только один.
+	owner := !shared || f.claim()
+	if f.parsed == nil {
+		rules.FallbackReason = f.reason
+		if owner {
+			rules.LLM = f.info
+		}
 		return rules, nil
 	}
-	res := explicitOrigin(mergeIntent(rulesGuess, dict.validate(*parsed, normalized)), normalized)
-	res.Source = domain.ParseLLM
-	p.cachePut(key, normalized, clientSegment, dict.version, modelName, res)
-	res.LLM = info
+	res := *f.parsed
+	res.LLM = nil
+	if owner {
+		res.LLM = f.info
+	} else {
+		res.Source = domain.ParseCache
+	}
 	return res, nil
+}
+
+// claim — первый из ждущих забирает расход вызова (true), остальные получают разбор без стоимости.
+func (f *intentFlight) claim() bool {
+	return f.claimed.CompareAndSwap(false, true)
 }
 
 // callModel — вызов модели: ошибка схемы — один повтор той же моделью; сбой вызова — резервная модель

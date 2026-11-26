@@ -116,6 +116,9 @@ type Meta struct {
 	AdminEnabled bool `json:"admin_enabled"`
 	// RateLimitPerMin — лимит частоты запросов к /api с одного адреса; 0 — без лимита.
 	RateLimitPerMin int `json:"rate_limit_per_min"`
+	// Session — подписанный сервером токен сессии покупателя (handlers/session.go): фронт шлёт его в session_id
+	// поиска и событий; самодельные сессии в журнал не попадают.
+	Session string `json:"session"`
 }
 
 // LLMState — режим модели и бюджет (GET /api/meta → llm, POST /api/admin/llm-mode).

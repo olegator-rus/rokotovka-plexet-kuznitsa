@@ -401,6 +401,9 @@ func TestMeasureRescuedHoldout(t *testing.T) {
 		r.AgentCounted || r.Config != "B3" || r.RunAgent != "r4" || r.AgentNote != "до разреза" {
 		t.Fatalf("без вклада агента: %+v", r)
 	}
+	if r = measureRescued(evals, agentCredit{PreHoldout: true}); !r.AgentPreHoldout {
+		t.Fatalf("правки до разреза помечаются: %+v", r)
+	}
 	r = measureRescued(evals, agentCredit{Counted: true})
 	if r.Rescued != 9 || r.SearchShare != 0.6 || r.AgentShare != 0.3 || r.Share != 0.9 || r.Config != "B4" || r.RescuedQueries != 2 {
 		t.Fatalf("с вкладом агента: %+v", r)
@@ -414,7 +417,7 @@ func TestMeasureRescuedHoldout(t *testing.T) {
 func TestAgentCredit(t *testing.T) {
 	s, ms := agentEnv(t, &scriptModel{})
 	evals := []domain.Evaluation{{Config: "B3", RulesVersion: 1}, {Config: "B4", RulesVersion: 2}}
-	if c := s.agentCredit(t.Context(), evals); c.Counted {
+	if c := s.agentCredit(t.Context(), evals); c.Counted || c.PreHoldout {
 		t.Fatalf("правок нет: %+v", c)
 	}
 	old := &domain.AgentRun{Status: "done", Episode: domain.JSONB(`{"holdout":{"enabled":false}}`)}
@@ -422,14 +425,14 @@ func TestAgentCredit(t *testing.T) {
 	v := 2
 	p := &domain.Proposal{RunID: old.ID, Status: domain.ProposalAccepted, ConfigVersion: &v}
 	_ = ms.CreateProposal(t.Context(), p)
-	if c := s.agentCredit(t.Context(), evals); c.Counted || !strings.Contains(c.Note, old.ID.String()[:8]) {
+	if c := s.agentCredit(t.Context(), evals); c.Counted || !c.PreHoldout || !strings.Contains(c.Note, old.ID.String()[:8]) {
 		t.Fatalf("правка до разреза: %+v", c)
 	}
 	honest := &domain.AgentRun{Status: "done", Episode: domain.JSONB(`{"holdout":{"enabled":true,"exclude_test":true}}`)}
 	_ = ms.CreateAgentRun(t.Context(), honest)
 	p.RunID = honest.ID
 	_ = ms.SaveProposal(t.Context(), p)
-	if c := s.agentCredit(t.Context(), evals); !c.Counted {
+	if c := s.agentCredit(t.Context(), evals); !c.Counted || c.PreHoldout {
 		t.Fatalf("правка честного запуска: %+v", c)
 	}
 }

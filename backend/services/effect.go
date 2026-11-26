@@ -162,6 +162,9 @@ func measureLogs(searches []domain.SearchEvent, behavior []domain.BehaviorEvent,
 type agentCredit struct {
 	// Counted — все принятые правки правил версии B4 сделаны запусками после разреза журнала.
 	Counted bool
+	// PreHoldout — среди правок B4 есть сделанные запусками до разреза журнала: B4 видел оцениваемые тексты,
+	// и его числа — не независимая оценка (ни на test, ни на отложенной неделе).
+	PreHoldout bool
 	// Note — почему вклад агента не засчитан (или что засчитано).
 	Note string
 }
@@ -220,7 +223,7 @@ func (s *Services) agentCredit(ctx context.Context, evals []domain.Evaluation) a
 	switch {
 	case len(dishonest) > 0:
 		slices.Sort(dishonest)
-		return agentCredit{Note: fmt.Sprintf("правки B4 (v%d) сделаны запусками до разреза журнала (%s): они видели "+
+		return agentCredit{PreHoldout: true, Note: fmt.Sprintf("правки B4 (v%d) сделаны запусками до разреза журнала (%s): они видели "+
 			"отложенную неделю и тексты test — вклад агента не засчитан (0)", b4.RulesVersion, strings.Join(slices.Compact(dishonest), ", "))}
 	case len(honest) == 0:
 		return agentCredit{Note: "принятых правок агента в B4 нет — вклад агента 0"}
@@ -268,7 +271,7 @@ func measureRescued(evals []domain.Evaluation, credit agentCredit) *out.EffectRe
 	}
 	r := &out.EffectRescued{Set: effectSet, SetHash: base.SetHash, Baseline: domain.ConfigB0, Config: domain.ConfigB3,
 		RunBaseline: base.RunID, RunConfig: top.RunID, RulesVersion: top.RulesVersion, Weight: "searches",
-		AgentCounted: credit.Counted && hasAgent, AgentNote: credit.Note}
+		AgentCounted: credit.Counted && hasAgent, AgentPreHoldout: credit.PreHoldout, AgentNote: credit.Note}
 	if hasAgent {
 		r.RunAgent, r.AgentRulesVersion = agent.RunID, agent.RulesVersion
 	}

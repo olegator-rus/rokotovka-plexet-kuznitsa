@@ -67,8 +67,10 @@ type EffectRescued struct {
 	SearchShare float64 `json:"search_share"`
 	AgentShare  float64 `json:"agent_share"`
 	// AgentCounted — вклад агента засчитан: все принятые правки B4 — из запусков после разреза журнала.
-	AgentCounted bool   `json:"agent_counted"`
-	AgentNote    string `json:"agent_note"`
+	AgentCounted bool `json:"agent_counted"`
+	// AgentPreHoldout — в B4 есть правки запусков до разреза журнала: числа B4 — не независимая оценка.
+	AgentPreHoldout bool   `json:"agent_pre_holdout"`
+	AgentNote       string `json:"agent_note"`
 	// CILow, CIHigh — 95% интервал Уилсона (n — различные запросы): из него берутся консервативный и
 	// оптимистичный сценарии.
 	CILow  float64 `json:"ci_low"`

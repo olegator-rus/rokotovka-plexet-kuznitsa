@@ -31,9 +31,10 @@ export function buildEvent(
   }
 }
 
-/** Новый идентификатор сессии вкладки: «s-» + 16 hex. */
-export function newSessionId(random: () => number = Math.random): string {
-  let hex = ''
-  for (let i = 0; i < 16; i += 1) hex += Math.floor(random() * 16).toString(16)
-  return `s-${hex}`
+/**
+ * Токен сессии, выданный сервером в GET /api/meta: «s-» + 16 hex + «.» + подпись (32 hex). Самодельный номер
+ * сервер в журнал не пишет, поэтому фронт свой не придумывает.
+ */
+export function isSessionToken(v: unknown): v is string {
+  return typeof v === 'string' && /^s-[0-9a-f]{16}\.[0-9a-f]{32}$/.test(v)
 }

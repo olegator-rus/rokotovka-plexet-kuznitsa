@@ -134,6 +134,23 @@ type EvaluationsResponse struct {
 	LastJob *EvalJob         `json:"last_job"`
 	// JudgeAgreement — последний прогон LLM-судьи на наборе; null — судья ещё не запускался.
 	JudgeAgreement *JudgeAgreement `json:"judge_agreement"`
+	// AgentCredit — честность правок агента в столбце B4 этого набора; null — B3 или B4 на наборе не прогонялись.
+	AgentCredit *EvalAgentCredit `json:"agent_credit"`
+	// Rescued — доля спасённых для вилки эффекта (как в /api/effect): только на holdout_week, иначе null.
+	Rescued *EffectRescued `json:"rescued"`
+}
+
+// EvalAgentCredit — засчитан ли вклад агента (B3 → B4) и можно ли считать B4 независимой оценкой.
+type EvalAgentCredit struct {
+	// Counted — все принятые правки версии B4 сделаны запусками после разреза журнала.
+	Counted bool `json:"counted"`
+	// PreHoldout — среди правок B4 есть сделанные запусками до разреза: B4 видел тексты набора, его числа — не
+	// независимая оценка.
+	PreHoldout bool `json:"pre_holdout"`
+	// Note — пояснение по-русски.
+	Note string `json:"note"`
+	// RulesVersion — версия правил столбца B4.
+	RulesVersion int `json:"rules_version"`
 }
 
 // EvaluationView — сохранённый результат конфигурации.
