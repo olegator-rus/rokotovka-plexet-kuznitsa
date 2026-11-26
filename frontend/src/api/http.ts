@@ -17,6 +17,8 @@ export interface RequestOptions {
   signal?: AbortSignal
   /** Дополнительные заголовки (X-Session в GET /api/meta). */
   headers?: Record<string, string>
+  /** 401 не означает конец сессии (необязательный вызов, у которого пути может не быть): вход не сбрасывается. */
+  ignoreUnauthorized?: boolean
 }
 
 async function request<T>(
@@ -53,7 +55,7 @@ async function request<T>(
   }
   if (!resp.ok) {
     const authCall = path.startsWith('/auth/')
-    if (resp.status === 401 && !authCall) unauthorized?.(path)
+    if (resp.status === 401 && !authCall && !opts.ignoreUnauthorized) unauthorized?.(path)
     throw parseApiError(
       resp.status,
       data,

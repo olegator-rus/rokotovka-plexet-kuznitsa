@@ -2,7 +2,7 @@
 // Экран «Поиск». Адрес — единственный источник состояния запроса
 // (lib/searchState.ts): строка, конфигурация, клиент, уточнения и открытая трасса. Любое изменение
 // адреса, кроме трассы, — новый POST /api/search; прошлый запрос отменяется.
-import { computed, nextTick, ref, shallowRef, watch } from 'vue'
+import { computed, nextTick, reactive, ref, shallowRef, watch } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useRoute, useRouter } from 'vue-router'
 import { DialogContent, DialogOverlay, DialogPortal, DialogRoot, DialogTitle } from 'reka-ui'
@@ -95,6 +95,19 @@ import { usableFacet, withFilter } from '@/lib/facets'
 import { helpAnswerShown, helpHintShown, specPurchase, supplyShown } from '@/lib/procurement'
 import { type SpecLine, lineFromCompanion, lineFromItem, quantityForItem } from '@/lib/spec'
 import type { SlotChoice } from '@/lib/solution'
+import type { GuideCondition, GuideOffer } from '@/api/typesGuide'
+import GuideHint from '@/components/guide/GuideHint.vue'
+import GuidePanel from '@/components/guide/GuidePanel.vue'
+import { useGuide } from '@/composables/useGuide'
+import {
+  type GuideMode,
+  conditionMessage,
+  guideMode,
+  lineFromOffer,
+  offerRole,
+  routeMode,
+} from '@/lib/guide'
+import { postGuideRoute } from '@/api/guide'
 
 const route = useRoute()
 const router = useRouter()
@@ -763,6 +776,124 @@ function onComplement(type: 'add_to_cart' | 'price_request', c: Complement, inde
     )
 }
 
+// ── Контур подбора: режим подбора в поиске (SPEC §1). Блок над выдачей; выдача и спецификация живут отдельно. ──
+const guide = reactive(useGuide())
+/**
+ * Режим строки для показанной выдачи (SPEC §1). Порядок: признак в ответе поиска → POST /api/guide/route (правила
+ * ядра, без модели) → правило фронта по цели и запросу (lib/guide.ts). Выдача не ждёт решения: строка-предложение
+ * появляется, когда режим известен.
+ */
+const routed = shallowRef<{ q: string; mode: GuideMode; offer: string } | null>(null)
+const mode = computed<GuideMode>(() =>
+  status.value === 'ready' && response.value && routed.value?.q === response.value.query
+    ? routed.value.mode
+    : 'search',
+)
+const guideHintShown = computed(
+  () => mode.value === 'offer' && !guide.open && !helpShown.value && !blocks.value.nothing,
+)
+/** Вход со страницы семейства: /search?q=…&guide=1 или &guide=<вопрос-чип>. */
+const guideEntry = computed(() => {
+  const g = route.query.guide
+  return typeof g === 'string' && g ? g : null
+})
+let routeCtrl: AbortController | null = null
+
+async function decideMode(resp: SearchResponse): Promise<{ mode: GuideMode; offer: string }> {
+  const local = guideMode(resp.query, resp)
+  if (resp.guide?.mode) return { mode: local, offer: '' }
+  routeCtrl?.abort()
+  const c = new AbortController()
+  routeCtrl = c
+  const t = setTimeout(() => c.abort(), 1500)
+  try {
+    const r = await postGuideRoute(resp.query, { signal: c.signal, ignoreUnauthorized: true })
+    return { mode: routeMode(r) ?? local, offer: r.offer ?? '' }
+  } catch {
+    // Ядро без /api/guide/route или не ответило — правило фронта.
+    return { mode: local, offer: '' }
+  } finally {
+    clearTimeout(t)
+  }
+}
+
+watch(response, async (resp) => {
+  if (!resp || !onSearchRoute()) return
+  const q = resp.query
+  const entry = guideEntry.value
+  if (entry) {
+    routed.value = { q, mode: 'offer', offer: '' }
+    guide.start(q, entry === '1' ? undefined : entry)
+    const rest = { ...route.query }
+    delete rest.guide
+    void router.replace({ path: '/search', query: rest })
+    return
+  }
+  const decided = await decideMode(resp)
+  if (response.value !== resp) return
+  routed.value = { q, ...decided }
+  if (decided.mode === 'guide') {
+    // Вопрос в строке поиска — новый подбор со своим состоянием: условия прошлого запроса не переносятся
+    // (смена темы, SPEC §2). Уточнить текущий подбор — полем внутри блока.
+    if (!guide.open || guide.query !== q) guide.start(q)
+    return
+  }
+  // Новый запрос другим текстом — подбор сворачивается, не мешает выдаче (закрыть можно кнопкой).
+  if (guide.open && guide.query !== q) guide.collapsed = true
+})
+watch(
+  () => state.value.q,
+  (q) => {
+    if (!q) guide.close()
+  },
+)
+
+function onGuideStart() {
+  trackQuiet('click', { payload: { action: 'guide_start' } })
+  guide.start(response.value?.query ?? state.value.q)
+}
+
+/** Офферы, которые сейчас уходят в черновик: повторный клик строку не дублирует. */
+const guideAdding = new Set<string>()
+
+/** Строка подбора в спецификацию: цена перечитана сервером (POST /api/guide/spec), иначе — из ответа хода. */
+async function addGuideOffer(o: GuideOffer): Promise<boolean> {
+  if (offerRole(o) === 'rejected') return false
+  if (spec.has(o.offer_id) || guideAdding.has(o.offer_id)) return false
+  guideAdding.add(o.offer_id)
+  try {
+    const fresh = await guide.toSpec(o)
+    if (spec.has(o.offer_id)) return false
+    spec.add(lineFromOffer(fresh, guide.response?.conditions ?? [], guide.query))
+    return true
+  } finally {
+    guideAdding.delete(o.offer_id)
+  }
+}
+
+async function onGuideSpec(o: GuideOffer) {
+  if (spec.has(o.offer_id)) {
+    spec.open = true
+    return
+  }
+  if (!(await addGuideOffer(o))) return
+  trackQuiet('click', { productId: o.offer_id, payload: { action: 'spec', place: 'guide' } })
+  toast.add({
+    tone: 'ok',
+    title: 'Добавлено в спецификацию',
+    detail: o.title,
+    action: openSpecAction(),
+  })
+}
+
+/** «Запросить КП» в подборе: подобранная позиция с условиями — в спецификацию, панель КП открывается. */
+async function onGuideQuote() {
+  const o = (guide.response?.offers ?? []).find((x) => offerRole(x) !== 'rejected')
+  if (o) await addGuideOffer(o)
+  trackQuiet('click', { productId: o?.offer_id, payload: { action: 'quote', place: 'guide' } })
+  spec.open = true
+}
+
 function sendManagerRequest() {
   return track('manager_request', { payload: { query: response.value?.query ?? state.value.q } })
 }
@@ -834,6 +965,26 @@ async function onSupply() {
           <UiSwitch label="Трасса" :model-value="state.trace" @update:model-value="setTrace" />
         </Teleport>
 
+        <GuidePanel
+          v-if="guide.open"
+          v-model:collapsed="guide.collapsed"
+          :status="guide.status"
+          :response="guide.response"
+          :error="guide.error"
+          :pending-text="guide.pendingText"
+          :in-spec="inSpec"
+          @close="guide.close()"
+          @answer="guide.answer"
+          @say="guide.say"
+          @edit="
+            (c: GuideCondition, value: string | null) =>
+              guide.editCondition({ key: c.key, value }, conditionMessage(c, value))
+          "
+          @retry="guide.retry()"
+          @spec="onGuideSpec"
+          @quote="onGuideQuote"
+        />
+
         <ResultSkeleton v-if="status === 'loading'" />
 
         <SearchError v-else-if="status === 'error' && error" :error="error" @retry="run(state)" />
@@ -854,6 +1005,8 @@ async function onSupply() {
           <p v-else class="search-page__found t-sm t-muted t-num" role="status">
             {{ formatFound(response.total, response.trace?.total_ms) }} · {{ response.config }}
           </p>
+
+          <GuideHint v-if="guideHintShown" :text="routed?.offer" @start="onGuideStart" />
 
           <TargetCard
             v-if="target && !helpShown"

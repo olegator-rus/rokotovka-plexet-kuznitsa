@@ -5,7 +5,7 @@
 // их и нет на странице.
 import { computed, watch } from 'vue'
 import { RouterLink, useRoute, useRouter } from 'vue-router'
-import { ArrowLeft, ExternalLink, Search, ShoppingCart } from 'lucide-vue-next'
+import { ArrowLeft, ExternalLink, ListChecks, Search, ShoppingCart } from 'lucide-vue-next'
 import { postEvent } from '@/api/events'
 import { getProduct } from '@/api/product'
 import type { EventType } from '@/api/types'
@@ -112,6 +112,18 @@ const specRows = computed(() => {
   const seen = new Set<string>()
   return rows.filter((r) => (seen.has(r.label) ? false : (seen.add(r.label), true)))
 })
+
+// Контур подбора (SPEC §1): вход в подбор со страницы семейства — запрос строки = семейство, вопрос-чип уходит первым ходом.
+const GUIDE_QUESTIONS = [
+  { label: 'Чем отличаются редакции?', message: 'Чем отличаются редакции?' },
+  { label: 'Сколько стоит на N мест?', message: 'Сколько будет стоить на нужное число мест?' },
+] as const
+function openGuide(message?: string) {
+  const item = p.value
+  if (!item) return
+  const q = item.family_name || item.title
+  void router.push({ path: '/search', query: { q, guide: message ?? '1' } })
+}
 
 /** priceLabel для строк без price_on_request (компаньоны): нет цены — «Цена по запросу». */
 function companionPrice(c: { price_rub: number | null; price_mode: string }) {
@@ -250,6 +262,23 @@ function companionPrice(c: { price_rub: number | null; price_mode: string }) {
             >
               Запросить цену
             </button>
+          </div>
+          <div v-if="isSoftware" class="pp__guide" data-testid="product-guide">
+            <button
+              type="button"
+              class="btn btn--secondary pp__btn"
+              data-testid="product-guide-start"
+              @click="openGuide()"
+            >
+              <ListChecks :size="16" aria-hidden="true" /> Помочь выбрать лицензию
+            </button>
+            <ul class="pp__guide-chips" aria-label="Вопросы о лицензии">
+              <li v-for="g in GUIDE_QUESTIONS" :key="g.label">
+                <button type="button" class="pp__guide-chip" @click="openGuide(g.message)">
+                  {{ g.label }}
+                </button>
+              </li>
+            </ul>
           </div>
           <p class="t-xs t-muted pp__demo" data-testid="product-demo-note">
             Демо-стенд. В магазине здесь открывается карточка товара магазина — поиск передаёт ей
@@ -504,6 +533,38 @@ function companionPrice(c: { price_rub: number | null; price_mode: string }) {
 .pp__btn {
   justify-content: center;
   width: 100%;
+}
+.pp__guide {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin-top: var(--space-2);
+  padding-top: var(--space-3);
+  border-top: var(--border-w) solid var(--border);
+}
+.pp__guide-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.pp__guide-chip {
+  min-height: var(--control-h-sm);
+  padding: 0 var(--space-3);
+  border: var(--border-w) dashed var(--border-control);
+  border-radius: var(--radius-pill);
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  font-size: var(--fs-sm);
+  text-align: left;
+  cursor: pointer;
+}
+.pp__guide-chip:hover {
+  border-style: solid;
+  background: var(--surface-2);
 }
 .pp__demo {
   margin-top: var(--space-2) !important;
