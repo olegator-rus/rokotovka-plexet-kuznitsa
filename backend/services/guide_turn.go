@@ -171,7 +171,7 @@ func sanitizeGuideState(in domain.GuideState, cat *guideCatalog) domain.GuideSta
 	if r.TermMonths > 0 && r.TermMonths <= 120 {
 		st.Requirements.TermMonths = r.TermMonths
 	}
-	if containsStr([]string{"commercial", "government", "academic", "nonprofit"}, r.OrgType) {
+	if containsStr([]string{"commercial", "government", "academic", "nonprofit", "home"}, r.OrgType) {
 		st.Requirements.OrgType = r.OrgType
 	}
 	for _, o := range r.Objects {
@@ -250,6 +250,9 @@ func (t *guideTurn) run(ctx context.Context, req in.GuideRequest) *out.GuideResp
 		if req.Chip.Key == "start_over" {
 			*st = newGuideState(t.cat.version, t.kb.version)
 			st.Turn, first = 1, true
+		} else if req.Chip.Key == "direction" && strings.TrimSpace(req.Chip.Value) == "" {
+			st.Requirements.Task, st.CandidateFamilyIDs = "", []string{}
+			delete(st.Origin, "task")
 		} else if req.Chip.Key == "direction" && t.kb.subclass(req.Chip.Value) != nil {
 			st.Requirements.Task, st.Origin["task"] = req.Chip.Value, originUser
 			st.CandidateFamilyIDs, st.Pending = []string{}, ""

@@ -37,6 +37,8 @@ type GuideResponse struct {
 	Gaps []string `json:"gaps"`
 	// Meta — время и стоимость хода (SPEC §13).
 	Meta GuideMeta `json:"meta"`
+	// Recommendation — одна рекомендация среди подходящих с причиной из каталога или фактов; null — нет.
+	Recommendation *GuideRecommendation `json:"recommendation"`
 	// Docs — ссылка на документацию вендора у ответа «нет сведений» (SPEC §9); null — нет.
 	Docs *GuideDocs `json:"docs"`
 }
@@ -124,6 +126,10 @@ type GuideOffer struct {
 	Term         string   `json:"term"`
 	Role         string   `json:"role"`
 	Note         string   `json:"note,omitempty"`
+	// PackagePrice, PackageSize — у позиции, которая продаётся пакетом на N мест: цена пакета из каталога и число
+	// мест; тогда PricePerUnit — цена за место (PackagePrice / PackageSize), Total — пакеты × PackagePrice.
+	PackagePrice *float64 `json:"package_price,omitempty"`
+	PackageSize  int      `json:"package_size,omitempty"`
 	// RuleID — нарушенное правило у rejected; RuleSource — его источник.
 	RuleID     string `json:"rule_id,omitempty"`
 	RuleSource string `json:"rule_source,omitempty"`
@@ -205,6 +211,8 @@ type GuideSpecLine struct {
 	Total        *float64 `json:"total"`
 	PriceState   string   `json:"price_state"`
 	OfferURL     string   `json:"offer_url"`
+	PackagePrice *float64 `json:"package_price,omitempty"`
+	PackageSize  int      `json:"package_size,omitempty"`
 }
 
 // GuideRoute — POST /api/guide/route: состояние строки (SPEC §1). Offer — текст строки-предложения над выдачей
@@ -245,4 +253,12 @@ type GuideGapRow struct {
 type GuideGapFamily struct {
 	FamilyID string `json:"family_id"`
 	Title    string `json:"title"`
+}
+
+// GuideRecommendation — рекомендация подбора: оффер и причина («дешевле всех за место среди подходящих: …»).
+type GuideRecommendation struct {
+	OfferID string `json:"offer_id"`
+	Reason  string `json:"reason"`
+	// Basis — на чём основана: price_per_seat (каталог) | feature (факт) | named (названа покупателем).
+	Basis string `json:"basis"`
 }

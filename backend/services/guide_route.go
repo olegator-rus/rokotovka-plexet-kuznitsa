@@ -210,10 +210,8 @@ func extractConditions(q string) guideDelta {
 	case strings.Contains(q, "образован") || strings.Contains(q, "школ") || strings.Contains(q, "вуз"):
 		d.org = "academic"
 	}
-	if strings.Contains(q, "компьютер") || strings.Contains(q, "пк") || strings.Contains(q, "рабоч") || strings.Contains(q, "защит") {
-		if strings.Contains(q, "защит") || strings.Contains(q, "антивирус") {
-			d.task = "endpoint_protection"
-		}
+	if strings.Contains(q, "антивир") || strings.Contains(q, "защит") && !reGeneralIS.MatchString(q) {
+		d.task = "endpoint_protection" // «подбери антивирь», «защита для компьютеров»
 	}
 	return d
 }

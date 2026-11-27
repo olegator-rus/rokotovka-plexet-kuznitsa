@@ -27,6 +27,11 @@ func (t *guideTurn) offerOut(v guideOfferView, qty int, kind, role, note string)
 	if v.priced() {
 		price := *p.PriceRub
 		o.PricePerUnit, o.PriceState = &price, out.PricePriced
+		if v.unit == "pack" && v.pack > 0 {
+			// Пакет на N мест: цена за место — цена пакета / N; цена пакета — отдельным полем.
+			pkg, seat := price, guideRound2(price/float64(v.pack))
+			o.PackagePrice, o.PackageSize, o.PricePerUnit = &pkg, v.pack, &seat
+		}
 		if v.inTier(qty) {
 			sum := guideRound2(price * float64(v.units(qty)))
 			o.Total = &sum
@@ -438,6 +443,9 @@ func (t *guideTurn) selection(data *guideData) *out.GuideResponse {
 		}
 	}
 	res.Lead = t.selectionLead(data, matches)
+	if !r.Cheapest && len(data.ruleHits) == 0 {
+		t.recommendBlock(res, data)
+	}
 	res.Next = t.nextSteps(res)
 	return res
 }
@@ -769,12 +777,16 @@ func (t *guideTurn) checkAnswer(res *out.GuideResponse, data *guideData) {
 			}
 		}
 		if first != nil && first.PricePerUnit != nil {
+			firstTotal := *first.PricePerUnit * float64(max(first.Quantity, 1))
+			if first.Total != nil {
+				firstTotal = *first.Total
+			}
 			for _, fd := range data.fams {
 				if fd.excluded != "" {
 					continue
 				}
 				for _, v := range fd.matched {
-					if v.priced() && offerTotal(v, data.qty) < *first.PricePerUnit*float64(max(first.Quantity, 1))-0.005 {
+					if v.priced() && offerTotal(v, data.qty) < firstTotal-0.005 {
 						t.removed = append(t.removed, "cheapest:"+first.OfferID)
 						*first = t.offerOut(v, data.qty, data.kind, out.OfferMatch, "")
 					}

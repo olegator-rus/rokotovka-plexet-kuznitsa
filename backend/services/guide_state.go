@@ -278,6 +278,9 @@ func applyDelta(st *domain.GuideState, d guideDelta, origin string) []out.GuideC
 	}
 	if d.task != "" && r.Task == "" {
 		r.Task = d.task
+		if st.Origin["task"] == "" {
+			st.Origin["task"] = originInferred // направление понято из запроса — видно чипом, можно убрать
+		}
 	}
 	return ch
 }
@@ -357,7 +360,7 @@ func chipDelta(st domain.GuideState, c *guideChipIn) (guideDelta, bool) {
 			return d, false
 		}
 		d.term = n
-	case key == "org_type" && slices.Contains([]string{"commercial", "government", "academic", "nonprofit"}, val):
+	case key == "org_type" && slices.Contains([]string{"commercial", "government", "academic", "nonprofit", "home"}, val):
 		d.org = val
 	case key == "vendor":
 		d.vendor = val
@@ -420,7 +423,11 @@ func conditionsOf(st domain.GuideState) []out.GuideCondition {
 	if r.TermMonths > 0 {
 		cs = append(cs, out.GuideCondition{Key: "term_months", Label: termWords(r.TermMonths), Value: strconv.Itoa(r.TermMonths), Origin: origin("term_months")})
 	}
-	if r.OrgType != defaultOrg || st.Origin["org_type"] == originUser {
+	if r.Task != "" {
+		cs = append([]out.GuideCondition{{Key: "direction", Label: directionLabel(r.Task), Value: directionOf(r.Task), Origin: origin("task")}}, cs...)
+	}
+	if r.OrgType != defaultOrg || st.Origin["org_type"] == originUser || directionOf(r.Task) == "endpoint" {
+		// Для антивируса тип покупателя меняет выбор (организация или дом) — показываем и значение по умолчанию.
 		cs = append(cs, out.GuideCondition{Key: "org_type", Label: orgLabel(r.OrgType), Value: r.OrgType, Origin: origin("org_type")})
 	}
 	for _, f := range r.RequiredFeatures {
@@ -487,6 +494,8 @@ func orgLabel(o string) string {
 		return "образование"
 	case "nonprofit":
 		return "некоммерческая организация"
+	case "home":
+		return "для дома"
 	}
 	return "коммерческая организация"
 }
@@ -553,4 +562,27 @@ func axisLabel(axis string) string {
 		return l
 	}
 	return axis
+}
+
+// directionLabel — подпись чипа направления.
+func directionLabel(task string) string {
+	switch directionOf(task) {
+	case "endpoint":
+		return "антивирус для рабочих мест"
+	case "mail_gateway":
+		return "защита почты и интернет-шлюза"
+	case "network":
+		return "защита сети"
+	case "backup":
+		return "резервное копирование"
+	case "crypto":
+		return "электронная подпись и шифрование"
+	case "vuln":
+		return "поиск уязвимостей"
+	case "access":
+		return "защита от несанкционированного доступа"
+	case "webinar":
+		return "вебинары"
+	}
+	return task
 }

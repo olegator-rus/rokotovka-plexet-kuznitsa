@@ -137,8 +137,17 @@ func TestGuideD1WithoutModel(t *testing.T) {
 	if r1.Type != out.GuideClarification || r1.Clarification == nil || !strings.Contains(r1.Clarification.Question, "компьютеров") {
 		t.Fatalf("ход 1: ждали вопрос о числе компьютеров, получили %+v", r1)
 	}
-	if len(r1.Conditions) < 2 || r1.Conditions[0].Origin != originDefault {
-		t.Fatalf("ход 1: значения по умолчанию должны быть видны с пометкой: %+v", r1.Conditions)
+	defaults, dir := 0, false
+	for _, c := range r1.Conditions {
+		if c.Origin == originDefault {
+			defaults++
+		}
+		if c.Key == "direction" && c.Origin == originInferred {
+			dir = true
+		}
+	}
+	if defaults < 2 || !dir {
+		t.Fatalf("ход 1: значения по умолчанию и понятое направление должны быть видны с пометкой: %+v", r1.Conditions)
 	}
 	st := r1.State
 	r2 := guideTurnReq(t, s, in.GuideRequest{Query: "защита для компьютеров в офисе", Chip: &in.GuideChip{Key: "count:workstation", Value: "30"}, State: &st})

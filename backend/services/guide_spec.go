@@ -137,6 +137,10 @@ func (g *guideService) specView(cat *guideCatalog, d *guideSpecDraft) *out.Guide
 			price := *p.PriceRub
 			sum := guideRound2(price * float64(v.units(l.quantity)))
 			line.PricePerUnit, line.Total, line.PriceState = &price, &sum, out.PricePriced
+			if v.unit == "pack" && v.pack > 0 {
+				pkg, seat := price, guideRound2(price/float64(v.pack))
+				line.PackagePrice, line.PackageSize, line.PricePerUnit = &pkg, v.pack, &seat
+			}
 			total += sum
 		} else {
 			res.OnRequest++

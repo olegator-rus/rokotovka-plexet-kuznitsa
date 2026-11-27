@@ -196,7 +196,7 @@ func (v guideOfferView) unitLabel(object string) string {
 	switch v.unit {
 	case "pack":
 		if v.pack > 0 {
-			return fmt.Sprintf("за пакет на %d мест", v.pack)
+			return fmt.Sprintf("за место, пакетами по %d", v.pack)
 		}
 		return "за пакет"
 	case "node_tier":

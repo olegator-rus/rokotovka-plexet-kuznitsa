@@ -94,6 +94,11 @@ type GuideTurnExpectation struct {
 	NoMatch         bool     `json:"no_match,omitempty"`
 	ChangesContains string   `json:"changes_contains,omitempty"`
 	CompareFamilies []string `json:"compare_families,omitempty"`
+	// Группа practical (контур подбора, после живой проверки): условие с ключом (direction — понятое направление),
+	// одна рекомендация с причиной, у пакетных офферов цена за место = цена пакета / мест.
+	ConditionKey   string `json:"condition_key,omitempty"`
+	Recommendation bool   `json:"recommendation,omitempty"`
+	PackSeatPrice  bool   `json:"pack_seat_price,omitempty"`
 }
 
 // ReadGuideDialogs — набор диалогов (JSONL).
@@ -533,7 +538,13 @@ func guidePriceOK(o out.GuideOffer, doc indexDoc) bool {
 	if !priced {
 		return o.PricePerUnit == nil && o.Total == nil
 	}
-	if o.PricePerUnit == nil || math.Abs(*o.PricePerUnit-*doc.PriceRub) > 0.005 {
+	if o.PackagePrice != nil {
+		// Пакет на N мест (контур подбора): цена пакета — из каталога, цена за место = пакет / N.
+		if math.Abs(*o.PackagePrice-*doc.PriceRub) > 0.005 || o.PackageSize <= 0 || o.PricePerUnit == nil ||
+			math.Abs(*o.PricePerUnit-math.Round(*doc.PriceRub/float64(o.PackageSize)*100)/100) > 0.005 {
+			return false
+		}
+	} else if o.PricePerUnit == nil || math.Abs(*o.PricePerUnit-*doc.PriceRub) > 0.005 {
 		return false
 	}
 	if o.Total == nil {
@@ -548,7 +559,8 @@ func guidePriceOK(o out.GuideOffer, doc indexDoc) bool {
 func guideCellPriceOK(v float64, family string, resp *out.GuideResponse, lx *searchLexicon) bool {
 	near := func(a, b float64) bool { return math.Abs(a-b) <= 0.01+1e-9*math.Abs(b) }
 	for _, o := range resp.Offers {
-		if o.PricePerUnit != nil && near(v, *o.PricePerUnit) || o.Total != nil && near(v, *o.Total) {
+		if o.PricePerUnit != nil && near(v, *o.PricePerUnit) || o.Total != nil && near(v, *o.Total) ||
+			o.PackagePrice != nil && near(v, *o.PackagePrice) {
 			return true
 		}
 	}
@@ -650,6 +662,7 @@ func guideNumbersOf(resp *out.GuideResponse) map[string]bool {
 		set[strconv.Itoa(o.Quantity)] = true
 		addF(o.PricePerUnit)
 		addF(o.Total)
+		addF(o.PackagePrice)
 	}
 	for _, c := range resp.Conditions {
 		add(c.Label + " " + c.Value)
@@ -685,6 +698,36 @@ func guideNumbersOf(resp *out.GuideResponse) map[string]bool {
 
 // guideExpect — ожидания хода; причины несовпадения.
 func guideExpect(e GuideTurnExpectation, resp *out.GuideResponse, lx *searchLexicon) []string {
+	why := guideExpectBase(e, resp, lx)
+	if e.ConditionKey != "" && !slices.ContainsFunc(resp.Conditions, func(c out.GuideCondition) bool { return c.Key == e.ConditionKey }) {
+		why = append(why, "нет условия "+e.ConditionKey)
+	}
+	if e.Recommendation && (resp.Recommendation == nil || resp.Recommendation.Reason == "" ||
+		!slices.ContainsFunc(resp.Offers, func(o out.GuideOffer) bool {
+			return o.OfferID == resp.Recommendation.OfferID && o.Role == out.OfferMatch
+		})) {
+		why = append(why, "нет рекомендации с причиной среди подходящих")
+	}
+	if e.PackSeatPrice {
+		packs := 0
+		for _, o := range resp.Offers {
+			if o.PackagePrice == nil {
+				continue
+			}
+			packs++
+			if o.PackageSize <= 0 || o.PricePerUnit == nil || math.Abs(*o.PricePerUnit-math.Round(*o.PackagePrice/float64(o.PackageSize)*100)/100) > 0.005 {
+				why = append(why, "цена за место у пакета "+o.OfferID+" ≠ пакет / мест")
+			}
+		}
+		if packs == 0 {
+			why = append(why, "нет пакетных карточек с ценой пакета")
+		}
+	}
+	return why
+}
+
+// guideExpectBase — исходные ожидания хода (до группы practical).
+func guideExpectBase(e GuideTurnExpectation, resp *out.GuideResponse, lx *searchLexicon) []string {
 	var bad []string
 	match := []out.GuideOffer{}
 	for _, o := range resp.Offers {
