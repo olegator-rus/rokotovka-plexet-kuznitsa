@@ -30,7 +30,7 @@ type AgentRun struct {
 	CurrentCluster *ClusterRef `json:"current_cluster"`
 	Model          string      `json:"model"`
 	RulesVersion   int         `json:"rules_version"`
-	// Mode — search | commerce; у commerce rules_version — версия справочника связей.
+	// Mode — search | commerce | gaps (пробелы подбора); у commerce rules_version — версия справочника связей.
 	Mode    string          `json:"mode"`
 	Limits  AgentLimits     `json:"limits"`
 	Episode json.RawMessage `json:"episode"`

@@ -13,6 +13,9 @@ const PUBLIC = new Set([
   'GET /api/evaluations',
   'GET /api/evaluations/contribution', // контур доводки: «Доказательства» → «Вклад компонентов»
   'GET /api/evaluations/feed', // контур эталонов: «Доказательства» → «На данных заказчика»
+  'POST /api/guide/route', // контур подбора: режим подбора — маршрутизатор строки, открыт гостю
+  'POST /api/guide', // контур подбора: ход подбора, открыт гостю
+  'POST /api/guide/spec', // контур подбора: позиция подбора в спецификацию
   'GET /api/costs/summary', // хвосты контура доводки: «Доказательства» → «Стоимость» без журнала вызовов
   'POST /api/search',
   'POST /api/events',

@@ -819,6 +819,8 @@ export interface AgentRun {
   stop_reason: string | null
   summary: string | null
   current_cluster: { id: string; label: string } | null
+  /** search | commerce | gaps (пробелы подбора). */
+  mode?: string
   /** Лимит вызовов инструментов на запуск (15 × выбранные кластеры). */
   max_tool_calls?: number
   days?: number

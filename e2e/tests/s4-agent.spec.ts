@@ -28,6 +28,7 @@ async function shot(page: Page, name: string) {
 interface RunLite {
   id: string
   trigger: string
+  mode?: string
   plan?: unknown
   budget?: unknown
 }
@@ -35,7 +36,10 @@ interface RunLite {
 /** Запуск контура автономии, в ленте которого есть шаг нужного вида (новые сверху, не больше 20 запусков). */
 async function findRunWithStep(page: Page, kinds: string[]): Promise<string | null> {
   const list = (await (await page.request.get('/api/agent/runs')).json()) as { items: RunLite[] }
-  for (const r of list.items.filter((x) => x.plan || x.budget).slice(0, 20)) {
+  // Запуски пробелов подбора (mode=gaps) — без модели и плана: для кадра «память» не годятся.
+  for (const r of list.items
+    .filter((x) => (x.plan || x.budget) && x.mode !== 'gaps')
+    .slice(0, 20)) {
     const d = (await (await page.request.get(`/api/agent/runs/${r.id}`)).json()) as {
       steps: { kind: string }[]
     }
@@ -106,7 +110,13 @@ test.describe('S4 контура автономии: агент работает
     const empty = page.getByText('Решений пока нет')
     await expect(decisions.or(empty).first()).toBeVisible()
     if (await decisions.isVisible()) {
-      for (const h of ['Предложение', 'Причина агента', 'Решение человека', 'Причина человека', 'Запуск'])
+      for (const h of [
+        'Предложение',
+        'Причина агента',
+        'Решение человека',
+        'Причина человека',
+        'Запуск',
+      ])
         await expect(decisions.getByRole('columnheader', { name: h })).toBeVisible()
       await expect(decisions.locator('a[href^="/searchops/runs/"]').first()).toBeVisible()
     }
@@ -114,20 +124,27 @@ test.describe('S4 контура автономии: агент работает
     await layers.getByRole('tab', { name: /^Не предлагать/ }).click()
     await expect(page).toHaveURL(/mem=suppress/)
     await expect(
-      page.getByRole('region', { name: 'Не предлагать' }).or(page.getByText('Отклонённого человеком пока нет')).first(),
+      page
+        .getByRole('region', { name: 'Не предлагать' })
+        .or(page.getByText('Отклонённого человеком пока нет'))
+        .first(),
     ).toBeVisible()
     await shot(page, 's4-2-memory-suppress')
     await layers.getByRole('tab', { name: /^Эпизоды/ }).click()
     await expect(
-      page.getByRole('region', { name: 'Эпизоды' }).or(page.getByText(/Эпизодов пока нет/)).first(),
+      page
+        .getByRole('region', { name: 'Эпизоды' })
+        .or(page.getByText(/Эпизодов пока нет/))
+        .first(),
     ).toBeVisible()
     await shot(page, 's4-2-memory-episodes')
   })
 
   test('«Очередь»: плашка «N предложений от …» и у карточки — откуда она', async ({ page }) => {
     const res = await page.request.get('/api/proposals?status=pending')
-    const items = ((await res.json()) as { items: { id: string; trigger?: string; run_id?: string }[] })
-      .items
+    const items = (
+      (await res.json()) as { items: { id: string; trigger?: string; run_id?: string }[] }
+    ).items
     const withOrigin = items.filter((p) => p.trigger && p.run_id)
     test.skip(!withOrigin.length, 'нет ждущих предложений с триггером запуска')
     await page.goto('/searchops?tab=queue')
@@ -155,7 +172,9 @@ test.describe('S4 контура автономии, кадр 3 — живой �
     await panel.getByRole('button', { name: 'Разобрать' }).click()
 
     await expect(page).toHaveURL(/\/searchops\/runs\//, { timeout: 15_000 })
-    await expect(page.getByRole('heading', { level: 1, name: `Разбор запроса «${QUERY}»` })).toBeVisible()
+    await expect(
+      page.getByRole('heading', { level: 1, name: `Разбор запроса «${QUERY}»` }),
+    ).toBeVisible()
     await expect(page.getByText('триггер: вручную')).toBeVisible()
     await shot(page, 's4-3-live-running')
 

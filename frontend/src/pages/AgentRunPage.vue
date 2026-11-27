@@ -85,6 +85,8 @@ const noFailures = computed(
   () =>
     !!run.value &&
     !active.value &&
+    // Пробелы подбора (mode=gaps) — не разбор неудачных запросов: лента показывается и без новых кластеров.
+    run.value.mode !== 'gaps' &&
     (run.value.stop_reason === 'no_failed_queries' ||
       (run.value.clusters_total === 0 && run.value.status === 'done')),
 )
