@@ -181,6 +181,19 @@ func main() {
 	// Контур подбора: порог показа фактов подбора.
 	svc.SetGuideMinFactStatus(cfg.GuideMinFactStatus)
 	go func() { _ = svc.WarmPanel(ctx) }() // словарь подсказок панели — в фоне, старт не ждёт
+	if os.Getenv("APP_ENV") == "production" {
+		// Первый экран SearchOps проверяет неудачные запросы живым поиском; на стенде прогреваем кэш заранее.
+		go func() {
+			time.Sleep(time.Minute)
+			wctx, cancel := context.WithTimeout(ctx, 15*time.Minute)
+			defer cancel()
+			if took, err := svc.WarmSearchOpsReport(wctx); err != nil {
+				log.Warn("SearchOps: прогрев отчёта не удался", zap.Error(err))
+			} else {
+				log.Info("SearchOps: отчёт прогрет", zap.Duration("took", took))
+			}
+		}()
+	}
 	svc.RecoverAgentRuns(ctx)
 	svc.StartAgentTriggers(ctx)
 	defer svc.Wait()

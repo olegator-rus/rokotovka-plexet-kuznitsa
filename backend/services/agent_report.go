@@ -6,10 +6,12 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"runtime"
 	"slices"
 	"sort"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"kuznica/api/domain"
@@ -87,7 +89,10 @@ const (
 	ReportProbeLimit = 150
 	reportParallel   = 6
 	reportCacheTTL   = 10 * time.Minute
-	reportWordRows   = 40
+	// reportRefreshParallel — столько проверок идёт одновременно при фоновом обновлении устаревших ответов.
+	reportRefreshParallel = 2
+	reportRefreshTimeout  = 15 * time.Minute
+	reportWordRows        = 40
 )
 
 // reportProbe — ответ действующего поиска на запрос (без журнала).
@@ -385,18 +390,22 @@ func classifyReportRow(row *out.ReportRow, q clusterQuery, p reportProbe) string
 }
 
 // reportProbes — ответ действующего поиска на запросы (параллельно, с кэшем на версию правил и каталога).
+// Ответ из кэша отдаётся сразу, даже устаревший: устаревшие перепроверяются в фоне (reportRefresh). Иначе каждое
+// открытие первого экрана SearchOps после паузы заново гоняло до ReportProbeLimit поисков и на сервере без ускорителя
+// занимало десятки секунд, а поиск покупателей в это время терял векторный шаг по сроку.
 func (s *Services) reportProbes(ctx context.Context, qs []clusterQuery, rulesVersion int, catalog string) []reportProbe {
 	res := make([]reportProbe, len(qs))
-	sem := make(chan struct{}, reportParallel)
+	sem := make(chan struct{}, reportParallelism())
 	var wg sync.WaitGroup
 	now := time.Now()
+	var stale []reportStale
 	for i, q := range qs {
-		key := fmt.Sprintf("%d|%s|%s", rulesVersion, catalog, q.Text)
-		reportCache.Lock()
-		e, ok := reportCache.m[key]
-		reportCache.Unlock()
-		if ok && now.Sub(e.at) < reportCacheTTL {
-			res[i] = e.p
+		key := reportCacheKey(rulesVersion, catalog, q.Text)
+		if p, hit, old := reportCacheGet(key, now); hit {
+			res[i] = p
+			if old {
+				stale = append(stale, reportStale{key: key, text: q.Text})
+			}
 			continue
 		}
 		wg.Add(1)
@@ -406,15 +415,91 @@ func (s *Services) reportProbes(ctx context.Context, qs []clusterQuery, rulesVer
 			defer func() { <-sem }()
 			p := s.reportProbe(ctx, text)
 			res[i] = p
-			if !p.err {
-				reportCache.Lock()
-				reportCache.m[key] = reportCacheEntry{at: time.Now(), p: p}
-				reportCache.Unlock()
-			}
+			reportCachePut(key, p)
 		}(i, q.Text, key)
 	}
 	wg.Wait()
+	s.reportRefresh(stale)
 	return res
+}
+
+// reportStale — устаревший ответ кэша: ключ и текст запроса для фоновой перепроверки.
+type reportStale struct{ key, text string }
+
+// reportRefreshing — идёт фоновая перепроверка устаревших ответов (одна на процесс).
+var reportRefreshing atomic.Bool
+
+// reportRefresh — фоновая перепроверка устаревших ответов кэша: немного потоков, свой срок, без запроса пользователя.
+func (s *Services) reportRefresh(stale []reportStale) {
+	if len(stale) == 0 || !reportRefreshing.CompareAndSwap(false, true) {
+		return
+	}
+	go func() {
+		defer reportRefreshing.Store(false)
+		ctx, cancel := context.WithTimeout(context.Background(), reportRefreshTimeout)
+		defer cancel()
+		sem := make(chan struct{}, reportRefreshParallel)
+		var wg sync.WaitGroup
+		for _, st := range stale {
+			if ctx.Err() != nil {
+				break
+			}
+			wg.Add(1)
+			sem <- struct{}{}
+			go func(st reportStale) {
+				defer wg.Done()
+				defer func() { <-sem }()
+				reportCachePut(st.key, s.reportProbe(ctx, st.text))
+			}(st)
+		}
+		wg.Wait()
+	}()
+}
+
+// WarmSearchOpsReport — прогрев первого экрана SearchOps после старта сервера: заполняет кэш проверок, чтобы первый
+// посетитель не ждал. Ошибки не мешают работе: отчёт соберётся при первом открытии.
+func (s *Services) WarmSearchOpsReport(ctx context.Context) (time.Duration, error) {
+	started := time.Now()
+	_, err := s.SearchOpsReport(ctx, 0)
+	return time.Since(started), err
+}
+
+// reportParallelism — сколько проверок идёт одновременно: половина ядер, от 2 до reportParallel. На сервере без
+// ускорителя модели считаются на тех же ядрах, и шесть поисков сразу занимают их целиком.
+func reportParallelism() int {
+	n := runtime.NumCPU() / 2
+	if n < 2 {
+		n = 2
+	}
+	if n > reportParallel {
+		n = reportParallel
+	}
+	return n
+}
+
+func reportCacheKey(rulesVersion int, catalog, text string) string {
+	return fmt.Sprintf("%d|%s|%s", rulesVersion, catalog, text)
+}
+
+// reportCacheGet — ответ из кэша: hit — запись есть, old — она старше reportCacheTTL (отдаём и перепроверяем в фоне).
+func reportCacheGet(key string, now time.Time) (p reportProbe, hit, old bool) {
+	reportCache.Lock()
+	defer reportCache.Unlock()
+	e, ok := reportCache.m[key]
+	if !ok {
+		return reportProbe{}, false, false
+	}
+	return e.p, true, now.Sub(e.at) >= reportCacheTTL
+}
+
+// reportCachePut — запись ответа в кэш; ответ с ошибкой не кэшируется (прежняя запись, если была, остаётся).
+func reportCachePut(key string, p reportProbe) {
+	if p.err {
+		return
+	}
+	reportCache.Lock()
+	reportCache.m[key] = reportCacheEntry{at: time.Now(), p: p}
+	reportCache.Unlock()
 }
 
 // reportProbe — один запрос через действующий поиск витрины (как у покупателя), без журнала.

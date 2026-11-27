@@ -3,6 +3,7 @@ package services
 import (
 	"strings"
 	"testing"
+	"time"
 
 	"kuznica/api/domain"
 	"kuznica/api/externalApi/llm"
@@ -154,5 +155,28 @@ func TestGapKeysAndModelCannotSetKBMissing(t *testing.T) {
 	}
 	if CauseOf(domain.DiagKBMissingFact).Code != CauseKBMissing || CauseOf(domain.DiagKBMissingFact).Owner != RoleProduct {
 		t.Fatal("причина kb_missing, владелец — категорийный и лицензионный менеджер")
+	}
+}
+
+// Кэш проверок отчёта: устаревшая запись отдаётся (с пометкой для фоновой перепроверки), ошибка не затирает ответ.
+func TestReportCacheStaleServed(t *testing.T) {
+	key := reportCacheKey(7, "cat-test", "запрос для теста кэша")
+	now := time.Now()
+	if _, hit, _ := reportCacheGet(key, now); hit {
+		t.Fatal("пустой кэш вернул запись")
+	}
+	reportCachePut(key, reportProbe{empty: true})
+	if p, hit, old := reportCacheGet(key, now); !hit || old || !p.empty {
+		t.Fatalf("свежая запись: hit=%v old=%v p=%+v", hit, old, p)
+	}
+	if p, hit, old := reportCacheGet(key, now.Add(reportCacheTTL+time.Minute)); !hit || !old || !p.empty {
+		t.Fatalf("устаревшая запись должна отдаваться с пометкой: hit=%v old=%v p=%+v", hit, old, p)
+	}
+	reportCachePut(key, reportProbe{err: true})
+	if p, hit, _ := reportCacheGet(key, now); !hit || p.err || !p.empty {
+		t.Fatalf("ошибка затёрла ответ: hit=%v p=%+v", hit, p)
+	}
+	if n := reportParallelism(); n < 2 || n > reportParallel {
+		t.Fatalf("параллельность вне границ: %d", n)
 	}
 }
