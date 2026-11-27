@@ -661,7 +661,7 @@ func (rc rankCtx) toItem(fh *familyHit) out.SearchItem {
 			PurchasedBefore: rc.purchased["p:"+d.ProductID] || rc.purchased["f:"+d.FamilyID],
 			Final:           fh.final,
 			Kind:            docKind(d), MPN: d.MPNRaw, PriceMode: docPriceMode(d), Required: []out.Companion{},
-			OfferURL: d.OfferURL, FamilyURL: d.FamilyURL, VendorURL: d.VendorURL, Available: d.Available,
+			OfferURL: d.OfferURL, ImageURL: pictureOf(d.ProductID), FamilyURL: d.FamilyURL, VendorURL: d.VendorURL, Available: d.Available,
 			OldPriceRub: d.OldPriceRub, LicenseKind: d.LicenseKind, TierMin: d.LicenseTierMin, TierMax: d.LicenseTierMax,
 		}
 	}

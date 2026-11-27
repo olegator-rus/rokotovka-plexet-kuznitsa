@@ -143,6 +143,8 @@ export interface SearchItemBase {
   analog_note?: string
   /** Контур фида (§16.4): ссылки на store.softline.ru, наличие, старая цена, тип лицензии. */
   offer_url?: string | null
+  /** Картинка позиции из каталога заказчика (img.softline.com); нет — значок производителя. */
+  image_url?: string | null
   family_url?: string | null
   vendor_url?: string | null
   available?: boolean | null

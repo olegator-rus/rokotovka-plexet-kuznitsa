@@ -121,7 +121,7 @@ function rowQuantity(v: SearchItemBase): string {
   >
     <div class="fcard__row">
       <div class="fcard__main">
-        <VendorLogo :vendor="item.vendor" class="fcard__main-logo" />
+        <VendorLogo :vendor="item.vendor" :image="item.image_url" class="fcard__main-logo" />
         <p class="fcard__meta t-xs">
           <span class="fcard__vendor">{{ item.vendor }}</span>
           <span v-if="item.category" aria-hidden="true"> · </span>
@@ -684,6 +684,7 @@ function rowQuantity(v: SearchItemBase): string {
   grid-column: 2;
 }
 .fcard__main > .fcard__main-logo {
+  --logo-size: 3.5rem;
   grid-column: 1;
   grid-row: 1 / span 3;
   align-self: start;

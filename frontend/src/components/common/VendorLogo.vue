@@ -1,20 +1,41 @@
 <script setup lang="ts">
-// Значок производителя на белой плитке. Нет значка или файл не загрузился — общая иконка из слота.
-// Картинка декоративная: имя производителя всегда написано рядом текстом.
+// Плитка позиции: картинка товара из каталога заказчика, если есть; нет или не загрузилась — значок производителя;
+// нет и его — общая иконка из слота. Картинка декоративная: название и производитель всегда написаны рядом текстом.
 import { computed, ref, watch } from 'vue'
 import { Package } from 'lucide-vue-next'
 import { vendorLogo } from '@/lib/vendorLogo'
 
-const props = defineProps<{ vendor: string | null | undefined }>()
+const props = defineProps<{ vendor: string | null | undefined; image?: string | null }>()
 
-const src = computed(() => vendorLogo(props.vendor))
-const failed = ref(false)
-watch(src, () => (failed.value = false))
+const logo = computed(() => vendorLogo(props.vendor))
+const imageFailed = ref(false)
+const logoFailed = ref(false)
+watch(
+  () => props.image,
+  () => (imageFailed.value = false),
+)
+watch(logo, () => (logoFailed.value = false))
+const photo = computed(() => (props.image && !imageFailed.value ? props.image : null))
 </script>
 
 <template>
-  <span class="vlogo" aria-hidden="true">
-    <img v-if="src && !failed" :src="src" alt="" class="vlogo__img" @error="failed = true" />
+  <span class="vlogo" :class="{ 'vlogo--photo': photo }" aria-hidden="true">
+    <img
+      v-if="photo"
+      :src="photo"
+      alt=""
+      loading="lazy"
+      referrerpolicy="no-referrer"
+      class="vlogo__img"
+      @error="imageFailed = true"
+    />
+    <img
+      v-else-if="logo && !logoFailed"
+      :src="logo"
+      alt=""
+      class="vlogo__img"
+      @error="logoFailed = true"
+    />
     <slot v-else><Package :size="18" /></slot>
   </span>
 </template>
@@ -38,5 +59,9 @@ watch(src, () => (failed.value = false))
   width: 70%;
   height: 70%;
   object-fit: contain;
+}
+.vlogo--photo .vlogo__img {
+  width: 100%;
+  height: 100%;
 }
 </style>

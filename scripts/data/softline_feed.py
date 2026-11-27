@@ -5,7 +5,7 @@
     python3.13 scripts/data/softline_feed.py --feed путь.xml --out каталог
 
 Пишет в data/softline/feed/ (в git не идёт): products.jsonl, vendors.jsonl, categories.jsonl, aliases.jsonl,
-param_values.json (все параметры с частотами). Отчёт data/softline/FEED_STATS.md (идёт в git): сверка с
+param_values.json (все параметры с частотами), pictures.json (id позиции → картинка). Отчёт data/softline/FEED_STATS.md (идёт в git): сверка с
 частоты параметров лицензии, что сделала таблица приведения.
 Импорт: DATA_SOURCE=generic DATA_MAPPING=../data/softline/mapping.yaml go run . import
 
@@ -300,6 +300,7 @@ class Converter:
         started = time.time()
         self.out.mkdir(parents=True, exist_ok=True)
         products = open(self.out / "products.jsonl", "w", encoding="utf-8")
+        pictures = {}  # id позиции → картинка на CDN магазина; сервер читает pictures.json при старте
         for _, el in ET.iterparse(self.feed, events=("end",)):
             tag = el.tag
             if tag == "category":
@@ -307,10 +308,15 @@ class Converter:
                 el.clear()
             elif tag == "offer":
                 products.write(json.dumps(self.offer(el), ensure_ascii=False) + "\n")
+                pic = (el.findtext("picture") or "").strip()
+                if pic.startswith("https://"):
+                    pictures[el.get("id")] = pic
                 el.clear()
             elif tag == "yml_catalog":
                 self.yml_date = el.get("date") or ""
         products.close()
+        with open(self.out / "pictures.json", "w", encoding="utf-8") as f:
+            json.dump(pictures, f, ensure_ascii=False, separators=(",", ":"))
         # date — атрибут корня: iterparse отдаёт корень последним.
         self.write_refs()
         self.elapsed = time.time() - started

@@ -241,6 +241,9 @@ func panelProducts(lx *searchLexicon, r *instantResult, limit int) []out.PanelPr
 		p := out.PanelProduct{FamilyID: d.FamilyID, FamilyName: d.FamilyName, ProductID: d.ProductID, Title: d.Title,
 			Kind: docKind(d), Vendor: d.Vendor, Category: d.Category, MPN: d.MPNRaw, LicenseLine: licenseLine(d),
 			PriceMode: docPriceMode(d), VariantsCount: len(lx.families[d.FamilyID]), Exact: f.exact, SKUExact: f.skuHit}
+		if u := pictureOf(d.ProductID); u != "" {
+			p.ImageURL = &u
+		}
 		if p.Kind == "hardware" {
 			p.LicenseLine = ""
 			p.SpecsLine = specsLine(d)

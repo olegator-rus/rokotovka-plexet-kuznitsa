@@ -13,6 +13,7 @@ import (
 	"encoding/json"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"runtime/debug"
 	"syscall"
 	"time"
@@ -70,6 +71,7 @@ func main() {
 		ModelCacheSize: cfg.ModelCacheSize,
 		ModelCacheTTL:  cfg.ModelCacheTTL,
 		Source:         src,
+		PicturesFile:   picturesFile(cfg.DataMapping),
 		IndexAlias:     cfg.IndexAlias,
 		LLMMode:        cfg.LLM.Mode,
 
@@ -255,4 +257,13 @@ func newLogger(env string) *zap.Logger {
 	c := zap.NewDevelopmentConfig()
 	c.DisableStacktrace = true
 	return zap.Must(c.Build())
+}
+
+// picturesFile — картинки позиций фида (scripts/data/softline_feed.py пишет feed/pictures.json рядом с mapping.yaml);
+// у mock и без файла — пусто, карточки показывают значок производителя.
+func picturesFile(mapping string) string {
+	if mapping == "" {
+		return ""
+	}
+	return filepath.Join(filepath.Dir(mapping), "feed", "pictures.json")
 }

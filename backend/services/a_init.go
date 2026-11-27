@@ -105,6 +105,8 @@ type Options struct {
 	NoFallbackBlock bool
 	// UpsellTitle — заголовок блока допродажи (UPSELL_BLOCK_TITLE); пусто — «Дополните решение».
 	UpsellTitle string
+	// PicturesFile — JSON «id позиции → URL картинки» из фида заказчика; пусто или нет файла — картинок нет.
+	PicturesFile string
 	// UpsellRatio — UPSELL_SAME_VENDOR_MAX_RATIO: порог «тот же вендор» в блоке допродажи (0 — без порога).
 	UpsellRatio float64
 }
@@ -149,6 +151,7 @@ func NewServices(repos *repositories.Repos, opts Options) *Services {
 	if opts.IntentModel != nil || repos.Enabled() {
 		s.SetIntentParser(s.intent)
 	}
+	loadPictures(opts.PicturesFile)
 	return s
 }
 

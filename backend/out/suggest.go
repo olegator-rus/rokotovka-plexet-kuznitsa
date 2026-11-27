@@ -115,8 +115,8 @@ type PanelProduct struct {
 	VariantsCount int      `json:"variants_count"`
 	Exact         bool     `json:"exact"`
 	SKUExact      bool     `json:"sku_exact"`
-	// DeliveryLine — способ поставки оборудования из данных каталога (сроков поставки в данных нет); ImageURL — фото
-	// (в данных нет — null). §11.7.
+	// DeliveryLine — способ поставки оборудования из данных каталога (сроков поставки в данных нет); ImageURL — картинка
+	// позиции из фида заказчика (нет — null). §11.7.
 	DeliveryLine *string `json:"delivery_line"`
 	ImageURL     *string `json:"image_url"`
 }

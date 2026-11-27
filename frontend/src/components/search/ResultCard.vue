@@ -62,7 +62,7 @@ function toggle() {
   >
     <div class="result__row">
       <div class="result__main">
-        <VendorLogo :vendor="item.vendor" class="result__main-logo" />
+        <VendorLogo :vendor="item.vendor" :image="item.image_url" class="result__main-logo" />
         <h3 class="result__title">
           <button
             type="button"

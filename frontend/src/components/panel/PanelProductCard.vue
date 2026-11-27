@@ -19,9 +19,15 @@ const hardware = computed(() => props.product.kind === 'hardware')
 <template>
   <span class="ppc">
     <span v-if="hardware && product.image_url" class="ppc__media" aria-hidden="true">
-      <img :src="product.image_url" alt="" loading="lazy" class="ppc__img" />
+      <img
+        :src="product.image_url"
+        alt=""
+        loading="lazy"
+        referrerpolicy="no-referrer"
+        class="ppc__img"
+      />
     </span>
-    <VendorLogo v-else :vendor="product.vendor">
+    <VendorLogo v-else :vendor="product.vendor" :image="product.image_url">
       <HardDrive v-if="hardware" :size="18" />
       <Package v-else :size="18" />
     </VendorLogo>

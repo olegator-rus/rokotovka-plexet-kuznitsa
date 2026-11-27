@@ -186,7 +186,9 @@ type SearchItem struct {
 	AnalogNote string  `json:"analog_note,omitempty"`
 	// Контур фида (фид заказчика; в mock пусто и не выводится): страницы позиции, семейства и вендора на сайте,
 	// наличие, прежняя цена (скидка — при old_price_rub > price_rub > 0) и вид позиции по типу лицензии.
-	OfferURL    string   `json:"offer_url,omitempty"`
+	OfferURL string `json:"offer_url,omitempty"`
+	// ImageURL — картинка позиции из фида заказчика; пусто — карточка показывает значок производителя.
+	ImageURL    string   `json:"image_url,omitempty"`
 	FamilyURL   string   `json:"family_url,omitempty"`
 	VendorURL   string   `json:"vendor_url,omitempty"`
 	Available   *bool    `json:"available,omitempty"`
