@@ -54,6 +54,8 @@ export function guideMode(
   if (resp.help?.mode === 'answer') return 'search'
   if (resp.target?.type === 'service') return 'search'
   if (!resp.items?.length) return 'search'
+  // Выдача — оборудование («Комплектующие», «подобрать комп»): лицензию подбирать нечему.
+  if (resp.items[0]?.kind === 'hardware') return 'search'
   const p = resp.purchase
   if (p?.deal && p.quantity && p.duration_months) return 'search'
   const counted =
