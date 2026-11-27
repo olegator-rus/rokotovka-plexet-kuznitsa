@@ -31,13 +31,14 @@ type MonthlyParams struct {
 	AgentRunsMonth200k *float64
 }
 
-// Допущения по умолчанию (docs/COSTS.md): сервер 4 vCPU / 16 ГБ ≈ 7 500 ₽ при 20 тыс., 8 vCPU / 32 ГБ ≈ 15 000 ₽
-// при 200 тыс.; агент — раз в день (30) при 20 тыс. и 4 раза в день (120) при 200 тыс. Когда живых поисков нет —
-// доли и стоимость разбора тоже допущения.
+// Допущения по умолчанию (docs/COSTS.md): сервер при 20 тыс. и запусков агента в месяц — те же, что в расчёте
+// «На данных заказчика» (standInfraRub, agentRunsMonthBasis), чтобы стенд не стоил на двух экранах по-разному;
+// 8 vCPU / 32 ГБ ≈ 15 000 ₽ при 200 тыс., агент 4 раза в день (120). Когда живых поисков нет — доли и стоимость
+// разбора тоже допущения.
 const (
-	defaultServerRub20k   = 7500
+	defaultServerRub20k   = standInfraRub
 	defaultServerRub200k  = 15000
-	defaultAgentRunsMonth = 30
+	defaultAgentRunsMonth = agentRunsMonthBasis
 	defaultAgentRuns200k  = 120
 	assumedRouteDShare    = 0.2
 	assumedCacheHitShare  = 0.3
@@ -108,11 +109,11 @@ func computeMonthly(sum out.CostsSummary, _ []out.CostsRoute, runs []domain.Agen
 		costParam("agent_run_cost_rub", "Стоимость одного запуска агента", "₽",
 			fmt.Sprintf("Замер — средняя стоимость завершённых запусков агента (%d)", n), runCost, assumedAgentRunRub, nil),
 		costParam("agent_runs_month", "Запусков агента в месяц при 20 тыс. запросов", "шт.",
-			"Допущение — раз в день по расписанию", nil, defaultAgentRunsMonth, p.AgentRunsMonth),
+			"Допущение — ежедневно и около 10 по всплеску и изменению каталога", nil, defaultAgentRunsMonth, p.AgentRunsMonth),
 		costParam("agent_runs_month_200k", "Запусков агента в месяц при 200 тыс. запросов", "шт.",
 			"Допущение — 4 раза в день по расписанию", nil, defaultAgentRuns200k, p.AgentRunsMonth200k),
 		costParam("server_rub_20k", "Сервер при 20 тыс. запросов", "₽/мес",
-			"Допущение — 4 vCPU / 16 ГБ в Яндекс Облаке", nil, defaultServerRub20k, p.ServerRub20k),
+			"Допущение — "+standInfraHint, nil, defaultServerRub20k, p.ServerRub20k),
 		costParam("server_rub_200k", "Сервер при 200 тыс. запросов", "₽/мес",
 			"Допущение — 8 vCPU / 32 ГБ в Яндекс Облаке", nil, defaultServerRub200k, p.ServerRub200k),
 	}

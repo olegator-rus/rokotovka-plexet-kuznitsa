@@ -36,8 +36,8 @@ import {
   rateValue,
 } from '@/lib/evalPanel'
 import { shortHash } from '@/lib/evalView'
-import { formatDateTime, formatInt, formatPercent, plural } from '@/lib/format'
-import { catalogLabel, runTail } from '@/lib/feedSummary'
+import { formatInt, formatPercent, plural } from '@/lib/format'
+import { MOCK_RUN_LABEL, catalogLabel, isMockCatalog, runTail } from '@/lib/feedSummary'
 
 /** Значок исхода по коду сервера; незнакомый код — нейтральный кружок. */
 const OUTCOME_ICONS: Record<string, Component> = {
@@ -159,15 +159,18 @@ function sourcesLabel(src: Record<string, number> | undefined) {
       </div>
 
       <template v-else>
+        <p v-if="isMockCatalog(run.catalog_version)" class="panel t-sm pt__mock">
+          Прогон на каталоге «{{ MOCK_RUN_LABEL }}». Числа на фиде магазина —
+          <RouterLink :to="{ query: { tab: 'feed' } }">«На данных заказчика»</RouterLink>.
+        </p>
         <p class="t-sm pt__lead">
           Набор <strong>panel</strong>: {{ formatInt(run.prefixes) }}
           {{ plural(run.prefixes, ['префикс', 'префикса', 'префиксов']) }} — широкие, семейства,
           артикулы, раскладка, опечатки, дубли лицензий и запросы без результатов. Индекс подсказок
           построен на раннем периоде журнала, проверка — на позднем<template
-            v-if="run.split.late_from && run.split.late_to"
+            v-if="run.split.late_targets"
           >
-            ({{ formatDateTime(run.split.late_from) }} — {{ formatDateTime(run.split.late_to) }},
-            {{ formatInt(run.split.late_targets) }}
+            ({{ formatInt(run.split.late_targets) }}
             {{ plural(run.split.late_targets, ['цель', 'цели', 'целей']) }})</template
           >. Прежние подсказки собраны из всего журнала, как работают на витрине.
         </p>
@@ -586,6 +589,10 @@ function sourcesLabel(src: Record<string, number> | undefined) {
   .pt__outcome-done {
     grid-column: 1 / -1;
   }
+}
+.pt__mock {
+  padding: var(--space-3) var(--space-4);
+  color: var(--text-2);
 }
 .pt__notes {
   display: flex;

@@ -31,9 +31,16 @@ onMounted(async () => {
       :error="help.error.value"
       @retry="help.load()"
     />
-    <p v-else-if="help.data.value && !help.data.value.items.length" class="t-muted">
-      Статей справки пока нет — спросите менеджера.
-    </p>
+    <div
+      v-else-if="help.data.value && !help.data.value.items.length"
+      class="panel help-page__empty"
+    >
+      <p class="t-muted">
+        Статей справки на этом каталоге нет. Вопрос о заказе, оплате или лицензии задайте менеджеру
+        из спецификации — кнопка «Запросить КП».
+      </p>
+      <RouterLink to="/search" class="btn btn--secondary btn--sm">К поиску</RouterLink>
+    </div>
     <section
       v-for="a in help.data.value?.items ?? []"
       :id="`help-${a.id}`"
@@ -52,6 +59,12 @@ onMounted(async () => {
   display: grid;
   gap: var(--space-4);
   max-width: 72ch;
+}
+.help-page__empty {
+  display: grid;
+  justify-items: start;
+  gap: var(--space-3);
+  padding: var(--space-4) var(--space-5);
 }
 .help-page__item {
   display: grid;

@@ -1619,6 +1619,7 @@ paths:
                   running: { type: boolean }
                   done: { type: integer }
                   total: { type: integer }
+                  no_set: { type: boolean, description: "Набора запросов с разметкой нет — симуляции не на чем сравнивать выдачу" }
 components:
   securitySchemes:
     backofficeBearer:
@@ -2213,6 +2214,7 @@ components:
         price_rub: { type: [number, "null"] }
         price_on_request: { type: boolean }
         price_mode: { type: string, enum: [fixed, from, quote_required, customer_specific, unavailable] }
+        offer_url: { type: string, description: "карточка позиции в магазине («На сайте ↗»); пусто — адрес не собран" }
         origin: { type: string, enum: [ru, foreign, ""] }
         reestr:
           type: [object, "null"]

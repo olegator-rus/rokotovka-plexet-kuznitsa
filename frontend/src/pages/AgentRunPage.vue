@@ -71,6 +71,8 @@ const title = computed(() => {
   const r = run.value
   if (!r) return 'Запуск агента'
   if (r.query) return `Разбор запроса «${r.query}»`
+  if (r.mode === 'gaps') return 'Разбор пробелов подбора'
+  if (r.mode === 'commerce') return 'Проверка связей и правил лицензий'
   if (r.trigger === 'schedule') return 'Ночной разбор неудачных запросов'
   if (r.trigger === 'spike') return 'Разбор всплеска неудачных поисков'
   if (r.trigger === 'catalog_change') return 'Проверка после обновления каталога'

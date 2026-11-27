@@ -129,11 +129,27 @@ export function formatRub(rub: number): string {
   return formatCost(rub)
 }
 
-/** Дата и время ISO → «27.05.2026, 14:03» (местное время). Невалидная строка — как есть. */
-export function formatDateTime(iso: string | null | undefined): string {
+/** Время без календарной даты (даты в продукте не пишем): «сегодня, 14:03», «вчера, 14:03», «3 дня назад, 14:03»;
+ * будущее — «завтра, 03:00», «через 2 дня, 03:00». Невалидная строка — как есть. */
+export function formatDateTime(iso: string | null | undefined, now: Date = new Date()): string {
   if (!iso) return ''
   const d = new Date(iso)
   if (Number.isNaN(d.getTime())) return iso
-  const p = (n: number) => String(n).padStart(2, '0')
-  return `${p(d.getDate())}.${p(d.getMonth() + 1)}.${d.getFullYear()}, ${p(d.getHours())}:${p(d.getMinutes())}`
+  return `${dayAgo(d, now)}, ${hhmm(d)}`
+}
+
+const pad2 = (n: number) => String(n).padStart(2, '0')
+/** «14:03» по местному времени. */
+export const hhmm = (d: Date) => `${pad2(d.getHours())}:${pad2(d.getMinutes())}`
+
+/** День относительно now без даты: «сегодня», «вчера», «N дней назад», «завтра», «через N дней». */
+export function dayAgo(d: Date, now: Date = new Date()): string {
+  const day = (x: Date) => Date.UTC(x.getFullYear(), x.getMonth(), x.getDate())
+  const n = Math.round((day(now) - day(d)) / 86_400_000)
+  if (n === 0) return 'сегодня'
+  if (n === 1) return 'вчера'
+  if (n === -1) return 'завтра'
+  const k = Math.abs(n)
+  const days = `${k}${NBSP}${plural(k, ['день', 'дня', 'дней'])}`
+  return n > 0 ? `${days} назад` : `через ${days}`
 }

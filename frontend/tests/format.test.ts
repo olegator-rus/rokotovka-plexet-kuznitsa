@@ -101,9 +101,15 @@ test('formatRub: от 100 ₽ — целые с разрядами, меньше
   assert.equal(formatRub(0.0168), `0,0168${NBSP}₽`)
 })
 
-test('formatDateTime: ISO → дд.мм.гггг, чч:мм; мусор — как есть', () => {
-  const d = new Date(2026, 4, 27, 9, 5)
-  assert.equal(formatDateTime(d.toISOString()), '27.05.2026, 09:05')
+test('formatDateTime: без календарной даты — сегодня / вчера / N дней назад / завтра; мусор — как есть', () => {
+  const now = new Date(2026, 4, 27, 15, 0)
+  const at = (day: number, h: number, m: number) => new Date(2026, 4, day + 2, h, m).toISOString()
+  assert.equal(formatDateTime(at(25, 9, 5), now), 'сегодня, 09:05')
+  assert.equal(formatDateTime(at(24, 23, 59), now), 'вчера, 23:59')
+  assert.equal(formatDateTime(at(20, 9, 5), now), '5\u00a0дней назад, 09:05')
+  assert.equal(formatDateTime(at(26, 3, 0), now), 'завтра, 03:00')
+  assert.equal(formatDateTime(at(28, 3, 0), now), 'через 3\u00a0дня, 03:00')
+  assert.doesNotMatch(formatDateTime(at(1, 9, 5), now), /\d\d\.\d\d/)
   assert.equal(formatDateTime('не дата'), 'не дата')
   assert.equal(formatDateTime(null), '')
 })

@@ -415,7 +415,9 @@ export function ticketLines(p: Pick<Proposal, 'diagnosis' | 'evidence'>): string
     const empty = cur.filter((c) => c.empty).length
     if (empty === cur.length)
       out.push(
-        `Сейчас поиск отвечает «нет в каталоге» на все ${formatInt(cur.length)} ${qWord(cur.length)} кластера`,
+        cur.length === 1
+          ? 'Сейчас поиск отвечает «нет в каталоге» на запрос кластера'
+          : `Сейчас поиск отвечает «нет в каталоге» на все ${formatInt(cur.length)} ${qWord(cur.length)} кластера`,
       )
     else if (empty > 0)
       out.push(

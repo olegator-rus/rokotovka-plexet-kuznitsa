@@ -98,11 +98,13 @@ func (s *Services) marginSimKeyFor(set string) string {
 }
 
 // MarginSimulationStatus — GET /api/margin/simulate/status.
-func (s *Services) MarginSimulationStatus() out.MarginSimStatus {
+// NoSet — набора tune с разметкой нет: экран показывает причину и не зовёт симуляцию (иначе 503 на каждый заход).
+func (s *Services) MarginSimulationStatus(ctx context.Context) out.MarginSimStatus {
+	_, qerr := s.evalQueries(ctx, domain.EvalSetTune, nil)
 	st := &s.margin().sim
 	st.mu.Lock()
 	defer st.mu.Unlock()
-	return out.MarginSimStatus{Running: st.running, Done: st.done, Total: st.total}
+	return out.MarginSimStatus{Running: st.running, Done: st.done, Total: st.total, NoSet: qerr != nil}
 }
 
 // SimulateMargin — POST /api/margin/simulate.

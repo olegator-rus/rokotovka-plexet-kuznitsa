@@ -79,9 +79,33 @@ async function pollBuild() {
   building.value = null
   await loadSim()
 }
+// Набора с разметкой нет (статус no_set) — симуляцию не зовём, показываем причину. 503 без идущего сбора — тоже
+// не крутимся (раньше опрос шёл по кругу и экран навсегда оставался на «Собираем базовую выдачу»).
+const noSet = ref(false)
 async function loadSim() {
+  noSet.value = false
+  try {
+    if ((await getSimulateStatus()).no_set) {
+      building.value = null
+      noSet.value = true
+      return
+    }
+  } catch {
+    /* статус недоступен — пробуем симуляцию */
+  }
   await sim.load()
   if (sim.status.value === 'error' && sim.error.value?.status === 503) {
+    let running = true
+    try {
+      running = (await getSimulateStatus()).running
+    } catch {
+      /* статус недоступен — считаем, что сбор идёт */
+    }
+    if (!running) {
+      building.value = null
+      noSet.value = /разметк/i.test(sim.error.value?.message ?? '')
+      return
+    }
     building.value = building.value ?? { done: 0, total: 0 }
     buildTimer = setTimeout(pollBuild, 2000)
   }
@@ -301,6 +325,14 @@ async function confirmApply() {
           >. Это один раз на каталог, обычно до полуминуты.
         </span>
         <span v-else>Идёт прогон положений рычага на размеченном наборе…</span>
+      </div>
+      <div v-else-if="noSet && !simData" class="panel policy__empty" data-testid="policy-no-set">
+        <p class="t-h2">Песочнице не на чем сравнить выдачу</p>
+        <p class="t-muted">
+          Рычаг проверяется прогоном на наборе запросов с разметкой: выдача до и после, какие товары
+          сдвинулись. Для этих данных такого набора нет, поэтому прогон не выполняется и вес не
+          применяется. Действующий вес и защиты остаются прежними.
+        </p>
       </div>
       <BlockError
         v-else-if="sim.status.value === 'error' && !simData && !building"

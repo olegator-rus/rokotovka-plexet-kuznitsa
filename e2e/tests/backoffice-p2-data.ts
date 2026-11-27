@@ -262,6 +262,10 @@ export async function mockBackofficeP2(page: Page) {
     return json(r, policy)
   })
   await page.route(/\/api\/margin\/simulate$/, (r) => json(r, simulation))
+  // Статус сбора: набор с разметкой есть (на фиде без queries.json живой API отвечает no_set: true).
+  await page.route(/\/api\/margin\/simulate\/status$/, (r) =>
+    json(r, { running: false, done: 0, total: 0, no_set: false }),
+  )
   await page.route(/\/api\/relations(\?.*)?$/, (r) => json(r, relations))
   await page.route(/\/api\/relations\/versions$/, (r) => json(r, relationVersions))
   await page.route(/\/api\/relations\/rollback$/, (r) => {

@@ -186,6 +186,23 @@ test.describe('Бэк-офис П2', () => {
       '40 из 120 запросов',
     )
 
+    // Набора с разметкой нет — причина без вечного «Собираем…» и без вызова симуляции.
+    let simCalls = 0
+    await page.route(/\/api\/margin\/simulate$/, (r) => {
+      simCalls++
+      return r.abort()
+    })
+    await page.route(/\/api\/margin\/simulate\/status$/, (r) =>
+      r.fulfill({
+        contentType: 'application/json',
+        body: JSON.stringify({ running: false, done: 0, total: 0, no_set: true }),
+      }),
+    )
+    await page.goto('/margin')
+    await expect(page.getByTestId('policy-no-set')).toContainText('Песочнице не на чем сравнить выдачу')
+    await expect(page.getByText('Собираем базовую выдачу')).toHaveCount(0)
+    expect(simCalls).toBe(0)
+
     await page.route(/\/api\/relations(\?.*)?$/, (r) =>
       r.fulfill({ contentType: 'application/json', body: JSON.stringify({ version: 1, items: [] }) }),
     )

@@ -114,6 +114,8 @@ export interface MarginSimStatus {
   running: boolean
   done: number
   total: number
+  /** Набора запросов с разметкой нет — симуляцию не звать. */
+  no_set?: boolean
 }
 
 export interface MarginApplied {

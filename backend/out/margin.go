@@ -155,4 +155,6 @@ type MarginSimStatus struct {
 	Running bool `json:"running"`
 	Done    int  `json:"done"`
 	Total   int  `json:"total"`
+	// NoSet — набора запросов с разметкой нет: симуляции не на чем сравнивать выдачу (фид без queries.json).
+	NoSet bool `json:"no_set"`
 }

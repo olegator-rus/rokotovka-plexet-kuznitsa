@@ -533,9 +533,12 @@ const queriesWord = (n: number) => plural(n, ['запрос', 'запроса', 
   }
   .mrep__row-btn {
     grid-template-columns: minmax(0, 1fr) auto;
+    /* Статус — своей строкой: длинная подпись («не доразобрано: агент не дошёл до итога») во второй колонке
+       расширяла её и сжимала запрос до столбика букв, а частота наезжала на статус. */
     grid-template-areas:
       'q chev'
-      'freq status'
+      'freq freq'
+      'status status'
       'ev ev';
     padding: var(--space-3) 0;
   }
@@ -546,8 +549,9 @@ const queriesWord = (n: number) => plural(n, ['запрос', 'запроса', 
     justify-self: start;
   }
   .mrep__status {
+    justify-self: start;
     white-space: normal;
-    text-align: right;
+    text-align: left;
   }
 }
 </style>

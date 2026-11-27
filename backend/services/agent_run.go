@@ -142,8 +142,9 @@ func (a *agentService) execute(ctx context.Context, rs *runState) {
 	} else {
 		r.Summary = ""
 	}
-	r.Summary += fmt.Sprintf("Разобрано %s: %d из %d, предложений в очереди: %d, вызовов инструментов: %d, %d токенов, %.2f ₽",
-		unit, r.ClustersDone, r.ClustersTotal, r.ProposalsCreated, r.ToolCalls, r.InputTokens+r.OutputTokens, r.CostRub)
+	r.Summary += fmt.Sprintf("Разобрано %s: %d из %d, предложений в очереди: %d, вызовов инструментов: %d, %d токенов, %s ₽",
+		unit, r.ClustersDone, r.ClustersTotal, r.ProposalsCreated, r.ToolCalls, r.InputTokens+r.OutputTokens,
+		strings.Replace(fmt.Sprintf("%.2f", r.CostRub), ".", ",", 1))
 	if n, _ := rc.episode["clusters_limited"].(int); n > 0 {
 		r.Summary += fmt.Sprintf(". Упёрлись в лимит %d вызовов на кластер: %d", agentToolCallsPerCluster, n)
 	}

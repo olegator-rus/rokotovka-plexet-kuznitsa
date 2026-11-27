@@ -67,5 +67,5 @@ func (h *Handler) SimulateMargin(c *fiber.Ctx) error {
 
 // MarginSimulationStatus — GET /api/margin/simulate/status: прогресс сбора базовой выдачи.
 func (h *Handler) MarginSimulationStatus(c *fiber.Ctx) error {
-	return c.JSON(h.services.MarginSimulationStatus())
+	return c.JSON(h.services.MarginSimulationStatus(c.UserContext()))
 }

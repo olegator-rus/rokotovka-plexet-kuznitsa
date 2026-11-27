@@ -3,7 +3,7 @@
 // от ночного запуска 03:00 · M от всплеска 14:20». Без DOM: tests/agentRuns.test.ts.
 import type { AgentRun, Proposal } from '@/api/types'
 import type { BudgetAmounts, RunBudget, RunOutcome } from '@/api/typesAgent'
-import { formatDecimal, formatInt, formatMoney, plural, russianQuotes } from './format.ts'
+import { dayAgo, formatDecimal, formatInt, formatMoney, plural, russianQuotes } from './format.ts'
 
 export const TRIGGERS = [
   { id: 'schedule', label: 'расписание' },
@@ -68,7 +68,7 @@ export function runWhen(iso: string | null | undefined, now: Date = new Date()):
   const y = new Date(now)
   y.setDate(now.getDate() - 1)
   if (sameDay(d, y)) return `вчера ${hm}`
-  return `${p2(d.getDate())}.${p2(d.getMonth() + 1)}, ${hm}`
+  return `${dayAgo(d, now)}, ${hm}`
 }
 
 /** Запуск до контура автономии: без плана и бюджета, итог — только счётчики старой формы. */
@@ -82,6 +82,8 @@ export function planLine(run: AgentRun): string {
 
   if (s) return run.plan!.revision > 1 ? `${s} (редакция ${run.plan!.revision})` : s
   if (run.query) return `Разбор запроса «${run.query}»`
+  if (run.mode === 'gaps') return 'Пробелы подбора'
+  if (run.mode === 'commerce') return 'Связи и правила лицензий'
   return ''
 }
 

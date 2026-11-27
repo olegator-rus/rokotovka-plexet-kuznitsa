@@ -19,6 +19,7 @@ import (
 	"kuznica/api/in"
 	"kuznica/api/out"
 	"kuznica/api/pkg/errs"
+	"kuznica/api/repositories"
 
 	"go.uber.org/zap"
 )
@@ -342,7 +343,7 @@ func finishGuideTask(m *out.GuideEvalMetrics, per map[string][]out.GuideDialogRe
 func (s *Services) guideEvalDialog(ctx context.Context, d GuideDialog, run, idx int, tail string, lx *searchLexicon,
 	kb *guideEvalKB, c *guideChecks, res *GuideEvalResult) out.GuideDialogResult {
 	r := out.GuideDialogResult{Run: run, Pass: true, Types: []string{}}
-	session := fmt.Sprintf("gev%s-r%d-%02d", tail, run, idx)
+	session := fmt.Sprintf("%s%s-r%d-%02d", repositories.GuideEvalSessionPrefix, tail, run, idx)
 	var state *domain.GuideState
 	query, questions := "", 0
 	fail := func(turn int, why string) {

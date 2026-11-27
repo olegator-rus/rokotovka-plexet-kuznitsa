@@ -177,7 +177,7 @@ onBeforeUnmount(() => {
 
 <template>
   <section class="compare" aria-labelledby="compare-title">
-    <h2 id="compare-title" class="sr-only">До / После</h2>
+    <h2 id="compare-title" class="sr-only">Качество поиска</h2>
     <!-- Прогон оценки нужен там, где показываются его числа. -->
     <header v-if="auth.staff && (tab === 'metrics' || tab === 'regressions')" class="compare__head">
       <div v-if="auth.staff" class="compare__run">
@@ -321,8 +321,13 @@ onBeforeUnmount(() => {
         <p v-if="!columns.length" class="panel compare__empty">
           Прогон ещё не запускался — ухудшения считаются по его результатам.
         </p>
+        <p v-if="columns.length && mockOnly" class="panel t-sm compare__mock">
+          Прогон на каталоге «{{ MOCK_RUN_LABEL }}»: ухудшения между версиями поиска на нём. Числа
+          на фиде магазина —
+          <RouterLink :to="{ query: { tab: 'feed' } }">«На данных заказчика»</RouterLink>.
+        </p>
         <RegressionsList
-          v-else
+          v-if="columns.length"
           v-model:filter="regFilter"
           :columns="columns"
           @compare="onCompare"

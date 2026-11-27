@@ -80,6 +80,28 @@ test.describe('гость', () => {
     expect(posted[0]?.comment).toBe('Контакт: buyer@example.ru')
   })
 
+  test('360 px: выход из бэк-офиса, затем «Назад» — бэк-офис не показывается, только вход', async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 360, height: 780 })
+    await page.goto('/search')
+    await loginAs(page, PERSONA.head)
+    // Два экрана бэк-офиса в истории: выход заменяет текущий, «Назад» ведёт на предыдущий — /searchops?tab=report.
+    await page.goto('/searchops?tab=report')
+    await page.goto('/searchops?tab=memory')
+    await expect(page.getByRole('heading', { name: 'SearchOps', level: 1 })).toBeVisible()
+    await header(page)
+      .getByRole('button', { name: /Аккаунт: Сергей Орлов/ })
+      .click()
+    await page.getByRole('menuitem', { name: 'Выйти' }).click()
+    await expect(page).toHaveURL((u) => u.pathname === '/search')
+    await page.goBack()
+    await expect(page).toHaveURL(loginWith('/searchops?tab=report'))
+    await expect(page.getByRole('heading', { name: 'SearchOps', level: 1 })).toHaveCount(0)
+    const de = await page.evaluate(() => [document.documentElement.scrollWidth, innerWidth])
+    expect(de[0], 'экран входа без горизонтальной прокрутки').toBeLessThanOrEqual(de[1]!)
+  })
+
   test('вход по паролю без аккаунтов — одна фраза об ошибке, пароль очищен', async ({ page }) => {
     await page.goto('/login')
     await page.getByLabel('Логин').fill('nobody')
