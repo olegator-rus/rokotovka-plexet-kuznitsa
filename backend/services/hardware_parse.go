@@ -213,6 +213,13 @@ func (p *hwPlan) parse(nr normResult, attrs *queryAttrs) {
 			hasSoftware = true
 		}
 	}
+	// Вендор, у которого в каталоге нет оборудования («касперский на 50 устройств на год»): запрос о лицензиях,
+	// «устройств» — метрика, а не категория «Зарядные устройства».
+	for _, v := range p.lx.matchVendors(named, nil) {
+		if !hasSoftware && p.lx.softwareOnlyVendor(v, p.hx.hwCats) {
+			hasSoftware = true
+		}
+	}
 	for _, t := range tokens {
 		// Слово — главное в названии категории ПО («антивирус на 20 компьютеров»): количество — места лицензии.
 		if !hasSoftware && !lexStopWords[t] && p.lx.softwareCategoryWord(t, p.hx.hwCats) {

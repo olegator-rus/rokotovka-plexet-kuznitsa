@@ -54,7 +54,7 @@ var (
 )
 
 var licenseFacetLabels = map[string]string{
-	facetCategory: "Категория", facetVendor: "Вендор", facetLicType: "Тип лицензии", facetMetric: "Метрика", facetQuantity: "Количество",
+	facetCategory: "Категория", facetVendor: "Вендор", facetLicType: "Тип лицензии", facetMetric: "Метрика", facetQuantity: "Количество мест в лицензии",
 	facetDuration: "Срок", facetReestr: "Реестр российского ПО", facetPrice: "Цена", facetHasPrice: "Наличие цены",
 	facetDelivery: "Поставка",
 }
@@ -334,6 +334,7 @@ func licenseFacets(lx *searchLexicon, fams []*familyHit, fs []licFilter, named m
 			f.Type = "bool"
 		}
 		counts := map[string]int{}
+		qtyMetrics := quantityMetrics{}
 		values := map[string]any{}
 		labels := map[string]string{}
 		for _, fh := range fams {
@@ -349,7 +350,13 @@ func licenseFacets(lx *searchLexicon, fams []*familyHit, fs []licFilter, named m
 				seen[sk] = true
 				counts[sk]++
 				values[sk], labels[sk] = v, l
+				if key == facetQuantity {
+					qtyMetrics.add(sk, d)
+				}
 			}
+		}
+		if key == facetQuantity {
+			qtyMetrics.label(labels)
 		}
 		if len(counts) == 0 || len(counts) < 2 && !active[key] {
 			continue // одно значение у всех — выбирать не из чего
@@ -394,4 +401,51 @@ func sortFacetKeys(key string, keys []string, counts map[string]int, labels map[
 // filterLabel — «Срок: 1 год» для трассы и отказов.
 func filterLabel(f licFilter) string {
 	return fmt.Sprintf("%s %s %s", f.key, f.op, f.str)
+}
+
+// quantityMetrics — метрики позиций для каждого значения фасета «Количество»: число без единицы непонятно
+// (места? сотрудники? штуки?), поэтому подпись — «10 устройств», «5 пользователей»; метрики разные или
+// не указаны — «10 мест».
+type quantityMetrics map[string]map[string]bool
+
+func (q quantityMetrics) add(key string, d indexDoc) {
+	m := ""
+	if d.LicenseMetric != nil {
+		m = *d.LicenseMetric
+	}
+	if q[key] == nil {
+		q[key] = map[string]bool{}
+	}
+	q[key][m] = true
+}
+
+func (q quantityMetrics) label(labels map[string]string) {
+	// Одна метрика на весь фасет (позиции без метрики не мешают) — «10 устройств»; метрики разные — у всех
+	// значений «10 мест», чтобы рядом не стояли «3 устройства» и «4 места». Выбор в «Метрике» уточняет подписи.
+	metric := ""
+	for _, ms := range q {
+		for m := range ms {
+			switch {
+			case m == "":
+			case metric == "":
+				metric = m
+			case metric != m:
+				metric = "-"
+			}
+		}
+	}
+	if _, ok := metricForms[metric]; !ok || metric == "" {
+		metric = ""
+	}
+	for k := range q {
+		n, err := strconv.Atoi(k)
+		if err != nil {
+			continue
+		}
+		if metric != "" {
+			labels[k] = quantityLabel(n, metric)
+		} else {
+			labels[k] = fmt.Sprintf("%d %s", n, plural(n, [3]string{"место", "места", "мест"}))
+		}
+	}
 }

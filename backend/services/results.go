@@ -52,6 +52,8 @@ type resultsPlan struct {
 	all         []*familyHit
 	// filteredOut — фильтры сняли всё, хотя без них выдача была.
 	filteredOut bool
+	// queryRelaxed — срок или тип из запроса не применён: у точного совпадения такого нет (narrowByQuery).
+	queryRelaxed []out.Relaxed
 	// hx — характеристики оборудования (уточнения), hwKeys — ключи фильтров-характеристик запроса.
 	hx     *hardwareLexicon
 	hwKeys []string
@@ -126,36 +128,10 @@ func (p *resultsPlan) apply(rc rankCtx, fams []*familyHit, chips []out.Chip, que
 	p.facets = licenseFacets(rc.lx, fams, p.filters, named, isHardwareResult(fams), p.group == GroupNone)
 	res := fams
 	if len(p.filters) > 0 {
-		res = make([]*familyHit, 0, len(fams))
-		changed := false
-		for _, fh := range fams {
-			var heads []indexDoc
-			for _, d := range fh.heads {
-				if passAll(p.filters, d, "") {
-					heads = append(heads, d)
-				} else {
-					addRejected(rejected, d.ProductID, rejectFacet, "снята фильтром выдачи")
-				}
-			}
-			if len(heads) == 0 {
-				continue
-			}
-			cp := *fh
-			cp.heads = heads
-			if heads[0].ProductID != fh.head.ProductID {
-				cp.head, cp.headOK = heads[0], fh.fits[heads[0].ProductID]
-				rc.score(&cp)
-				changed = true
-			}
-			res = append(res, &cp)
-		}
-		if changed {
-			sortFamilies(res)
-			// Дописанные по фильтру категории или производителя — всегда после найденных поиском.
-			sort.SliceStable(res, func(i, j int) bool { return !isFill(res[i]) && isFill(res[j]) })
-		}
+		res = narrowFamilies(rc, fams, p.filters, rejected)
 		p.filteredOut = len(res) == 0 && len(fams) > 0
 	}
+	res = p.narrowByQuery(rc, res, chips, rejected)
 
 	taken := map[string]bool{}
 	for k := range named {

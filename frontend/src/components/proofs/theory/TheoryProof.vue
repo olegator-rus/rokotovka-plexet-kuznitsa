@@ -108,7 +108,7 @@ const GLOSSARY = [
 <template>
   <TheorySection id="quality">
     <p>
-      Качество меряется в двух местах. На вкладке
+      Всё описанное выше проверяется прогонами, и качество меряется в двух местах. На вкладке
       <RouterLink :to="{ path: '/proofs', query: { tab: 'feed' } }" class="theory-link"
         >«На данных заказчика»</RouterLink
       >

@@ -556,3 +556,18 @@ func (lx *searchLexicon) nameInQuery(fid string, tokens []string) bool {
 	}
 	return n > 0
 }
+
+// softwareOnlyVendor — у вендора есть семейства в каталоге, и ни одно не из категорий оборудования.
+func (lx *searchLexicon) softwareOnlyVendor(v string, hwCats map[string]bool) bool {
+	any := false
+	for f, fv := range lx.familyVendor {
+		if fv != v {
+			continue
+		}
+		if hwCats[lx.familyCat[f]] {
+			return false
+		}
+		any = true
+	}
+	return any
+}

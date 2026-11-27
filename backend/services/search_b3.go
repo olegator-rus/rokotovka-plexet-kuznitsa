@@ -597,6 +597,9 @@ func (s *Services) searchB3(ctx context.Context, requestID string, req in.Search
 
 	rp.setExact(trace.Route, routeStep.Signals, hw)
 	fams = rp.apply(rc, fams, resp.Chips, req.Query, &trace.Rejected)
+	if rp != nil {
+		resp.Relaxed = append(resp.Relaxed, rp.queryRelaxed...)
+	}
 	var marginStep *domain.MarginStep
 	if rp.marginAllowed() {
 		fams, marginStep = s.marginStage(ctx, cfg, rc, trace.Route, fams, opts)
