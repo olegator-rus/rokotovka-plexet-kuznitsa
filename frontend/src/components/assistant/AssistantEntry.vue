@@ -1,9 +1,10 @@
 <script setup lang="ts">
-// Вход в помощника у строки поиска (CHAT.md §1): кнопка со значком сообщения и подписью; точка — есть новый ответ.
+// Вход в помощника (CHAT.md §1; по решению владельца — круглая кнопка в правом нижнем углу вместо кнопки у
+// строки поиска): значок сообщения, подпись — для скринридера и подсказкой при наведении; точка — есть новый ответ.
 // Панель открывается только этим нажатием.
 import { MessageSquareText } from 'lucide-vue-next'
 
-defineProps<{ unread?: boolean; active?: boolean }>()
+defineProps<{ unread?: boolean }>()
 defineEmits<{ open: [] }>()
 </script>
 
@@ -11,58 +12,84 @@ defineEmits<{ open: [] }>()
   <button
     type="button"
     class="as-entry"
-    :aria-expanded="active"
-    aria-controls="assistant-panel"
+    aria-label="Помощник по выбору"
+    aria-haspopup="dialog"
     data-testid="assistant-entry"
     @click="$emit('open')"
   >
-    <MessageSquareText :size="18" aria-hidden="true" />
-    <span class="as-entry__label">Помощник по выбору</span>
-    <span v-if="unread && !active" class="as-entry__dot" data-testid="assistant-unread">
+    <MessageSquareText class="as-entry__icon" aria-hidden="true" />
+    <span class="as-entry__label" aria-hidden="true">Помощник по выбору</span>
+    <span v-if="unread" class="as-entry__dot" data-testid="assistant-unread">
       <span class="sr-only">есть новый ответ</span>
     </span>
   </button>
 </template>
 
 <style scoped>
+/* Подвал оставляет под кнопку место справа (стиль ниже): переключатель «Трасса» она не закрывает. */
 .as-entry {
-  position: relative;
-  display: inline-flex;
-  flex: none;
-  align-items: center;
-  gap: var(--space-2);
-  min-height: var(--search-h, var(--control-h));
-  padding: 0 var(--space-4);
-  border: var(--border-w) solid var(--hero-line, var(--border));
-  border-radius: var(--radius-control);
-  background: var(--hero-button, var(--surface));
-  color: var(--on-hero-button, var(--text));
-  font: inherit;
-  font-weight: var(--fw-semibold);
+  position: fixed;
+  right: calc(var(--fab-right) + env(safe-area-inset-right, 0px));
+  bottom: calc(var(--fab-bottom) + env(safe-area-inset-bottom, 0px));
+  z-index: 40;
+  display: grid;
+  place-items: center;
+  width: var(--fab-size);
+  height: var(--fab-size);
+  padding: 0;
+  border: var(--focus-w) solid var(--surface);
+  border-radius: var(--radius-pill);
+  background: var(--accent);
+  box-shadow: var(--shadow-overlay);
+  color: var(--on-accent);
   cursor: pointer;
-  white-space: nowrap;
+  transition: background var(--dur-fast) var(--ease-standard);
 }
 .as-entry:hover {
-  background: var(--hero-button-hover, var(--surface-2));
+  background: var(--accent-hover);
 }
 .as-entry:focus-visible {
   outline: var(--focus-w) solid var(--focus-ring);
   outline-offset: 2px;
 }
+.as-entry__icon {
+  width: 1.875rem;
+  height: 1.875rem;
+}
+.as-entry__label {
+  position: absolute;
+  top: 50%;
+  right: calc(100% + var(--space-3));
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-control);
+  background: var(--text);
+  color: var(--surface);
+  font-size: var(--fs-sm);
+  font-weight: var(--fw-semibold);
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(-50%);
+  transition: opacity var(--dur-fast) var(--ease-standard);
+}
+.as-entry:hover .as-entry__label,
+.as-entry:focus-visible .as-entry__label {
+  opacity: 1;
+}
 .as-entry__dot {
   position: absolute;
-  top: 6px;
-  right: 6px;
-  width: 9px;
-  height: 9px;
-  border-radius: 50%;
-  background: var(--accent);
-  box-shadow: 0 0 0 2px var(--hero-button, var(--surface));
+  top: 0;
+  right: 0;
+  width: var(--space-4);
+  height: var(--space-4);
+  border: var(--focus-w) solid var(--surface);
+  border-radius: var(--radius-pill);
+  background: var(--text);
 }
-@media (max-width: 639px) {
-  .as-entry {
-    justify-content: center;
-    min-height: var(--touch-min);
-  }
+</style>
+
+<style>
+body:has(.as-entry) .shell__footer {
+  padding-right: calc(var(--fab-right) + var(--fab-size) + var(--space-4));
 }
 </style>

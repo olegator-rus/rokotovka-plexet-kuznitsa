@@ -7,7 +7,17 @@
 // Сервер без полей §11.2 (флаг FEATURE_PANEL выключен) — прежний список групп контура коммерции.
 import { computed, nextTick, onBeforeUnmount, ref, shallowRef, watch } from 'vue'
 import { storeToRefs } from 'pinia'
-import { ArrowRight, CircleHelp, Clock, Folder, Plus, Search, TrendingUp, X } from 'lucide-vue-next'
+import {
+  ArrowRight,
+  CircleHelp,
+  Clock,
+  Folder,
+  Plus,
+  Search,
+  SearchX,
+  TrendingUp,
+  X,
+} from 'lucide-vue-next'
 import { getPanelRecs, getPanelSuggest } from '@/api/panel'
 import { postEvent } from '@/api/events'
 import type { EventType } from '@/api/types'
@@ -27,6 +37,7 @@ import { SHOWCASE } from '@/lib/showcase'
 import {
   DESKTOP_LIMITS,
   GROUP_LABELS,
+  bottomTogether,
   MOBILE_LIMITS,
   PANEL_DEBOUNCE_MS,
   PANEL_MIN_CHARS,
@@ -126,10 +137,6 @@ const offered = computed(() =>
   idle.value || !view.value ? [] : offeredRefinements(view.value.refinements, applied.value),
 )
 const products = computed<PanelProduct[]>(() => (idle.value ? [] : (view.value?.products ?? [])))
-/** «Вместе с этим» под первым товаром (§16.8); у товаров прежнего запроса не показываем. */
-const together = computed<PanelTogether[]>(() =>
-  idle.value || productsStale.value ? [] : (view.value?.together ?? []),
-)
 /** Место под товары держим, пока они могут прийти: ждём ответ или сервер не успел (partial). */
 const productsSlot = computed(
   () =>
@@ -147,6 +154,15 @@ const recsShown = computed(() =>
   recs.value?.items?.length && (SHOWCASE.personalization || recs.value.basis !== 'viewed')
     ? recs.value
     : null,
+)
+
+/** Дополнения к первому товару (§16.8) — в нижнем блоке панели; у товаров прежнего запроса не показываем. */
+const together = computed<PanelTogether[]>(() =>
+  bottomTogether(
+    idle.value || productsStale.value ? [] : (view.value?.together ?? []),
+    recsShown.value,
+    limits.value.recs,
+  ),
 )
 
 const options = computed<PanelOption[]>(() =>
@@ -179,6 +195,29 @@ const emptyLine = computed(
     !pending.value &&
     (failed.value || (view.value ? isEmptyView(view.value) && !legacyGroups.value?.length : false)),
 )
+/**
+ * Ни подсказок, ни товаров (обычно после уточнения, под которое быстрый поиск ничего не нашёл): вместо пустой
+ * панели — объяснение и снятие уточнения. Производители, категории и «Все результаты» остаются ниже.
+ */
+const noMatches = computed(
+  () =>
+    !idle.value &&
+    !pending.value &&
+    !failed.value &&
+    !productsStale.value &&
+    view.value !== null &&
+    !view.value.legacy &&
+    !view.value.partial &&
+    !view.value.suggestions.length &&
+    !products.value.length,
+)
+const appliedNames = computed(() =>
+  applied.value.map((r) => `«${r.label.replace(/^\+\s*/, '')}»`).join(', '),
+)
+function clearRefinements() {
+  for (const r of [...applied.value]) onRefinementRemove(r)
+}
+
 const hasContent = computed(() => {
   if (idle.value) return options.value.length > 0
   return Boolean(view.value) || failed.value || applied.value.length > 0
@@ -918,6 +957,34 @@ const popularCache = vueRef<Sugg[] | null>(null)
         </button>
       </div>
 
+      <div v-if="noMatches" class="sp__none" role="status" data-testid="panel-no-matches">
+        <span class="sp__none-badge" aria-hidden="true"><SearchX :size="22" /></span>
+        <div class="sp__none-text">
+          <p class="sp__none-title">
+            {{
+              applied.length
+                ? `С уточнением ${appliedNames} быстрых совпадений нет`
+                : 'Быстрых совпадений нет'
+            }}
+          </p>
+          <p class="sp__none-hint t-sm t-muted">
+            {{
+              applied.length
+                ? 'Уберите уточнение или посмотрите все результаты по каталогу.'
+                : 'Посмотрите все результаты по каталогу или измените запрос.'
+            }}
+          </p>
+        </div>
+        <button
+          v-if="applied.length"
+          type="button"
+          class="btn btn--secondary btn--sm sp__none-action"
+          @click="clearRefinements"
+        >
+          {{ applied.length > 1 ? 'Убрать уточнения' : 'Убрать уточнение' }}
+        </button>
+      </div>
+
       <div
         :id="listId"
         role="listbox"
@@ -1144,37 +1211,6 @@ const popularCache = vueRef<Sugg[] | null>(null)
                   <PanelProductCard :product="p" />
                 </div>
                 <div
-                  v-if="i === 0 && together.length"
-                  class="sp__together"
-                  role="none"
-                  data-testid="panel-together"
-                >
-                  <span class="sp__together-label t-xs" aria-hidden="true">
-                    {{ GROUP_LABELS.together }}
-                  </span>
-                  <div
-                    v-for="(t, j) in together"
-                    :id="oid('together', j)"
-                    :key="`tg-${t.product_id}`"
-                    role="option"
-                    :aria-selected="isActive(oid('together', j))"
-                    :aria-label="`Вместе с этим: ${t.family_name || t.title}`"
-                    :class="['sp__tg', { 'is-active': isActive(oid('together', j)) }]"
-                    :data-level="t.level"
-                    @click="pick(oid('together', j))"
-                  >
-                    <span class="sp__tg-line">
-                      <span class="sp__tg-title t-sm">{{ t.family_name || t.title }}</span>
-                      <strong
-                        v-if="t.price_rub != null && t.price_rub > 0"
-                        class="sp__tg-price t-sm t-num"
-                        >{{ formatPrice(t.price_rub) }}</strong
-                      >
-                    </span>
-                    <span class="sp__tg-why t-xs">{{ togetherReason(t) }}</span>
-                  </div>
-                </div>
-                <div
                   v-if="p.sku_exact && has(oid('product_add', 0))"
                   :id="oid('product_add', 0)"
                   role="option"
@@ -1190,13 +1226,48 @@ const popularCache = vueRef<Sugg[] | null>(null)
           </div>
         </template>
 
-        <p v-if="emptyLine" class="sp__empty t-sm t-muted sp__sec-empty">
+        <p v-if="emptyLine && !noMatches" class="sp__empty t-sm t-muted sp__sec-empty">
           Нажмите Enter, чтобы искать по всему каталогу
         </p>
 
         <!-- Блок рекомендаций: заголовок по основанию, «почему» — ссылка на /rules -->
         <div
-          v-if="recsShown"
+          v-if="together.length"
+          class="sp__group sp__recs sp__sec-recs"
+          role="group"
+          :aria-labelledby="`${uid}-g-together`"
+          data-testid="panel-together"
+        >
+          <div class="sp__glabel sp__glabel--strong t-sm" role="presentation">
+            <span :id="`${uid}-g-together`">{{ GROUP_LABELS.interest }}</span>
+          </div>
+          <div class="sp__recs-list sp__recs-list--together">
+            <div v-for="(t, j) in together" :key="`tg-${t.product_id}`" class="sp__rec-wrap">
+              <VendorLogo :vendor="t.vendor" class="sp__rec-logo" />
+              <div
+                :id="oid('together', j)"
+                role="option"
+                :aria-selected="isActive(oid('together', j))"
+                :aria-label="`Вместе с этим: ${t.family_name || t.title}`"
+                :class="['sp__rec', { 'is-active': isActive(oid('together', j)) }]"
+                :data-level="t.level"
+                @click="pick(oid('together', j))"
+              >
+                <span class="sp__rec-title t-sm">{{ t.family_name || t.title }}</span>
+                <span class="sp__rec-meta t-xs t-muted">
+                  <strong
+                    v-if="t.price_rub != null && t.price_rub > 0"
+                    class="sp__rec-price t-num"
+                    >{{ formatPrice(t.price_rub) }}</strong
+                  >
+                  <span>{{ togetherReason(t) }}</span>
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div
+          v-else-if="recsShown"
           class="sp__group sp__recs sp__sec-recs"
           role="group"
           :aria-labelledby="`${uid}-g-recs`"
@@ -1340,7 +1411,7 @@ const popularCache = vueRef<Sugg[] | null>(null)
   outline: none;
 }
 .sp__input::placeholder {
-  color: var(--text-3);
+  color: var(--placeholder);
   opacity: 1;
 }
 .sp__clear {
@@ -1472,7 +1543,7 @@ const popularCache = vueRef<Sugg[] | null>(null)
 }
 .sp__card--two .sp__left {
   grid-area: left;
-  padding: var(--space-3) var(--space-2);
+  padding: var(--space-1) 0;
   background: var(--surface-2);
 }
 .sp__card--two .sp__right {
@@ -1607,8 +1678,8 @@ const popularCache = vueRef<Sugg[] | null>(null)
 .sp__sec-vendors .sp__opt {
   min-height: var(--control-h-sm);
   gap: var(--space-2);
-  padding-inline: var(--space-2) var(--space-3);
-  margin-left: var(--space-2);
+  /* Значок и текст плашки стоят на тех же вертикалях, что у кнопки «Все результаты». */
+  padding-inline: var(--space-4) var(--space-4);
   border-color: var(--border);
   border-radius: var(--radius-pill);
   background: var(--surface);
@@ -1687,63 +1758,17 @@ const popularCache = vueRef<Sugg[] | null>(null)
   border-color: var(--accent);
 }
 
-/* «Вместе с этим» — одна-две тихие строки под первым товаром: название и цена, причина мелко */
-.sp__together {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  min-width: 0;
-  margin: 0 0 var(--space-1) var(--space-5);
-  padding-left: var(--space-2);
-  border-left: var(--border-w) solid var(--border);
+/* Одна левая линия на всю панель — как у «Уточнить» (space-4): подписи, значки строк списков, края плашек,
+   карточек и кнопки «Все результаты». У строк списков подсветка шире текста, поэтому поле группы у них меньше. */
+.sp__card .sp__left > .sp__group.sp__sec-sugg,
+.sp__card .sp__left > .sp__group.sp__sec-cats {
+  padding: var(--space-2) var(--space-1) 0;
 }
-.sp__together-label {
-  padding: 0 var(--space-2);
-  color: var(--text-3);
+.sp__card .sp__left > .sp__group.sp__sec-vendors {
+  padding: var(--space-2) var(--space-4) var(--space-3);
 }
-.sp__tg {
-  display: flex;
-  flex-direction: column;
-  gap: 1px;
-  min-width: 0;
-  padding: var(--space-1) var(--space-2);
-  border: var(--border-w) solid transparent;
-  border-radius: var(--radius-control);
-  cursor: pointer;
-}
-.sp__tg:hover {
-  background: var(--surface-3);
-}
-.sp__tg.is-active {
-  background: var(--surface-3);
-  border-color: var(--accent);
-}
-.sp__tg-line {
-  display: flex;
-  align-items: baseline;
-  gap: var(--space-2);
-  min-width: 0;
-}
-.sp__tg-title {
-  flex: 1;
-  min-width: 0;
-  overflow: hidden;
-  color: var(--text);
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.sp__tg-price {
-  flex: none;
-  color: var(--text);
-}
-.sp__tg-why {
-  display: -webkit-box;
-  overflow: hidden;
-  color: var(--text-2);
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
-  line-clamp: 2;
-  overflow-wrap: anywhere;
+.sp__card .sp__sec-vendors .sp__label {
+  padding-inline: 0;
 }
 
 /* «В спецификацию» у точного артикула — широкая кнопка под строкой товара */
@@ -1770,7 +1795,7 @@ const popularCache = vueRef<Sugg[] | null>(null)
 
 /* Рекомендации: три компактные карточки, кнопка «+» внутри карточки */
 .sp__card > .sp__recs {
-  padding: var(--space-3) var(--space-3);
+  padding: var(--space-3) var(--space-4);
   border-top: var(--border-w) solid var(--border);
 }
 .sp__why {
@@ -1789,8 +1814,20 @@ const popularCache = vueRef<Sugg[] | null>(null)
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: var(--space-2);
 }
+.sp__glabel.sp__glabel--strong {
+  margin-bottom: var(--space-2);
+  color: var(--text);
+  font-weight: var(--fw-bold);
+}
+.sp__recs-list--together {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+.sp__recs-list--together .sp__rec-wrap {
+  padding-right: 0;
+}
 @media (max-width: 767px) {
-  .sp__recs-list {
+  .sp__recs-list,
+  .sp__recs-list--together {
     grid-template-columns: minmax(0, 1fr);
   }
 }
@@ -1845,6 +1882,39 @@ const popularCache = vueRef<Sugg[] | null>(null)
   padding: 0;
 }
 
+.sp__none {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3) var(--space-4);
+  padding: var(--space-4);
+  border-bottom: var(--border-w) solid var(--border);
+}
+.sp__none-badge {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: var(--touch-min);
+  height: var(--touch-min);
+  border-radius: var(--radius-pill);
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+.sp__none-text {
+  flex: 1 1 14rem;
+  min-width: 0;
+}
+.sp__none-title {
+  margin: 0;
+  font-weight: var(--fw-bold);
+  overflow-wrap: anywhere;
+}
+.sp__none-hint {
+  margin: 2px 0 0;
+}
+.sp__none-action {
+  flex: none;
+}
 .sp__empty {
   margin: 0;
 }
@@ -1857,7 +1927,7 @@ const popularCache = vueRef<Sugg[] | null>(null)
   align-items: center;
   gap: var(--space-3);
   min-height: var(--touch-min);
-  margin: 0 var(--space-3) var(--space-3);
+  margin: 0 var(--space-4) var(--space-3);
   padding: 0 var(--space-4);
   border-radius: var(--radius-pill);
   background: var(--surface-2);

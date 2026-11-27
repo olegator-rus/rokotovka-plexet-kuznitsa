@@ -6,7 +6,7 @@ import { computed, nextTick, onUnmounted, ref, shallowRef, watch } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useRoute, useRouter } from 'vue-router'
 import { DialogContent, DialogOverlay, DialogPortal, DialogRoot, DialogTitle } from 'reka-ui'
-import { Headset, Info, ShieldAlert, SlidersHorizontal } from 'lucide-vue-next'
+import { Headset, Info, ShieldAlert } from 'lucide-vue-next'
 import { postEvent } from '@/api/events'
 import { postSearch } from '@/api/search'
 import type {
@@ -52,7 +52,7 @@ import {
   hasMatchTypes,
   targetView,
 } from '@/lib/matchGroups'
-import { SHOWCASE } from '@/lib/showcase'
+import { SHOWCASE, SHOW_ASSISTANT_INVITE, SHOW_TARGET_CARD } from '@/lib/showcase'
 import type { Refinement, ResultsGroup, ResultsSort } from '@/api/typesResults'
 import {
   FLAT_PAGE,
@@ -458,6 +458,10 @@ const conditionalNote = computed(
 )
 // ── Контур фида: цель и группы по ступени лестницы. Без match_type — раскладка контура выдачи. ──
 const target = computed(() => targetView(response.value?.target))
+/** Что из «цели» показывается: скрытой карточке остаётся только кнопка менеджера — это действие, а не ссылка. */
+const targetCard = computed(() =>
+  SHOW_TARGET_CARD || target.value?.action === 'manager' ? target.value : null,
+)
 /** Чипы производителей (§16.6): под целью; без цели — отдельной строкой. Нажатие — новый поиск по `query` чипа. */
 const clarifications = computed(() => response.value?.clarifications ?? [])
 /**
@@ -770,15 +774,13 @@ function onComplement(type: 'add_to_cart' | 'price_request', c: Complement, inde
     )
 }
 
-// ── Контур помощника: помощник по выбору (CHAT.md). Панель справа 440 px рядом с выдачей; уже 1024 px — на весь экран.
-// Открывается ТОЛЬКО нажатием покупателя: кнопка у строки поиска, строка-приглашение над выдачей, вход со страницы
+// ── Контур помощника: помощник по выбору (CHAT.md). Плавающее окно поверх выдачи; уже 1024 px — на весь экран.
+// Открывается ТОЛЬКО нажатием покупателя: круглая кнопка в углу, строка-приглашение над выдачей, вход со страницы
 // продукта (тоже нажатие). Ни запрос, ни загрузка страницы, ни «ничего не найдено» панель не открывают. ──
 const assistant = useAssistant()
 const assistantWide = useMediaQuery(DESKTOP_QUERY)
-const assistantDocked = computed(() => assistant.open.value && assistantWide.value)
+const assistantFloating = computed(() => assistant.open.value && assistantWide.value)
 const assistantFull = computed(() => assistant.open.value && !assistantWide.value)
-/** Фильтры выдачи при открытой панели свёрнуты в кнопку там, где колонке не хватает ширины. */
-const facetsOpen = ref(false)
 /** Общий запрос (категория, задача, число мест без продукта, вопрос) — строка-приглашение над выдачей. */
 const inviteShown = computed(() => {
   const resp = response.value
@@ -816,39 +818,24 @@ watch(
   },
   { immediate: true },
 )
-watch(response, () => {
-  facetsOpen.value = false
-})
-/** Панель справа: высота — от её верха до низа окна, поле ввода всегда видно (страница могла не прокрутиться). */
-const assistantAside = ref<HTMLElement | null>(null)
-let fitFrame = 0
-function fitAssistantAside() {
-  cancelAnimationFrame(fitFrame)
-  fitFrame = requestAnimationFrame(() => {
-    const el = assistantAside.value
-    if (!el) return
-    const top = Math.max(0, el.getBoundingClientRect().top)
-    el.style.height = `${Math.max(320, window.innerHeight - top)}px`
-  })
-}
-watch(assistantAside, (el) => {
-  window.removeEventListener('scroll', fitAssistantAside)
-  window.removeEventListener('resize', fitAssistantAside)
-  if (!el) return
-  window.addEventListener('scroll', fitAssistantAside, { passive: true })
-  window.addEventListener('resize', fitAssistantAside)
-  fitAssistantAside()
-})
-watch(status, () => fitAssistantAside())
+/** После закрытия фокус возвращается на круглую кнопку (пока окно открыто, она скрыта). */
+const assistantButton = ref<InstanceType<typeof AssistantEntryButton> | null>(null)
+watch(
+  () => assistant.open.value,
+  async (open) => {
+    if (open) return
+    await nextTick()
+    if (document.activeElement === document.body) {
+      ;(assistantButton.value?.$el as HTMLElement | undefined)?.focus({ preventScroll: true })
+    }
+  },
+)
 // На весь экран (телефон): прокручивается только лента помощника, страница под ним стоит.
 watch(assistantFull, (on) => {
   if (typeof document !== 'undefined') document.documentElement.style.overflow = on ? 'hidden' : ''
 })
 onUnmounted(() => {
   if (typeof document !== 'undefined') document.documentElement.style.overflow = ''
-  window.removeEventListener('scroll', fitAssistantAside)
-  window.removeEventListener('resize', fitAssistantAside)
-  cancelAnimationFrame(fitFrame)
 })
 
 /** «Показать все N в поиске» — выдача слева перестраивается; на телефоне панель закрывается. */
@@ -923,23 +910,13 @@ async function onSupply() {
     <div :class="['search-hero on-hero', { 'search-hero--idle': status === 'idle' }]">
       <div class="search-hero__inner">
         <h1 class="sr-only">Поиск по каталогу</h1>
-        <p v-if="status === 'idle'" class="search-hero__title">
-          Лицензии и оборудование для бизнеса
-        </p>
-        <div class="search-hero__row">
-          <SearchPanel
-            ref="box"
-            v-model="text"
-            class="search-hero__panel"
-            :client-id="state.client ?? GUEST_CLIENT_ID"
-            @submit="onPanelSubmit"
-          />
-          <AssistantEntryButton
-            :unread="assistant.unread.value"
-            :active="assistant.open.value"
-            @open="openAssistant"
-          />
-        </div>
+        <SearchPanel
+          ref="box"
+          v-model="text"
+          class="search-hero__panel"
+          :client-id="state.client ?? GUEST_CLIENT_ID"
+          @submit="onPanelSubmit"
+        />
         <LlmModeNote />
       </div>
     </div>
@@ -949,7 +926,6 @@ async function onSupply() {
         'search-page__cols',
         {
           'search-page__cols--trace': state.trace && isDesktop,
-          'search-page__cols--guide': assistantDocked,
         },
       ]"
     >
@@ -979,11 +955,11 @@ async function onSupply() {
             {{ formatFound(response.total, response.trace?.total_ms) }} · {{ response.config }}
           </p>
 
-          <AssistantInvite v-if="inviteShown" @start="onInvite" />
+          <AssistantInvite v-if="SHOW_ASSISTANT_INVITE && inviteShown" @start="onInvite" />
 
           <TargetCard
-            v-if="target && !helpShown"
-            :target="target"
+            v-if="targetCard && !helpShown"
+            :target="targetCard"
             :chips="clarifications"
             :filterable="Boolean(targetCategory)"
             @manager="managerOpen = true"
@@ -1135,25 +1111,11 @@ async function onSupply() {
               'search-page__body',
               {
                 'search-page__body--facets': resultsOn ? showResultFacets : showFacets,
-                'search-page__body--fold': assistantDocked,
-                'search-page__body--fold-open': assistantDocked && facetsOpen,
                 'search-page__body--busy': refreshing,
               },
             ]"
             :aria-busy="refreshing || undefined"
           >
-            <button
-              v-if="assistantDocked && (resultsOn ? showResultFacets : showFacets)"
-              type="button"
-              class="btn btn--secondary btn--sm search-page__filters-btn"
-              :aria-expanded="facetsOpen"
-              data-testid="filters-toggle"
-              @click="facetsOpen = !facetsOpen"
-            >
-              <SlidersHorizontal :size="16" aria-hidden="true" />
-              {{ facetsOpen ? 'Скрыть фильтры' : 'Фильтры' }}
-              <span v-if="filters.length" class="t-num">· {{ filters.length }}</span>
-            </button>
             <ResultsFacets
               v-if="resultsOn && showResultFacets"
               class="search-page__facets"
@@ -1554,12 +1516,7 @@ async function onSupply() {
         <SearchStart v-else @search="submit" />
       </div>
 
-      <aside
-        v-if="assistantDocked"
-        ref="assistantAside"
-        class="search-page__guide"
-        aria-label="Помощник по выбору"
-      >
+      <aside v-if="assistantFloating" class="search-page__guide" aria-label="Помощник по выбору">
         <AssistantPanel
           :session="assistant"
           :spec-count="spec.count"
@@ -1570,6 +1527,12 @@ async function onSupply() {
           @quote="onAssistantQuote"
         />
       </aside>
+      <AssistantEntryButton
+        v-if="!assistant.open.value"
+        ref="assistantButton"
+        :unread="assistant.unread.value"
+        @open="openAssistant"
+      />
       <AssistantPanel
         v-if="assistantFull"
         :session="assistant"
@@ -1642,14 +1605,6 @@ async function onSupply() {
 .search-hero--idle .search-hero__inner {
   padding-block: var(--space-4);
 }
-.search-hero__title {
-  margin: 0 0 var(--space-5);
-  font-size: var(--fs-hero);
-  line-height: 1.12;
-  font-weight: var(--fw-medium);
-  letter-spacing: -0.025em;
-  text-wrap: balance;
-}
 .search-page__cols {
   display: flex;
   flex: 1;
@@ -1667,50 +1622,43 @@ async function onSupply() {
   margin-inline: auto;
   padding: var(--space-4) var(--gutter) var(--space-12);
 }
-.search-page__cols--trace .search-page__main,
-.search-page__cols--guide .search-page__main {
+.search-page__cols--trace .search-page__main {
   max-width: none;
 }
-/* Помощник справа от выдачи (CHAT.md §2): 440 px (минимум 400), вся высота под шапкой, своя прокрутка ленты. */
+/* Помощник — плавающее окно поверх выдачи в правом нижнем углу: выдача под ним не сжимается, прокручивается
+   только лента разговора. Ниже диалогов и панели спецификации (z-index 50+). */
 .search-page__guide {
-  position: sticky;
-  top: var(--header-actual, var(--header-h));
-  align-self: flex-start;
-  flex: none;
-  box-sizing: border-box;
+  position: fixed;
+  right: calc(var(--gutter) + env(safe-area-inset-right, 0px));
+  bottom: calc(var(--gutter) + env(safe-area-inset-bottom, 0px));
+  z-index: 45;
   display: flex;
   flex-direction: column;
-  width: clamp(25rem, 34vw, 27.5rem);
-  height: calc(100dvh - var(--header-actual, var(--header-h)));
-  border-left: var(--border-w) solid var(--border);
+  width: var(--chat-w);
+  height: min(
+    var(--chat-h),
+    calc(100dvh - var(--header-actual, var(--header-h)) - 2 * var(--gutter))
+  );
+  overflow: hidden;
+  border: var(--border-w) solid var(--border);
+  border-radius: var(--radius-panel);
   background: var(--surface);
+  box-shadow: var(--shadow-overlay);
+  animation: guide-in var(--dur-panel) var(--ease-standard);
 }
-.search-hero__row {
-  display: flex;
-  align-items: stretch;
-  gap: var(--space-2);
+@keyframes guide-in {
+  from {
+    opacity: 0;
+    transform: translateY(var(--space-4));
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .search-page__guide {
+    animation: none;
+  }
 }
 .search-hero__panel {
-  flex: 1;
   min-width: 0;
-}
-@media (max-width: 639px) {
-  .search-hero__row {
-    flex-direction: column;
-  }
-}
-/* Кнопка «Фильтры» — только там, где при открытом подборе колонке не хватает ширины на панель фильтров. */
-.search-page__filters-btn {
-  display: none;
-  align-self: flex-start;
-}
-@container (max-width: 51.999rem) {
-  .search-page__body--fold > .search-page__filters-btn {
-    display: inline-flex;
-  }
-  .search-page__body--fold:not(.search-page__body--fold-open) > .search-page__facets {
-    display: none;
-  }
 }
 .search-page__found {
   min-height: var(--lh-sm);

@@ -205,6 +205,7 @@ export const GROUP_LABELS = {
   vendors: 'Производители',
   products: 'Товары',
   together: 'Вместе с этим',
+  interest: 'Вам может быть интересно',
   recs: 'Рекомендации',
   all: 'Все результаты',
 } as const
@@ -216,12 +217,42 @@ const optId = (kind: OptionKind, i: number) => `panel-opt-${kind}-${i}`
  * рекомендации и «Все результаты». На мобильном порядок экрана другой: подсказки, товары, категории и
  * производители, «Все результаты», рекомендации.
  */
+/**
+ * Что стоит в нижнем блоке панели: дополнения к первому товару («Вместе с этим»). Проверенные дополнения к
+ * спецификации и к точному артикулу важнее — тогда пусто, и блок показывает их; подборка по категории уступает.
+ */
+export function bottomTogether(
+  together: PanelTogether[],
+  recs: PanelRecs | null,
+  limit: number,
+): PanelTogether[] {
+  if (recs?.items?.length && (recs.basis === 'spec' || recs.basis === 'exact_sku')) return []
+  return together.slice(0, limit)
+}
+
 export function buildOptions(input: OptionsInput): PanelOption[] {
   const out: PanelOption[] = []
   const push = (o: Omit<PanelOption, 'id'>) =>
     out.push({ ...o, id: optId(o.kind, out.filter((x) => x.kind === o.kind).length) })
 
   const recsPart = () => {
+    const together = bottomTogether(
+      input.idle || input.productsStale || input.legacyRows ? [] : (input.view?.together ?? []),
+      input.recs,
+      input.recsLimit,
+    )
+    if (together.length) {
+      together.forEach((t, j) =>
+        push({
+          kind: 'together',
+          group: GROUP_LABELS.together,
+          label: t.family_name || t.title,
+          together: t,
+          position: j + 1,
+        }),
+      )
+      return
+    }
     if (!input.recs?.items?.length) return
     const group = input.recs.title || GROUP_LABELS.recs
     input.recs.items.slice(0, input.recsLimit).forEach((rec, i) => {
@@ -321,16 +352,6 @@ export function buildOptions(input: OptionsInput): PanelOption[] {
           product: p,
           position: i + 1,
         })
-      if (i === 0)
-        v.together.forEach((t, j) =>
-          push({
-            kind: 'together',
-            group: GROUP_LABELS.together,
-            label: t.family_name || t.title,
-            together: t,
-            position: j + 1,
-          }),
-        )
     })
   }
   const all = () => {

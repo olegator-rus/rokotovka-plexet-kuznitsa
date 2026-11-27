@@ -50,10 +50,7 @@ test.describe("Поиск", () => {
         .filter({ hasText: /Найдено|\d+ продукт/ })
         .first(),
     ).toBeVisible();
-    // Цель — первый кликабельный элемент: страница выбранной позиции на сайте; сама позиция — среди точных.
-    await expect(page.getByTestId("target-link")).toContainText(
-      "Windows 11 Pro",
-    );
+    // Карточка «цели» скрыта по решению владельца — сама позиция стоит среди точных.
     await expect(
       page
         .locator('[data-match-group="exact"]')

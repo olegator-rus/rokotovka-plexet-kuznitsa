@@ -70,6 +70,11 @@ test('выбранный фильтр и «Сбросить» на мягкой 
   assert.ok(ratio('text-3', 'accent-soft') >= 4.5)
 })
 
+test('подсказка в пустом поле: светлее третичного текста, но ≥ 4,5:1 на белом', () => {
+  assert.ok(ratio('placeholder', 'surface') >= 4.5, ratio('placeholder', 'surface').toFixed(2))
+  assert.ok(ratio('placeholder', 'surface') < ratio('text-3', 'surface'))
+})
+
 test('контур контролов и фокус ≥ 3:1 к фону и панели', () => {
   for (const bg of ['bg', 'surface', 'surface-2']) {
     assert.ok(ratio('border-control', bg) >= 3, `--border-control на --${bg}`)

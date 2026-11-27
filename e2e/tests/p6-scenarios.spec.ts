@@ -216,7 +216,7 @@ test.describe('сценарии S2 и S3 на фиде', () => {
     { width: 1440, height: 900 },
     { width: 360, height: 780 },
   ]) {
-    test(`панель «аст» · ${vp.width}: «Вместе с этим» под первым товаром, нажатие — как на товар`, async ({ page }) => {
+    test(`панель «аст» · ${vp.width}: «Вместе с этим» внизу панели, нажатие — как на товар`, async ({ page }) => {
       await page.setViewportSize(vp)
       await page.goto('/')
       const box = page.getByRole('combobox', { name: 'Поиск по каталогу' })
@@ -235,7 +235,7 @@ test.describe('сценарии S2 и S3 на фиде', () => {
 
       const list = page.getByRole('listbox', { name: 'Подсказки поиска' })
       const together = list.getByTestId('panel-together')
-      await expect(together).toContainText('Вместе с этим')
+      await expect(together).toContainText('Вам может быть интересно')
       const rows = together.getByRole('option')
       await expect(rows).toHaveCount(Math.min(sug.together.length, 2))
       const first = sug.together[0]!

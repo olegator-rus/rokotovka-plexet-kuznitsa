@@ -51,6 +51,20 @@ const IDS: Record<string, string> = {
   Аквариус: 'aquarius',
   Элтекс: 'eltex',
   КриптоПро: 'cryptopro',
+  // Так же названы производители в фиде заказчика.
+  'Программы и лицензии Microsoft Corporation': 'microsoft',
+  '«Лаборатория Касперского»': 'kaspersky',
+  'Лаборатория Касперского': 'kaspersky',
+  BaseALT: 'basealt',
+  'АО «Р7»': 'r7',
+  'Adobe Systems': 'adobe',
+  'Content AI (ООО «Контент ИИ», ранее ABBYY Россия)': 'content-ai',
+  'Corel Corporation': 'corel',
+  'Нанософт Разработка': 'nanosoft',
+  Renga: 'renga-software',
+  Ассистент: 'safib',
+  'TeamViewer GmbH': 'teamviewer',
+  'HP Inc.': 'hp',
 }
 
 const BY_NAME = new Map(Object.entries(IDS).map(([name, id]) => [name.toLowerCase(), id]))

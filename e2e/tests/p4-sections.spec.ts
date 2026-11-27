@@ -75,7 +75,7 @@ test.describe('Контур доводки: три раздела', () => {
     expect(owners.every((o) => o.trim() === 'Администратор поиска')).toBe(true)
   })
 
-  test('«Доказательства»: одно меню, первым — «На данных заказчика»; «Вклад компонентов» — «Прогон не запускался» или таблица', async ({
+  test('«Доказательства»: одно меню, «На данных заказчика» — последним и открыт без адреса; «Вклад компонентов» — «Прогон не запускался» или таблица', async ({
     page,
   }) => {
     await page.goto('/proofs')
@@ -83,7 +83,7 @@ test.describe('Контур доводки: три раздела', () => {
     const menu = page.getByRole('tablist', { name: 'Разделы доказательств' })
     await expect(menu.getByRole('tab')).toHaveCount(9)
     await expect(page.getByRole('tablist')).toHaveCount(1)
-    await expect(menu.getByRole('tab').first()).toHaveAccessibleName(/^На данных заказчика/)
+    await expect(menu.getByRole('tab').last()).toHaveAccessibleName(/^На данных заказчика/)
     await expect(menu.getByRole('tab', { name: /^На данных заказчика/ })).toHaveAttribute('data-state', 'active')
     for (const name of ['На данных заказчика', 'Теоретические основы', 'Метрики', 'Один запрос', 'Ухудшения', 'Подсказки', 'Вклад компонентов', 'Стоимость', 'Коммерция'])
       await expect(menu.getByRole('tab', { name: new RegExp(`^${name}`) })).toBeVisible()

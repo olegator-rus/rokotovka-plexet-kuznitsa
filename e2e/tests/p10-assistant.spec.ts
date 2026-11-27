@@ -1,5 +1,5 @@
 // Помощник по выбору (контур помощника, SCENARIOS.md): панель открывается ТОЛЬКО по
-// нажатию; справа 440 px рядом с рабочей выдачей; сообщение блоками — таблица, карточки с полной стоимостью, группы,
+// нажатию на круглую кнопку; плавающее окно в правом нижнем углу; сообщение блоками — таблица, карточки с полной стоимостью, группы,
 // подсказки, строка «Учитываю: …»; «В спецификацию» — системная строка и счётчик. По умолчанию /api/guide — заглушка
 // ответами живого ядра (p10-assistant-data.ts), поиск — живой. E2E_GUIDE_LIVE=1 — помощник на живом API.
 // E2E_GUIDE_SHOTS=<папка> — снимки сценариев 2 и 3 на 1280 и 360. Без звука.
@@ -122,15 +122,13 @@ test.describe("П10: помощник по выбору", () => {
     await entry(page).click();
     const p = panel(page);
     await expect(p).toBeVisible();
-    // Справа, 400–480 px; выдача слева видна.
+    // Плавающее окно в правом нижнем углу: с отступами от краёв, 400–480 px; круглая кнопка на это время скрыта.
     const pb = (await p.boundingBox())!;
     expect(pb.width).toBeGreaterThanOrEqual(399);
     expect(pb.width).toBeLessThanOrEqual(481);
-    const rb = (await page
-      .locator(".search-page__main")
-      .first()
-      .boundingBox())!;
-    expect(rb.x + rb.width).toBeLessThanOrEqual(pb.x + 1);
+    expect(1280 - (pb.x + pb.width)).toBeGreaterThan(0);
+    expect(720 - (pb.y + pb.height)).toBeGreaterThan(0);
+    await expect(entry(page)).toHaveCount(0);
     // Короткий запрос — приветствие и подсказки по теме, ничего не отправлено.
     await expect(p.getByTestId("assistant-welcome")).toContainText(
       "Подберём подходящую лицензию",

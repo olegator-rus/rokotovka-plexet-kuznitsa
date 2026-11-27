@@ -156,10 +156,13 @@ func popularInCategory(lx *searchLexicon, cat string) []out.Companion {
 		if len(res) == recsMax {
 			break
 		}
-		if seen[d.FamilyID] {
+		// Только то, что можно купить по цене, и без двух карточек с одним названием: на фиде популярность у всех
+		// одна, и без этого в блок попадали позиции «по запросу» и конфигурации одного сервера.
+		name := "t:" + foldText(d.Title)
+		if seen[d.FamilyID] || seen[name] || docBuyPrice(d) == nil {
 			continue
 		}
-		seen[d.FamilyID] = true
+		seen[d.FamilyID], seen[name] = true, true
 		res = append(res, out.Companion{ProductID: d.ProductID, FamilyID: d.FamilyID, Title: d.Title, Vendor: d.Vendor,
 			Category: d.Category, LicenseLine: licenseLine(d), PriceRub: d.PriceRub, PriceMode: docPriceMode(d),
 			Class: "popular", Compatibility: "unknown", Reason: "Популярно в категории", Conditions: []string{},

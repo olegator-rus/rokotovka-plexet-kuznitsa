@@ -86,6 +86,16 @@ function onOpen(id: number, open: boolean) {
     transform: none;
   }
 }
+/* Кнопка помощника и его окно стоят в правом нижнем углу — уведомление их не закрывает. */
+@media (min-width: 1024px) {
+  body:has(.as-entry) .ui-toast-viewport {
+    right: calc(var(--fab-right) + var(--fab-size) + var(--space-4));
+    bottom: var(--fab-bottom);
+  }
+  body:has(.search-page__guide) .ui-toast-viewport {
+    right: calc(var(--gutter) + var(--chat-w) + var(--space-4));
+  }
+}
 /* Открыта спецификация — уведомление не должно закрывать итог и «Запросить КП»: на широком экране слева, на
    затемнении, на узком — сверху, под шапкой панели. */
 body:has(.spec-sheet) .ui-toast-viewport {

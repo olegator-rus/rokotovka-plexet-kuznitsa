@@ -37,6 +37,8 @@ test.describe("S1. Точный артикул и «сервер»", () => {
   test("артикул KES из фида → цель «Товар» с этим артикулом первой, позиция первой, ниже варианты того же семейства", async ({
     page,
   }) => {
+    // Карточка «цели» скрыта по решению владельца; проверяется на витрине с VITE_TARGET_CARD=1.
+    test.skip(process.env.E2E_TARGET_CARD !== "1", "карточка «цели» выключена");
     await openSearch(page);
     const body = (await search(page, KES_SKU)) as unknown as {
       trace: { route: string };
@@ -68,6 +70,8 @@ test.describe("S1. Точный артикул и «сервер»", () => {
   test("«сервер» (S1) → цель-категория «Rack-серверы» с чипами производителей, ≥4 сервера с ценой; «почтовый сервер» → ПО", async ({
     page,
   }) => {
+    // Карточка «цели» скрыта по решению владельца; проверяется на витрине с VITE_TARGET_CARD=1.
+    test.skip(process.env.E2E_TARGET_CARD !== "1", "карточка «цели» выключена");
     await openSearch(page);
     const body = (await search(page, "сервер")) as unknown as {
       target?: { type: string; title: string } | null;

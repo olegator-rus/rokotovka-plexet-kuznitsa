@@ -345,8 +345,8 @@ func readableQuery(q string) bool {
 	return letters > 0
 }
 
-// relatedQueries — 3–5 успешных запросов из логов того же семейства или категории, что и первая позиция
-// выдачи. Меньше трёх — пусто: случайные строки хуже, чем ничего.
+// relatedQueries — 3–5 запросов того же семейства или категории, что и первая позиция выдачи: сначала успешные
+// из логов, при нехватке — из словаря подсказок. Меньше трёх — пусто: случайные строки хуже, чем ничего.
 func (s *Services) relatedQueries(ctx context.Context, lx *searchLexicon, resp *out.SearchResponse) []string {
 	res := []string{}
 	if len(resp.Items) == 0 {
@@ -373,6 +373,12 @@ func (s *Services) relatedQueries(ctx context.Context, lx *searchLexicon, resp *
 			break
 		}
 		res = append(res, q)
+	}
+	// Журнала поисков может не быть вовсе (фид заказчика) — добор из словаря подсказок той же категории.
+	if len(res) < relatedMin {
+		if st := s.catalog.Load(); st != nil && st.lex == lx && cat != "" {
+			res = s.suggestDictFor(lx, st.version).related(cat, self, res, relatedMax)
+		}
 	}
 	if len(res) < relatedMin {
 		return []string{}

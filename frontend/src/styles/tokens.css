@@ -25,6 +25,8 @@
   --text: #212424;
   --text-2: #464e55;
   --text-3: #58616a;
+  /* Подсказка в пустом поле — светлее остального серого, но читается */
+  --placeholder: #6e7782;
 
   /* Основное действие и выбранное — контрастная заливка */
   --accent: #a50f2d;
@@ -163,6 +165,12 @@
   --trace-w: 33.333%;
   --trace-min-w: 24rem;
   --drawer-w: 17rem;
+  /* Круглая кнопка помощника и его плавающее окно */
+  --fab-size: 4.25rem;
+  --fab-right: 2.5rem;
+  --fab-bottom: 2.25rem;
+  --chat-w: 26rem;
+  --chat-h: 42rem;
   --dialog-w: 28rem;
   --dialog-wide-w: 44rem;
   --popover-max-h: 22rem;
@@ -180,5 +188,13 @@
 @media (min-width: 768px) {
   :root {
     --gutter: 1.5rem;
+  }
+}
+
+@media (max-width: 639px) {
+  :root {
+    --fab-size: 3.75rem;
+    --fab-right: 1.25rem;
+    --fab-bottom: 1.5rem;
   }
 }

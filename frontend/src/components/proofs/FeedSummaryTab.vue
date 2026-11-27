@@ -442,18 +442,29 @@ function explainRow(r: FeedRow) {
 </template>
 
 <style scoped>
+/* Стили — как у «Теоретических основ»: крупный текст, воздух между блоками, заголовки разделов, серые карточки.
+   Разметка и тексты прежние. */
 .feed {
   display: flex;
   flex-direction: column;
-  gap: var(--space-4);
+  gap: var(--space-6);
   min-width: 0;
 }
+@media (min-width: 768px) {
+  .feed {
+    font-size: var(--fs-reading);
+    line-height: var(--lh-reading);
+  }
+}
 .feed__catalog {
-  display: inline-flex;
+  display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: var(--space-2);
   margin: 0;
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-card);
+  background: var(--surface-2);
   color: var(--text-2);
 }
 .feed__catalog strong {
@@ -462,8 +473,44 @@ function explainRow(r: FeedRow) {
 }
 .feed__tiles {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: var(--space-3);
+}
+/* Главные числа — крупные карточки на сером. */
+.feed__tiles > :deep(.tile),
+.feed__tiles > .feed__closed {
+  gap: var(--space-2);
+  padding: var(--space-4) var(--space-5);
+  border-color: transparent;
+  border-radius: var(--radius-card);
+  background: var(--surface-2);
+}
+.feed__tiles > :deep(.tile--action:hover),
+.feed__tiles > .feed__closed:hover {
+  border-color: var(--accent);
+}
+.feed__tiles :deep(.tile__label),
+.feed__label {
+  color: var(--text);
+  font-size: inherit;
+  line-height: inherit;
+  font-weight: var(--fw-bold);
+}
+.feed__tiles :deep(.tile__value) {
+  color: var(--accent);
+  font-size: var(--fs-banner);
+  line-height: 1.15;
+  font-weight: var(--fw-bold);
+}
+.feed__tiles :deep(.tile__value--missing) {
+  color: var(--text-3);
+  font-size: var(--fs-body);
+}
+.feed__tiles :deep(.tile__sub),
+.feed__sub {
+  color: var(--text-2);
+  font-size: inherit;
+  line-height: inherit;
 }
 .feed__skel {
   display: flex;
@@ -484,33 +531,24 @@ function explainRow(r: FeedRow) {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  gap: var(--space-1);
   min-width: 0;
-  padding: var(--space-3) var(--space-4);
+  border: var(--border-w) solid var(--border);
   text-align: left;
   font: inherit;
   color: var(--text);
   cursor: pointer;
   transition: border-color var(--dur-fast) var(--ease-standard);
 }
-.feed__closed:hover {
-  border-color: var(--border-control);
-}
-.feed__label {
-  color: var(--text-2);
-  font-size: var(--fs-sm);
-  line-height: var(--lh-sm);
-}
 .feed__pending {
   color: var(--text-3);
-  font-size: var(--fs-body);
-  font-weight: var(--fw-medium);
-  line-height: var(--lh-h1);
+  font-size: var(--fs-h2);
+  font-weight: var(--fw-semibold);
+  line-height: var(--lh-h2);
 }
 .feed__triple {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--space-1) var(--space-4);
+  gap: var(--space-2) var(--space-5);
 }
 .feed__cell {
   display: flex;
@@ -518,43 +556,104 @@ function explainRow(r: FeedRow) {
   min-width: 0;
 }
 .feed__cell-value {
-  font-size: var(--fs-h2);
-  line-height: var(--lh-h2);
-  font-weight: var(--fw-semibold);
+  color: var(--accent);
+  font-size: var(--fs-h1);
+  line-height: var(--lh-h1);
+  font-weight: var(--fw-bold);
 }
-.feed__cell-label,
-.feed__sub {
-  color: var(--text-3);
-  font-size: var(--fs-xs);
-  line-height: var(--lh-xs);
+.feed__cell-label {
+  color: var(--text-2);
+  font-size: var(--fs-sm);
+  line-height: var(--lh-sm);
 }
+/* Разделы: сверху красная черта, как у частей «Теоретических основ». */
 .feed__block {
   display: flex;
   flex-direction: column;
-  gap: var(--space-2);
+  gap: var(--space-4);
   min-width: 0;
+  margin-top: var(--space-2);
+  padding-top: var(--space-5);
+  border-top: 2px solid var(--accent);
+}
+.feed__block h3 {
+  margin: 0;
+  font-size: var(--fs-h1);
+  line-height: var(--lh-h1);
+  font-weight: var(--fw-bold);
 }
 .feed__block p {
   margin: 0;
 }
+/* Формула — обычным текстом абзаца. */
+.feed__block p > .t-mono:first-child {
+  font-family: inherit;
+  font-size: inherit;
+  overflow-wrap: anywhere;
+}
+.feed__block p.t-sm {
+  font-size: inherit;
+  line-height: inherit;
+}
+/* Размеры — как в «Теоретических основах»: весь связный текст крупный (на узком экране — обычный), таблицы —
+   обычные табличные. */
+.feed .t-sm,
+.feed .t-xs,
+.feed__block p.t-xs {
+  font-size: inherit;
+  line-height: inherit;
+}
 .feed__params {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-1);
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-3);
   margin: 0;
-  padding-left: var(--space-4);
+  padding: 0;
+  list-style: none;
+}
+.feed__params li {
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-card);
+  background: var(--surface-2);
+}
+@media (min-width: 768px) {
+  .feed__params {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+.feed__block p.feed__guide {
+  padding: var(--space-3) var(--space-4);
+  border: var(--border-w) solid var(--border);
+  border-radius: var(--radius-card);
+}
+/* Широкие таблицы помещаются в колонку: поля ячеек уже, названия столбцов переносятся. */
+.feed .data-table th,
+.feed .data-table td {
+  padding: var(--space-3) var(--space-2);
+}
+.feed .data-table thead th {
+  vertical-align: bottom;
+  white-space: normal;
+}
+.feed .data-table thead th.num {
+  min-width: 4.5rem;
+}
+.feed .data-table th,
+.feed .data-table td {
+  padding-inline: calc(var(--space-1) + 2px);
+}
+.feed .data-table th:first-child {
+  padding-left: var(--space-3);
+}
+.feed .data-table td:last-child {
+  padding-right: var(--space-3);
 }
 .feed__group-start th,
 .feed__group-start td {
-  border-top: var(--border-w) solid var(--border);
+  border-top: 2px solid var(--border-control);
 }
 .feed__stale {
   color: var(--danger);
-}
-@media (max-width: 1023px) {
-  .feed__tiles {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
 }
 @media (max-width: 639px) {
   .feed__tiles {

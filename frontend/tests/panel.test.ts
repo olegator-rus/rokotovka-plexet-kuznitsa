@@ -2,6 +2,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import {
+  bottomTogether,
   DESKTOP_LIMITS,
   MOBILE_LIMITS,
   RECENT_KEY,
@@ -331,7 +332,7 @@ test('«Вместе с этим»: к первому семейству пан�
   assert.equal(togetherReason({ reason: '', label: 'Хранилище' }), 'Хранилище')
 })
 
-test('«Вместе с этим» в обходе стрелками — сразу после первого товара', () => {
+test('«Вместе с этим» в обходе стрелками — в нижнем блоке, после товаров', () => {
   const view = toPanelView({
     suggestions: [],
     products: [
@@ -361,14 +362,24 @@ test('«Вместе с этим» в обходе стрелками — сра
     view,
     productsStale: false,
     recs: null,
-    recsLimit: 0,
+    recsLimit: 3,
     mobile: false,
     withAll: true,
   }).map((o) => o.id)
   assert.deepEqual(ids, [
     'panel-opt-product-0',
-    'panel-opt-together-0',
     'panel-opt-product-1',
+    'panel-opt-together-0',
     'panel-opt-all-0',
   ])
+})
+
+test('нижний блок: проверенные дополнения важнее «Вместе с этим», подборка по категории — уступает', () => {
+  const together = [{ family_id: 'kes' }] as unknown as Parameters<typeof bottomTogether>[0]
+  const recs = (basis: string) =>
+    ({ basis, items: [{}] }) as unknown as Parameters<typeof bottomTogether>[1]
+  assert.equal(bottomTogether(together, null, 3).length, 1)
+  assert.equal(bottomTogether(together, recs('category_popular'), 3).length, 1)
+  assert.equal(bottomTogether(together, recs('spec'), 3).length, 0)
+  assert.equal(bottomTogether(together, recs('exact_sku'), 3).length, 0)
 })
