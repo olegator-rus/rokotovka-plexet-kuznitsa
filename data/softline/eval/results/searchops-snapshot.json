@@ -1,0 +1,336 @@
+{
+ "catalog_version": "softline",
+ "rules_version": 5,
+ "days": 7,
+ "stream": {
+  "label": "тестовый поток: запросы заказчика, прогоны сайта, синтетика из каталога",
+  "freq_label": "частоты модельные",
+  "layers": [
+   {
+    "code": "customer",
+    "label": "запросы заказчика",
+    "queries": 16,
+    "searches": 168
+   },
+   {
+    "code": "site",
+    "label": "прогоны сайта",
+    "queries": 31,
+    "searches": 160
+   },
+   {
+    "code": "synthetic",
+    "label": "синтетика из каталога",
+    "queries": 103,
+    "searches": 287
+   },
+   {
+    "code": "live",
+    "label": "живой поиск",
+    "queries": 19,
+    "searches": 82
+   }
+  ]
+ },
+ "totals": {
+  "searches": 678,
+  "failed_searches": 296,
+  "queries": 168,
+  "failed_queries": 72
+ },
+ "sections": [
+  {
+   "code": "no_offer",
+   "title": "Спрос без предложения",
+   "rows": 14,
+   "searches": 56,
+   "failures": 56,
+   "agent": {
+    "агент видел, но не дошёл": 11,
+    "не доразобрано: агент не дошёл до итога": 2,
+    "есть предложение агента": 1
+   }
+  },
+  {
+   "code": "not_found",
+   "title": "Товар есть, но не найден",
+   "rows": 1,
+   "searches": 4,
+   "failures": 4,
+   "agent": {
+    "есть предложение агента": 1
+   }
+  },
+  {
+   "code": "unknown_words",
+   "title": "Слова клиента, которых нет в каталоге",
+   "rows": 14,
+   "searches": 40,
+   "failures": 40,
+   "agent": {
+    "нет разбора агента": 11,
+    "агент видел, но не дошёл": 2,
+    "закрыто: не решается правкой правил": 1
+   }
+  },
+  {
+   "code": "service",
+   "title": "Сервисные запросы",
+   "rows": 15,
+   "searches": 63,
+   "failures": 63,
+   "agent": {
+    "нет разбора агента": 6,
+    "есть предложение агента": 3,
+    "агент видел, но не дошёл": 3,
+    "закрыто: не решается правкой правил": 3
+   }
+  }
+ ],
+ "pending": {
+  "rows": 42,
+  "agent": {
+   "нет разбора агента": 20,
+   "поиск уже отвечает": 11,
+   "агент видел, но не дошёл": 10,
+   "закрыто: не решается правкой правил": 1
+  }
+ },
+ "guide": {
+  "title": "Вопросы, на которые подбор не ответил",
+  "total": 143,
+  "rows": 10,
+  "by_code": {
+   "Нет оффера под условия": 6,
+   "Нет факта в базе знаний": 3,
+   "Не удалось определить применимость лицензии": 1
+  }
+ },
+ "runs_all": {
+  "runs": 21,
+  "by_status": {
+   "done": 21
+  },
+  "by_mode": {
+   "search": 13,
+   "commerce": 6,
+   "gaps": 2
+  },
+  "cost_rub": 164.24,
+  "avg_cost_rub": 7.82,
+  "max_cost_rub": 45.11,
+  "tokens": 1607003,
+  "tool_calls": 370,
+  "proposals_created": 32,
+  "zero_cost_runs": 7
+ },
+ "runs_current_catalog": {
+  "runs": 6,
+  "by_status": {
+   "done": 6
+  },
+  "by_mode": {
+   "search": 4,
+   "gaps": 2
+  },
+  "cost_rub": 21.02,
+  "avg_cost_rub": 3.5,
+  "max_cost_rub": 14.83,
+  "tokens": 207344,
+  "tool_calls": 39,
+  "proposals_created": 7,
+  "zero_cost_runs": 3
+ },
+ "costs_summary": {
+  "agent_runs": 16,
+  "agent_run_avg_cost_rub": 11.3866,
+  "llm_calls": 2002,
+  "llm_cost_rub": 610.2927
+ },
+ "proposals_all": {
+  "proposals": 32,
+  "by_status": {
+   "stale": 22,
+   "pending": 5,
+   "accepted": 2,
+   "rejected": 2,
+   "rolled_back": 1
+  },
+  "by_action": {
+   "ticket": 19,
+   "relation_patch": 5,
+   "rules_patch": 4,
+   "margin_policy": 3,
+   "bundle": 1
+  },
+  "by_diagnosis": {
+   "ASSORTMENT_GAP": 8,
+   "ALIAS_GAP": 4,
+   "NON_PRODUCT": 3,
+   "MARGIN_OPPORTUNITY": 3,
+   "BROKEN_RELATION": 3,
+   "RANKING_FAILURE": 2,
+   "SUBSTITUTE_AVAILABLE": 2,
+   "KB_MISSING_FACT": 2,
+   "CONTENT_GAP": 1,
+   "ON_REQUEST_ONLY": 1,
+   "BUNDLE_OPPORTUNITY": 1,
+   "MISSING_RELATION": 1,
+   "MISSING_REQUIRED": 1
+  },
+  "tasks": 19,
+  "tasks_by_cause": {
+   "Товара нет в каталоге": 10,
+   "Запрос не о товаре": 3,
+   "Нужный товар стоит низко или задублирован": 2,
+   "Нет факта в базе знаний": 2,
+   "В карточке не хватает данных": 1,
+   "Найдено, но только по запросу": 1
+  },
+  "tasks_by_owner": {
+   "Категорийный и лицензионный менеджер": 12,
+   "Администратор поиска": 5,
+   "Каталог": 2
+  },
+  "tasks_by_status": {
+   "stale": 12,
+   "pending": 5,
+   "rejected": 2
+  }
+ },
+ "proposals_current_catalog": {
+  "proposals": 7,
+  "by_status": {
+   "pending": 5,
+   "rejected": 1,
+   "accepted": 1
+  },
+  "by_action": {
+   "ticket": 6,
+   "rules_patch": 1
+  },
+  "by_diagnosis": {
+   "NON_PRODUCT": 3,
+   "KB_MISSING_FACT": 2,
+   "ON_REQUEST_ONLY": 1,
+   "ALIAS_GAP": 1
+  },
+  "tasks": 6,
+  "tasks_by_cause": {
+   "Запрос не о товаре": 3,
+   "Нет факта в базе знаний": 2,
+   "Найдено, но только по запросу": 1
+  },
+  "tasks_by_owner": {
+   "Администратор поиска": 3,
+   "Категорийный и лицензионный менеджер": 2,
+   "Каталог": 1
+  },
+  "tasks_by_status": {
+   "pending": 5,
+   "rejected": 1
+  }
+ },
+ "rules_versions": {
+  "active": 5,
+  "items": [
+   {
+    "version": 5,
+    "source": "agent",
+    "author": "agent+human",
+    "catalog_version": "softline",
+    "archived": false,
+    "aliases": 491,
+    "description": "ALIAS_GAP: «я360» → «Яндекс 360 для бизнеса» (кластер «я360»)"
+   },
+   {
+    "version": 4,
+    "source": "import",
+    "author": "system",
+    "catalog_version": "softline",
+    "archived": false,
+    "aliases": 490,
+    "description": "исходные словари: generic:../data/softline/mapping.yaml"
+   },
+   {
+    "version": 3,
+    "source": "import",
+    "author": "system",
+    "catalog_version": "mock-2",
+    "archived": true,
+    "aliases": 100,
+    "description": "исходные словари: mock-json:../data/mock"
+   },
+   {
+    "version": 2,
+    "source": "agent",
+    "author": "agent+human",
+    "catalog_version": "mock-1",
+    "archived": true,
+    "aliases": 64,
+    "description": "ALIAS_GAP: «зуп» → «1С:Зарплата и управление персоналом 8» (кластер «зуп»)"
+   },
+   {
+    "version": 1,
+    "source": "import",
+    "author": "system",
+    "catalog_version": "mock-1",
+    "archived": true,
+    "aliases": 63,
+    "description": "исходные словари: mock-json:../data/mock"
+   }
+  ]
+ },
+ "approved_agent_rules": [
+  {
+   "version": 5,
+   "catalog_version": "softline",
+   "archived": false,
+   "description": "ALIAS_GAP: «я360» → «Яндекс 360 для бизнеса» (кластер «я360»)"
+  },
+  {
+   "version": 2,
+   "catalog_version": "mock-1",
+   "archived": true,
+   "description": "ALIAS_GAP: «зуп» → «1С:Зарплата и управление персоналом 8» (кластер «зуп»)"
+  }
+ ],
+ "approved_proposals": {
+  "accepted": 2,
+  "rolled_back": 1
+ },
+ "relations_versions": {
+  "active": 0,
+  "items": [
+   {
+    "version": 4,
+    "source": "import",
+    "author": "system",
+    "catalog_version": "mock-2",
+    "archived": true
+   },
+   {
+    "version": 3,
+    "source": "rollback",
+    "author": "human",
+    "catalog_version": "mock-2",
+    "archived": true
+   },
+   {
+    "version": 2,
+    "source": "agent",
+    "author": "agent+human",
+    "catalog_version": "mock-2",
+    "archived": true
+   },
+   {
+    "version": 1,
+    "source": "import",
+    "author": "system",
+    "catalog_version": "mock-2",
+    "archived": true
+   }
+  ]
+ },
+ "persona": "staff-ecom"
+}

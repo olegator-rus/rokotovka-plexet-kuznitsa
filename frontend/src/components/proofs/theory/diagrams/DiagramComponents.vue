@@ -1,6 +1,7 @@
 <script setup lang="ts">
 // Из чего собрано решение (ARCHITECTURE §1): Go API в центре, внутри своего контура OpenSearch, сервис моделей
-// и PostgreSQL; наружу, к Yandex AI Studio, уходит только замаскированный текст разбора D и агента.
+// и PostgreSQL; наружу, к Yandex AI Studio, уходит замаскированный текст разбора D и агента и реплика подбора
+// (её маска — в списке «Чего пока нет»).
 import DgArrow from '../diagram/DgArrow.vue'
 import DgDot from '../diagram/DgDot.vue'
 import DgGroup from '../diagram/DgGroup.vue'
@@ -12,9 +13,9 @@ import TheoryDiagram from '../diagram/TheoryDiagram.vue'
 <template>
   <TheoryDiagram
     title="Из чего собрано решение"
-    desc="Покупатель или сайт магазина шлёт запрос в Go API и получает выдачу. Go API, OpenSearch, сервис моделей и PostgreSQL работают на своём сервере: поиск идёт в OpenSearch, векторы и оценки реранкера — в сервис моделей, журнал, трассы и кэш — в PostgreSQL. За границу сервера, во внешнюю Yandex AI Studio, уходит только текст с маской персональных данных — для разбора на маршруте D и для агента."
+    desc="Покупатель или сайт магазина шлёт запрос в Go API и получает выдачу. Go API, OpenSearch, сервис моделей и PostgreSQL работают на своём сервере: поиск идёт в OpenSearch, векторы и оценки реранкера — в сервис моделей, журнал, трассы и кэш — в PostgreSQL. За границу сервера, во внешнюю Yandex AI Studio, уходит только текст с маской персональных данных — для разбора на маршруте D и для агента; туда же без маски уходит реплика покупателя в режиме подбора."
     :wide="[720, 344]"
-    :narrow="[328, 440]"
+    :narrow="[328, 454]"
   >
     <template #wide>
       <DgGroup :x="186" :y="8" :w="528" :h="250" label="Свой сервер" />
@@ -28,7 +29,7 @@ import TheoryDiagram from '../diagram/TheoryDiagram.vue'
         :h="194"
         kind="hub"
         title="Go API"
-        :sub="['один процесс:', 'поиск, подсказки,', 'события, оценка,', 'агент, стоимость']"
+        :sub="['один процесс:', 'поиск, подбор,', 'подсказки, события,', 'оценка, агент']"
       />
       <DgArrow pts="376,67 476,67" label="поиск" :lx="426" :ly="58" />
       <DgArrow pts="376,137 476,137" label="векторы" :lx="426" :ly="128" />
@@ -37,8 +38,8 @@ import TheoryDiagram from '../diagram/TheoryDiagram.vue'
       <DgNode :x="476" :y="110" :w="224" :h="54" title="Сервис моделей" sub="BGE-M3, реранкер" />
       <DgNode :x="476" :y="180" :w="224" :h="54" title="PostgreSQL" sub="журнал, трассы, кэш" />
       <DgArrow pts="291,234 291,307 476,307" tone="d" />
-      <DgLabel :x="384" :y="297" text="маска ПДн" tone="d" />
-      <DgLabel :x="384" :y="320" text="разбор D и агент" />
+      <DgLabel :x="384" :y="297" text="маска ПДн, кроме подбора" tone="d" />
+      <DgLabel :x="384" :y="320" text="разбор D, подбор, агент" />
       <DgNode
         :x="476"
         :y="280"
@@ -63,7 +64,7 @@ import TheoryDiagram from '../diagram/TheoryDiagram.vue'
         :h="60"
         kind="hub"
         title="Go API"
-        :sub="['поиск, подсказки, события, оценка,', 'агент, учёт стоимости']"
+        :sub="['поиск, подбор, подсказки, события,', 'оценка, агент, учёт стоимости']"
       />
       <DgArrow pts="40,158 40,198 106,198" label="поиск" :lx="73" :ly="189" />
       <DgArrow pts="40,198 40,258 106,258" label="векторы" :lx="73" :ly="249" />
@@ -75,7 +76,7 @@ import TheoryDiagram from '../diagram/TheoryDiagram.vue'
       <DgNode :x="106" :y="234" :w="206" :h="48" title="Сервис моделей" sub="BGE-M3, реранкер" />
       <DgNode :x="106" :y="294" :w="206" :h="48" title="PostgreSQL" sub="журнал, трассы, кэш" />
       <DgArrow pts="40,318 40,412 106,412" tone="d" />
-      <DgLabel :x="70" :y="428" text="маска ПДн" tone="d" />
+      <DgLabel :x="70" :y="428" :text="['маска ПДн,', 'кроме подбора']" tone="d" />
       <DgNode
         :x="106"
         :y="388"
@@ -90,7 +91,8 @@ import TheoryDiagram from '../diagram/TheoryDiagram.vue'
 
     <template #caption>
       Пунктирная рамка — граница своего сервера. Наружу её пересекает одна стрелка: текст разбора на
-      маршруте D и запросы агента, после маски персональных данных.
+      маршруте D и запросы агента после маски персональных данных, а также реплика покупателя в
+      режиме подбора — её пока передаём без маски.
     </template>
   </TheoryDiagram>
 </template>

@@ -1,8 +1,8 @@
 <script setup lang="ts">
 // «Доказательства» → «Теоретические основы» (tab=theory): разбор одного запроса, как устроено решение и на
-// каких методах держится поиск — от нормализации до выдачи, агент SearchOps, как меряется качество и стоимость.
-// Текст статичный, в API не ходит. Параметры алгоритмов — из lib/theoryParams.ts (тест сверяет их с Go-кодом);
-// наблюдения на стенде и разбор агента подписаны датой и каталогом. Схемы — SVG на токенах (theory/diagrams/,
+// каких методах держится поиск — от нормализации до выдачи, режим подбора, агент SearchOps, как меряется качество
+// и стоимость. Текст статичный, в API не ходит. Параметры алгоритмов — из lib/theoryParams.ts (тест сверяет их с
+// Go-кодом); наблюдения на стенде и разборы прогонов подписаны плашкой и каталогом, дат нет. Схемы — SVG на токенах (theory/diagrams/,
 // общие узлы и стрелки — theory/diagram/), формулы — нативный MathML (theory/TheoryFormula.vue).
 // Содержание прокручивает к разделу, адрес не меняет: вкладка остаётся на tab=theory. Якорь #theory-<id> в
 // адресе при открытии прокручивает к разделу (ссылка на раздел снаружи).
@@ -11,6 +11,7 @@ import { useRoute } from 'vue-router'
 import { ArrowUp } from 'lucide-vue-next'
 import TheoryAgent from './theory/TheoryAgent.vue'
 import TheoryExample from './theory/TheoryExample.vue'
+import TheoryGuide from './theory/TheoryGuide.vue'
 import TheoryOverview from './theory/TheoryOverview.vue'
 import TheoryProof from './theory/TheoryProof.vue'
 import TheoryRanking from './theory/TheoryRanking.vue'
@@ -47,10 +48,10 @@ onMounted(async () => {
   <article class="theory">
     <p class="theory__lead">
       Здесь описано, как поиск помогает покупателю выбрать товар и вариант лицензии: что он делает с
-      запросом от ввода до выдачи и почему. Дальше — как агент SearchOps разбирает неудачные запросы
-      и как мы проверяем результат. Поиск работает на фиде магазина store.softline.ru. В конце
-      большинства разделов есть ссылки на запрос с трассой: на экране «Поиск» видно, как шаг
-      сработал на самом деле.
+      запросом от ввода до выдачи и почему. Дальше — как режим подбора помогает выбрать редакцию и
+      посчитать лицензии, как агент SearchOps разбирает неудачные запросы и как мы проверяем
+      результат. Поиск работает на фиде магазина store.softline.ru. В конце большинства разделов
+      есть ссылки на запрос с трассой: на экране «Поиск» видно, как шаг сработал на самом деле.
     </p>
     <div class="theory__kinds">
       <p class="theory__kinds-title">Числа на вкладке четырёх видов</p>
@@ -69,10 +70,10 @@ onMounted(async () => {
           когда писался раздел. Ссылка «с трассой» рядом покажет текущий ответ.
         </li>
         <li>
-          <span class="badge">результат прогона</span> качество, скорость и деньги — на вкладках
-          «Метрики», «Вклад компонентов» и «Стоимость». Здесь из прогонов только один разбор агента
-          в разделе SearchOps. Прогоны оценки и агента пока шли на mock-каталоге, и это подписано
-          рядом с каждым числом.
+          <span class="badge">результат прогона</span> качество, скорость и деньги — на вкладках «На
+          данных заказчика», «Метрики», «Вклад компонентов» и «Стоимость». Здесь из прогонов только
+          оценка режима подбора и один разбор агента SearchOps, оба на фиде заказчика. Прогоны на
+          «Метриках» и «Вкладе компонентов» шли на mock-каталоге, это подписано там.
         </li>
       </ul>
     </div>
@@ -84,16 +85,17 @@ onMounted(async () => {
         <p class="theory__part-title">
           <span class="t-num">{{ pi + 1 }}</span> {{ part.title }}
         </p>
-        <template v-if="pi === 0">
+        <template v-if="part.key === 'overview'">
           <TheoryExample />
           <TheoryOverview />
         </template>
-        <template v-else-if="pi === 1">
+        <template v-else-if="part.key === 'path'">
           <TheoryUnderstanding />
           <TheoryRetrieval />
           <TheoryRanking />
         </template>
-        <TheoryAgent v-else-if="pi === 2" />
+        <TheoryGuide v-else-if="part.key === 'guide'" />
+        <TheoryAgent v-else-if="part.key === 'agent'" />
         <TheoryProof v-else />
         <button type="button" class="link theory__up t-sm" @click="toToc">
           <ArrowUp :size="14" aria-hidden="true" /> К содержанию

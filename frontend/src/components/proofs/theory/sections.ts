@@ -6,13 +6,16 @@ export interface TheorySectionRef {
   title: string
 }
 
+/** Часть вкладки: key выбирает компоненты разделов в TheoryTab. */
 export interface TheoryPart {
+  key: 'overview' | 'path' | 'guide' | 'agent' | 'proof'
   title: string
   sections: readonly TheorySectionRef[]
 }
 
 export const THEORY_PARTS: readonly TheoryPart[] = [
   {
+    key: 'overview',
     title: 'Общая картина',
     sections: [
       { id: 'example', title: 'Один запрос от ввода до выдачи' },
@@ -21,6 +24,7 @@ export const THEORY_PARTS: readonly TheoryPart[] = [
     ],
   },
   {
+    key: 'path',
     title: 'Путь запроса',
     sections: [
       { id: 'normalize', title: 'Как исправляются опечатки, раскладка и сленг' },
@@ -40,10 +44,17 @@ export const THEORY_PARTS: readonly TheoryPart[] = [
     ],
   },
   {
+    key: 'guide',
+    title: 'Режим подбора',
+    sections: [{ id: 'guide', title: 'Как подбор помогает выбрать лицензию' }],
+  },
+  {
+    key: 'agent',
     title: 'Агент SearchOps',
     sections: [{ id: 'agent', title: 'Как SearchOps разбирает неудачные запросы' }],
   },
   {
+    key: 'proof',
     title: 'Как мы это проверяем',
     sections: [
       { id: 'quality', title: 'Как измеряется качество' },

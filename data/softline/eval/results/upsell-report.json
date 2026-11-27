@@ -1,0 +1,991 @@
+{
+ "api": "http://127.0.0.1:8088",
+ "summary": {
+  "queries": 17,
+  "with_block": 13,
+  "cards_total": 35,
+  "cards_per_block": {
+   "1": 1,
+   "2": 6,
+   "3": 2,
+   "4": 4
+  },
+  "all_reason_and_level": 13,
+  "all_priced": 13,
+  "one_family_per_vendor": 13,
+  "le_4": 13,
+  "no_same_family_other": 12,
+  "same_family_other_labels": [
+   "Вариант под платформу"
+  ],
+  "doc_a_cards": 11,
+  "doc_a_shown_a": 11,
+  "levels": {
+   "A": 11,
+   "B": 24
+  },
+  "same_family_cards": 9,
+  "kinds": {
+   "class_logic": 15,
+   "compat_document": 11,
+   "license_kind": 8,
+   "sku_platform": 1
+  },
+  "classes": {
+   "compatible": 12,
+   "complement": 15,
+   "renewal": 8
+  }
+ },
+ "by_set": {
+  "etalon": {
+   "queries": 10,
+   "with_block": 10,
+   "cards_total": 26,
+   "cards_per_block": {
+    "2": 6,
+    "3": 2,
+    "4": 2
+   },
+   "all_reason_and_level": 10,
+   "all_priced": 10,
+   "one_family_per_vendor": 10,
+   "le_4": 10,
+   "no_same_family_other": 9,
+   "same_family_other_labels": [
+    "Вариант под платформу"
+   ],
+   "doc_a_cards": 5,
+   "doc_a_shown_a": 5,
+   "levels": {
+    "A": 5,
+    "B": 21
+   },
+   "same_family_cards": 6,
+   "kinds": {
+    "class_logic": 15,
+    "compat_document": 5,
+    "license_kind": 5,
+    "sku_platform": 1
+   },
+   "classes": {
+    "compatible": 6,
+    "complement": 15,
+    "renewal": 5
+   }
+  },
+  "tz": {
+   "queries": 7,
+   "with_block": 3,
+   "cards_total": 9,
+   "cards_per_block": {
+    "1": 1,
+    "4": 2
+   },
+   "all_reason_and_level": 3,
+   "all_priced": 3,
+   "one_family_per_vendor": 3,
+   "le_4": 3,
+   "no_same_family_other": 3,
+   "same_family_other_labels": [],
+   "doc_a_cards": 6,
+   "doc_a_shown_a": 6,
+   "levels": {
+    "A": 6,
+    "B": 3
+   },
+   "same_family_cards": 3,
+   "kinds": {
+    "compat_document": 6,
+    "license_kind": 3
+   },
+   "classes": {
+    "compatible": 6,
+    "renewal": 3
+   }
+  }
+ },
+ "rows": [
+  {
+   "set": "etalon",
+   "id": "e01",
+   "query": "astra linux",
+   "block": true,
+   "anchor_family_id": "121231",
+   "anchor_family": "Astra Linux Special Edition",
+   "anchor_confidence": "high",
+   "cards": 4,
+   "all_reason_and_level": true,
+   "all_priced": true,
+   "one_family_per_vendor": true,
+   "le_4": true,
+   "doc_a_cards": 3,
+   "doc_a_shown_a": 3,
+   "same_family_other": [],
+   "levels": {
+    "A": 3,
+    "B": 1
+   },
+   "items": [
+    {
+     "title": "Astra Linux Special Edition 1.8, x86-64, «Орел», для рабочей станции, тип Базовая, на 12 мес. (для МСП)",
+     "family_id": "121231",
+     "family": "Astra Linux Special Edition",
+     "vendor": "Группа Астра",
+     "class": "renewal",
+     "label": "Техподдержка",
+     "price_rub": 3100,
+     "level": "B",
+     "kind": "license_kind",
+     "has_reason": true,
+     "has_level": true,
+     "priced": true,
+     "same_family": true,
+     "doc_a": false
+    },
+    {
+     "title": "Kaspersky Endpoint Security для бизнеса Расширенный лицензия Base на 1 год по количеству узлов",
+     "family_id": "3935",
+     "family": "Kaspersky Endpoint Security для бизнеса Расширенный",
+     "vendor": "«Лаборатория Касперского»",
+     "class": "compatible",
+     "label": "Антивирус для организаций",
+     "price_rub": 3307.77,
+     "level": "A",
+     "kind": "compat_document",
+     "has_reason": true,
+     "has_level": true,
+     "priced": true,
+     "same_family": false,
+     "doc_a": true
+    },
+    {
+     "title": "КриптоПро CSP для Astra Linux SE, Лицензия на право использования СКЗИ КриптоПро CSP версии 5.0 класс КС3 на одном",
+     "family_id": "22268",
+     "family": "Программа КриптоПро CSP 5.0",
+     "vendor": "КриптоПро",
+     "class": "compatible",
+     "label": "СКЗИ, защита информации",
+     "price_rub": 7500,
+     "level": "A",
+     "kind": "compat_document",
+     "has_reason": true,
+     "has_level": true,
+     "priced": true,
+     "same_family": false,
+     "doc_a": true
+    },
+    {
+     "title": "Киберпротект Кибер Бэкап Расширенная редакция (базовый пакет для сертифицированной версии программного комплекса,",
+     "family_id": "173615",
+     "family": "Кибер Бэкап Расширенная редакция",
+     "vendor": "Киберпротект",
+     "class": "compatible",
+     "label": "Резервное копирование",
+     "price_rub": 610,
+     "level": "A",
+     "kind": "compat_document",
+     "has_reason": true,
+     "has_level": true,
+     "priced": true,
+     "same_family": false,
+     "doc_a": true
+    }
+   ]
+  },
+  {
+   "set": "etalon",
+   "id": "e02",
+   "query": "Microsoft Office для дома и бизнеса",
+   "block": true,
+   "anchor_family_id": "391338",
+   "anchor_family": "Microsoft Office 2024 для дома и бизнеса",
+   "anchor_confidence": "high",
+   "cards": 2,
+   "all_reason_and_level": true,
+   "all_priced": true,
+   "one_family_per_vendor": true,
+   "le_4": true,
+   "doc_a_cards": 0,
+   "doc_a_shown_a": 0,
+   "same_family_other": [],
+   "levels": {
+    "B": 2
+   },
+   "items": [
+    {
+     "title": "Доктор Веб Комплексная защита + Центр управления на 1 год на 5 ПК",
+     "family_id": "4069",
+     "family": "Dr.Web Desktop Security Suite",
+     "vendor": "Доктор Веб",
+     "class": "complement",
+     "label": "Антивирус для организаций",
+     "price_rub": 10102.3,
+     "level": "B",
+     "kind": "class_logic",
+     "has_reason": true,
+     "has_level": true,
+     "priced": true,
+     "same_family": false,
+     "doc_a": false
+    },
+    {
+     "title": "Киберпротект Кибер Бэкап Расширенная редакция (базовый пакет для сертифицированной версии программного комплекса,",
+     "family_id": "173615",
+     "family": "Кибер Бэкап Расширенная редакция",
+     "vendor": "Киберпротект",
+     "class": "complement",
+     "label": "Резервное копирование",
+     "price_rub": 610,
+     "level": "B",
+     "kind": "class_logic",
+     "has_reason": true,
+     "has_level": true,
+     "priced": true,
+     "same_family": false,
+     "doc_a": false
+    }
+   ]
+  },
+  {
+   "set": "etalon",
+   "id": "e03",
+   "query": "kaspersky small office security",
+   "block": true,
+   "anchor_family_id": "3761",
+   "anchor_family": "Kaspersky Small Office Security",
+   "anchor_confidence": "high",
+   "cards": 2,
+   "all_reason_and_level": true,
+   "all_priced": true,
+   "one_family_per_vendor": true,
+   "le_4": true,
+   "doc_a_cards": 0,
+   "doc_a_shown_a": 0,
+   "same_family_other": [],
+   "levels": {
+    "B": 2
+   },
+   "items": [
+    {
+     "title": "Kaspersky Small Office Security продление лицензии для ПК, мобильных устройств и файловых серверов, own VPN, fixed-date",
+     "family_id": "3761",
+     "family": "Kaspersky Small Office Security",
+     "vendor": "«Лаборатория Касперского»",
+     "class": "renewal",
+     "label": "Продление",
+     "price_rub": 1158.3,
+     "level": "B",
+     "kind": "license_kind",
+     "has_reason": true,
+     "has_level": true,
+     "priced": true,
+     "same_family": true,
+     "doc_a": false
+    },
+    {
+     "title": "Киберпротект Кибер Бэкап Расширенная редакция (базовый пакет для сертифицированной версии программного комплекса,",
+     "family_id": "173615",
+     "family": "Кибер Бэкап Расширенная редакция",
+     "vendor": "Киберпротект",
+     "class": "complement",
+     "label": "Резервное копирование",
+     "price_rub": 610,
+     "level": "B",
+     "kind": "class_logic",
+     "has_reason": true,
+     "has_level": true,
+     "priced": true,
+     "same_family": false,
+     "doc_a": false
+    }
+   ]
+  },
+  {
+   "set": "etalon",
+   "id": "e04",
+   "query": "крипто про csp 5.0",
+   "block": true,
+   "anchor_family_id": "22268",
+   "anchor_family": "Программа КриптоПро CSP 5.0",
+   "anchor_confidence": "high",
+   "cards": 2,
+   "all_reason_and_level": true,
+   "all_priced": true,
+   "one_family_per_vendor": true,
+   "le_4": true,
+   "doc_a_cards": 1,
+   "doc_a_shown_a": 1,
+   "same_family_other": [
+    "Вариант под платформу"
+   ],
+   "levels": {
+    "A": 1,
+    "B": 1
+   },
+   "items": [
+    {
+     "title": "КриптоПро CSP для Astra Linux SE, Лицензия на право использования СКЗИ КриптоПро CSP версии 5.0 класс КС3 на одном",
+     "family_id": "22268",
+     "family": "Программа КриптоПро CSP 5.0",
+     "vendor": "КриптоПро",
+     "class": "compatible",
+     "label": "Вариант под платформу",
+     "price_rub": 7500,
+     "level": "B",
+     "kind": "sku_platform",
+     "has_reason": true,
+     "has_level": true,
+     "priced": true,
+     "same_family": true,
+     "doc_a": false
+    },
+    {
+     "title": "Astra Linux Special Edition 1.8, х86-64, «Орел», РУСБ.10015-10, способ передачи электронный, для рабочей станции,",
+     "family_id": "121231",
+     "family": "Astra Linux Special Edition",
+     "vendor": "Группа Астра",
+     "class": "compatible",
+     "label": "Операционная система",
+     "price_rub": 5100,
+     "level": "A",
+     "kind": "compat_document",
+     "has_reason": true,
+     "has_level": true,
+     "priced": true,
+     "same_family": false,
+     "doc_a": true
+    }
+   ]
+  },
+  {
+   "set": "etalon",
+   "id": "e05",
+   "query": "anydesk",
+   "block": true,
+   "anchor_family_id": "306539",
+   "anchor_family": "AnyDesk",
+   "anchor_confidence": "high",
+   "cards": 3,
+   "all_reason_and_level": true,
+   "all_priced": true,
+   "one_family_per_vendor": true,
+   "le_4": true,
+   "doc_a_cards": 0,
+   "doc_a_shown_a": 0,
+   "same_family_other": [],
+   "levels": {
+    "B": 3
+   },
+   "items": [
+    {
+     "title": "Доктор Веб Комплексная защита + Центр управления на 1 год на 5 ПК",
+     "family_id": "4069",
+     "family": "Dr.Web Desktop Security Suite",
+     "vendor": "Доктор Веб",
+     "class": "complement",
+     "label": "Антивирус для организаций",
+     "price_rub": 10102.3,
+     "level": "B",
+     "kind": "class_logic",
+     "has_reason": true,
+     "has_level": true,
+     "priced": true,
+     "same_family": false,
+     "doc_a": false
+    },
+    {
+     "title": "Joint Advanced (лицензия), на 1 год",
+     "family_id": "445245",
+     "family": "Joint Advanced",
+     "vendor": "Joint",
+     "class": "complement",
+     "label": "Российский удалённый доступ",
+     "price_rub": 76000,
+     "level": "B",
+     "kind": "class_logic",
+     "has_reason": true,
+     "has_level": true,
+     "priced": true,
+     "same_family": false,
+     "doc_a": false
+    },
+    {
+     "title": "Инженерный центр АО «ЭЛАРА» ФПО Эликонт-КС Опиция 3, Программный ключ лицензионной защиты Guardant DL",
+     "family_id": "396661",
+     "family": "«Эликонт-КС»",
+     "vendor": "Инженерный центр АО «ЭЛАРА»",
+     "class": "complement",
+     "label": "Российский удалённый доступ",
+     "price_rub": 2000,
+     "level": "B",
+     "kind": "class_logic",
+     "has_reason": true,
+     "has_level": true,
+     "priced": true,
+     "same_family": false,
+     "doc_a": false
+    }
+   ]
+  },
+  {
+   "set": "etalon",
+   "id": "e06",
+   "query": "кибер бэкап",
+   "block": true,
+   "anchor_family_id": "173614",
+   "anchor_family": "Кибер Бэкап Стандартная редакция",
+   "anchor_confidence": "medium",
+   "cards": 4,
+   "all_reason_and_level": true,
+   "all_priced": true,
+   "one_family_per_vendor": true,
+   "le_4": true,
+   "doc_a_cards": 1,
+   "doc_a_shown_a": 1,
+   "same_family_other": [],
+   "levels": {
+    "A": 1,
+    "B": 3
+   },
+   "items": [
+    {
+     "title": "Киберпротект Кибер Бэкап Стандартная редакция, Сертификат на сопровождение ПО Кибер Бэкап Стандартная редакция для",
+     "family_id": "173614",
+     "family": "Кибер Бэкап Стандартная редакция",
+     "vendor": "Киберпротект",
+     "class": "renewal",
+     "label": "Техподдержка",
+     "price_rub": 1742,
+     "level": "B",
+     "kind": "license_kind",
+     "has_reason": true,
+     "has_level": true,
+     "priced": true,
+     "same_family": true,
+     "doc_a": false
+    },
+    {
+     "title": "Киберпротект Кибер Хранилище (лицензия), лицензия на 1 ТБ",
+     "family_id": "412674",
+     "family": "Кибер Хранилище",
+     "vendor": "Киберпротект",
+     "class": "complement",
+     "label": "Хранилище",
+     "price_rub": 15008,
+     "level": "B",
+     "kind": "class_logic",
+     "has_reason": true,
+     "has_level": true,
+     "priced": true,
+     "same_family": false,
+     "doc_a": false
+    },
+    {
+     "title": "Astra Linux Special Edition 1.8, х86-64, «Орел», РУСБ.10015-10, способ передачи электронный, для рабочей станции,",
+     "family_id": "121231",
+     "family": "Astra Linux Special Edition",
+     "vendor": "Группа Астра",
+     "class": "compatible",
+     "label": "Операционная система",
+     "price_rub": 5100,
+     "level": "A",
+     "kind": "compat_document",
+     "has_reason": true,
+     "has_level": true,
+     "priced": true,
+     "same_family": false,
+     "doc_a": true
+    },
+    {
+     "title": "РОСА ROSA Virtualization (операционные системы, ОС для использования в среде ROSA), рабочая станция (включено 3 года",
+     "family_id": "65555",
+     "family": "ROSA Virtualization",
+     "vendor": "РОСА",
+     "class": "complement",
+     "label": "Виртуализация",
+     "price_rub": 6072,
+     "level": "B",
+     "kind": "class_logic",
+     "has_reason": true,
+     "has_level": true,
+     "priced": true,
+     "same_family": false,
+     "doc_a": false
+    }
+   ]
+  },
+  {
+   "set": "etalon",
+   "id": "e07",
+   "query": "сканер-вс",
+   "block": true,
+   "anchor_family_id": "46421",
+   "anchor_family": "Эшелон «СКАНЕР-ВС»",
+   "anchor_confidence": "high",
+   "cards": 3,
+   "all_reason_and_level": true,
+   "all_priced": true,
+   "one_family_per_vendor": true,
+   "le_4": true,
+   "doc_a_cards": 0,
+   "doc_a_shown_a": 0,
+   "same_family_other": [],
+   "levels": {
+    "B": 3
+   },
+   "items": [
+    {
+     "title": "НПО «Эшелон» СКАНЕР-ВС 7 ( Лицензия включает компонент Инспектор, дополнительный IP к продлению лицензии на 1 год),",
+     "family_id": "46421",
+     "family": "Эшелон «СКАНЕР-ВС»",
+     "vendor": "НПО «Эшелон»",
+     "class": "renewal",
+     "label": "Продление",
+     "price_rub": 576,
+     "level": "B",
+     "kind": "license_kind",
+     "has_reason": true,
+     "has_level": true,
+     "priced": true,
+     "same_family": true,
+     "doc_a": false
+    },
+    {
+     "title": "Доктор Веб Комплексная защита + Центр управления на 1 год на 5 ПК",
+     "family_id": "4069",
+     "family": "Dr.Web Desktop Security Suite",
+     "vendor": "Доктор Веб",
+     "class": "complement",
+     "label": "Антивирус для организаций",
+     "price_rub": 10102.3,
+     "level": "B",
+     "kind": "class_logic",
+     "has_reason": true,
+     "has_level": true,
+     "priced": true,
+     "same_family": false,
+     "doc_a": false
+    },
+    {
+     "title": "Код безопасности Secret Net Studio 8 (дополнительная защита), Электронная лицензия на 1 год",
+     "family_id": "42240",
+     "family": "Код безопасности: Secret Net Studio 8",
+     "vendor": "Код безопасности",
+     "class": "complement",
+     "label": "СКЗИ, защита информации",
+     "price_rub": 2154,
+     "level": "B",
+     "kind": "class_logic",
+     "has_reason": true,
+     "has_level": true,
+     "priced": true,
+     "same_family": false,
+     "doc_a": false
+    }
+   ]
+  },
+  {
+   "set": "etalon",
+   "id": "e08",
+   "query": "мтс",
+   "block": true,
+   "anchor_family_id": "447242",
+   "anchor_family": "МТС Линк Стандарт",
+   "anchor_confidence": "medium",
+   "cards": 2,
+   "all_reason_and_level": true,
+   "all_priced": true,
+   "one_family_per_vendor": true,
+   "le_4": true,
+   "doc_a_cards": 0,
+   "doc_a_shown_a": 0,
+   "same_family_other": [],
+   "levels": {
+    "B": 2
+   },
+   "items": [
+    {
+     "title": "Microsoft 365 для семьи (Family) 6GQ-00084: подписка на 6 пользователей, 1 год",
+     "family_id": "165034",
+     "family": "Microsoft 365 Family (для семьи)",
+     "vendor": "Программы и лицензии Microsoft Corporation",
+     "class": "complement",
+     "label": "Офисный пакет",
+     "price_rub": 11250,
+     "level": "B",
+     "kind": "class_logic",
+     "has_reason": true,
+     "has_level": true,
+     "priced": true,
+     "same_family": false,
+     "doc_a": false
+    },
+    {
+     "title": "Группа Астра WorksPad DX Base (клиентские лицензии, срочные), WorksPad DX Base клиентская лицензия на 1 пользователя,",
+     "family_id": "300796",
+     "family": "Workspad",
+     "vendor": "Группа Астра",
+     "class": "complement",
+     "label": "Офисный пакет",
+     "price_rub": 1800,
+     "level": "B",
+     "kind": "class_logic",
+     "has_reason": true,
+     "has_level": true,
+     "priced": true,
+     "same_family": false,
+     "doc_a": false
+    }
+   ]
+  },
+  {
+   "set": "etalon",
+   "id": "e09",
+   "query": "max patrol",
+   "block": true,
+   "anchor_family_id": "437421",
+   "anchor_family": "MaxPatrol Endpoint Protection Platform",
+   "anchor_confidence": "high",
+   "cards": 2,
+   "all_reason_and_level": true,
+   "all_priced": true,
+   "one_family_per_vendor": true,
+   "le_4": true,
+   "doc_a_cards": 0,
+   "doc_a_shown_a": 0,
+   "same_family_other": [],
+   "levels": {
+    "B": 2
+   },
+   "items": [
+    {
+     "title": "Positive Technologies MaxPatrol Endpoint Protection Platform конфигурация Endpoint Protection, для обеспечения",
+     "family_id": "437421",
+     "family": "MaxPatrol Endpoint Protection Platform",
+     "vendor": "Positive Technologies",
+     "class": "renewal",
+     "label": "Продление",
+     "price_rub": 1360,
+     "level": "B",
+     "kind": "license_kind",
+     "has_reason": true,
+     "has_level": true,
+     "priced": true,
+     "same_family": true,
+     "doc_a": false
+    },
+    {
+     "title": "Киберпротект Кибер Бэкап Расширенная редакция (базовый пакет для сертифицированной версии программного комплекса,",
+     "family_id": "173615",
+     "family": "Кибер Бэкап Расширенная редакция",
+     "vendor": "Киберпротект",
+     "class": "complement",
+     "label": "Резервное копирование",
+     "price_rub": 610,
+     "level": "B",
+     "kind": "class_logic",
+     "has_reason": true,
+     "has_level": true,
+     "priced": true,
+     "same_family": false,
+     "doc_a": false
+    }
+   ]
+  },
+  {
+   "set": "etalon",
+   "id": "e10",
+   "query": "365",
+   "block": true,
+   "anchor_family_id": "165034",
+   "anchor_family": "Microsoft 365 Family (для семьи)",
+   "anchor_confidence": "high",
+   "cards": 2,
+   "all_reason_and_level": true,
+   "all_priced": true,
+   "one_family_per_vendor": true,
+   "le_4": true,
+   "doc_a_cards": 0,
+   "doc_a_shown_a": 0,
+   "same_family_other": [],
+   "levels": {
+    "B": 2
+   },
+   "items": [
+    {
+     "title": "Kaspersky Security для Microsoft Office 365 лицензия на 1 год. Количество почтовых ящиков",
+     "family_id": "124091",
+     "family": "Kaspersky Security для Microsoft Office 365",
+     "vendor": "«Лаборатория Касперского»",
+     "class": "complement",
+     "label": "Антивирус для организаций",
+     "price_rub": 2062.8,
+     "level": "B",
+     "kind": "class_logic",
+     "has_reason": true,
+     "has_level": true,
+     "priced": true,
+     "same_family": false,
+     "doc_a": false
+    },
+    {
+     "title": "Киберпротект Кибер Бэкап Расширенная редакция (базовый пакет для сертифицированной версии программного комплекса,",
+     "family_id": "173615",
+     "family": "Кибер Бэкап Расширенная редакция",
+     "vendor": "Киберпротект",
+     "class": "complement",
+     "label": "Резервное копирование",
+     "price_rub": 610,
+     "level": "B",
+     "kind": "class_logic",
+     "has_reason": true,
+     "has_level": true,
+     "priced": true,
+     "same_family": false,
+     "doc_a": false
+    }
+   ]
+  },
+  {
+   "set": "tz",
+   "id": "t01",
+   "query": "сервер",
+   "block": false,
+   "cards": 0
+  },
+  {
+   "set": "tz",
+   "id": "t02",
+   "query": "антивирь",
+   "block": false,
+   "cards": 0
+  },
+  {
+   "set": "tz",
+   "id": "t03",
+   "query": "офис",
+   "block": false,
+   "cards": 0
+  },
+  {
+   "set": "tz",
+   "id": "t04",
+   "query": "винда",
+   "block": false,
+   "cards": 0
+  },
+  {
+   "set": "tz",
+   "id": "t05",
+   "query": "астра линукс",
+   "block": true,
+   "anchor_family_id": "121231",
+   "anchor_family": "Astra Linux Special Edition",
+   "anchor_confidence": "high",
+   "cards": 4,
+   "all_reason_and_level": true,
+   "all_priced": true,
+   "one_family_per_vendor": true,
+   "le_4": true,
+   "doc_a_cards": 3,
+   "doc_a_shown_a": 3,
+   "same_family_other": [],
+   "levels": {
+    "A": 3,
+    "B": 1
+   },
+   "items": [
+    {
+     "title": "Astra Linux Special Edition 1.8, x86-64, «Орел», для рабочей станции, тип Базовая, на 12 мес. (для МСП)",
+     "family_id": "121231",
+     "family": "Astra Linux Special Edition",
+     "vendor": "Группа Астра",
+     "class": "renewal",
+     "label": "Техподдержка",
+     "price_rub": 3100,
+     "level": "B",
+     "kind": "license_kind",
+     "has_reason": true,
+     "has_level": true,
+     "priced": true,
+     "same_family": true,
+     "doc_a": false
+    },
+    {
+     "title": "Kaspersky Endpoint Security для бизнеса Расширенный лицензия Base на 1 год по количеству узлов",
+     "family_id": "3935",
+     "family": "Kaspersky Endpoint Security для бизнеса Расширенный",
+     "vendor": "«Лаборатория Касперского»",
+     "class": "compatible",
+     "label": "Антивирус для организаций",
+     "price_rub": 3307.77,
+     "level": "A",
+     "kind": "compat_document",
+     "has_reason": true,
+     "has_level": true,
+     "priced": true,
+     "same_family": false,
+     "doc_a": true
+    },
+    {
+     "title": "КриптоПро CSP для Astra Linux SE, Лицензия на право использования СКЗИ КриптоПро CSP версии 5.0 класс КС3 на одном",
+     "family_id": "22268",
+     "family": "Программа КриптоПро CSP 5.0",
+     "vendor": "КриптоПро",
+     "class": "compatible",
+     "label": "СКЗИ, защита информации",
+     "price_rub": 7500,
+     "level": "A",
+     "kind": "compat_document",
+     "has_reason": true,
+     "has_level": true,
+     "priced": true,
+     "same_family": false,
+     "doc_a": true
+    },
+    {
+     "title": "Киберпротект Кибер Бэкап Расширенная редакция (базовый пакет для сертифицированной версии программного комплекса,",
+     "family_id": "173615",
+     "family": "Кибер Бэкап Расширенная редакция",
+     "vendor": "Киберпротект",
+     "class": "compatible",
+     "label": "Резервное копирование",
+     "price_rub": 610,
+     "level": "A",
+     "kind": "compat_document",
+     "has_reason": true,
+     "has_level": true,
+     "priced": true,
+     "same_family": false,
+     "doc_a": true
+    }
+   ]
+  },
+  {
+   "set": "tz",
+   "id": "t06",
+   "query": "мдаемон",
+   "block": true,
+   "anchor_family_id": "394683",
+   "anchor_family": "MDaemon",
+   "anchor_confidence": "medium",
+   "cards": 1,
+   "all_reason_and_level": true,
+   "all_priced": true,
+   "one_family_per_vendor": true,
+   "le_4": true,
+   "doc_a_cards": 0,
+   "doc_a_shown_a": 0,
+   "same_family_other": [],
+   "levels": {
+    "B": 1
+   },
+   "items": [
+    {
+     "title": "MDaemon Technologies, Ltd. MDaemon (продление на 2 года), 5 пользователей",
+     "family_id": "394683",
+     "family": "MDaemon",
+     "vendor": "MDaemon Technologies, Ltd.",
+     "class": "renewal",
+     "label": "Продление",
+     "price_rub": 47808,
+     "level": "B",
+     "kind": "license_kind",
+     "has_reason": true,
+     "has_level": true,
+     "priced": true,
+     "same_family": true,
+     "doc_a": false
+    }
+   ]
+  },
+  {
+   "set": "tz",
+   "id": "t07",
+   "query": "Astra Linux",
+   "block": true,
+   "anchor_family_id": "121231",
+   "anchor_family": "Astra Linux Special Edition",
+   "anchor_confidence": "high",
+   "cards": 4,
+   "all_reason_and_level": true,
+   "all_priced": true,
+   "one_family_per_vendor": true,
+   "le_4": true,
+   "doc_a_cards": 3,
+   "doc_a_shown_a": 3,
+   "same_family_other": [],
+   "levels": {
+    "A": 3,
+    "B": 1
+   },
+   "items": [
+    {
+     "title": "Astra Linux Special Edition 1.8, x86-64, «Орел», для рабочей станции, тип Базовая, на 12 мес. (для МСП)",
+     "family_id": "121231",
+     "family": "Astra Linux Special Edition",
+     "vendor": "Группа Астра",
+     "class": "renewal",
+     "label": "Техподдержка",
+     "price_rub": 3100,
+     "level": "B",
+     "kind": "license_kind",
+     "has_reason": true,
+     "has_level": true,
+     "priced": true,
+     "same_family": true,
+     "doc_a": false
+    },
+    {
+     "title": "Kaspersky Endpoint Security для бизнеса Расширенный лицензия Base на 1 год по количеству узлов",
+     "family_id": "3935",
+     "family": "Kaspersky Endpoint Security для бизнеса Расширенный",
+     "vendor": "«Лаборатория Касперского»",
+     "class": "compatible",
+     "label": "Антивирус для организаций",
+     "price_rub": 3307.77,
+     "level": "A",
+     "kind": "compat_document",
+     "has_reason": true,
+     "has_level": true,
+     "priced": true,
+     "same_family": false,
+     "doc_a": true
+    },
+    {
+     "title": "КриптоПро CSP для Astra Linux SE, Лицензия на право использования СКЗИ КриптоПро CSP версии 5.0 класс КС3 на одном",
+     "family_id": "22268",
+     "family": "Программа КриптоПро CSP 5.0",
+     "vendor": "КриптоПро",
+     "class": "compatible",
+     "label": "СКЗИ, защита информации",
+     "price_rub": 7500,
+     "level": "A",
+     "kind": "compat_document",
+     "has_reason": true,
+     "has_level": true,
+     "priced": true,
+     "same_family": false,
+     "doc_a": true
+    },
+    {
+     "title": "Киберпротект Кибер Бэкап Расширенная редакция (базовый пакет для сертифицированной версии программного комплекса,",
+     "family_id": "173615",
+     "family": "Кибер Бэкап Расширенная редакция",
+     "vendor": "Киберпротект",
+     "class": "compatible",
+     "label": "Резервное копирование",
+     "price_rub": 610,
+     "level": "A",
+     "kind": "compat_document",
+     "has_reason": true,
+     "has_level": true,
+     "priced": true,
+     "same_family": false,
+     "doc_a": true
+    }
+   ]
+  }
+ ]
+}

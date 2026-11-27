@@ -121,6 +121,21 @@ export const THEORY_PARAMS = {
   // Подсказки (suggest.go)
   suggestMinFreq: 2,
 
+  // Срез справочника в промпте разбора (intent_context.go)
+  intentMaxVendors: 20,
+  intentMaxCategories: 15,
+  intentMinCategories: 5, // кандидатов-категорий меньше — в срез добавляются корневые разделы
+
+  // Режим подбора (guide_turn.go, guide_llm.go, guide_state.go)
+  guideTurnLimitSec: 12,
+  guideMaxReads: 3, // зависимых чтений за ход
+  guideMaxModelCalls: 2, // вызовов модели за ход, обычно 0–1
+  guideShowOffers: 4,
+  guideLLMSlots: 5, // одновременных вызовов модели подбора
+  guideCallTimeoutMs: 4500,
+  guideLeadMaxWords: 60,
+  guideSessionMinutes: 30, // подбор без действий живёт на сервере столько минут
+
   // LLM (config/ops.go)
   dailyBudgetRub: 1000,
   agentReserveRub: 100,

@@ -1,0 +1,571 @@
+{
+ "api": "http://127.0.0.1:8088",
+ "summary": {
+  "prefix_total": 10,
+  "prefix_ok": 10,
+  "prefix_by_family": 4,
+  "prefix_by_vendor": 6,
+  "prefix_vendor_listed": 5,
+  "corr_total": 3,
+  "corr_ok": 3,
+  "inputs": 13,
+  "together_nonempty": 13,
+  "repeats": 5,
+  "samples": 65,
+  "client_p50": 6.5,
+  "client_p95": 41.8,
+  "server_p50": 5.7,
+  "server_p95": 41.0,
+  "first_p50": 27.4,
+  "first_p95": 102.5,
+  "failures": 0
+ },
+ "rows": [
+  {
+   "q": "аст",
+   "ok": true,
+   "how": "семейство",
+   "first": "Astra Linux Special Edition",
+   "vendors": [
+    "astralinux"
+   ],
+   "vendor_listed": true,
+   "corrected": null,
+   "together": [
+    "Kaspersky Endpoint Security для бизнеса Расширенный",
+    "Программа КриптоПро CSP 5.0"
+   ],
+   "etalon": "astra linux",
+   "kind": "prefix"
+  },
+  {
+   "q": "касп",
+   "ok": true,
+   "how": "вендор",
+   "first": "Kaspersky Endpoint Security для бизнеса Стандартный",
+   "vendors": [
+    "kaspersky"
+   ],
+   "vendor_listed": true,
+   "corrected": null,
+   "together": [
+    "Кибер Бэкап Расширенная редакция"
+   ],
+   "etalon": "kaspersky small office security",
+   "kind": "prefix"
+  },
+  {
+   "q": "крип",
+   "ok": true,
+   "how": "вендор",
+   "first": "Программа КриптоПро NGate",
+   "vendors": [
+    "kripto-pro",
+    "cryptocom"
+   ],
+   "vendor_listed": true,
+   "corrected": null,
+   "together": [
+    "Альт Рабочая станция 11"
+   ],
+   "etalon": "крипто про csp 5.0",
+   "kind": "prefix"
+  },
+  {
+   "q": "кибер",
+   "ok": true,
+   "how": "вендор",
+   "first": "Кибер Бэкап Расширенная редакция",
+   "vendors": [
+    "cyberprotect"
+   ],
+   "vendor_listed": true,
+   "corrected": null,
+   "together": [
+    "Кибер Хранилище",
+    "Astra Linux Special Edition"
+   ],
+   "etalon": "кибер бэкап",
+   "kind": "prefix"
+  },
+  {
+   "q": "мтс",
+   "ok": true,
+   "how": "вендор",
+   "first": "МТС Линк Optimum 30",
+   "vendors": [
+    "webinar"
+   ],
+   "vendor_listed": true,
+   "corrected": null,
+   "together": [
+    "Microsoft 365 Family (для семьи)",
+    "Workspad"
+   ],
+   "etalon": "мтс",
+   "kind": "prefix"
+  },
+  {
+   "q": "макс",
+   "ok": true,
+   "how": "семейство",
+   "first": "MaxPatrol Endpoint Protection Platform",
+   "vendors": [],
+   "vendor_listed": false,
+   "corrected": null,
+   "together": [
+    "Кибер Бэкап Расширенная редакция"
+   ],
+   "etalon": "max patrol",
+   "kind": "prefix"
+  },
+  {
+   "q": "эни",
+   "ok": true,
+   "how": "семейство",
+   "first": "AnyDesk",
+   "vendors": [],
+   "vendor_listed": false,
+   "corrected": null,
+   "together": [
+    "Dr.Web Desktop Security Suite",
+    "Joint Advanced"
+   ],
+   "etalon": "anydesk",
+   "kind": "prefix"
+  },
+  {
+   "q": "скан",
+   "ok": true,
+   "how": "семейство",
+   "first": "Эшелон «СКАНЕР-ВС»",
+   "vendors": [],
+   "vendor_listed": false,
+   "corrected": null,
+   "together": [
+    "Dr.Web Desktop Security Suite",
+    "Код безопасности: Secret Net Studio 8"
+   ],
+   "etalon": "сканер-вс",
+   "kind": "prefix"
+  },
+  {
+   "q": "офис",
+   "ok": true,
+   "how": "вендор",
+   "first": "Microsoft Office 2024 для дома и учёбы",
+   "vendors": [],
+   "vendor_listed": false,
+   "corrected": null,
+   "together": [
+    "Dr.Web Desktop Security Suite",
+    "Кибер Бэкап Расширенная редакция"
+   ],
+   "etalon": "Microsoft Office для дома и бизнеса",
+   "kind": "prefix"
+  },
+  {
+   "q": "365",
+   "ok": true,
+   "how": "вендор",
+   "first": "Облачная платформа Microsoft 365 Business Basic",
+   "vendors": [],
+   "vendor_listed": false,
+   "corrected": null,
+   "together": [
+    "Kaspersky Security для Microsoft Office 365",
+    "Кибер Бэкап Расширенная редакция"
+   ],
+   "etalon": "365",
+   "kind": "prefix"
+  },
+  {
+   "q": "rfcg",
+   "ok": true,
+   "how": "вендор",
+   "first": "Kaspersky Endpoint Security для бизнеса Стандартный",
+   "vendors": [
+    "kaspersky"
+   ],
+   "vendor_listed": true,
+   "corrected": {
+    "from": "rfcg",
+    "to": "касп",
+    "kind": "layout"
+   },
+   "together": [
+    "Кибер Бэкап Расширенная редакция"
+   ],
+   "etalon": "kaspersky small office security",
+   "kind": "correction"
+  },
+  {
+   "q": "fcnhf",
+   "ok": true,
+   "how": "семейство",
+   "first": "Astra Linux Special Edition",
+   "vendors": [
+    "astralinux"
+   ],
+   "vendor_listed": true,
+   "corrected": {
+    "from": "fcnhf",
+    "to": "астра",
+    "kind": "layout"
+   },
+   "together": [
+    "Kaspersky Endpoint Security для бизнеса Расширенный",
+    "Программа КриптоПро CSP 5.0"
+   ],
+   "etalon": "astra linux",
+   "kind": "correction"
+  },
+  {
+   "q": "касперкий ",
+   "ok": true,
+   "how": "вендор",
+   "first": "Kaspersky Endpoint Security для бизнеса Стандартный",
+   "vendors": [
+    "kaspersky"
+   ],
+   "vendor_listed": true,
+   "corrected": {
+    "from": "касперкий",
+    "to": "касперский",
+    "kind": "typo"
+   },
+   "together": [
+    "Кибер Бэкап Расширенная редакция"
+   ],
+   "etalon": "kaspersky small office security",
+   "kind": "correction"
+  }
+ ],
+ "latency_ms": [
+  {
+   "q": "аст",
+   "client": 34.15,
+   "server": 20.59
+  },
+  {
+   "q": "аст",
+   "client": 7.3,
+   "server": 6.37
+  },
+  {
+   "q": "аст",
+   "client": 6.45,
+   "server": 5.7
+  },
+  {
+   "q": "аст",
+   "client": 6.22,
+   "server": 5.56
+  },
+  {
+   "q": "аст",
+   "client": 6.29,
+   "server": 5.58
+  },
+  {
+   "q": "касп",
+   "client": 41.79,
+   "server": 41.04
+  },
+  {
+   "q": "касп",
+   "client": 6.36,
+   "server": 5.58
+  },
+  {
+   "q": "касп",
+   "client": 5.98,
+   "server": 5.39
+  },
+  {
+   "q": "касп",
+   "client": 6.13,
+   "server": 5.35
+  },
+  {
+   "q": "касп",
+   "client": 6.03,
+   "server": 5.36
+  },
+  {
+   "q": "крип",
+   "client": 23.02,
+   "server": 22.29
+  },
+  {
+   "q": "крип",
+   "client": 6.0,
+   "server": 5.31
+  },
+  {
+   "q": "крип",
+   "client": 5.9,
+   "server": 5.29
+  },
+  {
+   "q": "крип",
+   "client": 6.51,
+   "server": 5.71
+  },
+  {
+   "q": "крип",
+   "client": 5.95,
+   "server": 5.25
+  },
+  {
+   "q": "кибер",
+   "client": 27.35,
+   "server": 26.69
+  },
+  {
+   "q": "кибер",
+   "client": 6.07,
+   "server": 5.38
+  },
+  {
+   "q": "кибер",
+   "client": 6.1,
+   "server": 5.47
+  },
+  {
+   "q": "кибер",
+   "client": 6.42,
+   "server": 5.75
+  },
+  {
+   "q": "кибер",
+   "client": 6.02,
+   "server": 5.26
+  },
+  {
+   "q": "мтс",
+   "client": 12.04,
+   "server": 11.43
+  },
+  {
+   "q": "мтс",
+   "client": 5.7,
+   "server": 5.04
+  },
+  {
+   "q": "мтс",
+   "client": 5.58,
+   "server": 4.93
+  },
+  {
+   "q": "мтс",
+   "client": 5.69,
+   "server": 5.02
+  },
+  {
+   "q": "мтс",
+   "client": 5.78,
+   "server": 5.08
+  },
+  {
+   "q": "макс",
+   "client": 29.56,
+   "server": 28.92
+  },
+  {
+   "q": "макс",
+   "client": 6.04,
+   "server": 5.39
+  },
+  {
+   "q": "макс",
+   "client": 5.6,
+   "server": 5.03
+  },
+  {
+   "q": "макс",
+   "client": 5.79,
+   "server": 5.1
+  },
+  {
+   "q": "макс",
+   "client": 5.77,
+   "server": 5.15
+  },
+  {
+   "q": "эни",
+   "client": 65.1,
+   "server": 64.45
+  },
+  {
+   "q": "эни",
+   "client": 35.54,
+   "server": 34.85
+  },
+  {
+   "q": "эни",
+   "client": 35.2,
+   "server": 34.48
+  },
+  {
+   "q": "эни",
+   "client": 35.5,
+   "server": 34.82
+  },
+  {
+   "q": "эни",
+   "client": 34.55,
+   "server": 33.93
+  },
+  {
+   "q": "скан",
+   "client": 33.63,
+   "server": 33.03
+  },
+  {
+   "q": "скан",
+   "client": 5.97,
+   "server": 5.26
+  },
+  {
+   "q": "скан",
+   "client": 6.02,
+   "server": 5.32
+  },
+  {
+   "q": "скан",
+   "client": 5.56,
+   "server": 4.94
+  },
+  {
+   "q": "скан",
+   "client": 5.53,
+   "server": 4.95
+  },
+  {
+   "q": "офис",
+   "client": 21.26,
+   "server": 20.57
+  },
+  {
+   "q": "офис",
+   "client": 6.08,
+   "server": 5.42
+  },
+  {
+   "q": "офис",
+   "client": 5.52,
+   "server": 4.95
+  },
+  {
+   "q": "офис",
+   "client": 5.73,
+   "server": 5.09
+  },
+  {
+   "q": "офис",
+   "client": 5.71,
+   "server": 5.06
+  },
+  {
+   "q": "365",
+   "client": 18.3,
+   "server": 17.65
+  },
+  {
+   "q": "365",
+   "client": 6.01,
+   "server": 5.41
+  },
+  {
+   "q": "365",
+   "client": 9.43,
+   "server": 8.41
+  },
+  {
+   "q": "365",
+   "client": 5.58,
+   "server": 4.95
+  },
+  {
+   "q": "365",
+   "client": 5.57,
+   "server": 4.99
+  },
+  {
+   "q": "rfcg",
+   "client": 6.95,
+   "server": 6.29
+  },
+  {
+   "q": "rfcg",
+   "client": 6.63,
+   "server": 6.01
+  },
+  {
+   "q": "rfcg",
+   "client": 6.64,
+   "server": 6.01
+  },
+  {
+   "q": "rfcg",
+   "client": 24.39,
+   "server": 22.09
+  },
+  {
+   "q": "rfcg",
+   "client": 7.48,
+   "server": 6.79
+  },
+  {
+   "q": "fcnhf",
+   "client": 19.93,
+   "server": 19.01
+  },
+  {
+   "q": "fcnhf",
+   "client": 7.24,
+   "server": 6.49
+  },
+  {
+   "q": "fcnhf",
+   "client": 6.85,
+   "server": 6.19
+  },
+  {
+   "q": "fcnhf",
+   "client": 6.9,
+   "server": 6.28
+  },
+  {
+   "q": "fcnhf",
+   "client": 6.98,
+   "server": 6.28
+  },
+  {
+   "q": "касперкий ",
+   "client": 102.49,
+   "server": 100.65
+  },
+  {
+   "q": "касперкий ",
+   "client": 41.34,
+   "server": 40.69
+  },
+  {
+   "q": "касперкий ",
+   "client": 42.0,
+   "server": 41.31
+  },
+  {
+   "q": "касперкий ",
+   "client": 41.06,
+   "server": 40.36
+  },
+  {
+   "q": "касперкий ",
+   "client": 40.53,
+   "server": 39.86
+  }
+ ]
+}
