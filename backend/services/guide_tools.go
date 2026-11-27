@@ -69,7 +69,7 @@ func (g *guideService) searchCatalog(ctx context.Context, cat *guideCatalog, tex
 func (c *guideCatalog) nameMatch(text, vendor string, limit int) []string {
 	words := []string{}
 	for _, w := range strings.Fields(guideNorm(text)) {
-		if len([]rune(w)) >= 3 {
+		if len([]rune(w)) >= 3 && !hwComputerWords[w] {
 			words = append(words, stemRU(w))
 		}
 	}

@@ -45,6 +45,7 @@ func newCatalogState(s *domain.CatalogSnapshot, rulesVersion int) *catalogState 
 	for i := range s.Products {
 		sanitizeQuantity(&s.Products[i])
 	}
+	packTiers(s.Products)
 	clients := append([]domain.Client(nil), s.Clients...)
 	// Гость — первым (переключатель клиента открывается на нём), остальные — по id: порядок не зависит
 	// от того, прочитан каталог из файлов или из базы.

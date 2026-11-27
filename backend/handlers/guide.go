@@ -30,7 +30,7 @@ func (h *Handler) GuideRoute(c *fiber.Ctx) error {
 	if err := bindBody(c, &req); err != nil {
 		return err
 	}
-	return c.JSON(h.services.RouteGuide(req.Query))
+	return c.JSON(h.services.RouteGuide(c.UserContext(), req.Query))
 }
 
 // GuideSpec — POST /api/guide/spec: строка подбора в черновик спецификации (ключ операции, версия черновика).

@@ -394,6 +394,22 @@ func (lx *searchLexicon) matchFamilies(tokens []string) []string {
 	return out
 }
 
+// bestCovered — семейства, чьё название запрос покрывает полнее всего: «аналог фотошопа» — это «Adobe Photoshop», а не
+// «Adobe Photoshop Elements» и не «Digital Film Tools Adobe Photoshop Plug-ins» (одно общее слово).
+func (lx *searchLexicon) bestCovered(fams, tokens []string) []string {
+	best := 0.0
+	for _, f := range fams {
+		best = math.Max(best, lx.familyCoverage(f, tokens))
+	}
+	var out []string
+	for _, f := range fams {
+		if lx.familyCoverage(f, tokens) >= best-1e-9 {
+			out = append(out, f)
+		}
+	}
+	return out
+}
+
 // familyCoverage — какая доля названия семейства (по весу idf значимых слов) есть в запросе: 1 — названо
 // целиком («kaspersky internet security»), мало — совпало одно общее слово («офис» в «Small Office Security»).
 func (lx *searchLexicon) familyCoverage(fid string, tokens []string) float64 {

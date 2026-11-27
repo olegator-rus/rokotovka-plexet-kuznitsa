@@ -436,7 +436,7 @@ func TestGuideRoute(t *testing.T) {
 		"доставка":    routeSearch,
 	}
 	for q, want := range cases {
-		if got := s.RouteGuide(q).Mode; got != want {
+		if got := s.RouteGuide(context.Background(), q).Mode; got != want {
 			t.Errorf("%q: %s, ждали %s", q, got, want)
 		}
 	}

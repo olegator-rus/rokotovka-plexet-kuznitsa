@@ -1,11 +1,13 @@
 package services
 
 import (
+	"context"
 	"regexp"
 	"strconv"
 	"strings"
 
 	"kuznica/api/domain"
+	"kuznica/api/in"
 	"kuznica/api/out"
 )
 
@@ -69,9 +71,16 @@ func guideNorm(s string) string {
 	return strings.Join(strings.Fields(s), " ")
 }
 
+// routeHardware — причина маршрута: запрос об оборудовании («подобрать комп», «ноутбук»). Подбор — только для
+// лицензий на ПО: обычная выдача, без строки-предложения и без раскрытия.
+const routeHardware = "hardware"
+
 // RouteGuide — POST /api/guide/route: состояние строки по правилам (SPEC §1).
-func (s *Services) RouteGuide(query string) out.GuideRoute {
+func (s *Services) RouteGuide(ctx context.Context, query string) out.GuideRoute {
 	mode, reason := routeQuery(query)
+	if mode != routeSearch && s.hardwareQuery(ctx, query) {
+		return out.GuideRoute{Mode: routeSearch, Reason: routeHardware}
+	}
 	r := out.GuideRoute{Mode: mode, Reason: reason}
 	switch {
 	case mode == routeGuide && asksCompare(query):
@@ -88,6 +97,27 @@ func (s *Services) RouteGuide(query string) out.GuideRoute {
 		r.Offer = GuideOfferText
 	}
 	return r
+}
+
+// hardwareQuery — запрос называет категорию оборудования и не называет ПО: разбор оборудования поиска
+// (hardware_parse.go) на текущем каталоге. «антивирус на 20 компьютеров» — не оборудование (места лицензии),
+// «подобрать комп», «системный блок», «ноутбук» — оборудование. Каталога или оборудования в нём нет — false.
+func (s *Services) hardwareQuery(ctx context.Context, query string) bool {
+	if s == nil {
+		return false
+	}
+	st := s.catalog.Load()
+	if st == nil || st.lex == nil || !st.hw.hasHardware() {
+		return false
+	}
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	rules := s.rulesFor(ctx, domain.ConfigB3, st.lex, nil)
+	nr := normalizeFull(query, st.lex, rules, false)
+	attrs := extractAttrs(nr.tokens)
+	p := s.hardwareParse(ctx, st, nr, &attrs, in.SearchRequest{Query: query})
+	return p != nil && p.category != ""
 }
 
 // routeQuery — режим и причина.

@@ -40,6 +40,11 @@ const (
 // rerankFamilies — оценка семейств реранкером: rel = (1−w)·rel + w·score/лучший score. Сбой реранкера — выдача
 // без него (шаг skipped с причиной), поиск не падает.
 func (s *Services) rerankFamilies(ctx context.Context, query, route string, fams []*familyHit) domain.StepBase {
+	return s.rerankFamiliesTop(ctx, query, route, fams, rerankTop)
+}
+
+// rerankFamiliesTop — rerankFamilies с n семействами под реранкером.
+func (s *Services) rerankFamiliesTop(ctx context.Context, query, route string, fams []*familyHit, n int) domain.StepBase {
 	w := s.rerankW
 	switch {
 	case s.rerankOffBy(ctx):
@@ -55,8 +60,8 @@ func (s *Services) rerankFamilies(ctx context.Context, query, route string, fams
 	top := append([]*familyHit(nil), fams...)
 	sort.SliceStable(top, func(i, j int) bool { return top[i].rel > top[j].rel })
 	var tail []*familyHit
-	if len(top) > rerankTop {
-		top, tail = top[:rerankTop], top[rerankTop:]
+	if len(top) > n {
+		top, tail = top[:n], top[n:]
 	}
 	texts := make([]string, len(top))
 	for i, fh := range top {

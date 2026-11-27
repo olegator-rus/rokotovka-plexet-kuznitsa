@@ -1,6 +1,7 @@
 package services
 
 import (
+	"slices"
 	"strings"
 	"unicode"
 	"unicode/utf8"
@@ -245,11 +246,91 @@ func (rc rankCtx) categoryQuery(words []string, cat string) bool {
 			continue
 		}
 		n++
-		if !wordMatch(w, names) {
+		if !wordMatch(w, names) && !rc.hwNames(w, cat) {
 			return false
 		}
 	}
 	return n > 0
+}
+
+// editionCompare — запрос о различиях редакций («… чем расширенный отличается от стандартного»): слова-прилагательные
+// запроса, которые есть в названиях семейств выдачи («Расширенный», «Стандартный»), и вендор, у которого названа
+// каждая из них. Первое по выдаче семейство этого вендора с таким словом — цель: «PRO32 … Advanced» на первом месте
+// выдачи ответом на сравнение редакций Kaspersky не становится. nil — запрос не о различиях или таких слов меньше двух.
+func (rc rankCtx) editionCompare(words []string, fams []*familyHit) *familyHit {
+	if len(fams) < 2 || !asksCompare(strings.Join(rc.ent.textTokens, " ")) {
+		return nil
+	}
+	type hit struct {
+		word string
+		fams []*familyHit
+	}
+	var named []hit
+	for _, w := range words {
+		if !isAdjective(w) || hasDigit(w) {
+			continue
+		}
+		h := hit{word: w}
+		for _, fh := range fams {
+			if names := wordsOf(rc.lx.familyName[fh.id]); wordMatch(w, names) && !wordMatch(w, rc.vendorWords(fh.id)) {
+				h.fams = append(h.fams, fh)
+			}
+		}
+		if len(h.fams) > 0 {
+			named = append(named, h)
+		}
+	}
+	if len(named) < 2 {
+		return nil
+	}
+	for _, fh := range fams { // вендоры — в порядке выдачи
+		v := rc.lx.familyVendor[fh.id]
+		all, first := v != "", (*familyHit)(nil)
+		for _, h := range named {
+			found := false
+			for _, f := range h.fams {
+				if rc.lx.familyVendor[f.id] == v {
+					found = true
+					if first == nil || slices.Index(fams, f) < slices.Index(fams, first) {
+						first = f
+					}
+				}
+			}
+			all = all && found
+		}
+		if all {
+			return first
+		}
+	}
+	return nil
+}
+
+// analogClass — категория названного продукта (первого референса), иначе категория запроса; "" — нет.
+func analogClass(rc rankCtx, category string) string {
+	for _, r := range rc.ent.reference {
+		if c := rc.lx.familyCat[r]; c != "" && rc.lx.categoryName[c] != "" {
+			return c
+		}
+	}
+	if rc.lx.categoryName[category] != "" {
+		return category
+	}
+	return ""
+}
+
+// allAnalogs — все семейства выдачи — аналоги (group analog).
+func allAnalogs(fams []*familyHit) bool {
+	for _, fh := range fams {
+		if fh.group != domain.GroupAnalog {
+			return false
+		}
+	}
+	return len(fams) > 0
+}
+
+// hwNames — слово называет эту категорию оборудования синонимом словаря оборудования («пк», «комп» → «Десктопы»).
+func (rc rankCtx) hwNames(w, cat string) bool {
+	return rc.hw != nil && rc.hw.hx != nil && hwCategorySynonym(w) != "" && rc.hw.hx.categoryOfWord(w) == cat
 }
 
 // selectTarget — цель ответа. nil — цели нет (пустая выдача, бессмыслица).
@@ -291,6 +372,19 @@ func selectTarget(in targetInput) targetDecision {
 				}
 			}
 		}
+	}
+
+	// 0б. Аналог названного продукта («аналог фотошопа»): выдача — одни аналоги; цель — класс (категория названного
+	// продукта), а не первое по релевантности семейство-замена.
+	if cat := analogClass(rc, in.category); rc.attrs.analog && cat != "" && allAnalogs(in.fams) {
+		dec.target = categoryTarget(rc, cat, "аналоги — тот же класс, что у названного продукта")
+		dec.clarify = false
+		return dec
+	}
+
+	// 0а. Сравнение редакций («чем расширенный отличается от стандартного»): цель — линейка, где обе названы.
+	if fh := rc.editionCompare(in.words, in.fams); fh != nil {
+		return familyTarget(rc, dec, fh, "сравнение редакций — линейка, в которой названы обе")
 	}
 
 	// 1. Совпадение с названием семейства (или вендора).
@@ -828,7 +922,7 @@ func (rc rankCtx) genericName(fid string) bool {
 			continue
 		}
 		n++
-		if !wordMatch(w, names) {
+		if !wordMatch(w, names) && !rc.hwNames(w, cat) {
 			return false
 		}
 	}

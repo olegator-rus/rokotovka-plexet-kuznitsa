@@ -382,6 +382,7 @@ func (t *guideTurn) selection(data *guideData) *out.GuideResponse {
 	if !r.Cheapest {
 		t.rankNamed(matches, data)
 	}
+	t.matchTotal = len(matches)
 	if r.Cheapest && len(matches) > 1 {
 		matches = matches[:1]
 	}

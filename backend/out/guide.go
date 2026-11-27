@@ -43,6 +43,9 @@ type GuideResponse struct {
 	Docs *GuideDocs `json:"docs"`
 	// Screen — готовые поля экрана подбора (контур экрана); null — экрана результата нет.
 	Screen *GuideScreen `json:"screen"`
+	// Chat — сообщение помощника блоками (контур помощника): всё, что показывает чат; фронт не выбирает и не
+	// считает.
+	Chat *GuideChat `json:"chat"`
 }
 
 // GuideDocs — страница вендора или семейства.
@@ -455,4 +458,147 @@ type GuideRecommendation struct {
 	Reason  string `json:"reason"`
 	// Basis — на чём основана: price_per_seat (каталог) | feature (факт) | named (названа покупателем).
 	Basis string `json:"basis"`
+}
+
+// Помощник по выбору (контур помощника): сообщение блоками. Тексты, числа, порядок, пометки и группы — код.
+
+// Состояния сообщения помощника.
+const (
+	ChatAnswer     = "answer"       // ответ с карточками или таблицей
+	ChatQuestion   = "question"     // не хватает существенного условия: вопрос с кнопками
+	ChatNoOffers   = "no_offers"    // нет позиций под условия
+	ChatNoData     = "no_data"      // нет сведений в документации
+	ChatOutOfScope = "out_of_scope" // не его тема (оплата, доставка, оборудование)
+	ChatDiscount   = "discount"     // просьба о скидке
+	ChatLLMFailed  = "llm_failed"   // товары найдены, пояснение не готово
+	ChatFailed     = "failed"       // сбой хода: товаров нет, нужен повтор
+)
+
+// GuideChat — сообщение помощника (CHAT.md §3).
+type GuideChat struct {
+	Status string `json:"status"`
+	// Text — до трёх фраз, без цен и артикулов из модели.
+	Text []string `json:"text"`
+	// Warning — ограничение применимости или предварительный результат; "" — нет.
+	Warning    string           `json:"warning"`
+	Comparison *GuideChatTable  `json:"comparison"`
+	Groups     []GuideChatGroup `json:"groups"`
+	More       *GuideChatMore   `json:"more"`
+	// Sources — источники фактов и правил: одна ссылка на документ.
+	Sources     []GuideScreenSource   `json:"sources"`
+	Complements []GuideChatComplement `json:"complements"`
+	Question    *GuideChatQuestion    `json:"question"`
+	Suggestions []GuideChatSuggestion `json:"suggestions"`
+	Conditions  GuideChatConditions   `json:"conditions"`
+	Links       []GuideChatLink       `json:"links"`
+	// HasPromo — среди карточек есть акционная цена (фраза «На часть лицензий действует акция»).
+	HasPromo bool `json:"has_promo"`
+}
+
+// Группы карточек.
+const (
+	ChatGroupMatch    = "match"    // подходящие (без заголовка)
+	ChatGroupOther    = "other"    // «Другие варианты»: названное отличие у каждой
+	ChatGroupRejected = "rejected" // «Не подходят …»: причина, цена серым, без добавления
+)
+
+// GuideChatGroup — группа карточек с заголовком ("" у подходящих).
+type GuideChatGroup struct {
+	Key   string          `json:"key"`
+	Title string          `json:"title"`
+	Cards []GuideChatCard `json:"cards"`
+}
+
+// Действие карточки.
+const (
+	ChatActionSpec  = "add_to_spec"
+	ChatActionQuote = "request_quote"
+	ChatActionStore = "open_store"
+)
+
+// GuideChatCard — карточка товара (CHAT.md §4): полная стоимость под условия покупателя и расчёт под ней.
+type GuideChatCard struct {
+	OfferID  string `json:"offer_id"`
+	FamilyID string `json:"family_id"`
+	// Badge — одна пометка при проверяемом основании: lowest_total | required_feature | server_os | migration |
+	// unsuitable | not_required; null — без пометки.
+	Badge    *GuideReason `json:"badge"`
+	Title    string       `json:"title"`
+	Subtitle string       `json:"subtitle"`
+	// PriceText — «33 084 ₽», «1 654,20 ₽ за компьютер» (количество неизвестно) или «Цена по запросу».
+	PriceText string   `json:"price_text"`
+	Total     *float64 `json:"total"`
+	// Calc — «20 × 1 654,20 ₽», «Пакет на 20 компьютеров», «Пакет на 25 компьютеров · 5 мест в запасе»; "" — нет.
+	Calc string `json:"calc"`
+	// Reason — причина одной строкой ("" — нет).
+	Reason     string `json:"reason"`
+	Unsuitable bool   `json:"unsuitable"`
+	PriceState string `json:"price_state"` // priced | on_request
+	// Promo — акционная цена этого артикула; OldPriceText — прежняя цена из каталога («6 150 ₽ за место»).
+	Promo        bool   `json:"promo"`
+	OldPriceText string `json:"old_price_text"`
+	// Note — пояснение к цене: «Цена за место ниже: 3 940,20 ₽ вместо 4 081,50 ₽», «Новая лицензия — 76 000 ₽».
+	Note     string        `json:"note"`
+	Action   string        `json:"action"` // add_to_spec | request_quote | open_store
+	OfferURL string        `json:"offer_url"`
+	Quantity int           `json:"quantity"` // сколько класть в спецификацию (как в offers[])
+	Details  []GuideDetail `json:"details"`
+}
+
+// GuideChatTable — сравнение: две колонки, три-пять строк; последние — «За место» и «Итого».
+type GuideChatTable struct {
+	Title   string             `json:"title"`
+	Columns []GuideScreenCol   `json:"columns"`
+	Rows    []GuideChatRow     `json:"rows"`
+	Source  *GuideScreenSource `json:"source"`
+}
+
+// GuideChatRow — строка сравнения: ячейки «Есть», «Нет», «Нет сведений» или значение.
+type GuideChatRow struct {
+	Key   string            `json:"key"`
+	Label string            `json:"label"`
+	Kind  string            `json:"kind"` // feature | commercial
+	Cells []GuideScreenCell `json:"cells"`
+}
+
+// GuideChatMore — «Показать все N вариантов в поиске»: запрос перестраивает выдачу слева.
+type GuideChatMore struct {
+	Label string `json:"label"`
+	Query string `json:"query"`
+	Count int    `json:"count"`
+}
+
+// GuideChatComplement — «Можно подобрать дополнительно»: компактная строка; нажатие — новый подбор с условиями.
+type GuideChatComplement struct {
+	Title   string `json:"title"`
+	Reason  string `json:"reason"`
+	Message string `json:"message"`
+}
+
+// GuideChatQuestion — один вопрос, две-четыре кнопки; ответить можно и текстом.
+type GuideChatQuestion struct {
+	Key   string      `json:"key"`
+	Text  string      `json:"text"`
+	Chips []GuideChip `json:"chips"`
+}
+
+// GuideChatSuggestion — подсказка следующего шага: Message — реплика покупателя (видна пузырём); Chip — если
+// задан, отправляется вместо текста.
+type GuideChatSuggestion struct {
+	Label   string     `json:"label"`
+	Message string     `json:"message"`
+	Chip    *GuideChip `json:"chip,omitempty"`
+}
+
+// GuideChatConditions — строка «Учитываю: 20 ПК · 1 год · новая».
+type GuideChatConditions struct {
+	Label string   `json:"label"`
+	Items []string `json:"items"`
+}
+
+// GuideChatLink — ссылка под ответом: конфигуратор, условия оплаты, магазин.
+type GuideChatLink struct {
+	Kind  string `json:"kind"` // configurator | payment | store
+	Label string `json:"label"`
+	URL   string `json:"url"`
 }

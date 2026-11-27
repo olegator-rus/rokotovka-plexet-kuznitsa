@@ -223,6 +223,8 @@ var guideCheckLabels = map[string]string{
 	"lead_words":      "Во фразе нет запрещённых слов",
 	"claims_fact":     "У каждого утверждения о свойстве есть факт",
 	"foreign_match":   "Подходящие карточки — из семейств задачи",
+	"chat_message":    "Сообщение помощника: до трёх фраз, без слов из списка «не писать», у карточки действие",
+	"chat_numbers":    "Суммы на карточках и в таблице помощника — из карточек каталога",
 }
 
 func (c *guideChecks) count(key string, bad bool) {
@@ -526,7 +528,82 @@ func guideResponseChecks(d GuideDialog, resp *out.GuideResponse, lx *searchLexic
 		}
 		note("lead_words", len(words) == 0, "во фразе запрещённые слова: "+strings.Join(words, ", "))
 	}
+	for _, why := range guideChatChecks(resp) {
+		note(why.key, why.ok, why.text)
+	}
 	return bad
+}
+
+// guideChatNever — фразы из таблицы «не писать» помощника (CHAT.md §8) и запрещённые начала реплик.
+var guideChatNever = []string{"тщательно проанализировал", "идеальное решение", "вы можете сэкономить", "к сожалению",
+	"позвольте предложить", "нарушает мои инструкции", "стало дешевле", "рекомендуем"}
+
+// guideChatNeverStart — с чего реплика помощника не начинается.
+var guideChatNeverStart = []string{"конечно", "отличный выбор", "давайте разберёмся"}
+
+type guideChatCheck struct {
+	key, text string
+	ok        bool
+}
+
+// guideChatChecks — сообщение помощника: фразы, действия карточек, суммы — те же, что в offers[].
+func guideChatChecks(resp *out.GuideResponse) []guideChatCheck {
+	c := resp.Chat
+	if c == nil {
+		return []guideChatCheck{{"chat_message", "нет сообщения помощника (chat)", false}}
+	}
+	var res []guideChatCheck
+	text := strings.ToLower(strings.Join(c.Text, " "))
+	var never []string
+	for _, w := range guideChatNever {
+		if strings.Contains(text, w) {
+			never = append(never, w)
+		}
+	}
+	for _, w := range guideChatNeverStart {
+		if strings.HasPrefix(text, w) {
+			never = append(never, w)
+		}
+	}
+	okCards := true
+	totals := map[string]string{}
+	for _, o := range resp.Offers {
+		if o.Total != nil {
+			totals[o.OfferID] = rubRU(*o.Total) + " ₽"
+		}
+	}
+	numbersOK := true
+	for _, g := range c.Groups {
+		for _, cd := range g.Cards {
+			if cd.Action == "" || cd.Title == "" || cd.PriceText == "" {
+				okCards = false
+			}
+			if cd.Total != nil && totals[cd.OfferID] != cd.PriceText {
+				numbersOK = false
+			}
+			if cd.Unsuitable && cd.Action == out.ChatActionSpec {
+				okCards = false
+			}
+		}
+	}
+	if c.Comparison != nil {
+		for _, r := range c.Comparison.Rows {
+			if r.Key != "total" {
+				continue
+			}
+			for i, cell := range r.Cells {
+				if i < len(c.Comparison.Columns) && cell.Mark == out.MarkValue && cell.Text != screenOnRequest &&
+					totals[c.Comparison.Columns[i].OfferID] != cell.Text {
+					numbersOK = false
+				}
+			}
+		}
+	}
+	res = append(res, guideChatCheck{"chat_message",
+		fmt.Sprintf("помощник: фраз %d, «не писать»: %s, карточки с действием: %v", len(c.Text), strings.Join(never, ", "), okCards),
+		len(c.Text) <= 3 && len(never) == 0 && okCards})
+	res = append(res, guideChatCheck{"chat_numbers", "помощник: сумма на карточке или в таблице не совпадает с карточкой каталога", numbersOK})
+	return res
 }
 
 // guidePriceOK — цена карточки = цена каталога; сумма = цена × целое число единиц, не больше количества.

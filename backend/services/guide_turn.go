@@ -67,6 +67,11 @@ type guideTurn struct {
 	// data — офферы и факты хода (после gather); before — требования до хода (экран контура экрана, «Что изменилось»).
 	data   *guideData
 	before screenSnapshot
+	// Помощник (контур помощника): src — реплика или запрос хода (для «Показать все в поиске»); matchTotal — подходящих
+	// семейств до отсечения четырёх; outKind — вид ответа вне подбора (скидка, оплата, оборудование).
+	src        string
+	matchTotal int
+	outKind    string
 }
 
 func (t *guideTurn) ms(since time.Time) float64 {
@@ -150,6 +155,7 @@ func (s *Services) Guide(ctx context.Context, requestID string, req in.GuideRequ
 		res.Changes = []out.GuideChange{}
 	}
 	t.screen(res)
+	t.chatMessage(res)
 	g.sessions.put(sess)
 	g.saveTurn(ctx, req.SessionID, t, res)
 	return res, nil
@@ -254,6 +260,15 @@ func (t *guideTurn) run(ctx context.Context, req in.GuideRequest) *out.GuideResp
 	first := st.Turn == 1
 	text := req.Message
 	t0 := time.Now()
+	// Чат: реплика о другом вендоре («самый дешёвый криптопро…» после Kaspersky) — новый подбор с этой реплики,
+	// а не уточнение прежнего.
+	if !first && req.Chip == nil && text != "" && t.newTopic(text) {
+		*st = newGuideState(t.cat.version, t.kb.version)
+		st.Turn, first = 1, true
+		req.Query, text = text, ""
+		t.before = snapshotRequirements(*st)
+		t.before.turn = 0
+	}
 	if req.Chip != nil {
 		if req.Chip.Key == "start_over" {
 			*st = newGuideState(t.cat.version, t.kb.version)
@@ -278,6 +293,12 @@ func (t *guideTurn) run(ctx context.Context, req in.GuideRequest) *out.GuideResp
 			st.Pending = ""
 		}
 	}
+	// «не знаю» текстом на вопрос об уровне защищённости — как кнопка «не знаю».
+	if req.Chip == nil && st.Pending == "variant" && reDontKnow.MatchString(guideNorm(text)) {
+		st.Unresolved = appendUnique(st.Unresolved, "variant")
+		st.Skipped++
+		st.Pending, text = "", ""
+	}
 	src := text
 	t.text, t.query = text, req.Query
 	t.prevOffers = map[string]string{}
@@ -292,6 +313,15 @@ func (t *guideTurn) run(ctx context.Context, req in.GuideRequest) *out.GuideResp
 		applyDelta(st, qd, originUser)
 		if src == "" {
 			src = req.Query
+		}
+		// Первая реплика чата приходит запросом: служебное и постороннее — так же, как у реплики.
+		if text == "" {
+			if r := t.serviceReply(req.Query); r != nil {
+				return r
+			}
+			if offTopic(req.Query) && qd.empty() && !asksCompare(req.Query) {
+				return t.outOfScope(req.Query)
+			}
 		}
 	}
 	if text != "" {
@@ -314,6 +344,13 @@ func (t *guideTurn) run(ctx context.Context, req in.GuideRequest) *out.GuideResp
 		st.Pending = ""
 	}
 	t.step("Условия", "", fmt.Sprintf("условий: %d", len(conditionsOf(*st))), t0)
+	t.src = src
+	// Оборудование («подобрать комп», «ноутбук») подбор не ведёт: он только для лицензий на ПО. Пока задача, вендор и
+	// кандидаты не названы — отказ одной фразой, без инструментов; обычная выдача остаётся на экране.
+	if src != "" && st.Requirements.Task == "" && st.Requirements.Vendor == "" && len(st.CandidateFamilyIDs) == 0 &&
+		t.g.s.hardwareQuery(ctx, src) {
+		return t.hardwareReply()
+	}
 
 	compare := src != "" && asksCompare(src)
 	r := &st.Requirements
@@ -460,6 +497,7 @@ func (t *guideTurn) run(ctx context.Context, req in.GuideRequest) *out.GuideResp
 	var res *out.GuideResponse
 	if compare && len(fams) >= 2 {
 		res = t.comparison(data)
+		t.neighbourEditions(res, data)
 	} else {
 		res = t.selection(data)
 		t.onRequestBlock(res, data, text)
@@ -539,8 +577,10 @@ func (t *guideTurn) serviceReply(text string) *out.GuideResponse {
 	switch {
 	case strings.Contains(q, "инструкц") || strings.Contains(q, "промпт") || strings.Contains(q, "system prompt"):
 		lead = "Этого показать не могу. Чем помочь с подбором?"
+		t.outKind = chatOutPrompt
 	case strings.Contains(q, "скидк") || strings.Contains(q, "отправь") || strings.Contains(q, "забудь"):
 		lead = "Скидки я не назначаю и ничего не отправляю без вас. Могу собрать спецификацию по ценам каталога."
+		t.outKind = chatOutDiscount
 	default:
 		return nil
 	}
@@ -550,9 +590,22 @@ func (t *guideTurn) serviceReply(text string) *out.GuideResponse {
 		Changes: t.changes, Next: []string{"change_conditions", "request_quote"}}
 }
 
+// guideHardwareLead — ответ подбора на запрос об оборудовании.
+const guideHardwareLead = "Подбор помогает выбрать лицензии на программы. Компьютеры и другое оборудование — в выдаче поиска."
+
+// hardwareReply — запрос об оборудовании: подбор не применим (out_of_scope), без инструментов и без модели.
+func (t *guideTurn) hardwareReply() *out.GuideResponse {
+	t.meta.Fallback = guideFbNoNeed
+	t.outKind = chatOutHardware
+	t.step("Вне подбора", "", "оборудование — подбор только для лицензий", t.started)
+	return &out.GuideResponse{Type: out.GuideOutOfScope, Lead: guideHardwareLead, Claims: []out.GuideClaim{},
+		Offers: []out.GuideOffer{}, Changes: t.changes, Next: []string{"change_conditions"}}
+}
+
 // outOfScope — постороннее или сервисное (оплата, доставка): одна фраза.
 func (t *guideTurn) outOfScope(text string) *out.GuideResponse {
 	lead := "Это в каталоге ПО и оборудования не подбираю. Чем помочь с выбором лицензий?"
+	t.outKind = chatOutService
 	q := guideNorm(text)
 	if strings.Contains(q, "оплат") || strings.Contains(q, "доставк") || strings.Contains(q, "счет") || strings.Contains(q, "возврат") {
 		lead = "Оплату, доставку и счета подбор не обсуждает — ответ в справке магазина над выдачей."
@@ -636,8 +689,11 @@ func guideNameScore(name string, words []string) int {
 		if len(r) > 5 {
 			stem = string(r[:len(r)-2])
 		}
+		// Короткое кириллическое слово — только целым словом названия: «комп» — не «КОМПАС», «ред» — не «редактор».
+		short := len(r) <= 4 && isCyrillicWord(w)
 		for _, nw := range nameWords {
-			if nw != "" && strings.HasPrefix(strings.Trim(nw, "."), stem) {
+			nw = strings.Trim(nw, ".")
+			if nw != "" && (nw == stem || !short && strings.HasPrefix(nw, stem)) {
 				score++
 				break
 			}
@@ -652,7 +708,8 @@ func guideStopWord(w string) bool {
 		"сервера", "сервер", "компьютеров", "компьютера", "офиса", "мест", "лицензия", "лицензию", "лицензии", "как", "что", "чем":
 		return true
 	}
-	return false
+	return hwComputerWords[w] // «комп», «пк», «компьютер» — объект, а не название продукта
+
 }
 
 // withTLSFamilies — для TLS-сервера к кандидатам добавляются семейства вендора с TLS в названии.
@@ -1275,4 +1332,31 @@ func (t *guideTurn) vendorLines(vendor string) []string {
 		return out[i] < out[j]
 	})
 	return out
+}
+
+// reDontKnow — «не знаю», «без понятия», «не уверен».
+var reDontKnow = regexp.MustCompile(`^(не знаю|незнаю|без понятия|не уверен[а]?|хз)[.!]?$`)
+
+// newTopic — реплика называет вендора, которого нет среди условий и кандидатов подбора: это новый вопрос.
+func (t *guideTurn) newTopic(text string) bool {
+	vendors := guideVendorsIn(text)
+	if len(vendors) == 0 {
+		return false
+	}
+	known := map[string]bool{}
+	if v := t.st.Requirements.Vendor; v != "" {
+		known[v] = true
+	}
+	for _, f := range t.st.CandidateFamilyIDs {
+		known[t.cat.famVend[f]] = true
+	}
+	if len(known) == 0 {
+		return false
+	}
+	for _, v := range vendors {
+		if known[v] {
+			return false
+		}
+	}
+	return true
 }

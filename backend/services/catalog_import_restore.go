@@ -65,6 +65,33 @@ func sanitizeQuantity(p *domain.Product) {
 	}
 }
 
+// tierStepAttr — атрибут фида, которым источник отмечает ступень цены за место («Кол-во от 25 до 49 шт.»).
+const tierStepAttr = "Ступень количества"
+
+// packTiers — ступень из одного значения («30–30») у позиции без отметки ступени — это размер пакета, а не цена за
+// место: «PRO32 Endpoint Security Advanced … и 30 узлов» за 79 500 ₽ — цена всех 30 узлов (sale_units: package).
+// Фид ставит tier_min = tier_max = числу узлов из параметра «К-во узлов»; настоящая ступень приходит из sales_notes
+// и видна атрибутом tierStepAttr. Ступень снимается, количество (пакет на N) остаётся. Источник без таких отметок
+// (mock, тестовый каталог) не трогается.
+func packTiers(ps []domain.Product) {
+	marked := false
+	hasStep := make([]bool, len(ps))
+	for i := range ps {
+		if len(ps[i].Attributes) > 0 && strings.Contains(string(ps[i].Attributes), `"`+tierStepAttr+`"`) {
+			hasStep[i], marked = true, true
+		}
+	}
+	if !marked {
+		return
+	}
+	for i := range ps {
+		l := &ps[i].License
+		if !hasStep[i] && l.TierMin != nil && l.TierMax != nil && *l.TierMin == *l.TierMax && *l.TierMin > 1 {
+			l.TierMin, l.TierMax = nil, nil
+		}
+	}
+}
+
 // orgTypeWords — слово перед «организаций», по которому это тип покупателя («для государственных организаций»).
 var orgTypeWords = setOf("государственных", "коммерческих", "некоммерческих", "образовательных", "бюджетных",
 	"медицинских", "государственной", "коммерческой", "некоммерческой", "образовательной")

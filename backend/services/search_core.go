@@ -273,7 +273,7 @@ func findEntities(nr normResult, attrs queryAttrs, lx *searchLexicon, rules *sea
 		}
 	}
 	if attrs.analog {
-		e.reference = e.families
+		e.reference = lx.bestCovered(e.families, entityTokens)
 		if len(e.reference) == 0 {
 			for _, v := range e.vendors {
 				for _, f := range lx.familyOrder {

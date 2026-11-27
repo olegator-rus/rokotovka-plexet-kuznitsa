@@ -62,6 +62,9 @@ var (
 type screenSnapshot struct {
 	turn int
 	req  domain.GuideRequirements
+	// shown — до хода покупатель уже видел подходящие карточки: «Изменено» сравнивает с ними. Ответ на первый
+	// вопрос («Сколько рабочих мест?») условие задаёт, а не меняет.
+	shown bool
 }
 
 // snapshotRequirements — копия требований (срезы копируются).
@@ -69,7 +72,7 @@ func snapshotRequirements(st domain.GuideState) screenSnapshot {
 	r := st.Requirements
 	r.Objects = append([]domain.GuideObject{}, r.Objects...)
 	r.RequiredFeatures = append([]string{}, r.RequiredFeatures...)
-	return screenSnapshot{turn: st.Turn, req: r}
+	return screenSnapshot{turn: st.Turn, req: r, shown: len(st.SelectedOfferIDs) > 0}
 }
 
 // screen — поля экрана к готовому ответу: карточки обогащаются, собирается res.Screen.
@@ -968,7 +971,7 @@ func screenSummary(matches []*out.GuideOffer, selected string) *out.GuideSummary
 
 // screenChanged — «Изменено: 30 → 50 компьютеров, шифрование обязательно»: только на ходе со сменой условий.
 func (t *guideTurn) screenChanged(res *out.GuideResponse) *out.GuideChanged {
-	if t.before.turn == 0 {
+	if t.before.turn == 0 || !t.before.shown {
 		return nil
 	}
 	a, b := t.before.req, t.st.Requirements

@@ -1,6 +1,7 @@
 package services
 
 import (
+	"context"
 	"strings"
 	"testing"
 
@@ -183,7 +184,7 @@ func TestGuideRouteOpenNow(t *testing.T) {
 		"продлить касперского на 100 пк на 2 года":   "",
 	}
 	for q, want := range cases {
-		r := s.RouteGuide(q)
+		r := s.RouteGuide(context.Background(), q)
 		if r.OpenReason != want || r.OpenNow != (want != "") || (r.OpenNow && r.Mode != routeGuide) {
 			t.Errorf("%q: %+v, ждали %q", q, r, want)
 		}

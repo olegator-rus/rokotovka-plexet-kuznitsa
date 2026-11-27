@@ -235,6 +235,9 @@ func (p *hwPlan) parse(nr normResult, attrs *queryAttrs) {
 		if _, unit := metricOf(t); unit && licensed[i] {
 			c = "" // «антивирус на 20 компьютеров»: число мест лицензии, а не категория «Компьютеры»
 		}
+		if hwComputerWords[t] && attrs.quantity > 0 && attrs.metricWord == t {
+			c = "" // «продлить касперский на 100 пк»: «пк» с числом — места лицензии, а не настольные компьютеры
+		}
 		if c == "" {
 			continue
 		}
@@ -614,7 +617,7 @@ func (p *hwPlan) parse(nr normResult, attrs *queryAttrs) {
 	}
 
 	// Количество закупки: «20 ноутбуков» — штуки, а не лицензии на 20 устройств.
-	if attrs.quantity > 0 && (p.category != "" || p.hx.categoryOfWord(attrs.metricWord) != "") && !hasSoftware {
+	if attrs.quantity > 0 && (p.category != "" || !hwComputerWords[attrs.metricWord] && p.hx.categoryOfWord(attrs.metricWord) != "") && !hasSoftware {
 		if attrs.metric == domain.MetricCore && contains(p.hx.catAttrs[p.category], "cpu_cores") {
 			conds = append(conds, hwCond{Key: "cpu_cores", Op: "eq", Value: float64(attrs.quantity), Unit: p.hx.attrs["cpu_cores"].unit,
 				Text: strconv.Itoa(attrs.quantity) + " " + attrs.metricWord, Source: "query", typ: "number"})

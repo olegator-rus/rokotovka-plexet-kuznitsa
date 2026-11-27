@@ -284,7 +284,7 @@ func findCategoryIntent(nr normResult, ent queryEntities, lx *searchLexicon, rul
 		tokens = tokens[:at] // «антивирус для сервера»: после «для» — платформа или назначение, главное слово до него
 	}
 	for _, t := range tokens {
-		if lexStopWords[t] || isProtectedToken(t) || ent.vendorTokens[t] || lx.compoundNames[t] || len(wordsOf(t)) != 1 {
+		if lexStopWords[t] || analogWords[t] || isProtectedToken(t) || ent.vendorTokens[t] || lx.compoundNames[t] || len(wordsOf(t)) != 1 {
 			continue
 		}
 		sig = append(sig, t)

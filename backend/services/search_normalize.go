@@ -191,7 +191,8 @@ func normalizeFull(q string, lx *searchLexicon, rules *searchRules, asTyped bool
 // плашки «Показаны результаты по…» нет.
 func completeWords(tokens, original []string, lx *searchLexicon, rules *searchRules, res *normResult) []string {
 	for i, t := range tokens {
-		if res.protected[t] || isProtectedToken(t) || lexStopWords[t] || knownWord(t, lx, rules) {
+		// Слова количества и объекта («комп», «пк») — уже слова: не недописанное начало («комп» — не «комплекты»).
+		if res.protected[t] || isProtectedToken(t) || lexStopWords[t] || lexServiceWords[t] || knownWord(t, lx, rules) {
 			continue
 		}
 		if to := lx.translitOf(t); to != "" {

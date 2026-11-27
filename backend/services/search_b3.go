@@ -368,6 +368,7 @@ func (s *Services) searchB3(ctx context.Context, requestID string, req in.Search
 		fh.group = group
 		fams = append(fams, fh)
 	}
+	classAnalog := false // аналоги по классу, а не по справочнику связей: порядок решает реранкер
 	switch {
 	case noLetters || ent.nonProduct:
 		// Шум и вопросы не о товаре: ни товаров, ни аналогов. Найденное поиском — в отказы с причиной.
@@ -389,6 +390,18 @@ func (s *Services) searchB3(ctx context.Context, requestID string, req in.Search
 					rel = analogBaseRel
 				}
 				addFamily(sub, rel, domain.GroupAnalog)
+			}
+		}
+		if len(fams) == 0 && confidentReference(lx, ent) {
+			// Связей замены нет (Adobe Photoshop): аналоги — тот же класс у других вендоров (search_analog_class.go).
+			// Метрика и количество («на 20 пользователей») у замены — предпочтение, а не фильтр: у другого вендора
+			// своя схема лицензирования, нужное число мест закрывается при заказе.
+			classAnalog = true
+			if rc.attrs.metric != "" {
+				rc.attrs.metricPref, rc.attrs.metric = rc.attrs.metric, ""
+			}
+			for _, f := range classAnalogs(lx, ent.reference, ent.families, ent.entityTokens) {
+				addFamily(f, max(byFamily[f], classAnalogRel), domain.GroupAnalog)
 			}
 		}
 		if !contains(ladder, ladderAnalogs) {
@@ -444,9 +457,16 @@ func (s *Services) searchB3(ctx context.Context, requestID string, req in.Search
 	// Категория раньше количества: «видеоконференции на 50» — TrueConf (до 25) остаётся, офисный пакет на 50 — нет.
 	fams = rc.dropOtherCategories(fams, &trace.Rejected)
 	fams = ent.intent.keepFamilies(fams, &trace.Rejected) // «сервер»: рабочая станция из «Rack-серверов» — не сервер
-	fams = rc.dropQuantityMisfits(fams, &trace.Rejected)
+	if !classAnalog {
+		fams = rc.dropQuantityMisfits(fams, &trace.Rejected)
+	}
 	rerankStep := skipped(domain.StepRerank, rerankAnalogs)
-	if !(attrs.analog && len(ent.reference) > 0) {
+	switch {
+	case classAnalog:
+		// Порядок аналогов по классу — близость к названному продукту, а не к словам запроса («на 20 пользователей»
+		// поднимало модули с «Количество пользователей» в названии): реранкер видит весь класс.
+		rerankStep = s.rerankFamiliesTop(ctx, classAnalogQuery(lx, ent.reference), trace.Route, fams, classRerankTop)
+	case !(attrs.analog && len(ent.reference) > 0):
 		rerankStep = s.rerankFamilies(ctx, resp.Normalized, trace.Route, fams)
 	}
 	for _, fh := range fams {

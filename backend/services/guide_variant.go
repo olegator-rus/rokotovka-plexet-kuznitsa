@@ -96,6 +96,9 @@ func (t *guideTurn) variantTurn(fid string) *out.GuideResponse {
 		summary = append(summary, countLine(l))
 	}
 	unknown := containsStr(st.Unresolved, "variant")
+	// Уровень не назван: вопрос и сразу все три уровня с ценой на условия (CHAT.md §5: «показать все три и спросить»).
+	var ask *out.GuideClarify
+	askLead := ""
 	if r.Variant == "" && !unknown {
 		chips := []out.GuideChip{}
 		for _, v := range guideVariantOrder {
@@ -107,14 +110,11 @@ func (t *guideTurn) variantTurn(fid string) *out.GuideResponse {
 		t.prelim = true
 		t.meta.Fallback = guideFbNoNeed
 		t.step("Вопрос", "", "уровень защищённости", t2)
-		lead := ""
 		if len(lines) > 1 {
-			lead = "Собрал отдельные строки: " + strings.Join(summary, " и ") + "."
+			askLead = "Собрал отдельные строки: " + strings.Join(summary, " и ") + "."
 		}
-		return &out.GuideResponse{Type: out.GuideClarification, Lead: lead, Claims: []out.GuideClaim{}, Offers: []out.GuideOffer{},
-			Clarification: &out.GuideClarify{Key: "variant", Question: "Какой уровень защищённости указан в ваших требованиях?",
-				Chips: chips, Required: true},
-			Changes: t.changes, Next: []string{"change_conditions", "request_quote"}}
+		ask = &out.GuideClarify{Key: "variant", Question: "Какой уровень защищённости указан в ваших требованиях?",
+			Chips: chips, Required: true}
 	}
 	variants := guideVariantOrder
 	if r.Variant != "" {
@@ -155,6 +155,18 @@ func (t *guideTurn) variantTurn(fid string) *out.GuideResponse {
 		} else {
 			res.Lead = "Подходит «" + variantLabel(r.Variant) + "»."
 		}
+	} else if ask != nil {
+		res.Type, res.Clarification, res.Lead = out.GuideClarification, ask, askLead
+		if askLead == "" {
+			res.Lead = "У «" + suggestDisplay(t.cat.famName[fid]) + "» три уровня защищённости."
+		}
+		for _, vr := range variants {
+			if c, ok := grid[vr][lines[0].Kind]; ok {
+				res.Offers = append(res.Offers, t.offerOut(*c.v, c.qty, lines[0].Kind, out.OfferMatch, "«"+variantLabel(vr)+"», "+objectLine(lines[0].Kind)))
+			}
+		}
+		res.Next = []string{"change_conditions", "request_quote"}
+		return res
 	} else {
 		// «Не знаю»: все уровни, результат предварительный.
 		t.prelim = true
