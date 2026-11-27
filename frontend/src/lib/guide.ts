@@ -12,7 +12,7 @@ import type {
   GuideRoute,
   GuideSpecLine,
 } from '@/api/typesGuide'
-import { formatDecimal, formatInt, formatPrice, isPositivePrice } from './format.ts'
+import { formatDecimal, formatInt, formatPrice, isPositivePrice, plural } from './format.ts'
 import type { SpecPurchase } from './procurement.ts'
 import { clampQty, type SpecLine } from './spec.ts'
 
@@ -444,14 +444,264 @@ export function hasTable(r: Pick<GuideResponse, 'comparison'> | null | undefined
 }
 
 /** Подписи шагов, пока ход идёт (SPEC §11: статус операции сразу, проверенные строки потом). */
-export const PENDING_STEPS = [
-  'Ищу подходящие лицензии в каталоге',
-  'Сверяю различия с документацией вендора',
-  'Проверяю правила лицензирования',
-] as const
+export const PENDING_STEPS = ['Ищу редакции', 'Сверяю правила', 'Считаю цену'] as const
 
-/** Подпись шага по времени ожидания: через каждые 1,5 с — следующий. */
+/** Номер шага по времени ожидания: через каждые 1,2 с — следующий, последний ждёт ответа. */
+export function pendingIndex(elapsedMs: number): number {
+  return Math.min(PENDING_STEPS.length - 1, Math.max(0, Math.floor(elapsedMs / 1200)))
+}
+
+/** Подпись шага по времени ожидания. */
 export function pendingStep(elapsedMs: number): string {
-  const i = Math.min(PENDING_STEPS.length - 1, Math.max(0, Math.floor(elapsedMs / 1500)))
-  return PENDING_STEPS[i]!
+  return PENDING_STEPS[pendingIndex(elapsedMs)]!
+}
+
+// ── Вид ответа: название лицензии, расчёт цены, «Не подходит», сравнение (редизайн блока подбора) ──
+
+export interface OfferNameView {
+  /** Семейство и редакция: «Kaspersky Endpoint Security для бизнеса Расширенный». */
+  name: string
+  /** Чем позиция отличается внутри семейства: «серверная лицензия СКЗИ»; '' — нечего добавить. */
+  detail: string
+}
+
+const FAMILY_PREFIX = /^(программа|программное обеспечение)\s+/i
+/** Хвосты названий фида, которые уже показаны ступенью, сроком и единицей. */
+const DETAIL_NOISE = [
+  /[.,]?\s*количество узлов\.?/gi,
+  /\s*по количеству (узлов|рабочих станций\/файловых серверов|рабочих станций|пользователей)/gi,
+]
+const DETAIL_TERM = /\s*на\s+\d+\s+(год|года|лет|месяц|месяца|месяцев)(?![а-яё])/gi
+
+function squash(s: string): string {
+  return s.replace(/\s+/g, ' ').trim()
+}
+
+function tidyDetail(raw: string, hasTerm: boolean): string {
+  let s = raw.replace(/^[\s:,.;–—-]+/, '')
+  while (/^\([^)]*\)/.test(s)) s = s.replace(/^\([^)]*\)[\s:,.;–—-]*/, '')
+  for (const re of DETAIL_NOISE) s = s.replace(re, '')
+  if (hasTerm) s = s.replace(DETAIL_TERM, '')
+  s = squash(s).replace(/[\s:,.;–—-]+$/, '')
+  return /^лицензия$/i.test(s) ? '' : s
+}
+
+/**
+ * Понятное название позиции из полей ответа: семейство с редакцией вместо сырой строки фида и короткое отличие
+ * позиции. Сервер пока не присылает редакцию и вид лицензии отдельно (см. отчёт) — собираем из title и family_title.
+ */
+export function offerName(o: Pick<GuideOffer, 'title' | 'family_title' | 'term'>): OfferNameView {
+  const title = squash(o.title ?? '')
+  const fam = squash(o.family_title ?? '').replace(FAMILY_PREFIX, '')
+  if (!fam) return { name: title, detail: '' }
+  const at = title.toLowerCase().indexOf(fam.toLowerCase())
+  if (at > 0) return { name: title, detail: '' }
+  const rest = at === 0 ? title.slice(fam.length) : title
+  return { name: fam, detail: tidyDetail(rest, Boolean(o.term)) }
+}
+
+export interface PriceMathView {
+  /** «3 940,20 ₽» или «Цена по запросу». */
+  unit: string
+  /** «за компьютер», у пакета — «за место»; '' — цены нет. */
+  per: string
+  /** Сколько единиц (мест) в итоге; null — одна единица или не делится ровно. */
+  times: number | null
+  /** «197 010 ₽»; '' — итога нет. */
+  total: string
+  known: boolean
+  /** Пакет на N мест: сколько пакетов, по сколько мест и почём; null — продаётся не пакетом. */
+  pack: { count: number; size: number; price: string } | null
+}
+
+/**
+ * Расчёт цены для карточки: «3 940,20 ₽ за компьютер × 50 = 197 010 ₽». У пакета цена — за место,
+ * плюс «4 комплекта на 5 мест по 6 739,20 ₽». Числа — из ответа, «0 ₽» — никогда.
+ */
+export function priceMath(
+  o: Pick<
+    GuideOffer,
+    'price_per_unit' | 'total' | 'price_state' | 'unit' | 'package_price' | 'package_size'
+  >,
+): PriceMathView {
+  const p = offerPrice(o)
+  let times: number | null = null
+  if (p.known && isPositivePrice(o.total) && isPositivePrice(o.price_per_unit)) {
+    const n = o.total / o.price_per_unit
+    if (Math.abs(n - Math.round(n)) < 0.01 && Math.round(n) > 1) times = Math.round(n)
+  }
+  let pack: PriceMathView['pack'] = null
+  const size = Number(o.package_size)
+  if (p.known && isPositivePrice(o.package_price) && size > 1) {
+    const n = isPositivePrice(o.total) ? Math.round(o.total / o.package_price) : 1
+    pack = { count: Math.max(1, n), size, price: formatPrice(o.package_price) }
+  }
+  const per = !p.known ? '' : pack ? 'за место' : perUnit(o.unit)
+  return { unit: p.unit, per, times, total: p.total, known: p.known, pack }
+}
+
+/** «комплект на 20 мест — 36 368,28 ₽», «4 комплекта на 5 мест по 6 739,20 ₽». */
+export function packText(pack: PriceMathView['pack']): string {
+  if (!pack) return ''
+  const seats = `на ${formatInt(pack.size)} ${plural(pack.size, ['место', 'места', 'мест'])}`
+  if (pack.count <= 1) return `комплект ${seats} — ${pack.price}`
+  const word = plural(pack.count, ['комплект', 'комплекта', 'комплектов'])
+  return `${formatInt(pack.count)} ${word} ${seats} по ${pack.price}`
+}
+
+/** Варианты для условий с известным набором значений: правка — выбором, а не вводом текста. */
+export const CONDITION_OPTIONS: Readonly<
+  Record<string, readonly { value: string; label: string }[]>
+> = {
+  operation: [
+    { value: 'new', label: 'новая лицензия' },
+    { value: 'renewal', label: 'продление' },
+  ],
+  term_months: [
+    { value: '12', label: '1 год' },
+    { value: '24', label: '2 года' },
+    { value: '36', label: '3 года' },
+  ],
+  org_type: [
+    { value: 'commercial', label: 'коммерческая организация' },
+    { value: 'home', label: 'для дома' },
+  ],
+}
+
+export function conditionOptions(key: string) {
+  return CONDITION_OPTIONS[key] ?? null
+}
+
+/** Подпись чипа: понятая задача — «Понял: антивирус для рабочих мест», остальное — как прислал сервер. */
+export function conditionText(c: Pick<GuideCondition, 'key' | 'label' | 'value'>): string {
+  const t = c.label || c.value
+  return c.key === 'direction' ? `Понял: ${t}` : t
+}
+
+/** Заголовок блока отклонённых: «Не подходит для сервера» по условию объекта, иначе общий. */
+export function rejectedTitle(conds: readonly GuideCondition[] | null | undefined): string {
+  const obj = (conds ?? []).find((c) => c.key === 'object' && /^для\s/i.test(c.label ?? ''))
+  return obj ? `Не подходит ${obj.label}` : 'Не подходит под ваши условия'
+}
+
+/** Общая причина отклонения, если она одна на все позиции; иначе '' — причина у каждой строки. */
+export function sharedNote(offers: readonly Pick<GuideOffer, 'note'>[]): string {
+  const notes = new Set(offers.map((o) => squash(o.note ?? '')))
+  if (notes.size !== 1) return ''
+  return [...notes][0] ?? ''
+}
+
+/** Строка из истории подбора: что спросил покупатель и что ответил подбор. */
+export interface GuideTurnView {
+  ask: string
+  answer: string
+}
+
+/** Короткий ответ хода для истории: фраза, вопрос или число подходящих. */
+export function turnAnswer(r: GuideResponse | null | undefined): string {
+  if (!r) return ''
+  if (r.lead?.trim()) return r.lead.trim()
+  if (r.clarification?.question) return r.clarification.question
+  const n = splitOffers(r.offers).match.length
+  if (n) return `${n} ${plural(n, ['вариант', 'варианта', 'вариантов'])} под условия`
+  return r.notice?.trim() ?? ''
+}
+
+/** Реплика покупателя для правки условия: «Без условия «1 год»», «30 ПК → 40». */
+export function conditionAsk(
+  c: Pick<GuideCondition, 'key' | 'label' | 'value'>,
+  value: string | null,
+) {
+  const name = c.label || c.value
+  if (value === null) return `Без условия «${name}»`
+  const opt = conditionOptions(c.key)?.find((o) => o.value === value)
+  return `${name} → ${opt?.label ?? value}`
+}
+
+export interface PriceRowView {
+  key: string
+  label: string
+  /** Подпись цены за единицу под заголовком строки: «цена за компьютер в год, 25–49 мест». */
+  note: string
+  cells: { total: CellView; unit: CellView | null }[]
+}
+
+export interface CompareView {
+  columns: TableView['columns']
+  /** Строки о функциях и тексте (с «только различия»). */
+  features: RowView[]
+  /** Деньги: итог и цена за единицу одной строкой. */
+  prices: PriceRowView[]
+  /** Строк о функциях всего и с различием. */
+  total: number
+  differing: number
+}
+
+const isMoneyRow = (r: { key: string; kind?: string }) =>
+  r.kind === 'commercial' ? MONEY_ROW.test(r.key) : MONEY_ROW.test(r.key) && r.kind !== 'feature'
+
+function lowerFirst(s: string): string {
+  return s ? s[0]!.toLowerCase() + s.slice(1) : s
+}
+
+/**
+ * Сравнение для показа: функции отдельно (по умолчанию только различия), деньги одной строкой — итог крупно,
+ * цена за единицу под ним. `price_per_seat_year` сливается с `total`, `price:<объект>` — с `total:<объект>`.
+ */
+export function compareView(
+  cmp: GuideComparison | null | undefined,
+  opts: { onlyDiff?: boolean; columns?: readonly number[] } = {},
+): CompareView {
+  const t = buildTable(cmp, { columns: opts.columns })
+  const kinds = new Map((cmp?.rows ?? []).map((r) => [r.key, r.kind ?? '']))
+  const money = t.rows.filter((r) => isMoneyRow({ key: r.key, kind: kinds.get(r.key) }))
+  const features = t.rows.filter((r) => !money.includes(r))
+  const suffix = (k: string) => (k.includes(':') ? k.slice(k.indexOf(':')) : '')
+  const totals = money.filter((r) => /^total/.test(r.key))
+  const units = money.filter((r) => !/^total/.test(r.key))
+  const used = new Set<string>()
+  const prices: PriceRowView[] = totals.map((tr) => {
+    const u = units.find((x) => suffix(x.key) === suffix(tr.key) && !used.has(x.key))
+    if (u) used.add(u.key)
+    const note = u ? [lowerFirst(u.label), u.note].filter(Boolean).join('. ') : tr.note
+    return {
+      key: tr.key,
+      label: tr.label,
+      note,
+      cells: tr.cells.map((c, i) => ({
+        total: c,
+        unit: u && u.cells[i]?.tone === 'value' ? u.cells[i]! : null,
+      })),
+    }
+  })
+  for (const u of units)
+    if (!used.has(u.key))
+      prices.push({
+        key: u.key,
+        label: u.label,
+        note: u.note,
+        cells: u.cells.map((c) => ({ total: c, unit: null })),
+      })
+  const differing = features.filter((r) => r.differs).length
+  return {
+    columns: t.columns,
+    features: opts.onlyDiff ? features.filter((r) => r.differs) : features,
+    prices,
+    total: features.length,
+    differing,
+  }
+}
+
+/** Оффер для колонки сравнения: первая подходящая позиция того же семейства. */
+export function columnOffer(
+  familyId: string,
+  offers: readonly GuideOffer[] | null | undefined,
+): GuideOffer | null {
+  const list = (offers ?? []).filter((o) => o.family_id === familyId && offerRole(o) !== 'rejected')
+  return list.find((o) => offerRole(o) === 'match') ?? list[0] ?? null
+}
+
+/** Разряды числа в тексте сервера не разрываются переносом: «1 347,84 ₽» держится одной строкой. */
+export function keepNumbers(text: string | null | undefined): string {
+  return (text ?? '').replace(/(\d) (?=\d{3}(\D|$))/g, '$1 ').replace(/ ₽/g, ' ₽')
 }

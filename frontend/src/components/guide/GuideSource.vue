@@ -1,7 +1,8 @@
 <script setup lang="ts">
-// Значок источника у строки о функции (SPEC §8): по нажатию — страница вендора и фрагмент с неё. Даты не пишем.
+// Источник у строки о функции (SPEC §8): маленькая подпись «источник», по нажатию — фрагмент со страницы вендора и
+// ссылка на неё. Даты не пишем.
 import { PopoverContent, PopoverPortal, PopoverRoot, PopoverTrigger } from 'reka-ui'
-import { BookOpenCheck, ExternalLink } from 'lucide-vue-next'
+import { ExternalLink } from 'lucide-vue-next'
 import type { GuideClaim } from '@/api/typesGuide'
 import { claimMark, sourceName } from '@/lib/guide'
 
@@ -16,7 +17,7 @@ const name = () => sourceName(props.claim.source)
       :aria-label="`Источник: ${label} — ${name()}`"
       data-testid="guide-source"
     >
-      <BookOpenCheck :size="14" aria-hidden="true" />
+      <span aria-hidden="true">источник</span>
     </PopoverTrigger>
     <PopoverPortal>
       <PopoverContent
@@ -52,22 +53,24 @@ const name = () => sourceName(props.claim.source)
 
 <style>
 .gsrc__btn {
-  display: inline-grid;
-  flex: none;
-  place-items: center;
-  width: 1.5rem;
-  height: 1.5rem;
+  display: inline;
+  margin-left: var(--space-1);
   padding: 0;
-  border: var(--border-w) solid var(--border);
-  border-radius: var(--radius-sm);
-  background: var(--surface);
-  color: var(--text-2);
+  border: 0;
+  background: none;
+  color: var(--text-3);
+  font: inherit;
+  font-size: var(--fs-xs);
+  line-height: inherit;
+  text-decoration: underline dotted;
+  text-underline-offset: 3px;
+  white-space: nowrap;
   cursor: pointer;
 }
 .gsrc__btn:hover,
 .gsrc__btn[data-state='open'] {
-  border-color: var(--border-control);
   color: var(--text);
+  text-decoration-style: solid;
 }
 .gsrc__pop {
   z-index: 60;

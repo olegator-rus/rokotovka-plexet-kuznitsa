@@ -73,6 +73,17 @@ export interface GuideOffer {
   note?: string
   rule_id?: string
   rule_source?: string
+  /** Продаётся пакетом: price_per_unit — цена за место, package_price — цена пакета на package_size. */
+  package_price?: number | null
+  package_size?: number | null
+}
+
+/** Рекомендованная карточка: в offers идёт первой; reason — причина с числом из каталога. */
+export interface GuideRecommendation {
+  offer_id: string
+  reason: string
+  /** feature — есть нужная функция, named — названная редакция, price_per_seat — дешевле за место в год. */
+  basis: 'feature' | 'named' | 'price_per_seat' | string
 }
 
 /** Чип вопроса: объект ядра {label, key, value} или строка. */
@@ -127,6 +138,8 @@ export interface GuideResponse {
   /** Служебная пометка сервера для покупателя (отказ, предел хода). */
   notice?: string
   gaps?: string[]
+  /** Рекомендация среди подходящих; null — одна карточка или нет цен. */
+  recommendation?: GuideRecommendation | null
   meta?: GuideMeta
 }
 

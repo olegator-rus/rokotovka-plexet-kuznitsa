@@ -10,7 +10,15 @@ import type {
   GuideResponse,
 } from '@/api/typesGuide'
 import { type ApiError, isApiError, MSG_UNKNOWN } from '@/lib/apiError'
-import { offerQuantity, pendingStep, selectionId, withSpecLine } from '@/lib/guide'
+import {
+  type GuideTurnView,
+  offerQuantity,
+  pendingIndex,
+  pendingStep,
+  selectionId,
+  turnAnswer,
+  withSpecLine,
+} from '@/lib/guide'
 import { useAppStore } from '@/stores/app'
 
 export type GuideStatus = 'idle' | 'loading' | 'ready' | 'error'
@@ -25,7 +33,13 @@ export function useGuide() {
   /** Запрос строки поиска, к которому относится подбор. */
   const query = ref('')
   const elapsed = ref(0)
+  /** Реплика покупателя, на которую отвечает показанный ход, и реплика хода, который идёт сейчас. */
+  const ask = ref('')
+  const pendingAsk = ref('')
+  /** Прошлые ходы подбора: реплика и короткий ответ. */
+  const turns = ref<GuideTurnView[]>([])
   let last: Omit<GuideRequest, 'session_id'> | null = null
+  let lastAsk = ''
   let ctrl: AbortController | null = null
   let timer: ReturnType<typeof setInterval> | null = null
 
@@ -34,11 +48,13 @@ export function useGuide() {
     timer = null
   }
 
-  async function send(body: Omit<GuideRequest, 'session_id'>) {
+  async function send(body: Omit<GuideRequest, 'session_id'>, said: string) {
     ctrl?.abort()
     const c = new AbortController()
     ctrl = c
     last = body
+    lastAsk = said
+    pendingAsk.value = said
     open.value = true
     collapsed.value = false
     status.value = 'loading'
@@ -55,6 +71,9 @@ export function useGuide() {
         { signal: c.signal, ignoreUnauthorized: true },
       )
       if (ctrl !== c) return
+      const prev = response.value
+      if (prev) turns.value = [...turns.value, { ask: ask.value, answer: turnAnswer(prev) }]
+      ask.value = said
       response.value = resp
       status.value = 'ready'
     } catch (e) {
@@ -71,29 +90,31 @@ export function useGuide() {
   function start(q: string, message?: string) {
     query.value = q
     response.value = null
-    void send({ query: q, ...(message ? { message } : {}) })
+    turns.value = []
+    ask.value = ''
+    void send({ query: q, ...(message ? { message } : {}) }, message || q)
   }
 
   const prevState = () => response.value?.state ?? undefined
 
-  /** Ответ чипом на вопрос подбора. */
-  function answer(chip: GuideChipAnswer) {
-    void send({ query: query.value, chip, state: prevState() })
+  /** Ответ чипом на вопрос подбора; label — подпись чипа для истории. */
+  function answer(chip: GuideChipAnswer, label = chip.value) {
+    void send({ query: query.value, chip, state: prevState() }, label)
   }
 
   /** Ответ или вопрос текстом в поле подбора. */
   function say(message: string) {
     const m = message.trim()
     if (!m) return
-    void send({ query: query.value, message: m, state: prevState() })
+    void send({ query: query.value, message: m, state: prevState() }, m)
   }
 
   /**
    * Убрать (value null) или изменить условие. message — тот же смысл текстом: ядро, которое ещё не принимает
    * condition, разбирает правку как реплику покупателя.
    */
-  function editCondition(edit: GuideConditionEdit, message: string) {
-    void send({ query: query.value, condition: edit, message, state: prevState() })
+  function editCondition(edit: GuideConditionEdit, message: string, said = message) {
+    void send({ query: query.value, condition: edit, message, state: prevState() }, said)
   }
 
   /** Версия черновика спецификации подбора, которую видел покупатель (SPEC §4, update_spec). */
@@ -142,7 +163,7 @@ export function useGuide() {
   }
 
   function retry() {
-    if (last) void send(last)
+    if (last) void send(last, lastAsk)
   }
 
   /** Закрыть: выдача и спецификация остаются (SPEC §1). */
@@ -155,6 +176,8 @@ export function useGuide() {
     response.value = null
     error.value = null
     last = null
+    turns.value = []
+    ask.value = ''
   }
 
   onBeforeUnmount(() => {
@@ -163,6 +186,7 @@ export function useGuide() {
   })
 
   const pendingText = computed(() => pendingStep(elapsed.value))
+  const pendingStepIndex = computed(() => pendingIndex(elapsed.value))
 
   return {
     open,
@@ -172,6 +196,10 @@ export function useGuide() {
     error,
     query,
     pendingText,
+    pendingStepIndex,
+    ask,
+    pendingAsk,
+    turns,
     start,
     answer,
     say,

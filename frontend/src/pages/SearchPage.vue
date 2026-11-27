@@ -101,6 +101,7 @@ import GuidePanel from '@/components/guide/GuidePanel.vue'
 import { useGuide } from '@/composables/useGuide'
 import {
   type GuideMode,
+  conditionAsk,
   conditionMessage,
   guideMode,
   lineFromOffer,
@@ -975,13 +976,21 @@ async function onSupply() {
           :response="guide.response"
           :error="guide.error"
           :pending-text="guide.pendingText"
+          :pending-step="guide.pendingStepIndex"
+          :ask="guide.ask"
+          :pending-ask="guide.pendingAsk"
+          :turns="guide.turns"
           :in-spec="inSpec"
           @close="guide.close()"
           @answer="guide.answer"
           @say="guide.say"
           @edit="
             (c: GuideCondition, value: string | null) =>
-              guide.editCondition({ key: c.key, value }, conditionMessage(c, value))
+              guide.editCondition(
+                { key: c.key, value },
+                conditionMessage(c, value),
+                conditionAsk(c, value),
+              )
           "
           @retry="guide.retry()"
           @spec="onGuideSpec"
