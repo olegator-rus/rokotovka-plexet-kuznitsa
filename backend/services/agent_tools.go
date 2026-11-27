@@ -68,11 +68,11 @@ func agentTools() []llm.Tool {
 
 // toolTitles — подпись инструмента в ленте.
 var toolTitles = map[string]string{
-	"get_failed_queries": "Проблемные запросы", "get_query_cluster": "Кластер запросов", "search_catalog": "Поиск по каталогу",
-	"get_active_rules": "Действующие правила", "get_search_trace": "Трасса поиска", "find_similar_successful_queries": "Похожие успешные запросы",
+	"get_failed_queries": "Проблемные запросы", "get_query_cluster": "Группа неудачных запросов", "search_catalog": "Поиск по каталогу",
+	"get_active_rules": "Действующие правила", "get_search_trace": "Трассировка поиска", "find_similar_successful_queries": "Похожие успешные запросы",
 	"get_product_details": "Карточка товара", "get_product_relations": "Связи товара", "get_previous_decisions": "Память",
-	"create_sandbox_patch": "Правка в песочнице", "run_evaluation": "Прогон", "submit_proposal": "Предложение в очередь",
-	"create_assortment_ticket": "Задача человеку", "close_cluster": "Кластер закрыт", "verify_applied_change": "Эффект правки",
+	"create_sandbox_patch": "Правка на тестовой копии правил", "run_evaluation": "Прогон", "submit_proposal": "Предложение в очередь",
+	"create_assortment_ticket": "Задача человеку", "close_cluster": "Группа закрыта", "verify_applied_change": "Эффект правки",
 }
 
 // toolError — ошибка инструмента для модели.
@@ -196,7 +196,7 @@ func (cr *clusterRun) repeatRefused(ctx context.Context, name, raw, msg string) 
 	closing := cr.refusedRepeats >= maxRefusedRepeats
 	if closing {
 		res["error"] = "этот вызов уже отклонён: " + msg + ". Повторы исчерпаны — кластер закрыт без предложения."
-		title = fmt.Sprintf("%s: повтор отклонённого вызова (%d-й) — кластер закрыт без предложения", label, cr.refusedRepeats)
+		title = fmt.Sprintf("%s: повтор отклонённого вызова (%d-й) — группа закрыта без предложения", label, cr.refusedRepeats)
 	}
 	a.step(ctx, rs, &domain.AgentStep{Kind: domain.StepCheck, ClusterID: &id, Tool: &tool, OK: false,
 		Title: shortText(title, 300), Args: toJSON(args), Result: toJSON(res)})
@@ -293,7 +293,7 @@ func (cr *clusterRun) toolQueryCluster(ctx context.Context, raw string) (any, st
 	}
 	c := cr.rc.byID[strings.TrimSpace(args.ClusterID)]
 	if c == nil {
-		return nil, "", terr("кластера %q в этом запуске нет", args.ClusterID)
+		return nil, "", terr("группы %q в этом запуске нет", args.ClusterID)
 	}
 	return cr.rc.clusterBrief(c, nonNil(cr.rc.memoryFor(ctx, c.Key, c.Terms))), fmt.Sprintf("«%s», %d запросов", c.Label, len(c.Queries)), nil
 }
@@ -601,7 +601,7 @@ func (cr *clusterRun) toolCreatePatch(ctx context.Context, raw string) (any, str
 		return nil, "", err
 	}
 	if cr.hypotheses >= agentMaxHypotheses {
-		return nil, "", terr("лимит гипотез (%d) исчерпан: закрой кластер (close_cluster) или оформи задачу", agentMaxHypotheses)
+		return nil, "", terr("лимит гипотез (%d) исчерпан: закрой группу (close_cluster) или оформи задачу", agentMaxHypotheses)
 	}
 	if len(args.Add) == 0 || len(args.Add) > 3 {
 		return nil, "", terr("в правке от 1 до 3 алиасов")

@@ -24,13 +24,13 @@ export const isRelationPatch = (p: Pick<Proposal, 'action'>) => p.action === 're
  */
 export function proposalSubject(p: Pick<Proposal, 'action' | 'cluster'>): string {
   const label = p.cluster?.label ?? ''
-  return isRelationPatch(p) ? `Предложение «${label}»` : `Кластер «${label}»`
+  return isRelationPatch(p) ? `Предложение «${label}»` : `Группа «${label}»`
 }
 
 /** То же в косвенном падеже: «по предложению «…»» / «по кластеру «…»». */
 export function proposalSubjectDat(p: Pick<Proposal, 'action' | 'cluster'>): string {
   const label = p.cluster?.label ?? ''
-  return isRelationPatch(p) ? `по предложению «${label}»` : `по кластеру «${label}»`
+  return isRelationPatch(p) ? `по предложению «${label}»` : `по группе «${label}»`
 }
 
 /** Диагнозы контура коммерции — для словаря DIAGNOSIS_LABELS. */
@@ -45,7 +45,7 @@ export const P2_TOOL_LABELS: Record<string, string> = {
   check_relation_integrity: 'Проверка целостности связей',
   check_compatibility: 'Проверка совместимости',
   check_license_rules: 'Правила лицензий вендора',
-  create_relation_patch: 'Правка связей в песочнице',
+  create_relation_patch: 'Правка связей на тестовой копии правил',
   evaluate_companions: 'Прогон блока допродажи',
   judge: 'Судья другого семейства',
 }

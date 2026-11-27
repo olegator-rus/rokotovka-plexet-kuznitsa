@@ -248,7 +248,7 @@ func (s *Services) RunCommerceEvaluation(ctx context.Context, persist bool) (*ou
 	}
 	res.Ready = out.CommerceReady{Hardware: ready["hardware"], Companions: ready["companions"], Margin: ready["margin"]}
 	if !ready["hardware"] {
-		res.Notes = append(res.Notes, "оборудование: не готово — шага hardware в трассе нет, точность разбора единиц не считается")
+		res.Notes = append(res.Notes, "оборудование: не готово — шага hardware в трассировке нет, точность разбора единиц не считается")
 	}
 	switch {
 	case len(pairs) == 0:
@@ -440,6 +440,6 @@ func (s *Services) commerceBaseline(ctx context.Context, notes *[]string) (*comm
 		base = ch.Versions[n-1].Version
 	}
 	*notes = append(*notes, fmt.Sprintf("C0–C3 — связи каталога (v%d), C4 — действующая версия связей v%d; словарь поиска "+
-		"(аналоги) в песочнице не подменяется", base, ch.Version))
+		"(аналоги) на тестовой копии правил не подменяется", base, ch.Version))
 	return cs.commerce.withRelations(relationsOfDocs(ch.Base)), base, ch.Version
 }

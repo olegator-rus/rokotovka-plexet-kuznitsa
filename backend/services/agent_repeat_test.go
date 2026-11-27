@@ -42,7 +42,7 @@ func TestAgentRefusedCallNotRepeated(t *testing.T) {
 			executed++
 		case st.Kind == domain.StepCheck && strings.Contains(st.Title, "повтор отклонённого вызова"):
 			repeats++
-			closed = closed || strings.Contains(st.Title, "кластер закрыт")
+			closed = closed || strings.Contains(st.Title, "группа закрыта")
 		}
 	}
 	if executed != 1 || repeats != maxRefusedRepeats || !closed {

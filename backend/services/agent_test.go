@@ -605,7 +605,7 @@ func TestAdmit(t *testing.T) {
 	if ev := evalResult(0, 1, 0); !ev.Passed {
 		t.Fatalf("улучшение без регрессии должно проходить: %v", ev.Reasons)
 	}
-	if ev := evalResult(1, 1, 0); ev.Passed || !strings.Contains(ev.Reasons[0], "не улучшился") {
+	if ev := evalResult(1, 1, 0); ev.Passed || !strings.Contains(ev.Reasons[0], "не улучшилась") {
 		t.Fatalf("без улучшения: %v", ev.Reasons)
 	}
 	if ev := evalResult(0, 1, 3); ev.Passed || !strings.Contains(strings.Join(ev.Reasons, ";"), "слишком широко: 3") {
@@ -706,7 +706,7 @@ func TestAgentRankingFailure(t *testing.T) {
 		ev.Target.Worse = 1
 		ev.Target.Queries = []targetQueryEval{{Text: "кис продление", Judged: true, BeforeFound: true, AfterFound: false,
 			BeforeTop: []string{"kaspersky-internet-security"}, AfterTop: []string{"kaspersky-small-office-security", "kaspersky-internet-security"}}}
-		ev.Passed, ev.Reasons = false, []string{"в целевом кластере ухудшилось запросов: 1"}
+		ev.Passed, ev.Reasons = false, []string{"в целевой группе ухудшилось запросов: 1"}
 		return ev, nil
 	}
 	model.turns = [][]llm.ToolCall{

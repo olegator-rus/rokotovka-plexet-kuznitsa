@@ -52,7 +52,7 @@ const effects = computed(() =>
 /** Серверная сводка повторяет строку итога — показываем её, только если в ней есть что-то ещё. */
 const extraSummary = computed(() => {
   const t = run.value?.summary ?? ''
-  return t && !t.startsWith('Разобрано кластеров') ? t : ''
+  return t && !/^Разобрано (кластеров|групп неудачных запросов)/.test(t) ? t : ''
 })
 
 function toCluster(id: string) {
@@ -315,11 +315,11 @@ onBeforeUnmount(() => window.clearInterval(clock))
           <div v-if="outcomes.length" class="data-scroll">
             <table class="data-table run__outcomes">
               <caption class="sr-only">
-                Итог по кластерам
+                Итог по группам запросов
               </caption>
               <thead>
                 <tr>
-                  <th scope="col">Кластер</th>
+                  <th scope="col">Группа</th>
                   <th scope="col">Диагноз</th>
                   <th scope="col" class="num">Гипотез</th>
                   <th scope="col">Итог</th>
@@ -390,7 +390,7 @@ onBeforeUnmount(() => window.clearInterval(clock))
             tabindex="-1"
           >
             <h2 class="run__segment-title">
-              <template v-if="seg.clusterId">Кластер «{{ seg.label }}»</template>
+              <template v-if="seg.clusterId">Группа «{{ seg.label }}»</template>
               <template v-else>{{ seg.label }}</template>
               <span class="t-xs t-muted t-num"
                 >· {{ seg.steps.length }}

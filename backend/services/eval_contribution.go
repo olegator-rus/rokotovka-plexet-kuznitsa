@@ -45,7 +45,7 @@ var contributionSpecs = []contributionSpec{
 	{id: domain.ConfigB0, kind: contribLadder, label: "Точное совпадение подстроки (B0)", config: domain.ConfigB0},
 	{id: domain.ConfigB1, kind: contribLadder, label: "+ текст с нормализацией и словарями (B1)", config: domain.ConfigB1, against: domain.ConfigB0},
 	{id: domain.ConfigB2, kind: contribLadder, label: "+ векторы BGE-M3 и RRF (B2)", config: domain.ConfigB2, against: domain.ConfigB1},
-	{id: contribB3NoRerank, kind: contribLadder, label: "+ разбор намерения, атрибуты, порог, бизнес-слой (B3 без реранкера)",
+	{id: contribB3NoRerank, kind: contribLadder, label: "+ разбор намерения, атрибуты, порог, итоговое ранжирование (B3 без реранкера)",
 		config: domain.ConfigB3, against: domain.ConfigB2, off: searchModes{noRerank: true}},
 	{id: domain.ConfigB3, kind: contribLadder, label: "+ реранкер — полный путь (B3)", config: domain.ConfigB3, against: contribB3NoRerank},
 	{id: contribB3NoVec, kind: contribSingle, label: "Полный путь без векторной ветки (kNN выключен, реранкер есть)",
@@ -158,7 +158,7 @@ func (s *Services) RunContribution(ctx context.Context, set string, persist bool
 		run.Notes = append(run.Notes, "Прогон на mock-каталоге с разметкой по построению: выводы по реранкеру и векторам предварительные.")
 	}
 	run.Notes = append(run.Notes,
-		"Стоимость LLM — по трассам прогона (кэш разборов как на стенде в момент прогона); верхняя граница без кэша — доля маршрута D × стоимость разбора.",
+		"Стоимость LLM — по трассировкам прогона (кэш разборов как на стенде в момент прогона); верхняя граница без кэша — доля маршрута D × стоимость разбора.",
 		"Эмбеддер и реранкер — свой сервис моделей на своём сервере: в ₽ за запрос не входят, это часть сервера (COSTS.md).",
 		"Время — локальная машина, поиски последовательно; не замер стенда под нагрузкой.",
 		"Строка «без LLM» — строгая нижняя граница: кэш разборов не читается. Режим стенда LLM_MODE=off кэш читает.")

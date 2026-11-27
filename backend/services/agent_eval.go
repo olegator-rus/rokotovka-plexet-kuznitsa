@@ -422,11 +422,11 @@ func (sb *sandbox) admit(ev *patchEval) (bool, []string) {
 	reasons := []string{}
 	t := ev.Target
 	if t.After.Found <= t.Before.Found {
-		reasons = append(reasons, fmt.Sprintf("целевой кластер не улучшился: находилось %d из %d, стало %d из %d",
+		reasons = append(reasons, fmt.Sprintf("целевая группа не улучшилась: находилось %d из %d, стало %d из %d",
 			t.Before.Found, t.Before.Total, t.After.Found, t.After.Total))
 	}
 	if t.Worse > 0 {
-		reasons = append(reasons, fmt.Sprintf("в целевом кластере ухудшилось запросов: %d", t.Worse))
+		reasons = append(reasons, fmt.Sprintf("в целевой группе ухудшилось запросов: %d", t.Worse))
 	}
 	if ev.Regression.Worse > sb.maxWors {
 		ex := ""

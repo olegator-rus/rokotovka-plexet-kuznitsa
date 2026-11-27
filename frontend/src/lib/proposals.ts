@@ -246,7 +246,7 @@ export function evaluationLines(ev: ProposalEvaluation | null | undefined): Eval
   if (!ev?.target) return null
   const b = ev.target.before
   const a = ev.target.after
-  const target = `Целевой кластер: находилось ${formatInt(b.found)} из ${formatInt(b.total)}, стало ${formatInt(a.found)} из ${formatInt(a.total)}`
+  const target = `Целевая группа: находилось ${formatInt(b.found)} из ${formatInt(b.total)}, стало ${formatInt(a.found)} из ${formatInt(a.total)}`
   const r = ev.regression ?? { worse: 0, better: 0, total: 0 }
   const feedSets = (r.sets ?? []).filter((x) => FEED_SET_LABELS[x]).map((x) => FEED_SET_LABELS[x])
   let regression = feedSets.length
@@ -416,8 +416,8 @@ export function ticketLines(p: Pick<Proposal, 'diagnosis' | 'evidence'>): string
     if (empty === cur.length)
       out.push(
         cur.length === 1
-          ? 'Во время разбора поиск отвечал «нет в каталоге» на запрос кластера'
-          : `Во время разбора поиск отвечал «нет в каталоге» на все ${formatInt(cur.length)} ${qWord(cur.length)} кластера`,
+          ? 'Во время разбора поиск отвечал «нет в каталоге» на запрос группы'
+          : `Во время разбора поиск отвечал «нет в каталоге» на все ${formatInt(cur.length)} ${qWord(cur.length)} группы`,
       )
     else if (empty > 0)
       out.push(

@@ -42,11 +42,11 @@ const transportLabel = computed(() =>
       </div>
       <template v-if="active">
         <div class="state__wide">
-          <dt>Текущий кластер</dt>
+          <dt>Текущая группа</dt>
           <dd>{{ run.current_cluster ? `«${run.current_cluster.label}»` : '—' }}</dd>
         </div>
         <div class="state__wide">
-          <dt>Шаг в кластере</dt>
+          <dt>Шаг в группе</dt>
           <dd class="t-num">
             {{ formatInt(calls) }} из {{ formatInt(limit) }}
             <span class="state__bar" aria-hidden="true">
@@ -56,7 +56,7 @@ const transportLabel = computed(() =>
         </div>
       </template>
       <div>
-        <dt>Кластеры</dt>
+        <dt>Группы запросов</dt>
         <dd class="t-num">
           {{ formatInt(run.clusters_done) }} из {{ formatInt(run.clusters_total) }}
         </dd>

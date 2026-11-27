@@ -53,10 +53,10 @@ test.describe('S6. Доказательства на данных заказчи
       await expect(panel.getByText('прогон эталонов не запускался')).toBeVisible()
     }
 
-    // Закрытая часть: до финального прогона — «Прогон не запускался», после — три числа по конфигурациям.
-    const closed = panel.getByRole('button', { name: /^Закрытая часть/ })
+    // Отложенный набор (закрытая часть): до финального прогона — «Прогон не запускался», после — три числа по конфигурациям.
+    const closed = panel.getByRole('button', { name: /^Отложенный набор/ })
     if (s.closed.length === 0) await expect(closed).toContainText('Прогон не запускался')
-    else for (const label of ['BM25', 'Гибрид', 'Полный продукт']) await expect(closed).toContainText(label)
+    else for (const label of ['BM25', 'Гибрид', 'Полная конфигурация']) await expect(closed).toContainText(label)
 
     if (s.four) await expect(panel.getByText(new RegExp(`${s.four.families4_n} из ${s.four.answers}`))).toBeVisible()
     const run = s.cost?.warm ?? s.cost?.cold
@@ -77,7 +77,7 @@ test.describe('S6. Доказательства на данных заказчи
     ] as const) {
       await page.setViewportSize({ width: w, height: h })
       await page.goto('/proofs?tab=feed')
-      await expect(page.getByRole('button', { name: /^Эталоны заказчика|^Закрытая часть/ }).first()).toBeVisible()
+      await expect(page.getByRole('button', { name: /^Эталоны заказчика|^Отложенный набор/ }).first()).toBeVisible()
       await noOverflow(page, `S6 ${w}`)
       if (SHOTS) await page.screenshot({ path: `${OUT}/proofs-feed-${w}.png`, fullPage: true })
     }

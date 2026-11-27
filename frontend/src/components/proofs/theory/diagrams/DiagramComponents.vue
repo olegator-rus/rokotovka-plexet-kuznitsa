@@ -13,7 +13,7 @@ import TheoryDiagram from '../diagram/TheoryDiagram.vue'
 <template>
   <TheoryDiagram
     title="Из чего собрано решение"
-    desc="Покупатель или сайт магазина шлёт запрос в Go API и получает выдачу. Go API, OpenSearch, сервис моделей и PostgreSQL работают на своём сервере: поиск идёт в OpenSearch, векторы и оценки реранкера — в сервис моделей, журнал, трассы и кэш — в PostgreSQL. За границу сервера, во внешнюю Yandex AI Studio, уходит только текст с маской персональных данных — для разбора на маршруте D и для агента; туда же без маски уходит реплика покупателя в режиме подбора."
+    desc="Покупатель или сайт магазина шлёт запрос в Go API и получает выдачу. Go API, OpenSearch, сервис моделей и PostgreSQL работают на своём сервере: поиск идёт в OpenSearch, векторы и оценки реранкера — в сервис моделей, журнал, трассировки и кэш — в PostgreSQL. За границу сервера, во внешнюю Yandex AI Studio, уходит только текст с маской персональных данных — для разбора на маршруте D и для агента; туда же без маски уходит реплика покупателя в режиме подбора."
     :wide="[720, 344]"
     :narrow="[328, 454]"
   >
@@ -36,7 +36,14 @@ import TheoryDiagram from '../diagram/TheoryDiagram.vue'
       <DgArrow pts="376,207 476,207" label="запись" :lx="426" :ly="198" />
       <DgNode :x="476" :y="40" :w="224" :h="54" title="OpenSearch" sub="BM25 и векторы HNSW" />
       <DgNode :x="476" :y="110" :w="224" :h="54" title="Сервис моделей" sub="BGE-M3, реранкер" />
-      <DgNode :x="476" :y="180" :w="224" :h="54" title="PostgreSQL" sub="журнал, трассы, кэш" />
+      <DgNode
+        :x="476"
+        :y="180"
+        :w="224"
+        :h="54"
+        title="PostgreSQL"
+        sub="журнал, трассировки, кэш"
+      />
       <DgArrow pts="291,234 291,307 476,307" tone="d" />
       <DgLabel :x="384" :y="297" text="маска ПДн" tone="d" />
       <DgLabel :x="384" :y="320" text="разбор D, подбор, агент" />
@@ -74,7 +81,14 @@ import TheoryDiagram from '../diagram/TheoryDiagram.vue'
       <DgDot :x="40" :y="318" />
       <DgNode :x="106" :y="174" :w="206" :h="48" title="OpenSearch" sub="BM25 и векторы HNSW" />
       <DgNode :x="106" :y="234" :w="206" :h="48" title="Сервис моделей" sub="BGE-M3, реранкер" />
-      <DgNode :x="106" :y="294" :w="206" :h="48" title="PostgreSQL" sub="журнал, трассы, кэш" />
+      <DgNode
+        :x="106"
+        :y="294"
+        :w="206"
+        :h="48"
+        title="PostgreSQL"
+        sub="журнал, трассировки, кэш"
+      />
       <DgArrow pts="40,318 40,412 106,412" tone="d" />
       <DgLabel :x="70" :y="428" text="маска ПДн" tone="d" />
       <DgNode

@@ -158,7 +158,7 @@ function toggle() {
       <button
         type="button"
         class="result__why t-num"
-        :aria-label="`Почему здесь: скор ${formatScore(item.final)}, открыть трассу`"
+        :aria-label="`Почему здесь: скор ${formatScore(item.final)}, открыть трассировку`"
         :aria-pressed="selected"
         @click="emit('why', item)"
       >

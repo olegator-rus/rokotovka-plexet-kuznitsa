@@ -190,7 +190,7 @@ const verdictText = { keep: 'оставить', remove: 'прироста нет
                 <th scope="col" class="num">Пустые</th>
                 <th scope="col" class="num">Нарушения условий</th>
                 <th scope="col" class="num">
-                  {{ famCols ? 'Верное семейство первым' : 'Точные на 1-м' }}
+                  {{ famCols ? 'Hit@1 по семейству' : 'Точные на 1-м' }}
                 </th>
                 <th scope="col" class="num">Ложное спасение</th>
                 <th scope="col" class="num">P95, мс</th>
@@ -222,7 +222,7 @@ const verdictText = { keep: 'оставить', remove: 'прироста нет
                   <td class="num">{{ ms(r.metrics.latency.p95) }}</td>
                   <td
                     class="num"
-                    :title="`по трассам; без кэша — ${rub(r.cost.cold_llm_rub_per_1k)}`"
+                    :title="`по трассировкам; без кэша — ${rub(r.cost.cold_llm_rub_per_1k)}`"
                   >
                     {{ formatDecimal(r.cost.llm_rub_per_1k, 2) }}
                     <span class="t-xs t-muted ctb__sub"
@@ -242,8 +242,8 @@ const verdictText = { keep: 'оставить', remove: 'прироста нет
           </table>
         </div>
         <p class="t-xs t-muted">
-          ₽ LLM — по трассам прогона (кэш разборов как на стенде); «без кэша» — доля маршрута D ×
-          стоимость разбора {{ formatDecimal(run.parse_cost_rub, 3) }} ₽ ({{
+          ₽ LLM — по трассировкам прогона (кэш разборов как на стенде); «без кэша» — доля маршрута D
+          × стоимость разбора {{ formatDecimal(run.parse_cost_rub, 3) }} ₽ ({{
             run.parse_cost_source === 'measured' ? 'замер' : 'допущение'
           }}) × 1000. Эмбеддер и реранкер — свой сервер, в ₽ за запрос не входят. Время — локальная
           машина, поиски по одному, кэш моделей выключен.

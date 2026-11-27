@@ -58,7 +58,7 @@ const spec = useSpecStore()
                 v-if="evidenceView(c)"
                 :class="['cmp-ev', `cmp-ev--${evidenceView(c)?.level}`]"
                 data-testid="evidence-badge"
-                :title="`Уровень основания ${evidenceView(c)?.level}`"
+                :title="`Основание рекомендации ${evidenceView(c)?.level}`"
               >
                 <span class="cmp-ev__level" aria-hidden="true">{{ evidenceView(c)?.level }}</span>
                 <span class="sr-only">Основание:</span>

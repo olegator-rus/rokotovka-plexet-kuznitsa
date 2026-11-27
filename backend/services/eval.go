@@ -274,7 +274,7 @@ func (s *Services) evalConfig(ctx context.Context, runID, cfg string, queries []
 		res.Warnings = append(res.Warnings, "версия правил менялась во время прогона")
 	}
 	if override != nil && res.RulesVersion != override.Version {
-		res.Warnings = append(res.Warnings, fmt.Sprintf("поиск не применил снимок правил v%d: в трассе v%d", override.Version, res.RulesVersion))
+		res.Warnings = append(res.Warnings, fmt.Sprintf("поиск не применил снимок правил v%d: в трассировке v%d", override.Version, res.RulesVersion))
 	}
 	if res.Metrics.Errors > 0 {
 		res.Warnings = append(res.Warnings, fmt.Sprintf("ошибок поиска: %d — эти запросы в метрики не вошли", res.Metrics.Errors))
@@ -404,7 +404,7 @@ func reproLine(set, hash string, n int, cfgs []out.EvalConfigResult, commit stri
 	}
 	r := fmt.Sprintf("набор %s (%d запр.) sha256:%s · правила v%d", set, n, hash, rules)
 	if override {
-		r += " (снимок песочницы)"
+		r += " (снимок тестовой копии правил)"
 	}
 	return r + fmt.Sprintf(" · каталог %s · коммит %s", catalogLabel(catalog), commit)
 }
@@ -638,7 +638,7 @@ func (s *Services) RunProposalSandbox(ctx context.Context, set, proposalID strin
 	c.Regressions, c.Improvements = evalCompare(prev.PerQuery, c.PerQuery, c.Against)
 	rescued, lost := evalRescuedSearches(prev.PerQuery, c.PerQuery)
 	c.Metrics.RescuedSearches, c.Metrics.LostSearches = &rescued, &lost
-	c.Warnings = append(c.Warnings, fmt.Sprintf("песочница: правка предложения %s (%s) поверх правил v%d, не принята", p.ID.String()[:8], patchLine(patch), cur.Version))
+	c.Warnings = append(c.Warnings, fmt.Sprintf("тестовая копия правил: правка предложения %s (%s) поверх правил v%d, не принята", p.ID.String()[:8], patchLine(patch), cur.Version))
 	run.Configs = append(run.Configs, c)
 	run.Repro = reproLine(run.Set, run.SetHash, run.Queries, run.Configs, run.Commit) + " · правка " + p.ID.String()
 	return run, nil

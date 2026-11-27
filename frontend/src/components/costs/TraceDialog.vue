@@ -52,7 +52,7 @@ watch(
 
 const title = computed(() => {
   const q = record.value?.query || props.query
-  return q ? `Трасса «${q}»` : 'Трасса поиска'
+  return q ? `Трассировка «${q}»` : 'Трассировка поиска'
 })
 const sourceLabel = computed(() => {
   const s = record.value?.source
@@ -82,7 +82,7 @@ const searchLink = computed(() => {
     <BlockError
       v-if="error"
       :error="error"
-      :title="error.status === 404 ? 'Трасса не сохранилась' : 'Трасса не загрузилась'"
+      :title="error.status === 404 ? 'Трассировка не сохранилась' : 'Трассировка не загрузилась'"
       @retry="load()"
     />
     <TracePanel

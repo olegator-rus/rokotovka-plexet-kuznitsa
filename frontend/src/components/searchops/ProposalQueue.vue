@@ -106,7 +106,7 @@ function onAccepted(p: Proposal, r: ApproveResponse) {
     toast.add({
       tone: 'ok',
       title: 'Задача отправлена владельцу',
-      detail: `${causeView(p).owner} · ${isRelationPatch(p) ? '' : 'кластер '}«${p.cluster?.label}»`,
+      detail: `${causeView(p).owner} · ${isRelationPatch(p) ? '' : 'группа '}«${p.cluster?.label}»`,
     })
     return
   }

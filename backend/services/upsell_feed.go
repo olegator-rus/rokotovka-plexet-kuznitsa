@@ -1019,7 +1019,7 @@ func upsellAnchor(resp *out.SearchResponse, analog bool) (int, string, string) {
 	case resp.Clarify != nil:
 		return -1, "", "запрос неоднозначный — нужно уточнение"
 	case resp.Target == nil:
-		return -1, "", "цели ответа нет"
+		return -1, "", "целевой страницы нет"
 	}
 	conf := "high"
 	switch resp.Target.Type {

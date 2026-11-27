@@ -187,9 +187,12 @@ test('колонка состояния: вызовы в текущем клас
   assert.equal(currentClusterCalls(run({ current_cluster: null }), steps), 0)
   assert.equal(
     runOutcomeLine(run({ clusters_done: 3, proposals_created: 2, tool_calls: 41 })),
-    'Разобрано 3 из 5 кластеров · 2 предложения · 41 вызов инструментов',
+    'Разобрано 3 из 5 групп · 2 предложения · 41 вызов инструментов',
   )
-  assert.equal(stopReasonLabel('step_limit'), 'достигнут лимит вызовов инструментов на кластер')
+  assert.equal(
+    stopReasonLabel('step_limit'),
+    'достигнут лимит вызовов инструментов на группу запросов',
+  )
   assert.equal(stopReasonLabel('что-то своё'), 'что-то своё')
   assert.equal(stopReasonLabel(null), null)
   assert.equal(formatDuration('2026-05-27T10:00:00Z', '2026-05-27T10:02:14Z'), '2 мин 14 с')
@@ -217,6 +220,20 @@ test('живая лента: подпись кластера из шага «К�
   assert.equal(segs[0].steps[1].title, 'Проверим трассу «акад».')
   assert.equal(stepTitle('Сначала проверим: ```json {} ```'), 'Сначала проверим')
   assert.equal(stepTitle('```json {}```'), '```json {}```')
+})
+
+test('живая лента: подпись из нового заголовка «Группа неудачных запросов «…»»', () => {
+  const steps = [
+    step(1, {
+      kind: 'thought',
+      tool: null,
+      cluster_id: 'k2',
+      title: 'Группа неудачных запросов «я360»: 1 запрос, потерянный спрос — 3 сессии',
+      result: { terms: ['я360'], queries: [] },
+    }),
+  ]
+  const segs = segmentByCluster(steps, run({ current_cluster: null }))
+  assert.equal(segs[0].label, 'я360')
 })
 
 test('clusterOutcomes: итог кластеров словами, предложение только когда есть id', async () => {

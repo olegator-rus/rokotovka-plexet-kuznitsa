@@ -90,7 +90,7 @@ test('evaluationLines: две строки «находилось X из N, ст
     passed: true,
   })
   assert.ok(l)
-  assert.equal(l.target, 'Целевой кластер: находилось 0 из 12, стало 11 из 12')
+  assert.equal(l.target, 'Целевая группа: находилось 0 из 12, стало 11 из 12')
   assert.equal(l.regression, 'Регрессионный набор: ухудшилось 0 запросов из 148, улучшилось 2')
   assert.deepEqual(l.extra, [])
   assert.equal(l.passed, true)

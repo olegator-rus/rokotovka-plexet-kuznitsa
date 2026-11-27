@@ -30,7 +30,7 @@ const REPORT = {
   rules_version: 4,
   days: 7,
   stream: {
-    label: 'тестовый поток: запросы заказчика, прогоны сайта, синтетика из каталога',
+    label: 'тестовый трафик: запросы заказчика, прогоны сайта, синтетика из каталога',
     freq_label: 'частоты модельные',
     layers: [
       {
@@ -269,7 +269,7 @@ test.describe('Контур фида: отчёт SearchOps для маркето
     await page.goto('/searchops')
     await expect(page.getByRole('tab', { name: 'Отчёт' })).toHaveAttribute('data-state', 'active')
     await expect(
-      page.getByText('Тестовый поток: запросы заказчика, прогоны сайта, синтетика из каталога'),
+      page.getByText('Тестовый трафик: запросы заказчика, прогоны сайта, синтетика из каталога'),
     ).toBeVisible()
     await expect(page.getByText(/Частоты модельные/)).toBeVisible()
     await expect(page.getByRole('heading', { level: 3 })).toHaveText([...SECTIONS, GUIDE])
@@ -390,7 +390,7 @@ test.describe('Контур фида: отчёт SearchOps для маркето
       await head.click()
       const steps = item.getByRole('list', { name: 'Шаги агента по запросу' })
       await expect(
-        steps.or(item.getByText('Шагов по этому кластеру в запуске нет')).first(),
+        steps.or(item.getByText('Шагов по этой группе в запуске нет')).first(),
       ).toBeVisible()
       if (await steps.isVisible()) feed = item
       else await head.click()

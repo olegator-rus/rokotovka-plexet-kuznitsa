@@ -562,7 +562,7 @@ func RestoreCatalog(s *domain.CatalogSnapshot, events []domain.LogEvent) []catal
 		for i := range out {
 			if out[i].Field == "margin" {
 				out[i].Status = catalogsource.FieldSurrogate
-				out[i].Note = "маржи нет в данных: суррогат 0 у всех позиций — вклад маржи в бизнес-слое одинаков и на порядок не влияет"
+				out[i].Note = "маржи нет в данных: суррогат 0 у всех позиций — вклад маржи в итоговое ранжирование одинаков и на порядок не влияет"
 			}
 		}
 	}

@@ -66,7 +66,7 @@ type FlowRow struct {
 func LoadFlow(path string) ([]FlowRow, error) {
 	f, err := os.Open(path)
 	if err != nil {
-		return nil, fmt.Errorf("поток SearchOps: %w", err)
+		return nil, fmt.Errorf("тестовый трафик SearchOps: %w", err)
 	}
 	defer func() { _ = f.Close() }()
 	var rows []FlowRow
@@ -92,10 +92,10 @@ func LoadFlow(path string) ([]FlowRow, error) {
 		rows = append(rows, r)
 	}
 	if err := sc.Err(); err != nil {
-		return nil, fmt.Errorf("поток SearchOps: %w", err)
+		return nil, fmt.Errorf("тестовый трафик SearchOps: %w", err)
 	}
 	if len(rows) == 0 {
-		return nil, fmt.Errorf("поток SearchOps %s пуст", path)
+		return nil, fmt.Errorf("тестовый трафик SearchOps %s пуст", path)
 	}
 	return rows, nil
 }

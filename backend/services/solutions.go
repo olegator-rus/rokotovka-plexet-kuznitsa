@@ -253,7 +253,7 @@ func (s *Services) solutionStep(ctx context.Context, st *catalogState, si soluti
 	}
 
 	sol := &out.Solution{TemplateID: m.tmpl.ID, Title: m.tmpl.Title, Seats: si.seats, Slots: []out.SolutionSlot{},
-		Source: "Собрано по шаблону Softline"}
+		Source: "Комплект собран командой на товарах каталога"}
 	total, known := 0.0, true
 	for _, r := range results {
 		step.Slots = append(step.Slots, r.trace)

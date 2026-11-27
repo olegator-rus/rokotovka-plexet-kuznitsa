@@ -230,7 +230,7 @@ const { analyse, busy } = useAnalyseQuery()
               <RouterLink
                 :to="{ path: '/search', query: { q: r.p.query, trace: '1' } }"
                 class="failed__link"
-                :title="`Открыть «${r.p.query}» в поиске с трассой`"
+                :title="`Открыть «${r.p.query}» в поиске с трассировкой`"
               >
                 {{ r.p.query }}
               </RouterLink>

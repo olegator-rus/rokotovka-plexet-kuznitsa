@@ -62,7 +62,7 @@ func runTraffic(args []string) int {
 		"заголовок Origin изменяющих запросов (= PUBLIC_ORIGIN API)")
 	fs.StringVar(&o.dataDir, "data", envOr("DATA_DIR", "../data/mock"), "каталог mock-данных (events.jsonl)")
 	fs.StringVar(&o.flowPath, "flow", envOr("TRAFFIC_FLOW_FILE", ""),
-		"поток SearchOps (JSONL): один проход вместо журнала events.jsonl; --duration — окно, по которому разнесены сессии")
+		"тестовый трафик SearchOps (JSONL): один проход вместо журнала events.jsonl; --duration — окно, по которому разнесены сессии")
 	fs.StringVar(&o.spikesPath, "spikes-file", envOr("TRAFFIC_SPIKES_FILE", "../data/traffic/spikes.json"),
 		"описания всплесков")
 	fs.DurationVar(&o.duration, "duration", 0, "сколько работать (0 — до сигнала)")

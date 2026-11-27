@@ -66,7 +66,7 @@ test.describe('закупка под задачу и старшая редакц
     const c = card(page)
     await expect(c).toBeVisible()
     await expect(c).toContainText('На 20 мест')
-    await expect(c).toContainText('Собрано по шаблону Softline')
+    await expect(c).toContainText('Комплект собран командой на товарах каталога')
     await expect(slots(page)).toHaveCount(3)
     for (const [i, s] of active.entries()) {
       const row = slots(page).nth(i)
@@ -174,7 +174,7 @@ test.describe('закупка под задачу и старшая редакц
   test('Трасса: шаги «Решение по шаблону» и «Старшая редакция»', async ({ page }) => {
     await openSearch(page)
     await search(page, 'сервер под 1с на 50 пользователей')
-    await page.getByRole('switch', { name: 'Трасса' }).click()
+    await page.getByRole('switch', { name: 'Трассировка' }).click()
     const panel = tracePanel(page)
     await expect(panel.getByRole('button', { name: /Решение по шаблону/ })).toContainText(
       'tmpl-1c-server · 50 мест',

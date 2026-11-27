@@ -166,7 +166,7 @@ test.describe('S4 контура автономии, кадр 3 — живой �
     const started = Date.now()
     await openSearch(page)
     await search(page, QUERY)
-    await page.getByRole('switch', { name: 'Трасса' }).click()
+    await page.getByRole('switch', { name: 'Трассировка' }).click()
     const panel = tracePanel(page)
     await expect(panel).toBeVisible()
     await panel.getByRole('button', { name: 'Разобрать' }).click()

@@ -86,7 +86,7 @@ func (cr *clusterRun) toolRunEvaluation(ctx context.Context, raw string) (any, s
 			}
 		}
 	}
-	title := fmt.Sprintf("гипотеза %d: целевой кластер %d/%d → %d/%d, регрессия: хуже %d из %d",
+	title := fmt.Sprintf("гипотеза %d: целевая группа %d/%d → %d/%d, регрессия: хуже %d из %d",
 		sp.No, ev.Target.Before.Found, ev.Target.Before.Total, ev.Target.After.Found, ev.Target.After.Total,
 		ev.Regression.Worse, ev.Regression.Total)
 	res := map[string]any{"patch_id": sp.ID, "hypothesis_no": sp.No, "evaluation": ev}
@@ -101,7 +101,7 @@ func (cr *clusterRun) toolRunEvaluation(ctx context.Context, raw string) (any, s
 				break
 			}
 		case cr.hypotheses >= agentMaxHypotheses:
-			res["hint"] = "гипотезы исчерпаны: закрой кластер (close_cluster) с причиной «не решается правкой правил»"
+			res["hint"] = "гипотезы исчерпаны: закрой группу (close_cluster) с причиной «не решается правкой правил»"
 		default:
 			res["hint"] = "сформулируй следующую гипотезу уже, учитывая причины отказа"
 		}
@@ -207,7 +207,7 @@ func (cr *clusterRun) toolSubmit(ctx context.Context, raw string) (any, string, 
 	p.PatchKeys = toJSON(patchKeys(sp.Patch))
 	p.Evaluation = toJSON(sp.Eval)
 	ev := sp.Eval
-	title := fmt.Sprintf("Предложение в очередь: %s; целевой кластер: находилось %d из %d, стало %d из %d; регрессия: ухудшилось %d",
+	title := fmt.Sprintf("Предложение в очередь: %s; целевая группа: находилось %d из %d, стало %d из %d; регрессия: ухудшилось %d",
 		patchLine(sp.Patch), ev.Target.Before.Found, ev.Target.Before.Total, ev.Target.After.Found, ev.Target.After.Total, ev.Regression.Worse)
 	if err := cr.saveProposal(ctx, p, title); err != nil {
 		return nil, "", err
@@ -263,7 +263,7 @@ func (cr *clusterRun) toolTicket(ctx context.Context, raw string) (any, string, 
 		// переформулировки или через похожие успешные запросы. Иначе («счёт на оплату» → 1С по подстроке)
 		// это не карточка, а NON_PRODUCT или спрос без предложения.
 		if !cr.foundBy[strings.TrimSpace(args.FamilyID)] {
-			return nil, "", terr("CONTENT_GAP — только если покупатели кластера находят семейство %s после переформулировки "+
+			return nil, "", terr("CONTENT_GAP — только если покупатели из группы находят семейство %s после переформулировки "+
 				"(reformulated_to) или через похожие успешные запросы (find_similar_successful_queries); иначе это NON_PRODUCT "+
 				"(запрос не о товаре) или ASSORTMENT_GAP", strings.TrimSpace(args.FamilyID))
 		}
@@ -297,7 +297,7 @@ func (cr *clusterRun) toolTicket(ctx context.Context, raw string) (any, string, 
 		}
 		q, ok := cr.notFirst[fid]
 		if !ok {
-			return nil, "", terr("RANKING_FAILURE — только если семейство %s видно в выдаче запроса кластера, но не первым: "+
+			return nil, "", terr("RANKING_FAILURE — только если семейство %s видно в выдаче запроса из группы, но не первым: "+
 				"сначала get_search_trace или прогон гипотезы", fid)
 		}
 		role = domain.RoleEcom
@@ -309,7 +309,7 @@ func (cr *clusterRun) toolTicket(ctx context.Context, raw string) (any, string, 
 	// Память: такая же задача по кластеру уже отклонена человеком.
 	for _, h := range cr.memory {
 		if h.Status == domain.ProposalRejected && h.Diagnosis == args.Diagnosis {
-			return nil, "", terr("человек уже отклонил задачу %s по этому кластеру (%s) — не предлагаю повторно", args.Diagnosis, rejectLabels[h.Reason])
+			return nil, "", terr("человек уже отклонил задачу %s по этой группе (%s) — не предлагаю повторно", args.Diagnosis, rejectLabels[h.Reason])
 		}
 	}
 	id := cr.c.ID

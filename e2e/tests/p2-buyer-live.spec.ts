@@ -187,7 +187,7 @@ test.describe('Витрина контура коммерции — живой A
   test('F24: трасса — «Компаньоны» с якорем-сервером и отклонённой CAL 2022', async ({ page }) => {
     await openSearch(page)
     await liveSearch(page, WS_QUERY)
-    await page.getByRole('switch', { name: 'Трасса' }).click()
+    await page.getByRole('switch', { name: 'Трассировка' }).click()
     const panel = tracePanel(page)
     const step = panel.getByRole('button', { name: /Компаньоны/ })
     await expect(step).toContainText('якорь найден')

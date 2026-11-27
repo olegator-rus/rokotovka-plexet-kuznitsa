@@ -200,7 +200,7 @@ func (rc *runCtx) memorySkip(ctx context.Context, c *failedCluster, force bool) 
 	for _, h := range hits {
 		switch {
 		case h.Kind == "proposal":
-			title := fmt.Sprintf("Читаю память → кластер «%s»: предложение %s уже ждёт решения человека — пропускаю", c.Label, h.Diagnosis)
+			title := fmt.Sprintf("Читаю память → группа «%s»: предложение %s уже ждёт решения человека — пропускаю", c.Label, h.Diagnosis)
 			if force {
 				step(domain.StepMemoryRead, title+" (запуск вручную — показываю, разбираю заново)", nil)
 				continue
@@ -223,7 +223,7 @@ func (rc *runCtx) memorySkip(ctx context.Context, c *failedCluster, force bool) 
 				c.Label, why, shortText(m.RemovedReason, 80)), ref)
 			continue
 		case m.Scope == domain.SuppressScopePatch:
-			step(domain.StepMemoryRead, fmt.Sprintf("Читаю память → «%s»: %s — кластер разбираю, отклонённую правку не повторю", c.Label, why), ref)
+			step(domain.StepMemoryRead, fmt.Sprintf("Читаю память → «%s»: %s — группу разбираю, отклонённую правку не повторю", c.Label, why), ref)
 			continue
 		}
 		met, what, cur := rc.returnCondition(ctx, m, c)
@@ -249,7 +249,7 @@ func (rc *runCtx) memorySkip(ctx context.Context, c *failedCluster, force bool) 
 				c.Label, why, cond), ref)
 			continue
 		}
-		title := fmt.Sprintf("Читаю память → кластер «%s» пропускаю: %s; условия возврата не наступили (%s)", c.Label, why, cond)
+		title := fmt.Sprintf("Читаю память → группу «%s» пропускаю: %s; условия возврата не наступили (%s)", c.Label, why, cond)
 		step(domain.StepMemorySkip, title, ref)
 		return skip(title)
 	}
@@ -682,9 +682,9 @@ func suppressView(m *domain.MemorySuppress) out.MemorySuppress {
 	if m.Comment != "" {
 		why += ": " + m.Comment
 	}
-	cond := fmt.Sprintf("после отказа наберётся не меньше %d неудачных поисков кластера (при отказе было %d) или выйдет новая версия каталога", m.ReturnFailures, m.FailuresAt)
+	cond := fmt.Sprintf("после отказа наберётся не меньше %d неудачных поисков в группе (при отказе было %d) или выйдет новая версия каталога", m.ReturnFailures, m.FailuresAt)
 	if m.Scope == domain.SuppressScopePatch {
-		cond = "кластер разбирается; эта правка не повторяется, пока человек не снимет запись"
+		cond = "группа разбирается; эта правка не повторяется, пока человек не снимет запись"
 	}
 	v := out.MemorySuppress{ID: m.ID.String(), ClusterKey: m.ClusterKey, ClusterLabel: m.ClusterLabel, Scope: m.Scope,
 		PatchKeys: nonNil(pk), Diagnosis: m.Diagnosis, Why: why, Reason: m.Reason, Comment: m.Comment, DecidedAt: m.DecidedAt,

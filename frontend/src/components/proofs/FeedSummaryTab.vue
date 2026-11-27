@@ -69,11 +69,11 @@ function explainEtalon() {
   explain({
     title: 'Эталоны заказчика',
     value: outOf(e.matched, e.total),
-    what: 'Десять запросов из файла заказчика: первый ответ полного продукта ведёт на ту страницу, которую заказчик назвал целью.',
-    how: 'Первая цель ответа — поле target, иначе первая карточка (URL семейства → оффера → вендора). URL сравниваются после нормализации: регистр хоста, завершающий слэш, URL-кодирование, filter[category][]= и [0]=.',
+    what: 'Десять запросов из файла заказчика: в полной конфигурации (поиск на витрине) первый ответ ведёт на ту страницу, которую заказчик назвал целевой.',
+    how: 'Целевая страница — поле target, иначе первая карточка (URL семейства → оффера → вендора). URL сравниваются после нормализации: регистр хоста, завершающий слэш, URL-кодирование, filter[category][]= и [0]=.',
     rows: [
       { label: 'Конфигурация', value: configLabel(data.value ?? null, e.config) },
-      { label: 'Цель в первых четырёх', value: shareOrNull(e.top4) ?? '—' },
+      { label: 'Hit@4 (нужное семейство в первых четырёх)', value: shareOrNull(e.top4) ?? '—' },
       { label: 'Прогон', value: `…${e.run_tail}` },
     ],
   })
@@ -81,14 +81,14 @@ function explainEtalon() {
 
 function explainClosed() {
   explain({
-    title: 'Закрытая часть набора',
+    title: 'Отложенный набор (закрытая часть)',
     value: pending.value
       ? 'Прогон не запускался'
       : closed.value
           .map((c) => `${c.label}: ${c.score ? (shareOrNull(c.score.success1) ?? '—') : '—'}`)
           .join(' · '),
     what: 'Новые формулировки, которых не было при настройке поиска: соседи эталонов по девяти вендорам (склонение, транслит, опечатка, раскладка, атрибут) и запросы по остальному каталогу (примеры ТЗ в словоформах, «сервер», «по запросу → альтернатива», сервисные и мусорные). Прогоняется один раз — при заморозке функций.',
-    how: 'Success@1 — доля запросов, где первая цель ответа совпала с ожидаемой. Ожидаемые цели проверены по фиду и подтверждаются человеком.',
+    how: 'Success@1 по целевой странице — доля запросов, где первая целевая страница совпала с ожидаемой. Ожидаемые цели проверены по фиду и подтверждаются человеком.',
     rows: closed.value.map((c) => ({
       label: c.label,
       value: c.score ? outOf(c.score.matched, c.score.total) : 'прогона нет',
@@ -102,7 +102,7 @@ function explainFour() {
   explain({
     title: 'Ответы с ≥4 товарами',
     value: shareOrNull(f.families4) ?? '—',
-    what: 'Требование ТЗ: в ответе не меньше четырёх товаров. Считаются разные семейства среди карточек ответа полного продукта, включая «Можно купить сейчас» и «Популярное в наличии».',
+    what: 'Требование ТЗ: в ответе не меньше четырёх товаров. Считаются разные семейства среди карточек ответа полной конфигурации (поиск на витрине), включая «Можно купить сейчас» и «Популярное в наличии».',
     how: 'Ответы с ≥4 разными семействами / все ответы последних прогонов наборов.',
     rows: [
       { label: 'Ответов', value: formatInt(f.answers) },
@@ -179,8 +179,8 @@ function explainRow(r: FeedRow) {
     what: data.value?.configs.find((c) => c.id === r.config)?.note,
     rows: [
       { label: 'Запросов', value: formatInt(r.queries) },
-      { label: 'Success@1', value: shareOrNull(m.success1) ?? '—' },
-      { label: 'В первых четырёх', value: shareOrNull(m.top4) ?? '—' },
+      { label: 'Success@1 по целевой странице', value: shareOrNull(m.success1) ?? '—' },
+      { label: 'Hit@4 (нужное семейство в первых четырёх)', value: shareOrNull(m.top4) ?? '—' },
       { label: 'MRR@10', value: num(m.mrr10) ? formatDecimal(m.mrr10, 3) : '—' },
       {
         label: 'Все условия строки',
@@ -246,7 +246,7 @@ function explainRow(r: FeedRow) {
           <StatTile
             label="Эталоны заказчика"
             :value="etalon ? outOf(etalon.matched, etalon.total) : null"
-            sub="первый ответ ведёт на цель заказчика"
+            sub="первый ответ ведёт на целевую страницу заказчика"
             missing="прогон эталонов не запускался"
             @explain="explainEtalon"
           />
@@ -256,12 +256,14 @@ function explainRow(r: FeedRow) {
             class="panel feed__closed"
             :aria-label="
               pending
-                ? 'Закрытая часть: прогон не запускался. Что это'
-                : 'Закрытая часть, Success@1. Как посчитано'
+                ? 'Отложенный набор (закрытая часть): прогон не запускался. Что это'
+                : 'Отложенный набор (закрытая часть), Success@1 по целевой странице. Как посчитано'
             "
             @click="explainClosed"
           >
-            <span class="feed__label">Закрытая часть, Success@1</span>
+            <span class="feed__label"
+              >Отложенный набор (закрытая часть), Success@1 по целевой странице</span
+            >
             <span v-if="pending" class="feed__pending">Прогон не запускался</span>
             <span v-else class="feed__triple">
               <span v-for="c in closed" :key="c.config" class="feed__cell">
@@ -280,7 +282,7 @@ function explainRow(r: FeedRow) {
             label="Ответы с ≥4 товарами"
             :value="four ? shareOrNull(four.families4) : null"
             :sub="four ? `${outOf(four.families4_n, four.answers)} · разных семейств` : undefined"
-            missing="прогонов полного продукта нет"
+            missing="прогонов полной конфигурации нет"
             @explain="explainFour"
           />
 
@@ -288,7 +290,7 @@ function explainRow(r: FeedRow) {
             label="Стоимость запроса"
             :value="head ? formatMoney(head.per_request_rub) : null"
             :sub="costSub"
-            missing="прогонов полного продукта нет"
+            missing="прогонов полной конфигурации нет"
             @explain="head && explainCost(head)"
           />
         </div>
@@ -297,9 +299,9 @@ function explainRow(r: FeedRow) {
           <h3 id="feed-cost" class="t-h2">Стоимость запроса</h3>
           <p class="t-sm">
             <span class="t-mono">{{ cost.formula }}</span>, N = {{ formatInt(cost.requests) }}
-            запросов в месяц. Доли p и h — по трассам прогона полного продукта; c_llm — по llm_usage
-            прогона, а если модель в нём не вызывалась — по llm_usage поисков на этом каталоге.
-            Строка журнала — для сравнения: поиски витрины и трафика на фиде.
+            запросов в месяц. Доли p и h — по трассировкам прогона полной конфигурации; c_llm — по
+            llm_usage прогона, а если модель в нём не вызывалась — по llm_usage поисков на этом
+            каталоге. Строка журнала — для сравнения: поиски витрины и трафика на фиде.
           </p>
           <div class="data-scroll" role="region" aria-label="Стоимость запроса" tabindex="0">
             <table class="data-table">
@@ -370,8 +372,8 @@ function explainRow(r: FeedRow) {
                 <tr>
                   <th scope="col">Набор</th>
                   <th scope="col">Конфигурация</th>
-                  <th scope="col" class="num">Success@1</th>
-                  <th scope="col" class="num">В первых 4</th>
+                  <th scope="col" class="num">Success@1 по целевой странице</th>
+                  <th scope="col" class="num" title="нужное семейство в первых четырёх">Hit@4</th>
                   <th scope="col" class="num">MRR@10</th>
                   <th scope="col" class="num">Все условия</th>
                   <th scope="col" class="num">≥4 семейств</th>
@@ -414,8 +416,9 @@ function explainRow(r: FeedRow) {
           </div>
           <p class="t-xs t-muted">
             BM25 — текстовый поиск по запросу как набран; BM25 + нормализатор — плюс раскладка,
-            опечатки, транслит и словари; гибрид — плюс векторы и слияние RRF; полный продукт —
-            понимание запроса, цель ответа, лестница «4 товара» и модель на трудных запросах. «Все
+            опечатки, транслит и словари; гибрид — плюс векторы и слияние RRF; полная конфигурация
+            (поиск на витрине) — понимание запроса, целевая страница, добор выдачи до четырёх
+            семейств и модель на трудных запросах. Hit@4 — нужное семейство в первых четырёх. «Все
             условия» — цель совпала и выполнены остальные условия строки (нет исключённых семейств,
             есть альтернативы, верный маршрут); набор понимания проверяется по первым карточкам, а
             не по цели, поэтому Success@1 у него не считается.

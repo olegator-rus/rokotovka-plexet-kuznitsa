@@ -13,7 +13,7 @@ import (
 // Трасса сохранённого поиска (переход из журнала «Экономики» и из аналитики в разбор запроса).
 
 // MsgTraceNotFound — трассы с таким request_id нет.
-const MsgTraceNotFound = "Трасса поиска не найдена: поиск не записывался в журнал или удалён"
+const MsgTraceNotFound = "Трассировка поиска не найдена: поиск не записывался в журнал или удалён"
 
 // Trace — GET /api/traces/{request_id}.
 func (s *Services) Trace(ctx context.Context, requestID string) (*out.TraceView, error) {

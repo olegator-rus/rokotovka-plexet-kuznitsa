@@ -247,8 +247,8 @@ function clusterLimitRow(
     key: 'cluster_calls',
     label:
       hit.length === 1
-        ? `Вызовы инструментов на кластер «${hit[0]!.label}»`
-        : `Вызовы инструментов на кластер (упёрлись ${formatInt(hit.length)} ${plural(hit.length, ['кластер', 'кластера', 'кластеров'])})`,
+        ? `Вызовы инструментов на группу «${hit[0]!.label}»`
+        : `Вызовы инструментов на группу (упёрлись ${formatInt(hit.length)} ${plural(hit.length, ['группа', 'группы', 'групп'])})`,
     used: formatInt(used),
     limit: formatInt(limit),
     share: Math.min(1, Math.max(0, used / limit)),

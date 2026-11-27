@@ -17,7 +17,7 @@ test.describe('Жюри', () => {
     await search(page, 'аналог фотошопа на 20 пользователей')
     await expect(tracePanel(page)).toHaveCount(0)
 
-    await page.getByRole('switch', { name: 'Трасса' }).click()
+    await page.getByRole('switch', { name: 'Трассировка' }).click()
     const panel = tracePanel(page)
     await expect(panel).toBeVisible()
     await expect(page).toHaveURL(/trace=1/)
@@ -45,7 +45,7 @@ test.describe('Жюри', () => {
       await expect(panel).toContainText((await cards.first().getAttribute('aria-label')) ?? '')
     }
 
-    await panel.getByRole('button', { name: 'Закрыть трассу' }).click()
+    await panel.getByRole('button', { name: 'Закрыть трассировку' }).click()
     await expect(tracePanel(page)).toHaveCount(0)
   })
 
@@ -67,7 +67,7 @@ test.describe('Жюри', () => {
     }
     await expect(table.getByRole('rowheader', { name: /NDCG/ }).first()).toBeVisible()
     // Главные числа — по семействам, с подписью источника разметки; прежний счёт по артикулу — ниже в таблице.
-    await expect(page.getByRole('button', { name: /^Верное семейство первым · B4: .*Как посчитано/ })).toBeVisible()
+    await expect(page.getByRole('button', { name: /^Hit@1 по семейству · B4: .*Как посчитано/ })).toBeVisible()
     await expect(page.getByRole('button', { name: /^NDCG@10 по семействам · B4: .*Как посчитано/ })).toBeVisible()
     await expect(page.getByText(/разметка — клики на боевой выдаче и LLM-судья, счёт по семействам/)).toBeVisible()
     await expect(table.getByRole('rowheader', { name: /Точный товар на 1-м месте \(по артикулу\)/ })).toBeVisible()
@@ -132,12 +132,12 @@ test.describe('SearchOps', () => {
     await expect(feed).toBeVisible()
     const cluster = feed
       .getByRole('listitem')
-      .filter({ has: page.getByRole('heading', { name: /^Кластер «я360»/ }) })
+      .filter({ has: page.getByRole('heading', { name: /^Группа «я360»/ }) })
       .filter({ hasText: 'Гипотеза 1' })
       .first()
     await expect(cluster).toBeVisible()
-    await expect(cluster).toContainText('Память: прошлых решений по кластеру нет')
-    await expect(cluster).toContainText('Трасса поиска: «я360»')
+    await expect(cluster).toContainText(/Память: прошлых решений по (кластеру|группе) нет/)
+    await expect(cluster).toContainText(/(Трасса|Трассировка) поиска: «я360»/)
     await expect(cluster).toContainText('ALIAS_GAP')
     await expect(cluster).toContainText('Гипотеза 1: алиас «я360» → «Яндекс 360 для бизнеса»')
     await expect(cluster).toContainText(/Гипотеза 1 прошла прогон: находилось 0 из 1, стало 1 из 1; регрессия — хуже 0 из \d+/)
@@ -177,10 +177,10 @@ test.describe('SearchOps', () => {
     await expect(card.getByTestId('kind')).toHaveText('Правка поиска')
     await expect(card.getByTestId('cause')).not.toBeEmpty()
     await expect(card.getByTestId('owner')).toContainText('Владелец:')
-    await expect(card).toContainText(`кластер «${p.cluster!.label}»`)
+    await expect(card).toContainText(`группа неудачных запросов «${p.cluster!.label}»`)
     const firstQuery = p.cluster!.queries?.[0]?.text
     if (firstQuery) {
-      await expect(card.getByRole('region', { name: 'Запросы кластера' })).toContainText(firstQuery)
+      await expect(card.getByRole('region', { name: 'Запросы группы' })).toContainText(firstQuery)
     }
     await expect(card.getByRole('region', { name: 'Что предлагается' })).toBeVisible()
     await expect(card.getByRole('region', { name: 'Результат прогона' })).toBeVisible()
@@ -213,7 +213,7 @@ test.describe('SearchOps — принятие', () => {
   }) => {
     test.skip(!allowDestructive, 'меняет демо-состояние: E2E_DESTRUCTIVE=1 и allowDestructive')
     await page.goto('/searchops?tab=queue')
-    const card = page.locator('article').filter({ hasText: 'кластер «акад»' }).first()
+    const card = page.locator('article').filter({ hasText: 'группа неудачных запросов «акад»' }).first()
     await card.getByRole('button', { name: 'Утвердить', exact: true }).click()
     const dialog = page.getByRole('dialog', { name: 'Утвердить правку поиска?' })
     await dialog.getByRole('button', { name: 'Утвердить', exact: true }).click()

@@ -35,7 +35,7 @@ test('№15: деньги — два знака, меньше копейки «<
   assert.equal(planLine(run), 'Проверить «антивирус»')
 })
 
-test('№8: упор в лимит на кластер — строка «Вызовы инструментов на кластер … 15 из 15»', () => {
+test('№8: упор в лимит на группу — строка «Вызовы инструментов на группу … 15 из 15»', () => {
   const budget = {
     used: { steps: 15, tokens: 65268, seconds: 50, cost_rub: 6.6613 },
     limits: { steps: 80, tokens: 600000, seconds: 180, cost_rub: 40 },
@@ -47,7 +47,7 @@ test('№8: упор в лимит на кластер — строка «Выз
   } as unknown as AgentRun
   const rows = budgetRows(budget, 'step_limit', run)
   assert.equal(rows[0]!.key, 'cluster_calls')
-  assert.equal(rows[0]!.label, 'Вызовы инструментов на кластер «антивирус»')
+  assert.equal(rows[0]!.label, 'Вызовы инструментов на группу «антивирус»')
   assert.equal(`${rows[0]!.used} из ${rows[0]!.limit}`, '15 из 15')
   assert.ok(rows[0]!.exhausted)
   assert.ok(!rows.find((r) => r.key === 'steps')!.exhausted)
@@ -112,11 +112,11 @@ test('№6: «чертилка сапр» — без «замены не наш�
   assert.ok(ticketLines(empty)[0]!.includes('замены в каталоге агент не нашёл'))
 })
 
-test('№7: у правки связей — «Предложение «…»», у остальных — «Кластер «…»»', () => {
+test('№7: у правки связей — «Предложение «…»», у остальных — «Группа «…»»', () => {
   const rel = { action: 'relation_patch', cluster: { label: 'Связь rel-0065' } } as Proposal
   const rules = { action: 'rules_patch', cluster: { label: 'кис' } } as Proposal
   assert.equal(proposalSubject(rel), 'Предложение «Связь rel-0065»')
-  assert.equal(proposalSubject(rules), 'Кластер «кис»')
+  assert.equal(proposalSubject(rules), 'Группа «кис»')
   assert.equal(proposalSubjectDat(rel), 'по предложению «Связь rel-0065»')
 })
 

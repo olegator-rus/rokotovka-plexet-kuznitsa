@@ -64,7 +64,7 @@ func (a *agentService) execute(ctx context.Context, rs *runState) {
 		rc.catalogVersion = cs.version
 	}
 	var err error
-	unit := "кластеров"
+	unit := "групп неудачных запросов"
 	switch {
 	case rs.run.Trigger == domain.TriggerCatalogChange:
 		err, unit = rc.runCatalogChange(ctx), "находок"
@@ -146,7 +146,7 @@ func (a *agentService) execute(ctx context.Context, rs *runState) {
 		unit, r.ClustersDone, r.ClustersTotal, r.ProposalsCreated, r.ToolCalls, r.InputTokens+r.OutputTokens,
 		strings.Replace(fmt.Sprintf("%.2f", r.CostRub), ".", ",", 1))
 	if n, _ := rc.episode["clusters_limited"].(int); n > 0 {
-		r.Summary += fmt.Sprintf(". Упёрлись в лимит %d вызовов на кластер: %d", agentToolCallsPerCluster, n)
+		r.Summary += fmt.Sprintf(". Упёрлись в лимит %d вызовов на группу: %d", agentToolCallsPerCluster, n)
 	}
 	if n, _ := rc.episode["clusters_unfinished"].(int); n > 0 {
 		r.Summary += fmt.Sprintf(". Без итога (модель не вызвала завершающий инструмент): %d", n)
@@ -373,7 +373,7 @@ func (rc *runCtx) run(ctx context.Context) error {
 		how = "общие непонятные слова (эмбеддер недоступен)"
 	}
 	a.step(ctx, rs, &domain.AgentStep{Kind: domain.StepCheck, OK: true, Ms: int(time.Since(t).Milliseconds()),
-		Title:  fmt.Sprintf("Кластеры: %d запросов → %d кластеров (%s); приоритет — частота × доля неудач × «новый»", len(rc.failed), len(all), how),
+		Title:  fmt.Sprintf("Группы неудачных запросов: %d запросов → %d групп (%s); приоритет — частота × доля неудач × «новый»", len(rc.failed), len(all), how),
 		Result: toJSON(map[string]any{"clusters": view})})
 
 	// 4. Память и проверка действующим поиском — до плана: в план идут только кластеры, которые есть смысл разбирать.
@@ -396,7 +396,7 @@ func (rc *runCtx) run(ctx context.Context) error {
 			labels = append(labels, fmt.Sprintf("«%v»", sk["label"]))
 		}
 		a.step(ctx, rs, &domain.AgentStep{Kind: domain.StepCheck, OK: true,
-			Title: fmt.Sprintf("Пропущено кластеров: %d — действующий поиск понимает все слова и отвечает: %s",
+			Title: fmt.Sprintf("Пропущено групп: %d — действующий поиск понимает все слова и отвечает: %s",
 				len(rc.skipped), shortText(strings.Join(labels, ", "), 300)),
 			Result: toJSON(map[string]any{"skipped": rc.skipped})})
 	}
@@ -471,7 +471,7 @@ func (rc *runCtx) investigatePlan(ctx context.Context, plan *runPlan, open []pla
 			avg := sum / time.Duration(len(spent))
 			left := rs.budget.Duration - now.Sub(rs.run.StartedAt)
 			if left < avg {
-				rc.replan(ctx, fmt.Sprintf("до лимита времени %s, кластер в среднем занимает %s — оставшиеся не начинаю",
+				rc.replan(ctx, fmt.Sprintf("до лимита времени %s, группа в среднем занимает %s — оставшиеся не начинаю",
 					left.Round(time.Second), avg.Round(time.Second)), queue[qi:], nil)
 				rc.stopBudget(ctx, StopTimeBudget, queue[qi:])
 				break
@@ -481,7 +481,7 @@ func (rc *runCtx) investigatePlan(ctx context.Context, plan *runPlan, open []pla
 			// По похожему кластеру этот же запуск уже положил предложение (кандидаты отбирались до него).
 			id := c.ID
 			a.step(ctx, rs, &domain.AgentStep{Kind: domain.StepMemorySkip, ClusterID: &id, OK: true,
-				Title: fmt.Sprintf("Читаю память → кластер «%s» пропускаю: в этом запуске по похожему кластеру уже есть %s", c.Label, dup)})
+				Title: fmt.Sprintf("Читаю память → группу «%s» пропускаю: в этом запуске по похожей группе уже есть %s", c.Label, dup)})
 			rc.replan(ctx, fmt.Sprintf("«%s» совпал с уже разобранным в этом запуске — не разбираю повторно", c.Label), []planItem{item}, nil)
 			rs.mu.Lock()
 			rc.outcome.SkippedMemory++
@@ -493,12 +493,12 @@ func (rc *runCtx) investigatePlan(ctx context.Context, plan *runPlan, open []pla
 			var add []planItem
 			for _, o := range open {
 				if !inPlan[o.ID] {
-					add = append(add, planItem{ID: o.ID, Label: o.Label, Score: o.Score, Why: "вместо занятого кластера"})
+					add = append(add, planItem{ID: o.ID, Label: o.Label, Score: o.Score, Why: "вместо занятой группы"})
 					inPlan[o.ID] = true
 					break
 				}
 			}
-			rc.replan(ctx, fmt.Sprintf("кластер «%s» уже разбирает запуск %s — пропускаю", c.Label, owner.String()[:8]),
+			rc.replan(ctx, fmt.Sprintf("группу «%s» уже разбирает запуск %s — пропускаю", c.Label, owner.String()[:8]),
 				[]planItem{item}, add)
 			queue = append(queue, add...)
 			continue
@@ -809,7 +809,7 @@ func (rc *runCtx) alreadySolved(ctx context.Context, c *failedCluster) bool {
 func (rc *runCtx) verifyProposal(ctx context.Context, p *domain.Proposal) (map[string]any, error) {
 	var qs []clusterQuery
 	if err := jsonUnmarshal(p.ClusterQueries, &qs); err != nil || len(qs) == 0 {
-		return nil, errors.New("нет запросов кластера")
+		return nil, errors.New("нет запросов группы")
 	}
 	var patch RulePatch
 	_ = jsonUnmarshal(p.Patch, &patch)

@@ -191,7 +191,7 @@ const columns = computed(() => [
         <template v-else-if="sides[col.key].resp">
           <RouterLink :to="traceLink(col.config)" class="link t-xs oneq__found">
             {{ formatFound(sides[col.key].resp!.total, sides[col.key].resp!.trace?.total_ms) }} ·
-            трасса
+            трассировка
           </RouterLink>
           <p v-if="!sides[col.key].resp!.items.length" class="panel oneq__empty">
             {{ sides[col.key].resp!.empty?.message ?? 'Ничего не найдено' }}
@@ -236,7 +236,7 @@ const columns = computed(() => [
                 <RouterLink
                   :to="traceLink(col.config)"
                   class="link t-xs t-num"
-                  :aria-label="`Скор ${formatScore(item.final)} — разложение в трассе`"
+                  :aria-label="`Скор ${formatScore(item.final)} — разложение в трассировке`"
                 >
                   {{ formatScore(item.final) }}
                 </RouterLink>

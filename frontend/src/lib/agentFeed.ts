@@ -110,20 +110,20 @@ export function stepKind(kind: string): { label: string; group: StepGroup } {
 /** Подписи инструментов агента (ARCHITECTURE §3.3); неизвестный — как есть. */
 export const TOOL_LABELS: Record<string, string> = {
   get_failed_queries: 'Неудачные запросы',
-  get_query_cluster: 'Кластер запросов',
+  get_query_cluster: 'Группа неудачных запросов',
   search_catalog: 'Поиск по каталогу',
   get_active_rules: 'Действующие правила',
-  get_search_trace: 'Трасса запроса',
+  get_search_trace: 'Трассировка запроса',
   find_similar_successful_queries: 'Похожие удачные запросы',
   get_product_details: 'Карточка товара',
   get_product_relations: 'Аналоги и сопутствующие',
   get_previous_decisions: 'Прошлые решения',
-  create_sandbox_patch: 'Правка в песочнице',
+  create_sandbox_patch: 'Правка на тестовой копии правил',
   run_evaluation: 'Прогон оценки',
   submit_proposal: 'Предложение в очередь',
   create_assortment_ticket: 'Задача по ассортименту',
   verify_applied_change: 'Эффект принятой правки',
-  close_cluster: 'Кластер закрыт',
+  close_cluster: 'Группа закрыта',
   submit_plan: 'План запуска',
   ...P2_TOOL_LABELS,
 }
@@ -245,7 +245,7 @@ function labelFrom(step: AgentStep): string | null {
   return null
 }
 
-const CLUSTER_TITLE = /^Кластер «(.+?)»/
+const CLUSTER_TITLE = /^(?:Кластер|Группа неудачных запросов) «(.+?)»/
 
 /** Подпись кластера из первого шага «Кластер «…»: N запросов…». */
 function labelFromTitle(step: AgentStep): string | null {
@@ -327,7 +327,7 @@ export function runStatusLabel(status: string): string {
 const STOP_REASONS: Record<string, string> = {
   user: 'остановлен человеком',
   stopped_by_user: 'остановлен человеком',
-  step_limit: 'достигнут лимит вызовов инструментов на кластер',
+  step_limit: 'достигнут лимит вызовов инструментов на группу запросов',
   token_limit: 'достигнут лимит токенов',
   timeout: 'истекло время запуска',
   llm_error: 'ошибка модели',
@@ -356,7 +356,7 @@ export function currentClusterCalls(run: AgentRun | null, steps: AgentStep[]): n
 /** Итог запуска одной строкой: «Разобрано 3 из 5 кластеров · 2 предложения · 41 вызов инструментов». */
 export function runOutcomeLine(run: AgentRun): string {
   const parts = [
-    `Разобрано ${formatInt(run.clusters_done)} из ${formatInt(run.clusters_total)} ${plural(run.clusters_total, ['кластера', 'кластеров', 'кластеров'])}`,
+    `Разобрано ${formatInt(run.clusters_done)} из ${formatInt(run.clusters_total)} ${plural(run.clusters_total, ['группы', 'групп', 'групп'])}`,
     `${formatInt(run.proposals_created)} ${plural(run.proposals_created, ['предложение', 'предложения', 'предложений'])}`,
     `${formatInt(run.tool_calls)} ${plural(run.tool_calls, ['вызов', 'вызова', 'вызовов'])} инструментов`,
   ]

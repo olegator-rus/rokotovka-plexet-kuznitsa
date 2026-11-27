@@ -116,7 +116,7 @@ const runLink = computed(() =>
       <span
         v-else-if="!commerce || p.cluster?.lost_demand"
         class="pcard__demand t-xs t-muted t-num"
-        title="Различные сессии, в которых поиск по запросам кластера не удался"
+        title="Различные сессии, в которых поиск по запросам группы не удался"
       >
         {{ lostDemandLabel(p.cluster?.lost_demand)
         }}<template v-if="noFreq && !p.cluster?.lost_demand"> в окне агента</template>
@@ -137,7 +137,7 @@ const runLink = computed(() =>
             >{{ diagnosisLabel(p.diagnosis) }} · </template
           ><span class="t-mono">{{ p.diagnosis }}</span> · </template
         ><template v-if="commerce">{{ p.cluster?.label }}</template
-        ><template v-else>кластер «{{ p.cluster?.label }}»</template>
+        ><template v-else>группа неудачных запросов «{{ p.cluster?.label }}»</template>
       </p>
       <p v-if="origin" class="t-xs pcard__origin" data-testid="origin">
         <span class="t-muted">Откуда:</span>
@@ -156,9 +156,9 @@ const runLink = computed(() =>
     </p>
     <p v-if="p.diagnosis_text" class="pcard__diag">{{ p.diagnosis_text }}</p>
 
-    <section v-if="showQueries" class="pcard__block" aria-label="Запросы кластера">
+    <section v-if="showQueries" class="pcard__block" aria-label="Запросы группы">
       <p class="pcard__label">
-        Запросы кластера · {{ formatInt(queries.length) }}
+        Запросы группы · {{ formatInt(queries.length) }}
         {{ plural(queries.length, ['запрос', 'запроса', 'запросов']) }}
       </p>
       <ul class="pcard__queries">
@@ -166,7 +166,7 @@ const runLink = computed(() =>
           <RouterLink
             :to="{ path: '/search', query: { q: q.text, trace: '1' } }"
             class="pcard__query"
-            :title="`Открыть «${q.text}» в поиске с трассой`"
+            :title="`Открыть «${q.text}» в поиске с трассировкой`"
           >
             {{ q.text }}
           </RouterLink>
@@ -267,7 +267,7 @@ const runLink = computed(() =>
           <div v-if="targetRows.length" class="data-scroll pcard__tq-scroll">
             <table class="data-table pcard__tq">
               <caption class="sr-only">
-                Запросы целевого кластера до и после правки
+                Запросы целевой группы до и после правки
               </caption>
               <thead>
                 <tr>

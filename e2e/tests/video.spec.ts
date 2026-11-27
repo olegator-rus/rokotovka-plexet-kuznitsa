@@ -131,7 +131,7 @@ test('Видео: поиск задачей → трасса → агент → 
   await read(page, 3000)
 
   // ── F6: трасса и разложение скора ──
-  await page.getByRole('switch', { name: 'Трасса' }).click()
+  await page.getByRole('switch', { name: 'Трассировка' }).click()
   const panel = tracePanel(page)
   await expect(panel.getByRole('heading', { name: 'Шаги' })).toBeVisible()
   await read(page, 7000)
@@ -161,7 +161,7 @@ test('Видео: поиск задачей → трасса → агент → 
   await read(page, 5000)
   const akad = feed
     .getByRole('listitem')
-    .filter({ has: page.getByRole('heading', { name: /^Кластер / }) })
+    .filter({ has: page.getByRole('heading', { name: /^Группа / }) })
     .filter({ hasText: 'алиас «акад» → «AutoCAD»' })
     .first()
   await akad.getByText('Гипотеза отклонена:').first().scrollIntoViewIfNeeded()
@@ -222,7 +222,7 @@ async function queueStep(page: Page, id: string, akad: boolean) {
     await page.goto(`/searchops?tab=queue&status=pending&p=${id}`)
   }
   const card = akad
-    ? page.locator('article').filter({ hasText: 'кластер «акад»' }).first()
+    ? page.locator('article').filter({ hasText: 'группа неудачных запросов «акад»' }).first()
     : page.locator(`#proposal-${id}`)
   await expect(card).toBeVisible()
   await card.scrollIntoViewIfNeeded()

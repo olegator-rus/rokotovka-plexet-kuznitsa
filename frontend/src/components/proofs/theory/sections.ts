@@ -40,7 +40,7 @@ export const THEORY_PARTS: readonly TheoryPart[] = [
       { id: 'empty', title: 'Что видит покупатель, если подходящего мало или нет' },
       { id: 'hardware', title: 'Как ищется техника: парт-номера и характеристики' },
       { id: 'around', title: 'Подсказки, дополнения и закупка' },
-      { id: 'trace', title: 'Что записывает трасса' },
+      { id: 'trace', title: 'Что записывает трассировка' },
     ],
   },
   {

@@ -62,7 +62,7 @@ const WAYS: readonly Way[] = [
       <h2 id="idle-title" class="start__title">Что ищем?</h2>
       <p class="start__text">
         Название продукта, задача своими словами или артикул. Как поиск понял запрос — видно в
-        трассе.
+        трассировке.
       </p>
     </div>
     <ul class="start__ways" aria-label="Примеры запросов">

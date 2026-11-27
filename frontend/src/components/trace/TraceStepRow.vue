@@ -147,7 +147,7 @@ function show(v: unknown): string {
           <span class="t-num t-muted">{{ formatDecimal(c.score, 3) }}</span>
         </li>
       </ol>
-      <p v-if="topRest" class="t-xs t-muted">и ещё {{ topRest }} в JSON трассы</p>
+      <p v-if="topRest" class="t-xs t-muted">и ещё {{ topRest }} в JSON трассировки</p>
 
       <ul v-if="step.weights && Object.keys(step.weights).length" class="step__list">
         <li v-for="(w, k) in step.weights" :key="k">

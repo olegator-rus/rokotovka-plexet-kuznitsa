@@ -321,7 +321,7 @@ func proposalSummary(p *domain.Proposal, patch RulePatch) string {
 	for _, a := range patch.Remove {
 		parts = append(parts, fmt.Sprintf("убран «%s»", a.Alias))
 	}
-	return fmt.Sprintf("%s: %s (кластер «%s»)", p.Diagnosis, strings.Join(parts, ", "), p.ClusterLabel)
+	return fmt.Sprintf("%s: %s (группа «%s»)", p.Diagnosis, strings.Join(parts, ", "), p.ClusterLabel)
 }
 
 // proposalTerms — термины кластера предложения (из доказательств).

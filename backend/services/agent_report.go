@@ -78,7 +78,7 @@ var reportSectionDefs = []struct{ code, title, hint string }{
 }
 
 // ReportStreamLabel — подпись потока на экране ().
-const ReportStreamLabel = "тестовый поток: запросы заказчика, прогоны сайта, синтетика из каталога"
+const ReportStreamLabel = "тестовый трафик: запросы заказчика, прогоны сайта, синтетика из каталога"
 
 const (
 	reportDefaultDays = 7

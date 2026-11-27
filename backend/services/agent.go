@@ -207,7 +207,7 @@ func (s *Services) StartAgentRun(ctx context.Context, req in.AgentRunRequest) (*
 		clusters = agentDefaultClusters
 	}
 	if clusters < 1 || clusters > agentMaxClusters {
-		bad = append(bad, errs.FieldError{Field: "max_clusters", Code: errs.CodeInvalidFormat, Message: "Кластеров — от 1 до 12"})
+		bad = append(bad, errs.FieldError{Field: "max_clusters", Code: errs.CodeInvalidFormat, Message: "Групп неудачных запросов — от 1 до 12"})
 	}
 	trigger := req.Trigger
 	if trigger == "" {

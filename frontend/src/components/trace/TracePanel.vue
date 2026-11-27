@@ -69,7 +69,7 @@ async function copyJson() {
   if (!props.trace) return
   try {
     await navigator.clipboard.writeText(traceJson(props.trace))
-    toast.add({ tone: 'ok', title: 'JSON трассы скопирован' })
+    toast.add({ tone: 'ok', title: 'JSON трассировки скопирован' })
   } catch {
     toast.add({
       tone: 'error',
@@ -83,7 +83,7 @@ async function copyJson() {
 <template>
   <section class="trace" aria-labelledby="trace-title">
     <header class="trace__head">
-      <h2 id="trace-title" :class="embedded ? 'sr-only' : 't-h2'">Трасса запроса</h2>
+      <h2 id="trace-title" :class="embedded ? 'sr-only' : 't-h2'">Трассировка запроса</h2>
       <div class="trace__tools">
         <button
           v-if="canAnalyse"
@@ -104,7 +104,7 @@ async function copyJson() {
           v-if="closable"
           type="button"
           class="btn btn--ghost btn--icon btn--sm"
-          aria-label="Закрыть трассу"
+          aria-label="Закрыть трассировку"
           @click="emit('close')"
         >
           <X :size="16" aria-hidden="true" />

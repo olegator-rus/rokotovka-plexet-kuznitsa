@@ -99,14 +99,14 @@ func (rc *runCtx) investigate(ctx context.Context, c *failedCluster) clusterResu
 	a, rs := rc.a, rc.rs
 	id := c.ID
 	a.step(ctx, rs, &domain.AgentStep{Kind: domain.StepThought, ClusterID: &id, OK: true,
-		Title: fmt.Sprintf("Кластер «%s»: %d %s, потерянный спрос — %.0f %s с неудачным поиском (%d %s)", c.Label,
+		Title: fmt.Sprintf("Группа неудачных запросов «%s»: %d %s, потерянный спрос — %.0f %s с неудачным поиском (%d %s)", c.Label,
 			len(c.Queries), plural(len(c.Queries), [3]string{"запрос", "запроса", "запросов"}),
 			c.LostDemand, plural(int(c.LostDemand), [3]string{"сессия", "сессии", "сессий"}),
 			c.Failures, plural(c.Failures, [3]string{"неудачный поиск", "неудачных поиска", "неудачных поисков"})),
 		Result: toJSON(map[string]any{"queries": compactQueries(c.Queries), "terms": c.Terms})})
 	// Память кластера — всегда шаг ленты (агент читает её до исследования).
 	t := time.Now()
-	title := "Память: прошлых решений по кластеру нет"
+	title := "Память: прошлых решений по группе нет"
 	if len(cr.memory) > 0 {
 		h := cr.memory[0]
 		title = fmt.Sprintf("Память: предложение по «%s» — %s %s", h.Label, statusLabel(h.Status), h.At.Format("02.01"))
@@ -148,7 +148,7 @@ func (rc *runCtx) investigate(ctx context.Context, c *failedCluster) clusterResu
 		}
 		if cr.toolCalls >= agentToolCallsPerCluster {
 			a.step(ctx, rs, &domain.AgentStep{Kind: domain.StepCheck, ClusterID: &id, OK: false,
-				Title: fmt.Sprintf("Лимит вызовов инструментов на кластер (%d) исчерпан — кластер закрыт без предложения", agentToolCallsPerCluster)})
+				Title: fmt.Sprintf("Лимит вызовов инструментов на группу (%d) исчерпан — группа закрыта без предложения", agentToolCallsPerCluster)})
 			cr.finish("limit", diagOr(cr.diagnosis), "лимит вызовов инструментов")
 			break
 		}

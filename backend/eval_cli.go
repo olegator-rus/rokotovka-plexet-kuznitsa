@@ -23,7 +23,7 @@ func runEval(ctx context.Context, log *zap.Logger, svc *services.Services, args 
 	configs := fs.String("configs", strings.Join(services.DefaultEvalConfigs, ","), "конфигурации через запятую")
 	outDir := fs.String("out", "../data/eval", "куда записать JSON прогона; пусто — не записывать")
 	noPersist := fs.Bool("no-persist", false, "не записывать результат в базу")
-	proposal := fs.String("with-proposal", "", "id ждущего предложения: эффект его правки в песочнице (B3, B4, B4+правка; в базу не пишется)")
+	proposal := fs.String("with-proposal", "", "id ждущего предложения: эффект его правки на тестовой копии правил (B3, B4, B4+правка; в базу не пишется)")
 	contribSet := fs.String("contrib-set", "test", "набор таблицы вклада компонентов при --set contribution: test | tune | regression")
 	commerce := fs.Bool("commerce", true, "набор p2: коммерческая лестница C0–C3 и прогоны с одним изменением (false — обычная лестница B)")
 	file := fs.String("file", "", "наборы «по цели»: явный путь JSONL (закрытый набор: --set closed --file …)")

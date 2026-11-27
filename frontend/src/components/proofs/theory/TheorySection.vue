@@ -19,7 +19,7 @@ const props = defineProps<{ id: string; tries?: readonly string[] }>()
     </h3>
     <slot />
     <p v-if="props.tries?.length" class="theory-section__try t-sm">
-      <span class="t-muted">Посмотреть на живом запросе с трассой:</span>
+      <span class="t-muted">Посмотреть на живом запросе с трассировкой:</span>
       <template v-for="q in props.tries" :key="q">
         <a :href="searchWithTrace(q)" target="_blank" rel="noopener" class="theory-section__link">
           «{{ q }}»<ExternalLink :size="12" aria-hidden="true" /><span class="sr-only">

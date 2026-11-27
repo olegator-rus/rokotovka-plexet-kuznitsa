@@ -68,7 +68,7 @@ const { analyse, busy } = useAnalyseQuery()
       <template v-else-if="run.data.value">
         <p class="t-xs t-muted rfeed__cap">
           Что сделал агент{{
-            row.agent?.cluster_label ? ` — кластер «${row.agent.cluster_label}»` : ''
+            row.agent?.cluster_label ? ` — группа «${row.agent.cluster_label}»` : ''
           }}
         </p>
         <ol v-if="steps.length" class="rfeed__steps" aria-label="Шаги агента по запросу">
@@ -79,7 +79,7 @@ const { analyse, busy } = useAnalyseQuery()
             row.agent?.label
               ? `${row.agent.label}${row.agent.note ? ` — ${row.agent.note}` : ''}. `
               : ''
-          }}Шагов по этому кластеру в запуске нет.
+          }}Шагов по этой группе в запуске нет.
         </p>
       </template>
     </template>

@@ -232,7 +232,7 @@ async function confirmRemove() {
             <table class="data-table mem__table">
               <thead>
                 <tr>
-                  <th scope="col">Кластер или правка</th>
+                  <th scope="col">Группа запросов или правка</th>
                   <th scope="col">Почему</th>
                   <th scope="col">Условие возврата</th>
                   <th scope="col">Сейчас</th>
@@ -249,7 +249,7 @@ async function confirmRemove() {
                   <th scope="row">
                     {{ s.cluster_label }}
                     <span class="t-xs t-muted mem__sub">
-                      {{ s.scope === 'patch' ? 'правка' : 'кластер' }} ·
+                      {{ s.scope === 'patch' ? 'правка' : 'группа запросов' }} ·
                       {{ SUPPRESS_STATUS[s.status] ?? s.status }}
                     </span>
                   </th>

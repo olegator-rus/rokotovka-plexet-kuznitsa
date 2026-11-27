@@ -34,7 +34,7 @@ export const STEP_LABELS: Record<string, string> = {
   dense: 'Векторный поиск',
   fusion: 'Слияние RRF',
   rerank: 'Реранкер',
-  business: 'Бизнес-слой',
+  business: 'Итоговое ранжирование',
   relaxation: 'Ослабление условий',
   margin: 'Маржа',
   hardware: 'Оборудование',

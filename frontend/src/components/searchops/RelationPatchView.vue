@@ -69,7 +69,7 @@ const tone = (ok: boolean | null) =>
     class="rp__block"
     aria-label="Результат прогона"
   >
-    <p class="rp__label">Результат прогона в песочнице</p>
+    <p class="rp__label">Результат прогона на тестовой копии правил</p>
     <ul v-if="v.evalLines.length" class="rp__basis rp__eval">
       <li v-for="c in v.evalLines" :key="c" class="t-sm">{{ c }}</li>
     </ul>

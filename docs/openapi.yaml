@@ -24,7 +24,7 @@ info:
       `/api/evaluations/commerce`, `/api/costs/summary`, `/api/companions`, `/api/products/{id}`, `/api/auth/*`, `/api/quotes/mine` (проверяет обработчик) и POST
       `/api/search`, `/api/events`, `/api/quotes`. При `AUTH_REQUIRED=off` (только development) без токена — `system`.
     - Квота модели на адрес: разбор запроса моделью (маршрут D) не дороже `LLM_PER_IP_DAILY_RUB` ₽ в сутки с
-      одного адреса; сверх неё и сверх дневного бюджета разбор идёт по правилам (`fallback_reason` в трассе:
+      одного адреса; сверх неё и сверх дневного бюджета разбор идёт по правилам (`fallback_reason` в трассировке:
       `ip_quota`, `budget_exceeded`), поиск не падает.
     - Лимит частоты — `RATE_LIMIT_PER_MIN` запросов в минуту с одного адреса (по умолчанию 600; `/api/health`
       и поток SSE не считаются). Сверх лимита — 429 и заголовки `X-Ratelimit-*`.
@@ -284,8 +284,8 @@ paths:
       summary: Поиск по каталогу
       description: |
         Каскад: нормализация (раскладка, опечатки, словари) → маршрут A–D → BM25 + векторы + RRF → атрибуты
-        лицензии и бизнес-слой. Модель вызывается только на маршруте D и только для разбора намерения; её ответ
-        сверяется со справочниками. Поиск пишется в журнал (`search_events`), трасса — в `search_traces`.
+        лицензии и итоговое ранжирование. Модель вызывается только на маршруте D и только для разбора намерения; её ответ
+        сверяется со справочниками. Поиск пишется в журнал (`search_events`), трассировка — в `search_traces`.
       operationId: search
       security: []
       requestBody:
@@ -295,7 +295,7 @@ paths:
             schema: { $ref: "#/components/schemas/SearchRequest" }
       responses:
         "200":
-          description: Выдача с трассой
+          description: Выдача с трассировкой
           content:
             application/json:
               schema: { $ref: "#/components/schemas/SearchResponse" }
@@ -317,7 +317,7 @@ paths:
         Прежние `groups` (не больше 8 строк) и секции панели контура выдачи: `mode`, `normalized`,
         `corrected`, `refinements` (≤6), `suggestions` (≤5), `categories` (≤2), `vendors` (≤2), `products` (≤6 семейств),
         `total_hint`, `meta` (время секций, `partial`, `products_cached`, `llm_calls`/`embed_calls`/`rerank_calls` = 0,
-        версии). На нажатие — 0 LLM, 0 векторизаций, реранкер выключен. Трасса панели — `GET /api/traces/{X-Request-Id}`.
+        версии). На нажатие — 0 LLM, 0 векторизаций, реранкер выключен. Трассировка панели — `GET /api/traces/{X-Request-Id}`.
         Лимит частоты — 20 запросов в секунду с адреса (сверх — 429). Флаг FEATURE_PANEL=off — `mode: off`, секции пустые.
       responses:
         "429": { description: Слишком частые запросы подсказок }
@@ -677,13 +677,13 @@ paths:
   /api/traces/{request_id}:
     get:
       tags: [Поиск]
-      summary: Сохранённая трасса поиска
+      summary: Сохранённая трассировка поиска
       operationId: trace
       parameters:
         - { name: request_id, in: path, required: true, schema: { type: string } }
       responses:
         "200":
-          description: Трасса и исходный запрос
+          description: Трассировка и исходный запрос
           content:
             application/json:
               schema:
@@ -853,8 +853,8 @@ paths:
       summary: Сводка «На данных заказчика» ()
       description: |
         Из последних прогонов наборов «по цели» (`go run . eval --set etalon,tz,neighbors`, закрытый — `--set closed
-        --file …`) и llm_usage: эталоны заказчика у полного продукта (`etalon`), Success@1 закрытой части у BM25,
-        гибрида и полного продукта (`closed`, пустой — прогон не запускался), доля ответов с ≥4 семействами и SKU
+        --file …`) и llm_usage: эталоны заказчика у полной конфигурации (поиск на витрине, `etalon`), Success@1 по целевой странице
+        для отложенного набора (закрытой части) у BM25, гибрида и полной конфигурации (`closed`, пустой — прогон не запускался), доля ответов с ≥4 семействами и SKU
         (`four`), стоимость запроса по формуле `C = p × (1 − h) × c_llm + (инфраструктура + агент + сопровождение) / N`
         при N = 15 000 для холодного и тёплого прогона (`cost`), таблица «набор × конфигурация» (`table`), каталог
         (`catalog`: источник и число офферов, без версии — в ней дата). p — доля поисков с разбором моделью (вызов или
@@ -913,7 +913,7 @@ paths:
       description: |
         Контур автономии: не больше `AGENT_MAX_PARALLEL` (2) запусков и один каждого вида; иначе 409. Требует
         режим LLM `on` и непревышенный дневной бюджет. `{"query": "…"}` — «Разобрать» на одном запросе (≤ 200 символов,
-        только mode search): кластер из одного запроса, память показывается, но не пропускает; точное совпадение уже
+        только mode search): группа неудачных запросов из одного запроса, память показывается, но не пропускает; точное совпадение уже
         первым — `stop_reason: already_solved` без вызова модели. Автоматические триггеры (schedule, spike,
         catalog_change) запускает сам сервер, не этот метод.
       operationId: startAgentRun
@@ -1115,7 +1115,7 @@ paths:
       tags: [Агент]
       summary: Отчёт SearchOps для маркетолога — первый экран (контур фида)
       description: >-
-        Неудачные запросы журнала текущего каталога (тестовый поток и живые поиски; mock-журнал не входит) по четырём
+        Неудачные запросы журнала текущего каталога (тестовый трафик и живые поиски; mock-журнал не входит) по четырём
         разделам — no_offer, not_found, unknown_words, service — и pending (причина не доказана). Раздел — по
         доказательству: вывод агента, ответ действующего поиска, переформулировка покупателей. Частоты модельные;
         рублей и дат нет. Строка с agent.run_id и agent.cluster_id раскрывается в ленту шагов запуска.
@@ -2009,7 +2009,7 @@ components:
         sort:
           type: string
           enum: [recommended, relevance, price_asc, price_desc, delivery]
-          description: "Контур выдачи (§11.5). Пусто — recommended; relevance — без маржи и бизнес-слоя; «по запросу» при сортировке по цене — в конце"
+          description: "Контур выдачи (§11.5). Пусто — recommended; relevance — без маржи и итогового ранжирования; «по запросу» при сортировке по цене — в конце"
         group: { type: string, enum: [family, none], description: "Свёртка по семействам; на точном артикуле выключена" }
         intent_id: { type: string, maxLength: 64, description: "Поисковое намерение (§11.1), только в журнал" }
         filters:
@@ -2088,7 +2088,7 @@ components:
           type: string
           enum: [exact, variant, related, alternative, fallback]
           description: |
-            Контур фида ступень лестницы «минимум 4 товара» — точное совпадение, другой вариант
+            Контур фида тип совпадения для добора выдачи до четырёх семейств — точное совпадение, другой вариант
             лицензии того же семейства (точный артикул), похожее, «Можно купить сейчас» (точное только по запросу),
             «Популярное в наличии» (шаги 1–4 дали меньше четырёх семейств; в метрики релевантности не входит).
             Есть у каждой карточки, у вложенных variants нет.
@@ -2484,7 +2484,7 @@ components:
         target:
           type: [object, "null"]
           description: |
-            Контур фида цель ответа — первый кликабельный элемент. null — цели нет
+            Контур фида целевая страница — первый кликабельный элемент. null — цели нет
             (бессмыслица, пустая выдача, B0–B2). sku — точный артикул или семейство без собранной страницы (промах
             покрытия — trace.steps[answer].coverage_miss); vendor_category — `<vendorUrl>?filter[category][]=<id категории
             второго уровня>`; category — url пустой (страниц категорий в фиде нет); service — url справки или пусто.
@@ -2531,7 +2531,7 @@ components:
     Trace:
       type: object
       description: |
-        Трасса запроса. Пропущенный шаг — skipped:true с причиной; числа — замеры. Шаг разбора
+        Трассировка запроса. Пропущенный шаг — skipped:true с причиной; числа — замеры. Шаг разбора
         намерения несёт `fallback_reason`, если разбор остался на правилах: llm_off | llm_not_configured |
         llm_error | schema_error | catalog_not_loaded | budget_exceeded (дневной бюджет LLM) | ip_quota (квота
         адреса покупателя на модель).
@@ -2599,7 +2599,7 @@ components:
               outcome: { type: string, enum: [empty, reformulated, no_click] }
               outcome_label: { type: string }
               diagnosis: { type: string }
-              proposal_id: { type: [string, "null"], description: Предложение агента по кластеру этого запроса }
+              proposal_id: { type: [string, "null"], description: Предложение агента по группе неудачных запросов с этим запросом }
               proposal_status: { type: [string, "null"], enum: [pending, accepted, rejected, rolled_back, stale, null] }
               proposal_diagnosis: { oneOf: [{ $ref: "#/components/schemas/Diagnosis" }, { type: "null" }] }
               agent: { $ref: "#/components/schemas/AgentVerdict" }
@@ -2610,7 +2610,7 @@ components:
         sources: { type: object, additionalProperties: { type: integer } }
     AgentVerdict:
       type: object
-      description: Вывод агента по проблемному запросу — из его предложения или итога кластера последних запусков
+      description: Вывод агента по проблемному запросу — из его предложения или итога группы неудачных запросов в последних запусках
       properties:
         code:
           type: string
@@ -2618,10 +2618,10 @@ components:
           description: |
             proposal — есть предложение; answers — действующий поиск уже отвечает; closed — разобран, правкой правил
             не решается; no_offer — спрос без предложения в каталоге; earlier — разобран в прежних запусках;
-            queued — агент видел кластер, но не дошёл; mostly_ok — агент не брал: запрос чаще заканчивается кликом;
-            unseen — агент кластер не видел.
+            queued — агент видел группу, но не дошёл; mostly_ok — агент не брал: запрос чаще заканчивается кликом;
+            unseen — агент группу не видел.
         label: { type: string }
-        note: { type: string, description: Пояснение агента (итог кластера) }
+        note: { type: string, description: Пояснение агента (итог группы неудачных запросов) }
         diagnosis: { type: string, description: Код диагноза, если был }
         run_id: { type: string }
         cluster_id: { type: string }
@@ -2979,7 +2979,7 @@ components:
         stream:
           type: object
           properties:
-            label: { type: string, description: "тестовый поток: запросы заказчика, прогоны сайта, синтетика из каталога" }
+            label: { type: string, description: "тестовый трафик: запросы заказчика, прогоны сайта, синтетика из каталога" }
             freq_label: { type: string }
             layers:
               type: array
@@ -3103,7 +3103,7 @@ components:
           enum: [rules_patch, ticket, relation_patch, rollback, margin_policy, bundle]
           description: "relation_patch — правка справочника связей; rollback — откат, предложенный агентом после проверки эффекта (контур автономии); margin_policy и bundle удалены в контуре доводки — только у stale-предложений"
         patch: { oneOf: [{ $ref: "#/components/schemas/RulePatch" }, { type: "null" }] }
-        evaluation: { type: [object, "null"], additionalProperties: true, description: "Прогон: целевой кластер до/после, регрессия, причины" }
+        evaluation: { type: [object, "null"], additionalProperties: true, description: "Прогон: целевая группа до/после, регрессия, причины" }
         evidence: { type: [object, "null"], additionalProperties: true }
         hypotheses_tried: { type: integer }
         base_version: { type: integer }

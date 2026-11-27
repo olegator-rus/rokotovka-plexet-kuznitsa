@@ -99,7 +99,7 @@ const queriesWord = (n: number) => plural(n, ['запрос', 'запроса', 
     <template v-else-if="report">
       <div class="panel mrep__stream">
         <p class="mrep__stream-label">{{ capital(report.stream.label) }}</p>
-        <ul class="mrep__layers" aria-label="Слои потока">
+        <ul class="mrep__layers" aria-label="Слои тестового трафика">
           <li v-for="l in report.stream.layers" :key="l.code" class="mrep__layer">
             <span class="mrep__layer-name">{{ l.label }}</span>
             <span class="t-num t-sm"

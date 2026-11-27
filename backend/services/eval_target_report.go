@@ -59,7 +59,7 @@ func targetRubPerQuery(c *out.TargetCost) string {
 	return feedNum(rub/float64(c.Searches), 4)
 }
 
-var targetTableHead = []string{"конфигурация", "Success@1", "в первых 4", "MRR@10", "все условия", "≥4 семейств", "≥4 SKU",
+var targetTableHead = []string{"конфигурация", "Success@1 по целевой странице", "Hit@4", "MRR@10", "все условия", "≥4 семейств", "≥4 SKU",
 	"нарушения", "p50, мс", "p95, мс", "₽/запрос", "D: метка / модель / кэш"}
 
 func targetTableRow(c out.EvalConfigResult) []string {
@@ -144,10 +144,10 @@ func FormatTargetReport(run *EvalResult, command string, catalog out.FeedCatalog
 	if command != "" {
 		fmt.Fprintf(&b, "Команда: `%s`\n\n", command)
 	}
-	b.WriteString("Success@1 — первая цель ответа (поле `target`, иначе первая карточка: URL семейства → оффера → вендора) " +
+	b.WriteString("Success@1 по целевой странице — первая целевая страница ответа (поле `target`, иначе первая карточка: URL семейства → оффера → вендора) " +
 		"совпала с ожидаемой; URL сравниваются после нормализации (регистр хоста, схема, `www`, завершающий слэш, " +
-		"URL-кодирование, `filter[category][]=` ≡ `[0]=`, порядок параметров). «В первых 4» — она же или карточка " +
-		"ожидаемой цели среди первых четырёх; MRR@10 — по месту первой такой карточки. «Все условия» — Success@1 (у набора " +
+		"URL-кодирование, `filter[category][]=` ≡ `[0]=`, порядок параметров). Hit@4 (нужное семейство в первых четырёх) — первая целевая страница или карточка " +
+		"ожидаемой целевой страницы среди первых четырёх; MRR@10 — по месту первой такой карточки. «Все условия» — Success@1 (у набора " +
 		"понимания — проверка первых N карточек) и условия строки: нет исключённых семейств, есть «Можно купить сейчас», " +
 		"нет нарушений жёстких условий. ≥4 семейств и SKU — доля ответов " +
 		"(все карточки, включая «Популярное в наличии»). Нарушения — запросы с жёсткими условиями (продление, число мест, " +
@@ -183,7 +183,7 @@ func FormatTargetReport(run *EvalResult, command string, catalog out.FeedCatalog
 			ks = append(ks, k)
 		}
 		sort.Strings(ks)
-		head := []string{dim.title + ": Success@1 (в первых 4)"}
+		head := []string{dim.title + ": Success@1 по целевой странице (Hit@4)"}
 		for _, c := range run.Configs {
 			head = append(head, c.Config)
 		}
@@ -208,7 +208,7 @@ func FormatTargetReport(run *EvalResult, command string, catalog out.FeedCatalog
 	}
 	last := run.Configs[len(run.Configs)-1]
 	fmt.Fprintf(&b, "## Все запросы — %s (%s)\n\n", targetCfgLabel(last.Config), last.Config)
-	b.WriteString(mdHead("id", "запрос", "ожидаем", "Success@1", "в 4", "место", "первая цель", "условия", "маршрут",
+	b.WriteString(mdHead("id", "запрос", "ожидаем", "Success@1", "Hit@4", "место", "первая целевая страница", "условия", "маршрут",
 		"сем. / SKU"))
 	for _, q := range last.PerQuery {
 		if q.Target == nil {
@@ -257,19 +257,19 @@ func FormatFeedReport(sum *out.FeedSummary, header []string) string {
 	fmt.Fprintf(&b, "Каталог: %s, %s офферов.\n\n", sum.Catalog.Label, fmtThousands(sum.Catalog.Offers))
 	b.WriteString("## Главное (экран S6)\n\n")
 	if e := sum.Etalon; e != nil {
-		fmt.Fprintf(&b, "- Эталоны заказчика, полный продукт: **%d из %d** (прогон …%s).\n", e.Matched, e.Total, e.RunTail)
+		fmt.Fprintf(&b, "- Эталоны заказчика, полная конфигурация (поиск на витрине): **%d из %d** (прогон …%s).\n", e.Matched, e.Total, e.RunTail)
 	} else {
 		b.WriteString("- Эталоны заказчика: прогон не запускался.\n")
 	}
 	if len(sum.Closed) == 0 {
-		b.WriteString("- Закрытая часть: прогон не запускался.\n")
+		b.WriteString("- Отложенный набор (закрытая часть): прогон не запускался.\n")
 	}
 	for _, c := range sum.Closed {
-		fmt.Fprintf(&b, "- Закрытая часть, %s (%s): Success@1 %s.\n", targetCfgLabel(c.Config), c.Config,
+		fmt.Fprintf(&b, "- Отложенный набор (закрытая часть), %s (%s): Success@1 по целевой странице %s.\n", targetCfgLabel(c.Config), c.Config,
 			tgtShare(c.Success1, c.Matched, c.Total))
 	}
 	if f := sum.Four; f != nil {
-		fmt.Fprintf(&b, "- Ответы полного продукта с ≥4 разными семействами: %s; с ≥4 SKU: %s (наборы: %s).\n",
+		fmt.Fprintf(&b, "- Ответы полной конфигурации с ≥4 разными семействами: %s; с ≥4 SKU: %s (наборы: %s).\n",
 			tgtShare(f.Families4, f.Families4N, f.Answers), tgtShare(f.SKUs4, f.SKUs4N, f.Answers), strings.Join(f.Sets, ", "))
 	}
 	if c := sum.Cost; c != nil {
@@ -310,7 +310,7 @@ func FormatFeedReport(sum *out.FeedSummary, header []string) string {
 		}
 	}
 	b.WriteString("\n## Наборы и конфигурации\n\n")
-	b.WriteString(mdHead("набор", "конфигурация", "режим", "Success@1", "в первых 4", "MRR@10", "все условия", "≥4 семейств",
+	b.WriteString(mdHead("набор", "конфигурация", "режим", "Success@1 по целевой странице", "Hit@4", "MRR@10", "все условия", "≥4 семейств",
 		"≥4 SKU", "нарушения", "p50 / p95, мс", "₽/запрос", "прогон"))
 	for _, r := range sum.Table {
 		t := r.Metrics
@@ -341,7 +341,7 @@ func targetSetLabel(set string) string {
 	case domain.TargetSetNeighbors:
 		return "соседи эталонов (настройка)"
 	case domain.TargetSetClosed:
-		return "закрытая часть"
+		return "отложенный набор (закрытая часть)"
 	case domain.TargetSetUnderstanding:
 		return "набор понимания (настройка)"
 	}

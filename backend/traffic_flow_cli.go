@@ -61,7 +61,7 @@ func runFlowTraffic(o trafficOpts) int {
 	g := newTrafficGen(o, nil)
 	g.flowLayer = layers
 	started := time.Now()
-	fmt.Fprintf(os.Stderr, "traffic: поток %s — %d запросов, %d сессий за %s → %s, потолок %d запросов/мин\n",
+	fmt.Fprintf(os.Stderr, "traffic: тестовый трафик %s — %d запросов, %d сессий за %s → %s, потолок %d запросов/мин\n",
 		o.flowPath, len(rows), len(sessions), spread, o.api, o.maxRPM)
 	if !o.quiet {
 		go g.report(ctx, started)

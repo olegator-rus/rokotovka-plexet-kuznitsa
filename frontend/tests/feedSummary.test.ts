@@ -72,7 +72,7 @@ test('подписи и доли', () => {
   assert.equal(outOf(1234, 2000), `1${NBSP}234 из 2${NBSP}000`)
   assert.equal(shareOrNull(0.95), `95${NBSP}%`)
   assert.equal(shareOrNull(null), null)
-  assert.equal(setLabel('closed'), 'Закрытая часть')
+  assert.equal(setLabel('closed'), 'Отложенный набор (закрытая часть)')
   assert.equal(setLabel('x'), 'x')
   assert.equal(configLabel(summary(), 'B2'), 'Гибрид')
   assert.equal(configLabel(null, 'B1'), 'B1')

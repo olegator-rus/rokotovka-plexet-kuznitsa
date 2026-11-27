@@ -10,7 +10,7 @@ const SET_LABELS: Record<string, string> = {
   etalon: 'Эталоны заказчика',
   tz: 'Примеры из ТЗ',
   neighbors: 'Соседи эталонов (настройка)',
-  closed: 'Закрытая часть',
+  closed: 'Отложенный набор (закрытая часть)',
   understanding: 'Набор понимания (настройка)',
   feed_regression: 'Регрессия агента',
   feed_tune: 'Настройка агента',

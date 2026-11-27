@@ -103,7 +103,7 @@ export const pause = (page: Page, ms: number) =>
 export const searchBox = (page: Page) => page.getByRole('combobox', { name: 'Поиск по каталогу' })
 export const results = (page: Page) => page.getByRole('list', { name: 'Результаты' })
 export const resultCards = (page: Page) => page.getByRole('article')
-export const tracePanel = (page: Page) => page.getByRole('complementary', { name: 'Трасса запроса' })
+export const tracePanel = (page: Page) => page.getByRole('complementary', { name: 'Трассировка запроса' })
 export const understanding = (page: Page) => page.getByRole('region', { name: 'Как понят запрос' })
 
 const isSearch = (r: Response) =>

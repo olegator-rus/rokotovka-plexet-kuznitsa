@@ -127,11 +127,11 @@ function explainCost(c: LlmCall) {
                   v-else-if="hasTrace(c)"
                   type="button"
                   class="link calls__trace"
-                  :aria-label="`Открыть трассу поиска ${c.query ? '«' + c.query + '»' : c.request_id}`"
+                  :aria-label="`Открыть трассировку поиска ${c.query ? '«' + c.query + '»' : c.request_id}`"
                   @click="openTrace(c)"
                 >
                   <template v-if="c.query">поиск «{{ c.query }}»</template>
-                  <template v-else>трасса поиска</template>
+                  <template v-else>трассировка поиска</template>
                 </button>
                 <span v-else-if="c.request_id" class="calls__req">
                   {{ KIND[c.kind] ?? 'поиск' }}

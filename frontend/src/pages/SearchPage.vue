@@ -1001,7 +1001,7 @@ async function onSupply() {
     >
       <div class="search-page__main">
         <Teleport defer to="#footer-tools">
-          <UiSwitch label="Трасса" :model-value="state.trace" @update:model-value="setTrace" />
+          <UiSwitch label="Трассировка" :model-value="state.trace" @update:model-value="setTrace" />
         </Teleport>
 
         <TzBackLink v-if="fromTz" :hash="fromTz" :item="tzItem" :doc="fromTzDoc" />
@@ -1623,7 +1623,11 @@ async function onSupply() {
         @quote="onAssistantQuote"
       />
 
-      <aside v-if="state.trace && isDesktop" class="search-page__trace" aria-label="Трасса запроса">
+      <aside
+        v-if="state.trace && isDesktop"
+        class="search-page__trace"
+        aria-label="Трассировка запроса"
+      >
         <TracePanel
           :trace="response?.trace ?? null"
           :loading="status === 'loading' || refreshing"
@@ -1644,7 +1648,7 @@ async function onSupply() {
       <DialogPortal>
         <DialogOverlay class="ui-scrim" />
         <DialogContent class="trace-sheet" :aria-describedby="undefined">
-          <DialogTitle class="sr-only">Трасса запроса</DialogTitle>
+          <DialogTitle class="sr-only">Трассировка запроса</DialogTitle>
           <TracePanel
             :trace="response?.trace ?? null"
             :loading="status === 'loading' || refreshing"

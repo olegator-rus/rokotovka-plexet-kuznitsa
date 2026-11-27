@@ -157,7 +157,7 @@ func (rc *runCtx) gapTicket(ctx context.Context, g out.GuideGapRow, patchKey str
 		"источником — тогда подбор ответит на такие вопросы.", shortText(g.Question, 160), g.Count,
 		pluralRu(g.Count, "раз", "раза", "раз"), about)
 	a.step(ctx, rs, &domain.AgentStep{Kind: domain.StepThought, ClusterID: &id, OK: true,
-		Title: fmt.Sprintf("Кластер «%s»: вопрос подбору, %d %s; событие подбора — %s", shortText(g.Question, 80), g.Count,
+		Title: fmt.Sprintf("Группа неудачных запросов «%s»: вопрос подбору, %d %s; событие подбора — %s", shortText(g.Question, 80), g.Count,
 			pluralRu(g.Count, "раз", "раза", "раз"), g.Label),
 		Result: toJSON(map[string]any{"cluster_label": row.Label, "families": g.Families, "event": g.Code})})
 	a.step(ctx, rs, &domain.AgentStep{Kind: domain.StepDiagnosis, ClusterID: &id, OK: true,

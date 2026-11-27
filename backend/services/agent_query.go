@@ -130,7 +130,7 @@ func (rc *runCtx) runQuery(ctx context.Context) error {
 	plan := rc.makePlan(ctx, cands, 1, nil)
 	if len(plan.Clusters) == 0 {
 		// Один запрос — один кластер: модель не может «не взять» запрос, который человек попросил разобрать.
-		rc.replan(ctx, "запуск на одном запросе — кластер в плане обязательно", nil,
+		rc.replan(ctx, "запуск на одном запросе — группа в плане обязательно", nil,
 			[]planItem{{ID: c.ID, Label: c.Label, Score: cands[0].Score, Why: "запрос человека"}})
 	}
 	return rc.investigatePlan(ctx, rc.plan, cands, s.store())

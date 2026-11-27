@@ -127,11 +127,11 @@ test.describe('Бэк-офис П2', () => {
     await shot(page, 'backoffice-searchops-relation-1440')
 
     await card.getByRole('button', { name: 'Утвердить' }).click()
-    // P10: у правки связей — свой заголовок и «Предложение «…»», не «Кластер «…»».
+    // P10: у правки связей — свой заголовок и «Предложение «…»», не «Группа «…»».
     const dialog = page.getByRole('dialog', { name: 'Утвердить правку справочника связей?' })
     await expect(dialog).toContainText('версия справочника связей')
     await expect(dialog).toContainText('Предложение «')
-    await expect(dialog).not.toContainText('Кластер «')
+    await expect(dialog).not.toContainText('Группа «')
     await dialog.getByRole('button', { name: 'Отмена' }).click()
   })
 
@@ -199,7 +199,7 @@ test.describe('Бэк-офис П2', () => {
       }),
     )
     await page.goto('/margin')
-    await expect(page.getByTestId('policy-no-set')).toContainText('Песочнице не на чем сравнить выдачу')
+    await expect(page.getByTestId('policy-no-set')).toContainText('Тестовой копии правил не на чем сравнить выдачу')
     await expect(page.getByText('Собираем базовую выдачу')).toHaveCount(0)
     expect(simCalls).toBe(0)
 

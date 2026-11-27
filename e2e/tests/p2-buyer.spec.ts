@@ -129,8 +129,8 @@ test.describe('Витрина контура коммерции', () => {
           ).length,
       )
       .toBe(1)
-    await page.getByRole('switch', { name: 'Трасса' }).click()
-    await page.getByRole('switch', { name: 'Трасса' }).click()
+    await page.getByRole('switch', { name: 'Трассировка' }).click()
+    await page.getByRole('switch', { name: 'Трассировка' }).click()
     await page.waitForTimeout(300)
     expect(
       ofType(cap, 'companion_impression').filter(
@@ -266,7 +266,7 @@ test.describe('Витрина контура коммерции', () => {
     await mockP2(page)
     await openSearch(page)
     await search(page, WS_QUERY)
-    await page.getByRole('switch', { name: 'Трасса' }).click()
+    await page.getByRole('switch', { name: 'Трассировка' }).click()
     const panel = tracePanel(page)
     const step = panel.getByRole('button', { name: /Компаньоны/ })
     await expect(step).toContainText('якорь найден · 2 кандидата · отклонено 1')

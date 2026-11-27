@@ -73,7 +73,7 @@ const limit = `≤ ${ru(P.intentCallTimeoutSec)} с`
           :h="52"
           kind="sink"
           title="Разбор по правилам"
-          sub="причина в трассе"
+          sub="причина в трассировке"
         />
         <DgArrow pts="209,168 120,168 120,236" label="нет" :lx="165" :ly="159" />
         <DgArrow pts="353,251 200,251" label="сбой" :lx="276" :ly="242" />
@@ -143,7 +143,7 @@ const limit = `≤ ${ru(P.intentCallTimeoutSec)} с`
         :h="46"
         kind="sink"
         title="Разбор по правилам"
-        sub="причина в трассе"
+        sub="причина в трассировке"
       />
     </template>
 

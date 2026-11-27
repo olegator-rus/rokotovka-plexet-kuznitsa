@@ -34,7 +34,7 @@ func FormatEvalTable(run *out.EvalRun) string {
 		{"Пустые (по частоте)", func(m out.EvalMetrics) *float64 { return m.EmptyRateWeighted }, -1, true},
 		{"Нет релевантного в топ-10", func(m out.EvalMetrics) *float64 { return m.NoRelevantTop10 }, -1, true},
 		{"Релевантное в топ-10 (по частоте)", func(m out.EvalMetrics) *float64 { return m.RelevantTop10Weighted }, 1, true},
-		{"Верное семейство первым (exact/sku)", func(m out.EvalMetrics) *float64 { return m.ExactAccuracyFamily }, 1, true},
+		{"Hit@1 по семейству (exact/sku)", func(m out.EvalMetrics) *float64 { return m.ExactAccuracyFamily }, 1, true},
 		{"NDCG@10 по семействам", func(m out.EvalMetrics) *float64 { return m.NDCG10Family }, 1, false},
 		{"Recall@50 по семействам (размеч.)", func(m out.EvalMetrics) *float64 { return m.Recall50 }, 1, false},
 		{"NDCG@10 по артикулу", func(m out.EvalMetrics) *float64 { return m.NDCG10 }, 1, false},

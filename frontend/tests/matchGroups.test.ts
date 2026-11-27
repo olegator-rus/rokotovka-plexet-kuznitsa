@@ -368,7 +368,7 @@ test('подпись альтернативы — без «замена» и «�
   assert.doesNotMatch(ALTERNATIVE_NOTE, /замен|аналог/i)
 })
 
-test('showcaseParts: узкая витрина по умолчанию прячет персонализацию и шаблоны, полная — возвращает', () => {
-  assert.deepEqual(showcaseParts(false), { personalization: false, solutionTemplates: false })
+test('showcaseParts: персонализация включена всегда, шаблоны — только на полной витрине', () => {
+  assert.deepEqual(showcaseParts(false), { personalization: true, solutionTemplates: false })
   assert.deepEqual(showcaseParts(true), { personalization: true, solutionTemplates: true })
 })
