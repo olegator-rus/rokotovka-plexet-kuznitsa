@@ -275,8 +275,9 @@ func findEntities(nr normResult, attrs queryAttrs, lx *searchLexicon, rules *sea
 			e.named = append(e.named, f)
 		}
 	}
+	e.named = lx.preferQueryWords(e.named, e.families, entityTokens)
 	if attrs.analog {
-		e.reference = lx.bestCovered(e.families, entityTokens)
+		e.reference = lx.preferQueryWords(lx.bestCovered(e.families, entityTokens), e.families, entityTokens)
 		if len(e.reference) > 0 && len(e.vendors) > 0 && lx.familyCoverage(e.reference[0], entityTokens) < namedCoverageMin {
 			// «аналог касперского»: продукт не назван, совпало только имя вендора — референс — его основной класс.
 			e.reference = nil

@@ -247,8 +247,9 @@ func (s *Services) searchB3(ctx context.Context, requestID string, req in.Search
 	// Продление, а отдельной позиции продления у названного нет («продлить 1с итс», «продление veeam»): новый срок
 	// — это та же лицензия; показывается она с пояснением, а не «товара нет».
 	renewalRelaxed := false
-	if bm.err == nil && attrs.renewal && len(bm.step.Top) == 0 && len(dn.step.Top) == 0 && !hw.active() &&
-		(len(ent.families) > 0 || len(ent.vendors) > 0) {
+	if bm.err == nil && attrs.renewal && !hw.active() && (len(ent.families) > 0 || len(ent.vendors) > 0) &&
+		(len(bm.step.Top) == 0 && len(dn.step.Top) == 0 || !namedHit(lx, ent, bm, dn)) {
+		// Нашлись только чужие продления («продление astra linux» → FastReport): у названного продления нет.
 		attrs.renewal, renewalRelaxed = false, true
 		filters = strictFilters(attrs, ent)
 		dn = s.denseSafe(ctx, denseText, info, filters...)
@@ -473,6 +474,9 @@ func (s *Services) searchB3(ctx context.Context, requestID string, req in.Search
 	if !classAnalog {
 		fams = rc.dropQuantityMisfits(fams, &trace.Rejected)
 	}
+	if !hw.active() {
+		fams = dropHardwareForNamedSoftware(lx, ent, fams, &trace.Rejected)
+	}
 	rerankStep := skipped(domain.StepRerank, rerankAnalogs)
 	switch {
 	case classAnalog:
@@ -485,6 +489,9 @@ func (s *Services) searchB3(ctx context.Context, requestID string, req in.Search
 	for _, fh := range fams {
 		rc.assignGroup(fh)
 		rc.score(fh)
+		if len(rc.wantKinds) > 0 && rc.wantKinds[rc.lx.kindOf(fh.head)] {
+			fh.wantKind = 1
+		}
 	}
 	cq.regroup(fams)
 	rc.markVendorCore(fams) // «касперский на 100 пк»: основная линейка вендора выше (search_vendor_core.go)
@@ -958,6 +965,71 @@ func hasKnownSKU(lx *searchLexicon, tokens []string) bool {
 	for _, t := range tokens {
 		if hasDigit(t) {
 			if want, ok := lx.skuCompact[strings.ToLower(normalizeMPN(t))]; ok && want != "" {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+// namedSoftwareCoverage — с такого покрытия названия программный продукт считается названным для dropHardwareForNamedSoftware.
+const namedSoftwareCoverage = 0.5
+
+// dropHardwareForNamedSoftware — назван программный продукт («сканер-вс», «сканер-вс на 1 год»), признаков
+// оборудования в запросе нет: сканеры штрихкодов по общему слову «сканер» в выдаче не нужны.
+func dropHardwareForNamedSoftware(lx *searchLexicon, ent queryEntities, fams []*familyHit, rejected *[]domain.RejectedHit) []*familyHit {
+	sig := 0
+	for _, t := range ent.entityTokens {
+		for _, w := range wordsOf(t) {
+			if !lexStopWords[w] {
+				sig++
+			}
+		}
+	}
+	// Программный продукт назван, только если в его названии все значимые слова запроса: «серваки», «свича» или
+	// длинный вопрос о коммутаторе по случайному общему слову оборудование не прячут.
+	var named []string
+	for _, f := range append(append([]string(nil), ent.named...), lx.bestCovered(ent.families, ent.entityTokens)...) {
+		if sig > 0 && lx.queryHits(f, ent.entityTokens) >= sig && lx.familyCoverage(f, ent.entityTokens) >= namedSoftwareCoverage {
+			named = append(named, f) // «Эшелон «СКАНЕР-ВС»»: слово вендора в названии семейства снижает покрытие
+		}
+	}
+	software := false
+	for _, f := range named {
+		for _, pid := range lx.families[f] {
+			software = software || lx.docs[pid].Kind != domain.KindHardware
+			break
+		}
+	}
+	if !software {
+		return fams
+	}
+	out := fams[:0]
+	for _, fh := range fams {
+		if fh.head.Kind == domain.KindHardware && !contains(named, fh.id) {
+			for _, d := range fh.heads {
+				addRejected(rejected, d.ProductID, rejectCategory, "назван программный продукт — оборудование по общему слову не показывается")
+			}
+			continue
+		}
+		out = append(out, fh)
+	}
+	return out
+}
+
+// namedHit — среди найденного есть позиция названного семейства или вендора.
+func namedHit(lx *searchLexicon, ent queryEntities, rs ...retrieval) bool {
+	vendors := map[string]bool{}
+	for _, v := range ent.vendors {
+		vendors[v] = true
+	}
+	for _, f := range ent.families {
+		vendors[lx.familyVendor[f]] = true
+	}
+	for _, r := range rs {
+		for _, h := range r.step.Top {
+			d, ok := lx.docs[h.ProductID]
+			if ok && (contains(ent.families, d.FamilyID) || vendors[d.VendorID]) {
 				return true
 			}
 		}

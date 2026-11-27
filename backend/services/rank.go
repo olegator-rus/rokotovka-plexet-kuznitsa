@@ -246,6 +246,9 @@ type familyHit struct {
 	// core — основная линейка вендора в запросе «вендор + условия» (search_vendor_core.go): 3 — редакция линейки, 2 — общий продукт
 	// основной категории, 1 — специализированный, 0 — остальное.
 	core int
+	// wantKind — 1: голова семейства — вид лицензии, названный в запросе («техподдержка кибер бэкап» — семейство с
+	// техподдержкой выше семейства, где её нет).
+	wantKind int
 }
 
 // buildFamily — семейство из всех его позиций: недопустимые уходят в отказы, лучшая по соответствию —
@@ -628,6 +631,9 @@ func sortFamilies(fs []*familyHit) {
 		}
 		if fs[i].tier != fs[j].tier {
 			return fs[i].tier > fs[j].tier
+		}
+		if fs[i].wantKind != fs[j].wantKind {
+			return fs[i].wantKind > fs[j].wantKind
 		}
 		if fs[i].scale != fs[j].scale {
 			return fs[i].scale > fs[j].scale

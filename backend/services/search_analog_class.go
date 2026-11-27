@@ -27,9 +27,19 @@ func confidentReference(lx *searchLexicon, ent queryEntities) bool {
 			in[w] = true
 		}
 	}
+	sig := 0
+	for _, t := range ent.entityTokens {
+		for _, w := range wordsOf(t) {
+			if !lexStopWords[w] && !analogWords[w] {
+				sig++
+			}
+		}
+	}
 	for _, r := range ent.reference {
-		if c := ent.category; c != "" && lx.categoryRoot[c] != "" && lx.categoryRoot[lx.familyCat[r]] != lx.categoryRoot[c] {
-			return false // «замена windows»: запрос об ОС, а референс угадан из резервного копирования
+		fromText := contains(ent.families, r)
+		if c := ent.category; c != "" && !fromText && lx.categoryRoot[c] != "" && lx.categoryRoot[lx.familyCat[r]] != lx.categoryRoot[c] {
+			// «замена windows»: референс угадан моделью из резервного копирования, а запрос — об ОС.
+			return false
 		}
 		vendor := map[string]bool{}
 		for _, w := range wordsOf(lx.vendorName[lx.familyVendor[r]] + " " + lx.familyVendor[r]) {
@@ -51,6 +61,7 @@ func confidentReference(lx *searchLexicon, ent queryEntities) bool {
 		case n == 0 && vendorNamed: // «AnyDesk», «TeamViewer»: название продукта — имя вендора
 		case n > 0 && !missing:
 		case lx.familyCoverage(r, ent.entityTokens) >= namedCoverageMin: // «kaspersky endpoint security» → «… для бизнеса Расширенный»
+		case fromText && sig > 0 && lx.queryHits(r, ent.entityTokens) >= sig: // «аналог maxpatrol»: все слова запроса — в названии
 		default:
 			return false // «замена windows» → «Retrospect for Windows»: продукт угадан по одному общему слову
 		}

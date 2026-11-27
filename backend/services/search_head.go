@@ -54,6 +54,9 @@ func kindRank(kind string, want map[string]bool) int {
 	}
 	switch kind {
 	case domain.LicenseKindBase:
+		if len(want) > 0 {
+			return 1 // «техподдержка кибер бэкап»: названный вид — головой, базовая лицензия — следом
+		}
 		return 0
 	case "", domain.LicenseKindOther:
 		return 1

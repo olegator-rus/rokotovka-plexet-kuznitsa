@@ -1,6 +1,7 @@
 package services
 
 import (
+	"slices"
 	"strings"
 	"testing"
 
@@ -85,5 +86,61 @@ func TestNamedFamilyKeptOnQuantity(t *testing.T) {
 	got := rc.dropQuantityMisfits([]*familyHit{ald, dim}, &rej)
 	if len(got) == 0 || got[0].id != "ald" {
 		t.Fatalf("названный ALD Pro ушёл в отказы: %v", rej)
+	}
+}
+
+// «astra linux» — семейство с обоими словами запроса, а не «Astra Pro» с редким весом одного «astra».
+func TestPreferQueryWords(t *testing.T) {
+	snap := p6snapshot([]p6offer{
+		{id: "ap", fam: "f-ap", famName: "Astra Pro", vendor: "inferit", cat: "os", title: "Astra Pro базовая", kind: "base", price: 1000},
+		{id: "se", fam: "f-se", famName: "Astra Linux Special Edition", vendor: "astralinux", cat: "os", title: "Astra Linux Special Edition 1.8", kind: "base", price: 1000},
+	})
+	lx := newSearchLexicon(snap)
+	toks := []string{"astra", "linux"}
+	if got := lx.preferQueryWords([]string{"f-ap"}, []string{"f-ap", "f-se"}, toks); !slices.Equal(got, []string{"f-se"}) {
+		t.Fatalf("названное: %v", got)
+	}
+	if got := lx.preferQueryWords([]string{"f-ap"}, []string{"f-ap", "f-se"}, []string{"astra", "pro"}); !slices.Equal(got, []string{"f-ap"}) {
+		t.Fatalf("«astra pro»: %v", got)
+	}
+}
+
+// Назван программный продукт без признаков оборудования — сканеры штрихкодов по слову «сканер» уходят.
+func TestDropHardwareForNamedSoftware(t *testing.T) {
+	snap := p6snapshot([]p6offer{
+		{id: "sv", fam: "f-sv", famName: "Эшелон «СКАНЕР-ВС»", vendor: "inferit", cat: "comm", title: "СКАНЕР-ВС 7", kind: "base", price: 690000},
+		{id: "hw", fam: "f-hw", famName: "Сканер штрихкодов Honeywell", vendor: "depo", cat: "srv", title: "Сканер штрихкодов Honeywell Voyager", price: 19881},
+	})
+	for i := range snap.Products {
+		if snap.Products[i].ID == "hw" {
+			snap.Products[i].Kind = domain.KindHardware
+		}
+	}
+	lx := newSearchLexicon(snap)
+	rc := p6rc(lx)
+	fams := p6fams(t, rc, "", "f-sv", "f-hw")
+	ent := queryEntities{families: []string{"f-sv", "f-hw"}, entityTokens: []string{"сканер-вс"}}
+	var rej []domain.RejectedHit
+	got := dropHardwareForNamedSoftware(lx, ent, fams, &rej)
+	if len(got) != 1 || got[0].id != "f-sv" {
+		t.Fatalf("осталось %d семейств, ждали только СКАНЕР-ВС", len(got))
+	}
+}
+
+// Продление: среди найденного нет позиции названного — у названного продления нет (FastReport ≠ Astra Linux).
+func TestNamedHit(t *testing.T) {
+	snap := p6snapshot([]p6offer{
+		{id: "se", fam: "f-se", famName: "Astra Linux Special Edition", vendor: "astralinux", cat: "os", title: "Astra Linux SE", kind: "base", price: 1000},
+		{id: "fr", fam: "f-fr", famName: "FastReport VCL", vendor: "inferit", cat: "os", title: "FastReport VCL продление", kind: "renewal", price: 1000},
+	})
+	lx := newSearchLexicon(snap)
+	ent := queryEntities{families: []string{"f-se"}}
+	other := retrieval{step: domain.RetrievalStep{Top: []domain.RankedHit{{ProductID: "fr"}}}}
+	if namedHit(lx, ent, other) {
+		t.Fatal("FastReport — не названный продукт")
+	}
+	own := retrieval{step: domain.RetrievalStep{Top: []domain.RankedHit{{ProductID: "se"}}}}
+	if !namedHit(lx, ent, other, own) {
+		t.Fatal("Astra Linux найден")
 	}
 }

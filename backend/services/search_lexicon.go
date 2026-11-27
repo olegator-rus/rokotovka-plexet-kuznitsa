@@ -485,3 +485,48 @@ func (lx *searchLexicon) addSKU(sku string) {
 	}
 	lx.skuCompact[compact] = folded
 }
+
+// queryHits — сколько значимых слов запроса есть в названии семейства.
+func (lx *searchLexicon) queryHits(fid string, tokens []string) int {
+	name := map[string]bool{}
+	for _, w := range wordsOf(lx.familyName[fid]) {
+		name[w] = true
+	}
+	n := 0
+	for _, t := range tokens {
+		for _, w := range wordsOf(t) {
+			if !lexStopWords[w] && name[w] {
+				n++
+			}
+		}
+	}
+	return n
+}
+
+// preferQueryWords — названные по покрытию семейства, если ни одно из них не содержит столько слов запроса, сколько
+// другое найденное: «astra linux» — это «Astra Linux Special Edition» (оба слова), а не «Astra Pro» (одно «astra» с
+// редким весом и частым «pro»).
+func (lx *searchLexicon) preferQueryWords(named, fams, tokens []string) []string {
+	if len(named) == 0 {
+		return named
+	}
+	best := 0
+	for _, f := range fams {
+		best = max(best, lx.queryHits(f, tokens))
+	}
+	if best < 2 {
+		return named
+	}
+	for _, f := range named {
+		if lx.queryHits(f, tokens) == best {
+			return named
+		}
+	}
+	var out []string
+	for _, f := range fams {
+		if lx.queryHits(f, tokens) == best {
+			out = append(out, f)
+		}
+	}
+	return out
+}
