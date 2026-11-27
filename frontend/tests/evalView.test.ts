@@ -1,12 +1,18 @@
 // Представление прогонов «До / После» (src/lib/evalView.ts).
 import test from 'node:test'
 import assert from 'node:assert/strict'
+import { readFileSync } from 'node:fs'
 import type { EvalMetrics, EvaluationView } from '../src/api/types.ts'
 import {
+  NDCG_CHANGE_THRESHOLD,
+  agentLine,
+  attentionLine,
+  comparedLine,
   evalColumns,
   familyHeadline,
   flattenMetrics,
   metricRows,
+  pairSummaries,
   regressionRows,
   reproducibility,
   shortHash,
@@ -138,6 +144,61 @@ test('regressionRows: худшие по NDCG сверху, against из стол
   )
   assert.equal(rows[1].against, 'B0')
   assert.equal(rows[0].config, 'B1')
+})
+
+test('pairSummaries: пара — столбец с against; счёт только от сервера, B4 против B3 — правки агента', () => {
+  const counts = { compared_n: 10, improved_n: 6, unchanged_n: 3, regressed_n: 1 }
+  const pairs = pairSummaries([
+    view('B0'),
+    view('B1', { against: 'B0', change_counts: counts }),
+    view('B3', { against: 'B2' }),
+    view('B4', { against: 'B3', change_counts: null }),
+  ])
+  assert.deepEqual(
+    pairs.map((p) => p.title),
+    ['B1 против B0', 'B3 против B2', 'B4 против B3'],
+  )
+  assert.deepEqual(pairs[0].counts, counts)
+  // Счёта нет — фронт его не выводит из длины списков.
+  assert.equal(pairs[1].counts, null)
+  assert.equal(pairs[2].counts, null)
+  assert.deepEqual(
+    pairs.map((p) => p.agent),
+    [false, false, true],
+  )
+  // B4, посчитанная не против B3, — не пара правок агента.
+  assert.equal(pairSummaries([view('B4', { against: 'B2' })])[0].agent, false)
+})
+
+test('подписи сводки согласованы с числом', () => {
+  assert.equal(comparedLine(1), 'Всего проверен 1 запрос')
+  assert.equal(comparedLine(22), 'Всего проверено 22 запроса')
+  assert.equal(comparedLine(180), 'Всего проверено 180 запросов')
+  assert.equal(attentionLine(1), '1 запрос, на котором оценка снизилась')
+  assert.equal(attentionLine(24), '24 запроса, на которых оценка снизилась')
+  assert.equal(attentionLine(84), '84 запроса, на которых оценка снизилась')
+  assert.equal(attentionLine(15), '15 запросов, на которых оценка снизилась')
+})
+
+test('agentLine: без ухудшений — «ухудшений нет», иначе только числа; без счёта строки нет', () => {
+  assert.equal(
+    agentLine({ compared_n: 180, improved_n: 3, unchanged_n: 177, regressed_n: 0 }),
+    'Правки агента: ухудшений нет',
+  )
+  const withLoss = agentLine({ compared_n: 180, improved_n: 0, unchanged_n: 179, regressed_n: 1 })
+  assert.equal(withLoss, 'Правки агента: стало лучше — 0, без изменений — 179, стало хуже — 1')
+  assert.doesNotMatch(withLoss ?? '', /пройден/)
+  assert.equal(agentLine(null), null)
+})
+
+test('порог изменения NDCG в объяснении сводки — как в коде оценки', () => {
+  const src = readFileSync(
+    new URL('../../backend/services/eval_metrics.go', import.meta.url),
+    'utf8',
+  )
+  const m = /const ndcgChangeThreshold = ([\d.]+)/.exec(src)
+  assert.ok(m, 'константа ndcgChangeThreshold не найдена')
+  assert.equal(Number(m[1]), NDCG_CHANGE_THRESHOLD)
 })
 
 test('shortHash: длинный — 8 символов, короткий как есть, пусто — тире', () => {

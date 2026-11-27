@@ -540,6 +540,18 @@ export interface EvalChange {
   reasons: string[]
 }
 
+/**
+ * Счёт пары «конфигурация против предыдущей»: каждый сравненный запрос — ровно в одной группе,
+ * compared_n = improved_n + unchanged_n + regressed_n. Запрос, у которого одно стало лучше, а другое хуже,
+ * считается ухудшением. Запросы с ошибкой поиска у любой из двух конфигураций не сравнивались.
+ */
+export interface EvalChangeCounts {
+  compared_n: number
+  improved_n: number
+  unchanged_n: number
+  regressed_n: number
+}
+
 /** Сохранённый результат одной конфигурации (последний прогон). */
 export interface EvaluationView {
   run_id: string
@@ -560,6 +572,8 @@ export interface EvaluationView {
   against?: string
   regressions: EvalChange[]
   improvements: EvalChange[]
+  /** Счёт пары с against; null — у первой конфигурации прогона или не посчитан. */
+  change_counts?: EvalChangeCounts | null
 }
 
 export type EvalJobStatus = 'running' | 'done' | 'failed'

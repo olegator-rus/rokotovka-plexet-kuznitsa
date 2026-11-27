@@ -85,7 +85,7 @@ test.describe('Контур доводки: три раздела', () => {
     await expect(page.getByRole('tablist')).toHaveCount(1)
     await expect(menu.getByRole('tab').last()).toHaveAccessibleName(/^На данных заказчика/)
     await expect(menu.getByRole('tab', { name: /^На данных заказчика/ })).toHaveAttribute('data-state', 'active')
-    for (const name of ['На данных заказчика', 'Теоретические основы', 'Метрики', 'Один запрос', 'Ухудшения', 'Подсказки', 'Вклад компонентов', 'Стоимость', 'Коммерция'])
+    for (const name of ['На данных заказчика', 'Теоретические основы', 'Метрики', 'Один запрос', 'Контроль улучшений', 'Подсказки', 'Вклад компонентов', 'Стоимость', 'Коммерция'])
       await expect(menu.getByRole('tab', { name: new RegExp(`^${name}`) })).toBeVisible()
     await expect(page.getByRole('tab', { name: 'Эффект агента' })).toHaveCount(0)
     await page.getByRole('tab', { name: 'Вклад компонентов' }).click()
@@ -97,6 +97,59 @@ test.describe('Контур доводки: три раздела', () => {
     await expect(page.getByRole('heading', { name: 'По маршрутам' })).toBeVisible()
     await page.getByRole('tab', { name: /^Теоретические основы/ }).click()
     await expect(page).toHaveURL(/tab=theory$/)
+  })
+
+  test('«Контроль улучшений»: у каждой пары три числа в сумме дают «всего проверено»; список сужается по паре; 360 px', async ({
+    page,
+  }) => {
+    await page.goto('/proofs?tab=compare&view=regressions')
+    await expect(page.getByRole('heading', { level: 2, name: 'Контроль улучшений' })).toBeVisible()
+    const noRun = page.getByText('Прогон ещё не запускался')
+    const summary = page.getByRole('region', { name: 'Сводка по парам конфигураций' })
+    await expect(summary.or(noRun).first()).toBeVisible()
+    if (await noRun.isVisible()) return
+    // Сводка: «B2 против B1» — лучше / без изменений / хуже, счёт сервера.
+    const pairs = summary.getByRole('button', { name: /против .*Как посчитано$/ })
+    const labels = await pairs.evaluateAll((els) => els.map((e) => e.getAttribute('aria-label') ?? ''))
+    expect(labels.length).toBeGreaterThan(0)
+    const num = (s: string) => Number(s.replace(/\D/g, ''))
+    const parsed = labels.map((label) => {
+      const m = label.match(
+        /^(\S+) против (\S+): стало лучше — ([^,]+), без изменений — ([^,]+), стало хуже — ([^.]+)\. Всего проверен[о]? (.+) запрос/,
+      )
+      expect(m, label).not.toBeNull()
+      const [, config, against, better, same, worse, total] = m!
+      expect(num(better) + num(same) + num(worse), label).toBe(num(total))
+      return { config, against, worse: num(worse) }
+    })
+    const panel = page.getByRole('tabpanel')
+    await expect(panel.getByRole('heading', { name: 'Запросы, требующие внимания' })).toBeVisible()
+    await expect(panel).not.toContainText(/верси/i)
+    // Пара с правками агента — фактическая строка без оценки «пройдена».
+    const agent = parsed.find((p) => p.config === 'B4' && p.against === 'B3')
+    if (agent) {
+      const line = summary.getByText(/^Правки агента: /)
+      await expect(line).toHaveText(
+        agent.worse === 0 ? 'Правки агента: ухудшений нет' : /^Правки агента: стало лучше — .*стало хуже — /,
+      )
+      await expect(line).not.toContainText(/пройден/i)
+    }
+    // Выбор пары сужает список до её ухудшений; без ухудшений — честное пустое состояние.
+    const last = parsed[parsed.length - 1]
+    await page.goto(`/proofs?tab=compare&view=regressions&cfg=${last.config}`)
+    await expect(summary).toBeVisible()
+    const rows = page.locator('.regs__row')
+    if (last.worse > 0) await expect(rows).toHaveCount(last.worse)
+    else
+      await expect(
+        page
+          .getByText('У этой пары конфигураций ухудшений нет.')
+          .or(page.getByText(/^Ухудшений не обнаружено\./))
+          .first(),
+      ).toBeVisible()
+    await page.setViewportSize({ width: 360, height: 780 })
+    await expect(summary).toBeVisible()
+    await noOverflow(page, 'Контроль улучшений 360')
   })
 
   // Ссылки «в поиск с трассой» здесь не кликаются: каждый клик пишет живое событие поиска.

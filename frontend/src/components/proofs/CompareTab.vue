@@ -416,10 +416,10 @@ onBeforeUnmount(() => {
 
       <div v-else-if="tab === 'regressions'" class="compare__panel">
         <p v-if="!columns.length" class="panel compare__empty">
-          Прогон ещё не запускался — ухудшения считаются по его результатам.
+          Прогон ещё не запускался — конфигурации сравниваются по его результатам.
         </p>
         <p v-if="columns.length && mockOnly" class="panel t-sm compare__mock">
-          Прогон на каталоге «{{ MOCK_RUN_LABEL }}»: ухудшения между версиями поиска на нём. Числа
+          Прогон на каталоге «{{ MOCK_RUN_LABEL }}»: конфигурации поиска сравниваются на нём. Числа
           на фиде магазина —
           <RouterLink :to="{ query: { tab: 'feed' } }">«На данных заказчика»</RouterLink>.
         </p>

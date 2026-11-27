@@ -201,6 +201,19 @@ type EvaluationView struct {
 	Against        string                 `json:"against,omitempty"`
 	Regressions    []EvalChange           `json:"regressions"`
 	Improvements   []EvalChange           `json:"improvements"`
+	// ChangeCounts — счёт пары «конфигурация против Against»; null — у первой конфигурации прогона или не посчитан.
+	ChangeCounts *EvalChangeCounts `json:"change_counts"`
+}
+
+// EvalChangeCounts — сколько запросов пары стало лучше, хуже и осталось без изменений. Каждый сравненный запрос входит
+// ровно в одну группу: ComparedN = ImprovedN + UnchangedN + RegressedN. Запрос из обоих списков (одно стало лучше,
+// другое хуже) считается ухудшением, поэтому RegressedN = длина regressions, а ImprovedN может быть меньше длины
+// improvements. Запросы с ошибкой поиска у любой из двух конфигураций не сравнивались и в ComparedN не входят.
+type EvalChangeCounts struct {
+	ComparedN  int `json:"compared_n"`
+	ImprovedN  int `json:"improved_n"`
+	UnchangedN int `json:"unchanged_n"`
+	RegressedN int `json:"regressed_n"`
 }
 
 // EvalJob — асинхронный прогон (POST /api/evaluations/run).

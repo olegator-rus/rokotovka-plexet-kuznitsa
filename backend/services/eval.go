@@ -484,6 +484,7 @@ func (s *Services) Evaluations(ctx context.Context, set string) (*out.Evaluation
 		}
 		v.Repro = reproLine(r.Set, r.SetHash, r.Queries, []out.EvalConfigResult{{RulesVersion: r.RulesVersion,
 			RulesOverride: r.RulesOverride, CatalogVersion: r.CatalogVersion}}, r.Commit)
+		v.ChangeCounts = s.evalPairCounts(ctx, r, rows, v)
 		resp.Configs = append(resp.Configs, v)
 	}
 	sort.SliceStable(resp.Configs, func(i, j int) bool {

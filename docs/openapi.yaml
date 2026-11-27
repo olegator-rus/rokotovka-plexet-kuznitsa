@@ -2796,6 +2796,19 @@ components:
               by_type: { type: object, additionalProperties: true }
               regressions: { type: array, items: { type: object, additionalProperties: true } }
               improvements: { type: array, items: { type: object, additionalProperties: true } }
+              change_counts:
+                type: [object, "null"]
+                description: |
+                  Счёт пары «конфигурация против against» (null — у первой конфигурации прогона или не посчитан).
+                  Каждый сравненный запрос — ровно в одной группе: compared_n = improved_n + unchanged_n + regressed_n.
+                  Списки regressions и improvements пересекаются; запрос из обоих считается ухудшением, поэтому
+                  regressed_n = длина regressions, а improved_n может быть меньше длины improvements. Запросы с
+                  ошибкой поиска у любой из двух конфигураций не сравнивались.
+                properties:
+                  compared_n: { type: integer }
+                  improved_n: { type: integer }
+                  unchanged_n: { type: integer }
+                  regressed_n: { type: integer }
         running:
           oneOf: [{ $ref: "#/components/schemas/EvalJob" }, { type: "null" }]
         last_job:

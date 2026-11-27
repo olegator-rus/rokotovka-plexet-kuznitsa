@@ -4,11 +4,13 @@
 import type {
   ConfigId,
   EvalChange,
+  EvalChangeCounts,
   EvalMetrics,
   EvaluationView,
   EvaluationsResponse,
   JudgeAgreement,
 } from '@/api/types'
+import { formatInt, plural } from './format.ts'
 import { metricDef, metricDelta, orderMetricKeys, type MetricDelta } from './metrics.ts'
 
 const LADDER: readonly ConfigId[] = ['B0', 'B1', 'B2', 'B3', 'B4']
@@ -202,9 +204,68 @@ export function changeReasonLabel(r: string): string {
   return CHANGE_REASON_LABELS[r] ?? r
 }
 
-/** Сколько ухудшений у NDCG — без учёта других причин; для бейджа вкладки. */
+/** Сколько строк в списке ухудшений по всем парам; для бейджа вкладки. */
 export function regressionCount(columns: readonly EvaluationView[]): number {
   return columns.reduce((n, c) => n + (c.regressions?.length ?? 0), 0)
+}
+
+// ── «Контроль улучшений»: сводка по парам конфигураций ──
+
+/** Порог изменения NDCG@10 запроса, с которого он считается изменившимся (eval_metrics.go, ndcgChangeThreshold). */
+export const NDCG_CHANGE_THRESHOLD = 0.05
+
+/** Конфигурация с правками агента и та, с которой её сравнивают (B4 = B3 + принятые правки). */
+const AGENT_PAIR = { config: 'B4', against: 'B3' } as const
+
+export interface PairSummary {
+  config: ConfigId
+  against: string
+  /** «B2 против B1». */
+  title: string
+  /** Счёт сервера (change_counts); null — не посчитан, числа не показываются. */
+  counts: EvalChangeCounts | null
+  /** Пара «правки агента» (B4 против B3). */
+  agent: boolean
+  run: EvaluationView
+}
+
+/** Название пары — как в отчётах прогона: «B2 против B1». */
+export function pairTitle(config: string, against: string): string {
+  return `${config} против ${against}`
+}
+
+/** Пары конфигураций — столбцы, у которых сервер назвал, с чем их сравнивали (against), в порядке лестницы. */
+export function pairSummaries(columns: readonly EvaluationView[]): PairSummary[] {
+  return columns
+    .filter((run) => !!run.against)
+    .map((run) => ({
+      config: run.config,
+      against: run.against!,
+      title: pairTitle(run.config, run.against!),
+      counts: run.change_counts ?? null,
+      agent: run.config === AGENT_PAIR.config && run.against === AGENT_PAIR.against,
+      run,
+    }))
+}
+
+/** «Всего проверено 180 запросов» — слова согласованы с числом. */
+export function comparedLine(n: number): string {
+  return `Всего ${plural(n, ['проверен', 'проверено', 'проверено'])} ${formatInt(n)} ${plural(n, ['запрос', 'запроса', 'запросов'])}`
+}
+
+/** «24 запроса, на которых оценка снизилась» — начало подписи под заголовком списка. */
+export function attentionLine(n: number): string {
+  return `${formatInt(n)} ${plural(n, ['запрос', 'запроса', 'запросов'])}, ${plural(n, ['на котором', 'на которых', 'на которых'])} оценка снизилась`
+}
+
+/**
+ * Фактическая строка пары с правками агента: без ухудшений — «ухудшений нет», иначе только числа, без оценки
+ * «пройдена / не пройдена». Счёта нет — строки нет.
+ */
+export function agentLine(counts: EvalChangeCounts | null): string | null {
+  if (!counts) return null
+  if (counts.regressed_n === 0) return 'Правки агента: ухудшений нет'
+  return `Правки агента: стало лучше — ${formatInt(counts.improved_n)}, без изменений — ${formatInt(counts.unchanged_n)}, стало хуже — ${formatInt(counts.regressed_n)}`
 }
 
 // ── LLM-судья: рядом с NDCG — согласие судьи с ручной разметкой ──

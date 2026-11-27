@@ -24,7 +24,7 @@ import {
   Coins,
   Layers,
   PanelTop,
-  TrendingDown,
+  Scale,
   Wallet,
 } from 'lucide-vue-next'
 import CompareTab from '@/components/proofs/CompareTab.vue'
@@ -85,10 +85,11 @@ const GROUPS: readonly { title: string; views: readonly View[] }[] = [
       },
       {
         id: 'regressions',
-        label: 'Ухудшения',
-        short: 'Где стало хуже',
-        about: 'Запросы, на которых следующая версия поиска отвечает хуже предыдущей.',
-        icon: TrendingDown,
+        label: 'Контроль улучшений',
+        short: 'Выигрыши и потери',
+        about:
+          'Сравниваем конфигурации поиска на одном наборе запросов и показываем, где ответ стал лучше, а где хуже. Набор здесь — журнал поиска с автоматической разметкой. Правку агента проверяют отдельно, на проверочных наборах: она принимается, только если там ухудшений нет.',
+        icon: Scale,
       },
       {
         id: 'panel',
@@ -167,7 +168,7 @@ const current = computed<ViewId>({
 })
 const view = computed(() => VIEWS.find((v) => v.id === current.value) ?? VIEWS[0]!)
 const compare = computed(() => !STANDALONE.includes(current.value))
-/** Число ухудшений известно после загрузки прогонов. */
+/** Сколько запросов с ухудшением в списке «Контроля улучшений»; известно после загрузки прогонов. */
 const regressions = ref<number | null>(null)
 
 // На узком экране меню прокручивается строкой: выбранный пункт виден целиком.
@@ -206,12 +207,6 @@ watch(current, () => void nextTick(revealActive))
               <span class="proofs__label">{{ v.label }}</span>
               <span class="proofs__short" aria-hidden="true">{{ v.short }}</span>
             </span>
-            <span
-              v-if="v.id === 'regressions' && regressions !== null"
-              class="proofs__badge t-num"
-              :aria-label="`: ${regressions}`"
-              >{{ regressions }}</span
-            >
           </TabsTrigger>
         </template>
       </TabsList>
