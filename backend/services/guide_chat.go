@@ -143,6 +143,9 @@ func (t *guideTurn) chatMessage(res *out.GuideResponse) {
 	if res.Preliminary && cards > 0 && c.Question == nil {
 		c.Warning = chatTextPrelim
 	}
+	if len(t.notice) > 0 {
+		c.Text = append(append([]string{}, t.notice...), c.Text...)
+	}
 	if len(c.Text) > chatMaxSentences {
 		c.Text = c.Text[:chatMaxSentences]
 	}
@@ -607,6 +610,7 @@ func (t *guideTurn) chatSuggestions(res *out.GuideResponse, c *out.GuideChat) []
 			if r.Operation != "renewal" && len(r.Objects) > 0 {
 				add(out.GuideChatSuggestion{Label: "Без срока", Message: "любой срок", Chip: &out.GuideChip{Key: "term_months", Value: ""}})
 			}
+			add(out.GuideChatSuggestion{Label: "Начать заново", Message: "начать заново", Chip: &out.GuideChip{Key: "start_over", Value: "1"}})
 		}
 		return nonNilSuggestions(sg)
 	}
@@ -654,7 +658,7 @@ func (t *guideTurn) chatSuggestions(res *out.GuideResponse, c *out.GuideChat) []
 	if len(r.RequiredFeatures) > 0 && r.TermMonths == 12 {
 		add(out.GuideChatSuggestion{Label: "На 2 года", Message: "на 2 года", Chip: &out.GuideChip{Key: "term_months", Value: "24"}})
 	}
-	if r.Operation != "renewal" && r.Operation != domain.LicenseKindMigration && kind != "server" {
+	if r.Operation != "renewal" && r.Operation != domain.LicenseKindMigration && kind != "server" && t.hasRenewal() {
 		add(out.GuideChatSuggestion{Label: "Это продление", Message: "это продление", Chip: &out.GuideChip{Key: "operation", Value: "renewal"}})
 	}
 	return nonNilSuggestions(sg)

@@ -72,7 +72,8 @@ type guideTurn struct {
 	src        string
 	matchTotal int
 	outKind    string
-	promo      bool // ход «покажи акции»
+	promo      bool     // ход «покажи акции»
+	notice     []string // фразы кода перед ответом (откат невыполнимого условия)
 }
 
 func (t *guideTurn) ms(since time.Time) float64 {
@@ -145,7 +146,11 @@ func (s *Services) Guide(ctx context.Context, requestID string, req in.GuideRequ
 	if req.Chip != nil && req.Chip.Key == "start_over" {
 		t.before.turn = 0
 	}
+	saved := cloneGuideState(sess.state)
 	res := t.safeRun(ctx, req)
+	if t.emptiedByCondition(req, res, saved) {
+		t, res = t.rollback(ctx, req, saved, res)
+	}
 	res.Trace, res.Gaps = t.trace, nonNilStrings(t.gaps)
 	res.Meta = t.meta
 	res.Meta.MsTotal = t.ms(t.started)
@@ -337,6 +342,12 @@ func (t *guideTurn) run(ctx context.Context, req in.GuideRequest) *out.GuideResp
 			}
 			t.mixed = true
 		}
+		// «Комплектующие», «ноутбук» посреди подбора лицензий — оборудование: переадресация в поиск, условия прежние.
+		if req.Chip == nil && d.empty() && !asksCompare(text) && reHardwareWord.MatchString(guideNorm(text)) &&
+			t.g.s.hardwareQuery(ctx, text) {
+			t.src = text
+			return t.hardwareReply()
+		}
 		// «нужно хранение на лентах» — требуемая функция по подписям фактов базы знаний у кандидатов и их линейки.
 		if len(d.features) == 0 && reNeedFeature.MatchString(guideNorm(text)) && !asksCompare(text) {
 			d.features = t.featuresFromKB(text, t.cat.lineFamilies(t.kb, st.CandidateFamilyIDs))
@@ -410,6 +421,15 @@ func (t *guideTurn) run(ctx context.Context, req in.GuideRequest) *out.GuideResp
 				if lf := t.cat.lineFamilies(t.kb, named[:1]); len(lf) >= 2 {
 					fams = lf[:2]
 				}
+			}
+		}
+		if len(fams) < 2 && len(st.CandidateFamilyIDs) >= 2 {
+			// «Сравнить хочу» без названных редакций: показанный вариант и соседняя редакция его линейки, иначе два
+			// первых кандидата — не все восемь (в таблице две колонки).
+			if lf := t.cat.lineFamilies(t.kb, st.CandidateFamilyIDs[:1]); len(lf) >= 2 {
+				fams = lf[:2]
+			} else {
+				fams = append([]string{}, st.CandidateFamilyIDs[:2]...)
 			}
 		}
 		if len(fams) >= 2 {
@@ -510,10 +530,17 @@ func (t *guideTurn) run(ctx context.Context, req in.GuideRequest) *out.GuideResp
 	t.data = data
 	t.meta.MsFirst = t.ms(t.started)
 	var res *out.GuideResponse
-	if compare && len(fams) >= 2 {
+	if compare && len(fams) >= 2 && t.oneSided(data) == "" {
 		res = t.comparison(data)
 		t.neighbourEditions(res, data)
 	} else {
+		if compare {
+			// Сравнивать не с чем: у второй редакции нет вариантов под условия — подбор и фраза почему.
+			if why := t.oneSided(data); why != "" {
+				t.notice = append(t.notice, why)
+				st.Intent = "license_selection"
+			}
+		}
 		res = t.selection(data)
 		t.onRequestBlock(res, data, text)
 		t.renewalQuestion(res, data)
@@ -667,7 +694,10 @@ func (c *guideCatalog) focusFamilies(fams []string, text string) []string {
 var (
 	reGuideSplit = regexp.MustCompile(`[^а-яёa-z0-9.]+`)
 	// reGuideCountPhrase — «на 3 компьютера», «на 256 ip», «16 хостов»: число мест — условие, а не название продукта.
-	reGuideCountPhrase = regexp.MustCompile(`(на\s+)?\d{1,6}\s*(пк|компьютер[а-яё]*|рабоч[а-яё]*(\s+мест[а-яё]*|\s+станц[а-яё]*)?|мест[а-яё]*|узл[а-яё]*|устройств[а-яё]*|машин[а-яё]*|сервер[а-яё]*|пользовател[а-яё]*|сотрудник[а-яё]*|человек|подключени[а-яё]*|лицензи[а-яё]*|шт[а-яё]*|хост[а-яё]*|ip|адрес[а-яё]*|ящик[а-яё]*|участник[а-яё]*)`)
+	// reHardwareWord — явное оборудование в реплике посреди подбора («комплектующие», «ноутбук»); без него реплику
+	// («хранение на лентах», «разовая покупка») не считаем оборудованием, даже если поиск находит железо.
+	reHardwareWord     = regexp.MustCompile(`(^|\s)(комплектующ|ноутбук|ноут(\s|$)|монитор|принтер|мфу|сканер(\s|$)|клавиатур|мыш[ьк]|системник|системн[а-яё]*\s+блок|видеокарт|процессор|ssd|hdd|жестк[а-яё]*\s+диск|оперативн[а-яё]*\s+памят|роутер|маршрутизатор|коммутатор|ибп|компьютер[а-яё]*$|комп(ы|а|ов)?$|моноблок|планшет)`)
+	reGuideCountPhrase = regexp.MustCompile(`(на\s+)?\d{1,6}\s*(пк|комп(?:ьютер[а-яё]*|ов|а|ы|ам|ах)?|рабоч[а-яё]*(\s+мест[а-яё]*|\s+станц[а-яё]*)?|мест[а-яё]*|узл[а-яё]*|устройств[а-яё]*|машин[а-яё]*|сервер[а-яё]*|пользовател[а-яё]*|сотрудник[а-яё]*|человек|подключени[а-яё]*|лицензи[а-яё]*|шт[а-яё]*|хост[а-яё]*|ip|адрес[а-яё]*|ящик[а-яё]*|участник[а-яё]*)`)
 )
 
 // guideGenericWords — слова задачи, а не названия продукта: по ним сужать кандидатов нельзя.
@@ -1374,4 +1404,159 @@ func (t *guideTurn) newTopic(text string) bool {
 		}
 	}
 	return true
+}
+
+// cloneGuideState — глубокая копия состояния (откат хода).
+func cloneGuideState(st domain.GuideState) domain.GuideState {
+	b, err := json.Marshal(st)
+	if err != nil {
+		return st
+	}
+	var c domain.GuideState
+	if json.Unmarshal(b, &c) != nil {
+		return st
+	}
+	return c
+}
+
+func matchOffers(res *out.GuideResponse) int {
+	n := 0
+	if res == nil {
+		return 0
+	}
+	for _, o := range res.Offers {
+		if o.Role == out.OfferMatch {
+			n++
+		}
+	}
+	return n
+}
+
+// emptiedByCondition — условие из реплики или чипа отсекло все варианты, которые были на экране прошлым ходом
+// («Это продление» у бессрочной Windows). Такое условие не залипает: следующие реплики иначе упираются в пустой подбор.
+func (t *guideTurn) emptiedByCondition(req in.GuideRequest, res *out.GuideResponse, saved domain.GuideState) bool {
+	if res == nil || len(saved.SelectedOfferIDs) == 0 || t.outKind != "" || t.promo {
+		return false
+	}
+	if req.Chip != nil && req.Chip.Key == "start_over" || t.st.SelectionID != saved.SelectionID {
+		return false
+	}
+	if res.Type != out.GuideSelection && res.Type != out.GuideNoData {
+		return false
+	}
+	if matchOffers(res) > 0 || res.Clarification != nil && res.Clarification.Required {
+		return false
+	}
+	return len(addedConditions(saved, *t.st)) > 0
+}
+
+// addedConditions — подписи условий, которых не было до хода.
+func addedConditions(before, after domain.GuideState) []string {
+	was := map[string]bool{}
+	for _, c := range conditionsOf(before) {
+		was[c.Key+"="+c.Label] = true
+	}
+	var added []string
+	for _, c := range conditionsOf(after) {
+		if !was[c.Key+"="+c.Label] && c.Label != "" {
+			added = append(added, c.Label)
+		}
+	}
+	return added
+}
+
+// rollback — прежние условия и прежние варианты (ход без реплики, без модели) и фраза, какое условие не выполнимо.
+func (t *guideTurn) rollback(ctx context.Context, req in.GuideRequest, saved domain.GuideState, res *out.GuideResponse) (*guideTurn, *out.GuideResponse) {
+	added := addedConditions(saved, *t.st)
+	*t.st = saved
+	t2 := &guideTurn{g: t.g, cat: t.cat, kb: t.kb, st: t.st, started: t.started, before: t.before}
+	t2.meta = t.meta
+	t2.trace = append(t.trace, out.GuideTraceStep{Step: "Откат условия", Result: strings.Join(added, ", ")})
+	turn := t.st.Turn
+	again := t2.safeRun(ctx, in.GuideRequest{Query: req.Query, SessionID: req.SessionID})
+	t.st.Turn = turn + 1
+	if matchOffers(again) == 0 {
+		return t, res
+	}
+	quoted := make([]string, len(added))
+	for i, a := range added {
+		quoted[i] = "«" + a + "»"
+	}
+	t2.notice = []string{fmt.Sprintf("С %s в каталоге ничего не нашлось — оставил прежние условия.",
+		guidePlural(len(added), "условием ", "условиями ", "условиями ")+strings.Join(quoted, ", "))}
+	if t2.renewalOnPerpetual(added, again) {
+		t2.notice = append(t2.notice, "Эта лицензия бессрочная — продлевать её не нужно.")
+	}
+	again.Changes = append(again.Changes, out.GuideChange{Condition: strings.Join(added, ", "), Effect: "нет в каталоге — условие не применено"})
+	return t2, again
+}
+
+// renewalOnPerpetual — просили продление, а все показанные варианты бессрочные.
+func (t *guideTurn) renewalOnPerpetual(added []string, res *out.GuideResponse) bool {
+	if !containsStr(added, "продление") {
+		return false
+	}
+	for _, o := range res.Offers {
+		if o.Role != out.OfferMatch {
+			continue
+		}
+		if p := t.cat.products[o.OfferID]; p == nil || p.License.DurationMonths != nil {
+			return false
+		}
+	}
+	return true
+}
+
+// hasRenewal — у кандидатов или их линейки есть позиции продления.
+func (t *guideTurn) hasRenewal() bool {
+	for _, f := range t.cat.lineFamilies(t.kb, t.st.CandidateFamilyIDs) {
+		for _, p := range t.cat.byFamily[f] {
+			if p.License.Kind == domain.LicenseKindRenewal {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+// oneSided — у части сравниваемых семейств нет вариантов под условия: фраза «Сравнить не с чем …»; "" — сравнение есть.
+func (t *guideTurn) oneSided(data *guideData) string {
+	if data == nil || t.cross {
+		return ""
+	}
+	with := 0
+	var without []string
+	why := ""
+	for _, fd := range data.fams {
+		if len(fd.matched) > 0 {
+			with++
+			continue
+		}
+		without = append(without, "«"+fd.short+"»")
+		if why == "" && len(fd.rejected) > 0 {
+			why = strings.TrimRight(fd.rejected[0].why.Message, ". ")
+		}
+		if why == "" && t.homeOnly(fd.fid) {
+			why = "это лицензия для домашнего использования"
+		}
+	}
+	if with == 0 || with >= 2 || len(without) == 0 {
+		return ""
+	}
+	line := "Сравнить не с чем: " + strings.Join(without, ", ") + " под эти условия не подходит"
+	if why != "" {
+		line += " — " + guideLowerFirst(why)
+	}
+	return line + "."
+}
+
+// homeOnly — все позиции семейства — лицензии для дома.
+func (t *guideTurn) homeOnly(fid string) bool {
+	ps := t.cat.byFamily[fid]
+	for _, p := range ps {
+		if p.License.OrgType != "home" {
+			return false
+		}
+	}
+	return len(ps) > 0
 }

@@ -122,7 +122,7 @@ func (p *resultsPlan) apply(rc rankCtx, fams []*familyHit, chips []out.Chip, que
 		}
 	}
 	fams = p.representatives(rc, fams)
-	fams = p.fill(rc, fams)
+	fams = p.fill(rc, fams, query)
 	p.facets = licenseFacets(rc.lx, fams, p.filters, named, isHardwareResult(fams), p.group == GroupNone)
 	res := fams
 	if len(p.filters) > 0 {
@@ -188,7 +188,10 @@ const maxFillFamilies = 40
 // показать товары этой категории (вендора), даже если текст запроса их не нашёл («антивирус» → «Антивирусы для
 // бизнеса», где в названиях нет слова). Найденные поиском семейства остаются первыми, за ними — остальные
 // семейства каталога под фильтром и условиями запроса, по популярности. Скор у дописанных — без релевантности.
-func (p *resultsPlan) fill(rc rankCtx, fams []*familyHit) []*familyHit {
+//
+// Запрос — само имя выбранной категории или производителя («Комплектующие» из подсказки-категории): дописанные
+// семейства и есть ответ — они в выдаче как найденные, без пометки filter_fill и без «ничего не нашлось».
+func (p *resultsPlan) fill(rc rankCtx, fams []*familyHit, query string) []*familyHit {
 	var scope []licFilter
 	for _, f := range p.filters {
 		if (f.key == facetCategory || f.key == facetVendor) && f.op == "eq" {
@@ -197,6 +200,17 @@ func (p *resultsPlan) fill(rc rankCtx, fams []*familyHit) []*familyHit {
 	}
 	if len(scope) == 0 || rc.lx == nil {
 		return fams
+	}
+	named := false
+	q := strings.ToLower(strings.TrimSpace(query))
+	for _, f := range scope {
+		name := rc.lx.categoryName[f.str]
+		if f.key == facetVendor {
+			name = rc.lx.vendorName[f.str]
+		}
+		if q != "" && strings.ToLower(strings.TrimSpace(name)) == q {
+			named = true
+		}
 	}
 	have := map[string]bool{}
 	for _, fh := range fams {
@@ -216,7 +230,9 @@ func (p *resultsPlan) fill(rc rankCtx, fams []*familyHit) []*familyHit {
 			continue
 		}
 		fh.group = domain.GroupMatch
-		fh.signals = append(fh.signals, signalFilterFill)
+		if !named {
+			fh.signals = append(fh.signals, signalFilterFill)
+		}
 		rc.score(fh)
 		add = append(add, fh)
 	}

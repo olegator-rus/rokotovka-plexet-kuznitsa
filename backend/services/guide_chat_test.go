@@ -187,3 +187,39 @@ func TestGuideChatMigrationAndPromoWords(t *testing.T) {
 		}
 	}
 }
+
+// Невыполнимое условие («это продление» у позиции без продлений) не залипает: прежние варианты и фраза почему,
+// следующая реплика подбирает дальше, а не отвечает «Не нашёл лицензию».
+func TestGuideChatImpossibleConditionRollsBack(t *testing.T) {
+	s := guideTestServices(t, kbVerified, nil, llmModeOff)
+	r1 := guideTurnReq(t, s, in.GuideRequest{Query: "самый дешёвый криптопро csp для сервера"})
+	if chatCard(r1.Chat, "197958") == nil {
+		t.Fatalf("исходный подбор: %+v", r1.Chat)
+	}
+	st := r1.State
+	r2 := guideTurnReq(t, s, in.GuideRequest{Query: "самый дешёвый криптопро csp для сервера", Message: "это продление", State: &st})
+	if r2.State.Requirements.Operation == "renewal" {
+		t.Fatalf("условие «продление» не должно остаться: %+v", r2.State.Requirements)
+	}
+	if chatCard(r2.Chat, "197958") == nil || r2.Chat.Status == out.ChatNoOffers {
+		t.Fatalf("прежние варианты на месте: %+v", r2.Chat)
+	}
+	if !strings.HasPrefix(r2.Chat.Text[0], "С условием «продление» в каталоге ничего не нашлось") {
+		t.Fatalf("фраза отката: %q", r2.Chat.Text)
+	}
+	st = r2.State
+	r3 := guideTurnReq(t, s, in.GuideRequest{Query: "самый дешёвый криптопро csp для сервера", Message: "на 3 сервера", State: &st})
+	if r3.Chat.Status == out.ChatNoOffers || !strings.Contains(r3.Chat.Conditions.Label, "3 сервер") {
+		t.Fatalf("следующая реплика подбирает дальше: %q %+v", r3.Chat.Conditions.Label, r3.Chat.Text)
+	}
+}
+
+func TestGuideCountSlangKomp(t *testing.T) {
+	d := extractConditions("на 10 компов есть что-то?")
+	if len(d.objects) == 0 || d.objects[0].Count != 10 || d.objects[0].Kind != "workstation" {
+		t.Fatalf("«10 компов» — 10 рабочих мест: %+v", d.objects)
+	}
+	if !asksCompare("Сравинть хочу") {
+		t.Fatal("«сравинть» — просьба сравнить")
+	}
+}
