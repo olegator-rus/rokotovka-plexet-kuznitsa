@@ -14,7 +14,7 @@ type Features struct {
 	Companions bool
 	// MarginPolicy — FEATURE_MARGIN_POLICY: политика маржи в ранжировании (on).
 	MarginPolicy bool
-	// Solutions — FEATURE_SOLUTIONS: закупка под задачу (шаблоны) и старшая редакция (on).
+	// Solutions — FEATURE_SOLUTIONS: «Старшая редакция» рядом с выдачей и на карточке товара (on).
 	Solutions bool
 	// ResultsV3 — FEATURE_RESULTS_V3: страница результатов контура выдачи — лицензионные фасеты, сортировки,
 	// группировка, уточнения (по умолчанию on).

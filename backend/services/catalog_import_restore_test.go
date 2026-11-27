@@ -256,7 +256,7 @@ func foreignP2(t *testing.T, g *catalogsource.Generic, got, want *domain.Catalog
 		t.Errorf("разметка пар: %d, в mock %d (%v)", len(pairs), len(wantPairs), err)
 	}
 
-	// Аудит видит то же: восстановленные заказы, отсутствие правил лицензий и шаблонов (статистика совместных
+	// Аудит видит то же: восстановленные заказы, отсутствие правил лицензий (статистика совместных
 	// покупок удалена в контуре доводки).
 	r, err := NewServices(nil, Options{Source: g}).Audit(t.Context(), AuditOptions{NoSearch: true})
 	if err != nil {
@@ -267,7 +267,7 @@ func foreignP2(t *testing.T, g *catalogsource.Generic, got, want *domain.Catalog
 		t.Fatalf("аудит контура коммерции: %+v (ожидалось восстановленных строк %d)", p2, restored)
 	}
 	md := FormatAuditMarkdown(r)
-	for _, want := range []string{"## Контур коммерции: что есть в данных", "## Правила среза контура коммерции", "Шаблоны решений"} {
+	for _, want := range []string{"## Контур коммерции: что есть в данных", "## Правила среза контура коммерции"} {
 		if !strings.Contains(md, want) {
 			t.Errorf("в AUDIT.md нет %q", want)
 		}

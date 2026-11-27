@@ -75,8 +75,6 @@ func TestCatalogP2RoundTrip(t *testing.T) {
 		CompatibilityRules: []domain.CompatibilityRule{{ID: "cr-1", ProductID: "ram", TargetModel: "r740", State: domain.CompatVerified, RuleVersion: 1}},
 		AttributeDefinitions: []domain.AttributeDefinition{{CategoryID: "mem", Attrs: []domain.AttributeSpec{
 			{Key: "ram_gb", Label: "Память", Unit: "ГБ", Type: "number", Facet: true, UnitAliases: []string{"гб"}}}}},
-		SolutionTemplates: []domain.SolutionTemplate{{ID: "tpl", Title: "Рабочее место", Triggers: []string{"рабочее место"}, Approved: true,
-			Slots: []domain.SolutionSlot{{ID: "laptop", CategoryID: "laptops", Constraints: map[string]any{"ram_gb": 16.0}}}}},
 	}
 	for range 2 { // повторный импорт идемпотентен
 		if err := r.ReplaceCatalog(ctx, snap, time.Now()); err != nil {
@@ -103,10 +101,9 @@ func TestCatalogP2RoundTrip(t *testing.T) {
 	}
 	if len(got.LicenseRules) != 1 || got.LicenseRules[0].AnchorAttrs["edition"] != "Standard" ||
 		len(got.CompatibilityRules) != 1 || len(got.AttributeDefinitions) != 1 || got.AttributeDefinitions[0].Attrs[0].Key != "ram_gb" ||
-		len(got.SolutionTemplates) != 1 || got.SolutionTemplates[0].Slots[0].Constraints["ram_gb"] != 16.0 ||
 		len(got.Synthetic) != 2 {
-		t.Fatalf("справочники: %+v %+v %+v %+v %v", got.LicenseRules, got.CompatibilityRules, got.AttributeDefinitions,
-			got.SolutionTemplates, got.Synthetic)
+		t.Fatalf("справочники: %+v %+v %+v %v", got.LicenseRules, got.CompatibilityRules, got.AttributeDefinitions,
+			got.Synthetic)
 	}
 	q := &domain.QuoteRequest{Items: []domain.QuoteItem{{ProductID: "ram", Quantity: 2, Origin: "search"}}, Status: domain.QuoteNew,
 		Positions: 1, OnRequest: 1}

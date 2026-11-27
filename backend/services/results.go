@@ -59,9 +59,9 @@ type resultsPlan struct {
 	hwKeys []string
 }
 
-// newResultsPlan — план страницы результатов; nil — флаг выключен или это вложенный поиск.
+// newResultsPlan — план страницы результатов; nil — флаг выключен.
 func (s *Services) newResultsPlan(ctx context.Context, req in.SearchRequest) *resultsPlan {
-	if !s.featuresFor(ctx).ResultsV3 || isSlotSearch(ctx) {
+	if !s.featuresFor(ctx).ResultsV3 {
 		return nil
 	}
 	p := &resultsPlan{sort: SortRecommended, group: GroupFamily, filters: parseLicFilters(req.Filters)}

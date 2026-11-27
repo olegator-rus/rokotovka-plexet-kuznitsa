@@ -172,6 +172,13 @@ test('хранилище: битое и чужое отбрасывается, �
   assert.equal(odd[0]?.quantity, 1)
   assert.equal(odd[0]?.origin, 'search')
   assert.equal(odd[0]?.price_mode, 'quote_required')
+  // Строки из снятых шаблонов решений, сохранённые раньше, не падают и считаются «из поиска».
+  const legacy = parseStored(
+    JSON.stringify([{ product_id: 't', title: 'T', quantity: 2, origin: 'template' }]),
+  )
+  assert.equal(legacy[0]?.origin, 'search')
+  assert.equal(legacy[0]?.quantity, 2)
+  assert.equal(originLabel(legacy[0]!), 'из поиска')
 })
 
 test('текст для копирования: строка на позицию и итог', () => {

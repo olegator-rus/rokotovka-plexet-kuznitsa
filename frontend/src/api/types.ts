@@ -12,7 +12,6 @@ import type {
   PriceMode,
   Promo,
   SearchFilter,
-  Solution,
   Upgrade,
 } from './typesP2'
 import type { P3EventType } from './typesPanel'
@@ -265,9 +264,8 @@ export interface SearchResponse {
   related_queries: string[]
   /** «С этим покупают»: связи complement для первой позиции, до 3 семейств; B0–B2 — пусто. */
   complements?: Complement[]
-  /** Контур коммерции: «Дополните решение» (null — блока нет), шаблон решения, фасеты категории. */
+  /** Контур коммерции: «Дополните решение» (null — блока нет), фасеты категории. */
   companions?: CompanionBlock | null
-  solution?: Solution | null
   /** «Старшая редакция» к первой позиции (null — связи upgrade нет). */
   upgrade?: Upgrade | null
   facets?: Facet[]

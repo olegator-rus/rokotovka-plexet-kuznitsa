@@ -151,7 +151,7 @@ func relationsFingerprint(ds []relationDoc) string {
 // тем же конструктором, что при импорте.
 func (c *commerceCatalog) withRelations(rels []domain.Relation) *commerceCatalog {
 	snap := &domain.CatalogSnapshot{Relations: rels, LicenseRules: c.licenseRules, CompatibilityRules: c.compatRules,
-		SolutionTemplates: c.solutions, Synthetic: c.synthetic}
+		Synthetic: c.synthetic}
 	ids := make([]string, 0, len(c.products))
 	for id := range c.products {
 		ids = append(ids, id)

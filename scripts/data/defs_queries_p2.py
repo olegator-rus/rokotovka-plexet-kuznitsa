@@ -8,7 +8,7 @@ verified → 3, conditional → 2; unknown и incompatible не размечаю
 `expect` — что проверяет запрос сверх выдачи (поле `expect` в queries.json, только у p2):
   anchor_family, required ([{family_id, quantity}]), no_required, existing_license, upgrade (family_id),
   mpn, filters ([{key, op, value, value2, unit}]), quantity, compat_target, incompatible / unknown (id позиций,
-  которых не должно быть в блоке и в выдаче как «совместимых»), template_id, companions (null — блок не нужен).
+  которых не должно быть в блоке и в выдаче как «совместимых»), companions (null — блок не нужен).
 """
 
 
@@ -275,25 +275,25 @@ P2_QUERIES = [
 
     # ---------------------------------------------------------------- комплексные закупки (15)
     ("p2_bundle", "рабочее место для 20 сотрудников", 4,
-     [(LAPTOP, 2), (MONITOR, 1), ("m365b-bs", 2), ("kes-std25", 2)], dict(template_id="tmpl-workplace", quantity=20)),
+     [(LAPTOP, 2), (MONITOR, 1), ("m365b-bs", 2), ("kes-std25", 2)], dict(quantity=20)),
     ("p2_bundle", "рабочее место бухгалтера", 3,
-     [(LAPTOP, 2), ("1cbuh-prof", 2), ("off24-hb", 2), (MONITOR, 1)], dict(template_id="tmpl-workplace")),
+     [(LAPTOP, 2), ("1cbuh-prof", 2), ("off24-hb", 2), (MONITOR, 1)], dict()),
     ("p2_bundle", "оснастить офис на 10 человек ноутбуками и офисом", 2,
      [(LAPTOP, 3), ("fam:microsoft-365-business", 2), ("fam:office-2024", 2)],
-     dict(template_id="tmpl-workplace", quantity=10)),
+     dict(quantity=10)),
     ("p2_bundle", "сервер под 1с на 50 пользователей", 4,
      [(spec("server-systems", ram_gb=(">=", 128)), 2), ("fam:1c-server", 2), ("1ccl-50", 2), ("fam:postgres-pro", 1),
-      ("ws25-std16", 1)], dict(template_id="tmpl-1c-server", quantity=50)),
+      ("ws25-std16", 1)], dict(quantity=50)),
     ("p2_bundle", "сервер для 1с с windows server и sql", 2,
      [(SERVER, 2), ("ws25-std16", 2), ("sql22-stdsrv", 2), ("fam:1c-server", 1)],
-     dict(template_id="tmpl-1c-server")),
+     dict()),
     ("p2_bundle", "удаленный офис на 5 человек", 2,
      [(SWITCH, 2), (UPS, 2), (LAPTOP, 2), ("m365b-bb", 2)], dict()),
     ("p2_bundle", "филиал на 15 рабочих мест", 2,
      [(SWITCH, 2), (UPS, 2), (LAPTOP, 2)], dict()),
     ("p2_bundle", "комплект для нового сотрудника ноутбук офис антивирус", 2,
      [(LAPTOP, 3), ("fam:microsoft-365-business", 2), ("fam:office-2024", 2), (NEW("kaspersky-endpoint-security"), 2)],
-     dict(template_id="tmpl-workplace", quantity=1)),
+     dict(quantity=1)),
     ("p2_bundle", "ноутбук с windows и office", 3, [(WIN_OS, 3), (NO_OS, 1), ("fam:office-2024", 2)],
      dict(companions=True, filters=[F("os", "eq", "предустановлена")])),
     ("p2_bundle", "сервер dell r750 с памятью и дисками", 2,
@@ -306,7 +306,7 @@ P2_QUERIES = [
           required=[{"family_id": "windows-server-cal-2025", "metric": "user", "quantity": 30}])),
     ("p2_bundle", "рабочее место на отечественном по", 2,
      [("astra-orel", 2), ("astra-vrn", 2), ("astra-smol", 2), ("fam:myoffice-standard", 2),
-      ("fam:aquarius-cmp-ns685", 2), (NEW("kaspersky-endpoint-security"), 1)], dict(template_id="tmpl-workplace")),
+      ("fam:aquarius-cmp-ns685", 2), (NEW("kaspersky-endpoint-security"), 1)], dict()),
     ("p2_bundle", "коммутатор и ибп для небольшого офиса", 2, [(SWITCH, 2), (UPS, 2)],
      dict()),
     ("p2_bundle", "сервер hpe gen11 под виртуализацию", 2,

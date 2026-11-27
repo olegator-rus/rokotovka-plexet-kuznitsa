@@ -1,4 +1,4 @@
-"""Контур коммерции поверх выхода контура поиска: оборудование, CAL 2025, правила, шаблоны, набор p2, заказы с аккаунтами.
+"""Контур коммерции поверх выхода контура поиска: оборудование, CAL 2025, правила, набор p2, заказы с аккаунтами.
 
 Вызывается из gen_mock.py после того, как построены и посчитаны данные контура поиска (включая события и популярность).
 Данные контура поиска не меняются: позиции, запросы, разметка и строки событий остаются как были. Единственная правка
@@ -13,7 +13,7 @@ from datetime import timedelta
 
 from defs_p2 import (ATTR, ATTR_BY_CATEGORY, CATEGORIES_P2, COMPAT, COMPAT_SOURCE, DELL_URL, HARDWARE, HPE_URL, KINGSTON_URL,
                      LICENSE_RULES, MARGIN_RANGE, MS_CAL_URL, MS_RDS_URL, MS_SQL_URL, ONEC_URL, P1_VERSION, REVIEWED,
-                     SERVER_MODELS, SOFTWARE_DESC, SOFTWARE_P2, SOLUTION_TEMPLATES, VENDORS_P2, YADRO_URL)
+                     SERVER_MODELS, SOFTWARE_DESC, SOFTWARE_P2, VENDORS_P2, YADRO_URL)
 from defs_queries_p2 import COMPAT as COMPAT_SEL, P2_QUERIES
 
 CATALOG_VERSION = "mock-2"
@@ -374,7 +374,7 @@ def build_queries(products, rules, first_id):
                  "p2_mpn": "точный парт-номер или модель, без исправления опечаток",
                  "p2_specs": "число с единицей → фильтр",
                  "p2_compat": "совместимость с целевой моделью: verified 3, conditional 2, unknown/incompatible 0",
-                 "p2_bundle": "комплексная закупка, шаблон решения",
+                 "p2_bundle": "закупка нескольких товаров под задачу",
                  "p2_negative": "отрицательный или пограничный: блок и фильтры не должны срабатывать ошибочно"}[typ]
         out.append({"id": f"q-{first_id + i:04d}", "text": text, "type": typ, "set": "p2", "freq": freq,
                     "client_id": None, "judgments": j, "absent": bool(expect.get("absent")),
@@ -773,7 +773,6 @@ def extend(seed, start, days, weighted, products, vendors, cats_list, relations,
         "license_rules.json": LICENSE_RULES,
         "compatibility_rules.json": rules,
         "attribute_definitions.json": build_attr_defs(),
-        "solution_templates.json": SOLUTION_TEMPLATES,
         "companion_pairs.json": pairs,
     }
     md = planted_md(stats, n_orders, rels, LICENSE_RULES, products, rules)

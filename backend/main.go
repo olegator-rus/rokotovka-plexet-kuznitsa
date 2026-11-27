@@ -282,7 +282,7 @@ func runImport(ctx context.Context, log *zap.Logger, svc *services.Services) {
 	_ = enc.Encode(res)
 }
 
-// runImportRefs — `go run . import-refs`: только справочники вне фида (связи, клиенты, шаблоны решений, правила)
+// runImportRefs — `go run . import-refs`: только справочники вне фида (связи, клиенты, правила)
 // в базу, без индекса и векторов; сбой — код выхода 1.
 func runImportRefs(ctx context.Context, log *zap.Logger, svc *services.Services) {
 	res, err := svc.ImportReferences(ctx)

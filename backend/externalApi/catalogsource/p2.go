@@ -110,12 +110,6 @@ func validateP2(s *domain.CatalogSnapshot, products map[string]bool) error {
 		}
 		seen["ad:"+ad.CategoryID] = true
 	}
-	for _, st := range s.SolutionTemplates {
-		if strings.TrimSpace(st.ID) == "" || seen["st:"+st.ID] {
-			return fmt.Errorf("solution_templates.json: пустой или повторный id %q", st.ID)
-		}
-		seen["st:"+st.ID] = true
-	}
 	if len(dangling) > 0 {
 		head := dangling
 		if len(head) > 5 {

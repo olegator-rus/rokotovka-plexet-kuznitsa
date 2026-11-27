@@ -127,7 +127,7 @@ func applyHelpAnswer(resp *out.SearchResponse) {
 	resp.Items = []out.SearchItem{}
 	resp.Total = 0
 	resp.Complements = []out.Complement{}
-	resp.Companions, resp.Solution, resp.Upgrade = nil, nil, nil
+	resp.Companions, resp.Upgrade = nil, nil
 	resp.Facets = []out.Facet{}
 	resp.Refinements = nil
 	resp.Relaxed = []out.Relaxed{}

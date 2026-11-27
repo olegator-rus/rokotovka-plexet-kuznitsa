@@ -71,7 +71,6 @@ func (m MockJSON) Load(ctx context.Context) (*domain.CatalogSnapshot, error) {
 		{"license_rules.json", &snap.LicenseRules},
 		{"compatibility_rules.json", &snap.CompatibilityRules},
 		{"attribute_definitions.json", &snap.AttributeDefinitions},
-		{"solution_templates.json", &snap.SolutionTemplates},
 	}
 	for _, o := range p2 {
 		if err := readJSON(filepath.Join(m.Dir, o.file), o.dst); err != nil && !errors.Is(err, fs.ErrNotExist) {

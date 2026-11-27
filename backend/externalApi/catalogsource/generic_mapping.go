@@ -48,7 +48,6 @@ type Mapping struct {
 	LicenseRules         string `yaml:"license_rules"`
 	CompatibilityRules   string `yaml:"compatibility_rules"`
 	AttributeDefinitions string `yaml:"attribute_definitions"`
-	SolutionTemplates    string `yaml:"solution_templates"`
 	// Lexicon — словарь понимания запросов (CSV: alias, canonical, kind, target, target_id, basis, note; контур фида):
 	// читается при старте API, а не импортом — правка словаря не требует переимпорта. Пусто — словаря нет.
 	Lexicon string `yaml:"lexicon"`

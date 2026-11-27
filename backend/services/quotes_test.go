@@ -32,6 +32,7 @@ func TestCreateQuoteValidation(t *testing.T) {
 		"нет в каталоге": {Items: []in.QuoteItem{{ProductID: "nope", Quantity: 1, Origin: "search"}}},
 		"количество":     {Items: []in.QuoteItem{{ProductID: "ws2025-cal-user", Quantity: 0, Origin: "search"}}},
 		"происхождение":  {Items: []in.QuoteItem{{ProductID: "ws2025-cal-user", Quantity: 1, Origin: "x"}}},
+		"шаблон снят":    {Items: []in.QuoteItem{{ProductID: "ws2025-cal-user", Quantity: 1, Origin: "template"}}},
 	} {
 		if _, err := svc.CreateQuote(t.Context(), req); !errors.As(err, &e) || e.Type != errs.ErrTypeValidation {
 			t.Errorf("%s: %v", name, err)

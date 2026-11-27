@@ -23,8 +23,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 FILES = ["catalog.json", "vendors.json", "categories.json", "relations.json", "aliases.json", "clients.json",
          "queries.json", "events.jsonl"]
-P2_FILES = ["license_rules.json", "compatibility_rules.json", "attribute_definitions.json", "solution_templates.json",
-            "companion_pairs.json"]
+P2_FILES = ["license_rules.json", "compatibility_rules.json", "attribute_definitions.json", "companion_pairs.json"]
 P3_FILES = ["prefixes.json"]
 P4_FILES = ["help.json", "reestr.json", "showcase.json"]
 DIGEST_FILES = FILES + P2_FILES + ["PLANTED.md"] + P3_FILES + P4_FILES
@@ -536,16 +535,6 @@ def check_p2(d, data, by_id, fams, cats, vendors, queries, events, r):
     comps = [p for p in hw if p["category_id"] in ("server-memory", "server-storage")]
     r.check(any((p["id"], m) not in cstate for p in comps for m in models), "compatibility: нет пар unknown")
 
-    # шаблоны решений
-    tmpl = data["solution_templates.json"]
-    r.check(len(tmpl) == 2, f"solution_templates: {len(tmpl)} вместо 2")  # контур доводки: «Удалённый офис» удалён
-    for t in tmpl:
-        r.check(t.get("triggers") and isinstance(t.get("approved"), bool) and t.get("slots"), f"template {t.get('id')}")
-        for sl in t.get("slots", []):
-            r.check(sl.get("category_id") in cats, f"template {t['id']}/{sl.get('id')}: категория")
-            r.check(sl.get("quantity_strategy") in QTY_STRATEGIES, f"template {t['id']}/{sl.get('id')}: quantity")
-    tmpl_ids = {t["id"] for t in tmpl}
-
     # набор p2
     p2q = [q for q in queries if q.get("set") == "p2"]
     types = Counter(q["type"] for q in p2q)
@@ -567,8 +556,6 @@ def check_p2(d, data, by_id, fams, cats, vendors, queries, events, r):
         ex = q.get("expect", {})
         for pid in ex.get("incompatible", []) + ex.get("unknown", []):
             r.check(pid in by_id and pid not in q["judgments"], f"{w}: {pid} в incompatible/unknown размечен")
-        if ex.get("template_id"):
-            r.check(ex["template_id"] in tmpl_ids, f"{w}: нет шаблона {ex['template_id']}")
         for f in ex.get("filters", []):
             r.check(f.get("key") in all_attr_keys | {"price_rub", "cpu_cores"}, f"{w}: фильтр {f.get('key')}")
             r.check(f.get("op") in ("eq", "gte", "lte", "range", "not"), f"{w}: op {f.get('op')}")
@@ -843,7 +830,7 @@ def print_p2_stats(data, queries, events):
     print("price_mode: " + ", ".join(f"{k} {v}" for k, v in Counter(p["price_mode"] for p in p2).most_common()))
     print("compatibility_rules: " + ", ".join(
         f"{k} {v}" for k, v in Counter(x["state"] for x in data["compatibility_rules.json"]).most_common()))
-    print(f"license_rules {len(data['license_rules.json'])}, solution_templates {len(data['solution_templates.json'])}, "
+    print(f"license_rules {len(data['license_rules.json'])}, "
           f"attribute_definitions {len(data['attribute_definitions.json'])} категорий")
     print("companion_pairs: " + ", ".join(
         f"{k} {v}" for k, v in Counter(x["class"] for x in data["companion_pairs.json"]).most_common())

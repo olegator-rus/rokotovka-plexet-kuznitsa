@@ -27,7 +27,6 @@ type AuditP2 struct {
 	CompatRules    int            `json:"compatibility_rules"`
 	LicenseRules   int            `json:"license_rules"`
 	AttributeDefs  int            `json:"attribute_definitions"`
-	Solutions      int            `json:"solution_templates"`
 	RelByType      map[string]int `json:"relations_by_type"`
 	RelConditional int            `json:"relations_conditional_required"`
 	RelCompatKnown int            `json:"relations_compat_known"`
@@ -58,7 +57,7 @@ type AuditP2Item struct {
 func (s *Services) auditP2(ctx context.Context, r *AuditReport, snap *domain.CatalogSnapshot, events []domain.LogEvent) *AuditP2 {
 	p := &AuditP2{Products: len(snap.Products), RelByType: map[string]int{}, SpecKeys: []string{},
 		Synthetic: append([]string{}, snap.Synthetic...), CompatRules: len(snap.CompatibilityRules),
-		LicenseRules: len(snap.LicenseRules), AttributeDefs: len(snap.AttributeDefinitions), Solutions: len(snap.SolutionTemplates)}
+		LicenseRules: len(snap.LicenseRules), AttributeDefs: len(snap.AttributeDefinitions)}
 	keys := map[string]bool{}
 	for _, pr := range snap.Products {
 		if pr.Kind == domain.KindHardware {
@@ -169,7 +168,6 @@ func auditP2Items(p *AuditP2, prov map[string]catalogsource.FieldReport) []Audit
 	add("Связи по типам", orDash(strings.Join(rels, ", ")), originOf(len(rels), 1, 0),
 		fmt.Sprintf("условно обязательных %d, совместимость указана у %d, источник у %d", p.RelConditional, p.RelCompatKnown, p.RelSourced))
 	add("Правила лицензий (license_rules)", fmt.Sprint(p.LicenseRules), originOf(p.LicenseRules, 1, 0), "")
-	add("Шаблоны решений (solution_templates)", fmt.Sprint(p.Solutions), originOf(p.Solutions, 1, 0), "")
 	synthetic := slices.Contains(p.Synthetic, "margin")
 	add("Маржа", fmt.Sprintf("%d из %d позиций", p.Margin, p.Products),
 		map[bool]string{true: "синтетика (плашка)", false: originOf(p.Margin, p.Products, 0)}[synthetic && p.Margin > 0], "")
@@ -221,9 +219,6 @@ func auditP2Slice(p *AuditP2) []AuditPlanItem {
 	}
 	if p.RelByType[domain.RelationUpgrade] == 0 {
 		add("Апселл", "связей upgrade нет", "«Старшая редакция» режется (в списке несделанного)")
-	}
-	if p.Solutions == 0 {
-		add("Шаблоны решений", "шаблонов нет", "режутся: FEATURE_SOLUTIONS=off или шаблоны пишутся вручную")
 	}
 	switch {
 	case p.Margin == 0:

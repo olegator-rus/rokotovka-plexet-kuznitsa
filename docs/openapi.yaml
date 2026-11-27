@@ -655,13 +655,13 @@ paths:
                 type:
                   type: string
                   enum: [click, add_to_cart, order, price_request, manager_request, suggest_pick, correction_undo, chip_remove, clarify_answer,
-                    companion_impression, companion_click, companion_add, companion_dismiss, spec_remove, template_apply,
+                    companion_impression, companion_click, companion_add, companion_dismiss, spec_remove,
                     quote_request, facet_apply, margin_simulate, margin_apply, relation_decision]
                   description: >-
                     Контур коммерции — обязательные поля: companion_impression — payload.anchor, payload.items;
                     companion_click — product_id, payload.class; companion_add — product_id, payload.class, payload.quantity;
                     companion_dismiss — product_id, payload.condition; spec_remove — product_id, payload.origin;
-                    template_apply — payload.template_id; quote_request — payload.positions, payload.on_request;
+                    quote_request — payload.positions, payload.on_request;
                     facet_apply — payload.key, payload.value; margin_simulate — payload.weight; margin_apply —
                     payload.version_before, payload.version_after; relation_decision — payload.relation_id, payload.decision.
                 request_id: { type: string }
@@ -1975,7 +1975,7 @@ components:
             hardware: { type: boolean }
             companions: { type: boolean }
             margin_policy: { type: boolean }
-            solutions: { type: boolean }
+            solutions: { type: boolean, description: "«Старшая редакция» (FEATURE_SOLUTIONS)" }
             results_v3: { type: boolean, description: "страница результатов контура выдачи (FEATURE_RESULTS_V3)" }
             panel: { type: boolean, description: "панель поиска контура выдачи (FEATURE_PANEL)" }
             panel_products: { type: boolean }
@@ -2365,40 +2365,6 @@ components:
                 family_id: { type: string }
                 confidence: { type: string, enum: [high, medium] }
             items: { type: array, items: { $ref: "#/components/schemas/Companion" } }
-        solution:
-          type: [object, "null"]
-          description: Закупка под задачу по утверждённому шаблону; null — шаблона нет
-          required: [template_id, title, seats, source, slots, total_rub, on_request]
-          properties:
-            template_id: { type: string }
-            title: { type: string }
-            seats: { type: integer, description: "число мест из запроса; нет — 1" }
-            source: { type: string, description: "«Собрано по шаблону Softline»" }
-            total_rub: { type: [number, "null"], description: "по активным слотам, только если известны все цены" }
-            on_request: { type: integer }
-            slots:
-              type: array
-              items:
-                type: object
-                required: [id, label, category_id, query, quantity_strategy, quantity, item, alternatives, quantities, active, condition]
-                properties:
-                  id: { type: string }
-                  label: { type: string }
-                  category_id: { type: string }
-                  query: { type: string }
-                  quantity_strategy: { type: string }
-                  quantity: { type: integer, description: "штук выбранной позиции: ⌈мест / мест в позиции⌉ для per_seat|per_user|per_device, иначе 1" }
-                  item: { oneOf: [{ $ref: "#/components/schemas/SearchItem" }, { type: "null" }] }
-                  alternatives: { type: array, items: { $ref: "#/components/schemas/SearchItem" } }
-                  quantities: { type: object, additionalProperties: { type: integer }, description: "количество для выбранной и каждой альтернативы" }
-                  active: { type: boolean, description: "условный слот нужен при выбранной позиции слота-условия" }
-                  condition:
-                    type: [object, "null"]
-                    properties:
-                      slot: { type: string }
-                      key: { type: string }
-                      value: { type: string }
-                      product_ids: { type: array, items: { type: string } }
         upgrade:
           oneOf: [{ $ref: "#/components/schemas/Upgrade" }, { type: "null" }]
           description: «Старшая редакция» к первой позиции; null — связи upgrade нет

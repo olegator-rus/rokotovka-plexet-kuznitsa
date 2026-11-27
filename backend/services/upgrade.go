@@ -39,9 +39,9 @@ type UpgradeStep struct {
 	ProductID    string `json:"product_id,omitempty"`
 }
 
-// upgradeStep — «Старшая редакция» к первой позиции выдачи. Флаг решений выключен или поиск слота — nil.
+// upgradeStep — «Старшая редакция» к первой позиции выдачи. Флаг FEATURE_SOLUTIONS выключен — nil.
 func (s *Services) upgradeStep(ctx context.Context, lx *searchLexicon, analog bool, resp *out.SearchResponse) *UpgradeStep {
-	if !s.featuresFor(ctx).Solutions || isSlotSearch(ctx) {
+	if !s.featuresFor(ctx).Solutions {
 		return nil
 	}
 	t := time.Now()

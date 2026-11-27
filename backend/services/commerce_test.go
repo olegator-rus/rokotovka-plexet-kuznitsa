@@ -38,7 +38,7 @@ func TestSearchP2FieldsAlwaysPresent(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		for _, want := range []string{`"companions":null`, `"solution":null`, `"facets":[]`, `"complements":[`} {
+		for _, want := range []string{`"companions":null`, `"facets":[]`, `"complements":[`} {
 			if !strings.Contains(string(raw), want) {
 				t.Fatalf("%s %q: нет %s в %s", c.cfg, c.query, want, raw)
 			}
@@ -142,7 +142,7 @@ func TestMetaP2(t *testing.T) {
 	st := svc.catalog.Load()
 	c := st.commerce
 	if len(c.licenseByAnchor["windows-server-2025"]) != 1 || len(c.relationsFrom["windows-server-2025"]) != 1 ||
-		len(c.attrDefs["servers"]) != 3 || len(c.compatRules) != 1 || len(c.solutions) != 1 || c.products["ram-32g-rdimm"] == nil {
+		len(c.attrDefs["servers"]) != 3 || len(c.compatRules) != 1 || c.products["ram-32g-rdimm"] == nil {
 		t.Fatalf("справочники контура коммерции в памяти: %+v", c)
 	}
 	if raw, _ := json.Marshal(NewServices(nil, Options{}).Meta()); !strings.Contains(string(raw), `"synthetic":[]`) {
@@ -181,7 +181,7 @@ func TestRecordEventP2(t *testing.T) {
 	check(in.EventRequest{Type: "relation_decision", Payload: json.RawMessage(`{"relation_id":"rel-0001","decision":"accept"}`)})
 	check(in.EventRequest{Type: "facet_apply"}, "payload.key", "payload.value")
 	check(in.EventRequest{Type: "click", ProductID: "kis-2dev-1y"})
-	for _, typ := range []string{"companion_impression", "companion_click", "companion_dismiss", "spec_remove", "template_apply",
+	for _, typ := range []string{"companion_impression", "companion_click", "companion_dismiss", "spec_remove",
 		"quote_request", "margin_simulate", "margin_apply"} {
 		if !slices.Contains(domain.BehaviorEventTypes, typ) || len(domain.EventRequiredFields[typ]) == 0 {
 			t.Fatalf("тип %s не заведён", typ)

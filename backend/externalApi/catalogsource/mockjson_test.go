@@ -110,10 +110,10 @@ func TestLoadFixtureP2(t *testing.T) {
 	}
 	if len(snap.LicenseRules) != 1 || snap.LicenseRules[0].AnchorAttrs["edition"] != "Standard" ||
 		len(snap.CompatibilityRules) != 1 || snap.CompatibilityRules[0].State != domain.CompatVerified ||
-		len(snap.AttributeDefinitions) != 2 || len(snap.SolutionTemplates) != 1 || len(snap.SolutionTemplates[0].Slots) != 2 ||
+		len(snap.AttributeDefinitions) != 2 ||
 		len(snap.Synthetic) != 1 || snap.Synthetic[0] != "margin" {
-		t.Fatalf("справочники контура коммерции: %+v %+v %+v %+v %v", snap.LicenseRules, snap.CompatibilityRules,
-			snap.AttributeDefinitions, snap.SolutionTemplates, snap.Synthetic)
+		t.Fatalf("справочники контура коммерции: %+v %+v %+v %v", snap.LicenseRules, snap.CompatibilityRules,
+			snap.AttributeDefinitions, snap.Synthetic)
 	}
 }
 
@@ -126,11 +126,11 @@ func TestLoadP2Optional(t *testing.T) {
 		t.Fatal(err)
 	}
 	if snap.LicenseRules != nil || snap.CompatibilityRules != nil || snap.AttributeDefinitions != nil ||
-		snap.SolutionTemplates != nil || snap.Synthetic != nil {
+		snap.Synthetic != nil {
 		t.Fatalf("справочники контура коммерции не пусты: %+v", snap)
 	}
 	for _, w := range snap.Warnings {
-		if strings.Contains(w, "rules") || strings.Contains(w, "templates") || strings.Contains(w, "attribute") {
+		if strings.Contains(w, "rules") || strings.Contains(w, "attribute") {
 			t.Fatalf("предупреждение о необязательном файле: %q", w)
 		}
 	}

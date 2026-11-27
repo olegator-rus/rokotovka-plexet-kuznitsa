@@ -26,7 +26,7 @@ func (r *Repos) ReplaceCatalog(ctx context.Context, s *domain.CatalogSnapshot, i
 	return r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		for _, m := range []any{&domain.Product{}, &domain.Vendor{}, &domain.Category{}, &domain.Relation{},
 			&domain.Alias{}, &domain.Client{}, &domain.LicenseRule{}, &domain.CompatibilityRule{},
-			&domain.AttributeDefinition{}, &domain.SolutionTemplate{}, &domain.CatalogInfo{}} {
+			&domain.AttributeDefinition{}, &domain.CatalogInfo{}} {
 			if err := tx.Where("1 = 1").Delete(m).Error; err != nil {
 				return err
 			}
@@ -41,7 +41,6 @@ func (r *Repos) ReplaceCatalog(ctx context.Context, s *domain.CatalogSnapshot, i
 			func() error { return createAll(tx, s.LicenseRules) },
 			func() error { return createAll(tx, s.CompatibilityRules) },
 			func() error { return createAll(tx, s.AttributeDefinitions) },
-			func() error { return createAll(tx, s.SolutionTemplates) },
 			func() error {
 				return tx.Create(&domain.CatalogInfo{Version: s.Version, Synthetic: s.Synthetic, ImportedAt: importedAt}).Error
 			},
@@ -55,7 +54,7 @@ func (r *Repos) ReplaceCatalog(ctx context.Context, s *domain.CatalogSnapshot, i
 }
 
 // ReplaceReferences — только справочники вне фида (связи, клиенты с покупками, правила лицензий и совместимости,
-// определения атрибутов, шаблоны решений) — одной транзакцией, если в базе каталог той же версии. Позиции, вендоры,
+// определения атрибутов) — одной транзакцией, если в базе каталог той же версии. Позиции, вендоры,
 // категории, алиасы, индекс поиска и журналы не трогаются. false — каталог в базе другой версии или пуст.
 func (r *Repos) ReplaceReferences(ctx context.Context, s *domain.CatalogSnapshot) (bool, error) {
 	if !r.Enabled() {
@@ -71,7 +70,7 @@ func (r *Repos) ReplaceReferences(ctx context.Context, s *domain.CatalogSnapshot
 			return nil
 		}
 		for _, m := range []any{&domain.Relation{}, &domain.Client{}, &domain.LicenseRule{}, &domain.CompatibilityRule{},
-			&domain.AttributeDefinition{}, &domain.SolutionTemplate{}} {
+			&domain.AttributeDefinition{}} {
 			if err := tx.Where("1 = 1").Delete(m).Error; err != nil {
 				return err
 			}
@@ -82,7 +81,6 @@ func (r *Repos) ReplaceReferences(ctx context.Context, s *domain.CatalogSnapshot
 			func() error { return createAll(tx, s.LicenseRules) },
 			func() error { return createAll(tx, s.CompatibilityRules) },
 			func() error { return createAll(tx, s.AttributeDefinitions) },
-			func() error { return createAll(tx, s.SolutionTemplates) },
 		} {
 			if err := insert(); err != nil {
 				return err
@@ -123,7 +121,6 @@ func (r *Repos) LoadCatalog(ctx context.Context) (*domain.CatalogSnapshot, error
 	}{
 		{&s.Vendors, "id"}, {&s.Categories, "id"}, {&s.Relations, "created_at"}, {&s.Aliases, "created_at"}, {&s.Clients, "id"},
 		{&s.LicenseRules, "id"}, {&s.CompatibilityRules, "id"}, {&s.AttributeDefinitions, "category_id"},
-		{&s.SolutionTemplates, "id"},
 	} {
 		if err := db.Order(q.order).Find(q.dst).Error; err != nil {
 			return nil, err

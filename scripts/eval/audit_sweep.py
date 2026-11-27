@@ -272,7 +272,7 @@ def judge(row: dict, resp: dict | None, err: str, feed: dict) -> dict:
             res["url_hit"] = "miss"
             v.append(["warn", "expected_url_miss", f"ждали {url}; цель {(target or {}).get('url') or '—'}"])
     # 7. Даты в текстах
-    for s in walk_strings({k: resp.get(k) for k in ("empty", "fallback_note", "relaxed", "comparison", "target", "companions", "complements", "items", "clarifications", "upgrade", "solution")}):
+    for s in walk_strings({k: resp.get(k) for k in ("empty", "fallback_note", "relaxed", "comparison", "target", "companions", "complements", "items", "clarifications", "upgrade")}):
         if DATE_RE.search(s):
             v.append(["warn", "date_in_text", s[:100]])
             break

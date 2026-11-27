@@ -111,25 +111,6 @@ type AttributeSpec struct {
 	Values      []string           `json:"values,omitempty"`
 }
 
-// SolutionTemplate — шаблон комплексного решения: «рабочее место» → слоты.
-type SolutionTemplate struct {
-	ID       string         `gorm:"primaryKey" json:"id"`
-	Title    string         `json:"title"`
-	Triggers []string       `gorm:"serializer:json;type:jsonb" json:"triggers"`
-	Approved bool           `json:"approved"`
-	Slots    []SolutionSlot `gorm:"serializer:json;type:jsonb" json:"slots"`
-}
-
-// SolutionSlot — слот шаблона: что подобрать и в каком количестве.
-type SolutionSlot struct {
-	ID               string         `json:"id"`
-	Label            string         `json:"label"`
-	CategoryID       string         `json:"category_id"`
-	Query            string         `json:"query"`
-	Constraints      map[string]any `json:"constraints"`
-	QuantityStrategy string         `json:"quantity_strategy"`
-}
-
 // Статусы запроса КП (QuoteRequest.Status).
 const QuoteNew = "new"
 
@@ -151,7 +132,7 @@ type QuoteRequest struct {
 type QuoteItem struct {
 	ProductID      string `json:"product_id"`
 	Quantity       int    `json:"quantity"`
-	Origin         string `json:"origin"` // search | companion | template
+	Origin         string `json:"origin"` // search | companion | guide | tz; template — только в заявках до снятия шаблонов
 	CompanionClass string `json:"companion_class,omitempty"`
 	// Purchase — исходный запрос и параметры закупки (контур доводки); nil — позиция не из поиска.
 	Purchase *QuotePurchase `json:"purchase,omitempty"`

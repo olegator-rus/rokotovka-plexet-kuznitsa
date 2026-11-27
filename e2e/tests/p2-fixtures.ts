@@ -193,7 +193,6 @@ export function wsResponse(query: string): Json {
         }),
       ],
     },
-    solution: null,
     facets: [],
     trace: trace([
       { name: 'hardware', ms: 0, skipped: true, reason: 'not_needed' },
@@ -292,7 +291,6 @@ export function memResponse(query: string, filters: Json[] = []): Json {
     related_queries: [],
     complements: [],
     companions: null,
-    solution: null,
     facets: [
       {
         key: 'ram_gb',

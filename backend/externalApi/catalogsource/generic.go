@@ -191,8 +191,7 @@ func (g *Generic) signature() string {
 		}
 	}
 	paths = append(paths, g.mapping.queriesPath())
-	for _, f := range []string{g.mapping.LicenseRules, g.mapping.CompatibilityRules, g.mapping.AttributeDefinitions,
-		g.mapping.SolutionTemplates} {
+	for _, f := range []string{g.mapping.LicenseRules, g.mapping.CompatibilityRules, g.mapping.AttributeDefinitions} {
 		if f != "" {
 			paths = append(paths, g.mapping.path(f))
 		}

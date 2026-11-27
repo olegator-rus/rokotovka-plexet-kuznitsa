@@ -72,7 +72,6 @@ const (
 	EventCompanionAdd        = "companion_add"
 	EventCompanionDismiss    = "companion_dismiss"
 	EventSpecRemove          = "spec_remove"
-	EventTemplateApply       = "template_apply"
 	EventQuoteRequest        = "quote_request"
 	EventFacetApply          = "facet_apply"
 	EventMarginSimulate      = "margin_simulate"
@@ -85,7 +84,7 @@ var BehaviorEventTypes = []string{
 	EventClick, EventAddToCart, EventOrder, EventPriceRequest, EventManagerRequest,
 	EventSuggestPick, EventCorrectionUndo, EventChipRemove, EventClarifyAnswer,
 	EventCompanionImpression, EventCompanionClick, EventCompanionAdd, EventCompanionDismiss, EventSpecRemove,
-	EventTemplateApply, EventQuoteRequest, EventFacetApply, EventMarginSimulate, EventMarginApply, EventRelationDecision,
+	EventQuoteRequest, EventFacetApply, EventMarginSimulate, EventMarginApply, EventRelationDecision,
 }
 
 // EventRequiredFields — обязательные поля событий контура коммерции: product_id — поле события, остальные — ключи payload.
@@ -96,7 +95,6 @@ var EventRequiredFields = map[string][]string{
 	EventCompanionAdd:        {"product_id", "class", "quantity"},
 	EventCompanionDismiss:    {"product_id", "condition"},
 	EventSpecRemove:          {"product_id", "origin"},
-	EventTemplateApply:       {"template_id"},
 	EventQuoteRequest:        {"positions", "on_request"},
 	EventFacetApply:          {"key", "value"},
 	EventMarginSimulate:      {"weight"},

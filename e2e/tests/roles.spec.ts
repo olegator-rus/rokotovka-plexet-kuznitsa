@@ -131,9 +131,8 @@ test('покупатель client-a: своя выдача на «продлит
   const body = await search(page, 'продлить антивирус')
   expect(body.items[0]?.purchased_before).toBe(true)
   await expect(resultCards(page).first()).toContainText('Kaspersky Small Office Security')
-  // Пометка покупки: «Вы покупали этот продукт» (контур коммерции) или «Вы покупали» (страница результатов контура выдачи) — только
-  // на полной витрине (VITE_SHOWCASE_FULL=1, frontend/src/lib/showcase.ts); узкая витрина контура фида её скрывает.
-  // Персонализация включена по умолчанию (frontend/src/lib/showcase.ts, VITE_PERSONALIZATION=0 выключает).
+  // Пометка покупки: «Вы покупали этот продукт» (контур коммерции) или «Вы покупали» (страница результатов контура выдачи).
+  // Персонализация включена всегда (frontend/src/lib/showcase.ts).
   await expect(resultCards(page).first()).toContainText(/Вы покупали/)
   await expect(
     page.getByRole('navigation', { name: 'Разделы' }).getByRole('link', { name: 'SearchOps' }),

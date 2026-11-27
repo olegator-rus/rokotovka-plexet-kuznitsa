@@ -136,5 +136,4 @@ eval_queries: queries.json      # наборы оценки в формате к
 # license_rules: license_rules.json             # правила вендоров: что требуется якорю (CAL к Windows Server)
 # compatibility_rules: compatibility_rules.json # совместимость компонента с моделью системы: verified|conditional|incompatible
 # attribute_definitions: attribute_definitions.json  # ключи, подписи, единицы и синонимы единиц характеристик
-# solution_templates: solution_templates.json   # шаблоны «закупка под задачу» (рабочее место, сервер 1С)
 # synthetic: [margin, orders]   # что в данных придумано → плашка «Синтетические данные» (маржа, заказы)

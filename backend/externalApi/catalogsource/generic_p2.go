@@ -77,7 +77,6 @@ func (l *genericLoader) loadP2() error {
 		{"license_rules", l.m.LicenseRules, &snap.LicenseRules},
 		{"compatibility_rules", l.m.CompatibilityRules, &snap.CompatibilityRules},
 		{"attribute_definitions", l.m.AttributeDefinitions, &snap.AttributeDefinitions},
-		{"solution_templates", l.m.SolutionTemplates, &snap.SolutionTemplates},
 	} {
 		if o.file == "" {
 			continue

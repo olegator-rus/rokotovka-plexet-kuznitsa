@@ -25,7 +25,7 @@ python3.13 scripts/data/validate.py --stats          # таблицы ниже
 | `scripts/data/defs_refs.py` | Словарь алиасов, связи семейств, клиенты |
 | `scripts/data/defs_queries.py`, `defs_queries2.py` | Кластеры запросов и правила разметки |
 | `scripts/data/gen_mock.py` | Сборка позиций, разметки, имитация текущего поиска, логи, популярность |
-| `scripts/data/defs_p2.py`, `defs_queries_p2.py` | Контур коммерции: оборудование, CAL 2025, совместимость, правила, шаблоны, набор p2 |
+| `scripts/data/defs_p2.py`, `defs_queries_p2.py` | Контур коммерции: оборудование, CAL 2025, совместимость, правила, набор p2 |
 | `scripts/data/gen_mock_p2.py` | Контур коммерции поверх готового контура поиска: связи, заказы с аккаунтами, пары, `PLANTED.md` |
 | `scripts/data/gen_mock_p3.py` | Контур выдачи: набор префиксов панели `prefixes.json`, события намерений в конце `events.jsonl` |
 | `scripts/data/gen_mock_p4.py` | Контур доводки: варианты под тип покупки и организации, КриптоПро, `help.json`, `reestr.json`, `showcase.json` |
@@ -257,7 +257,6 @@ AND по словам названия, семейства, вендора, ка
 | `license_rules.json` | 6: CAL и RDS CAL к Windows Server 2025/2022, SQL CAL к Server + CAL, клиентские лицензии 1С |
 | `compatibility_rules.json` | 56: verified 31, conditional 11, incompatible 14; пары без правила — unknown |
 | `attribute_definitions.json` | 10 категорий; единицы, синонимы единиц, фасеты |
-| `solution_templates.json` | 3: рабочее место, сервер под 1С, удалённый офис |
 | Набор `p2` в `queries.json` | 120: license 20, mpn 20, specs 20, compat 25, bundle 15, negative 20 |
 | `companion_pairs.json` | 149: required 20, compatible 25, conditional 15, incompatible 20, unknown 20, complement 20, upgrade 9, irrelevant 20 |
 | Новых событий | 1282: поиски 308 (ровно `freq` на запрос p2), клики 74, корзина 449, запросы цены 24, строки заказов 427 |

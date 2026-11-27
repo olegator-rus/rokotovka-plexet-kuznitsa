@@ -22,8 +22,9 @@ const (
 	quoteListLimit   = 200
 )
 
-// quoteOrigins — откуда позиция попала в спецификацию.
-var quoteOrigins = map[string]bool{"search": true, "companion": true, "template": true, "guide": true, "tz": true}
+// quoteOrigins — откуда позиция попала в спецификацию. Новые заявки с origin template (шаблоны решений сняты)
+// не принимаются; уже сохранённые читаются как есть — список заявок origin не проверяет.
+var quoteOrigins = map[string]bool{"search": true, "companion": true, "guide": true, "tz": true}
 
 // priceKnown — цена позиции точная: фиксированная и указана. «от …», по запросу, индивидуальная, нет в
 // наличии — неизвестна.
@@ -87,7 +88,7 @@ func (s *Services) CreateQuote(ctx context.Context, req in.QuoteRequest) (*out.Q
 		case it.Quantity < 1 || it.Quantity > maxQuoteQuantity:
 			bad = append(bad, errs.FieldError{Field: field + ".quantity", Code: errs.CodeOutOfRange, Message: fmt.Sprintf("Количество от 1 до %d", maxQuoteQuantity)})
 		case !quoteOrigins[it.Origin]:
-			bad = append(bad, errs.FieldError{Field: field + ".origin", Code: errs.CodeInvalidFormat, Message: "Происхождение — search, companion, template, guide или tz"})
+			bad = append(bad, errs.FieldError{Field: field + ".origin", Code: errs.CodeInvalidFormat, Message: "Происхождение — search, companion, guide или tz"})
 		case it.Origin == "companion" && len(it.CompanionClass) > 32:
 			bad = append(bad, errs.FieldError{Field: field + ".companion_class", Code: errs.CodeOutOfRange, Message: "Неизвестный класс"})
 		}

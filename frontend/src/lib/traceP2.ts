@@ -126,28 +126,6 @@ export function companionsSummary(step: TraceStep): string {
   return parts.join(' · ')
 }
 
-export interface SolutionSlotTrace {
-  id: string
-  product_id?: string
-  quantity?: number
-  source?: string
-  reason?: string
-}
-
-/** Шаг solution: шаблон, число мест, сколько слотов заполнено. */
-export function solutionSummary(step: TraceStep): string {
-  const id = typeof step.template_id === 'string' ? step.template_id : ''
-  if (!id) return 'шаблон не подошёл — обычная выдача'
-  if (step.reason === 'removed_by_user') return `${id}: снят покупателем`
-  const slots = asList<SolutionSlotTrace>(step.slots)
-  const filled = slots.filter((s) => s.product_id).length
-  const seats = typeof step.seats === 'number' ? step.seats : 0
-  const parts = [id]
-  if (seats) parts.push(`${seats} ${plural(seats, ['место', 'места', 'мест'])}`)
-  parts.push(`слотов ${filled} из ${slots.length}`)
-  return parts.join(' · ')
-}
-
 /** Шаг upgrade: к какой позиции и какая старшая редакция. */
 export function upgradeSummary(step: TraceStep): string {
   const to = typeof step.product_id === 'string' ? step.product_id : ''

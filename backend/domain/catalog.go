@@ -243,7 +243,6 @@ type CatalogSnapshot struct {
 	LicenseRules         []LicenseRule
 	CompatibilityRules   []CompatibilityRule
 	AttributeDefinitions []AttributeDefinition
-	SolutionTemplates    []SolutionTemplate
 	// Synthetic — что в данных придумано (catalog.synthetic: "margin", "orders") → плашка «Синтетические данные».
 	Synthetic []string
 	// Warnings — некритичные расхождения источника (нет справочника, ссылка в никуда).

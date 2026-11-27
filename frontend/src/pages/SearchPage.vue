@@ -34,7 +34,6 @@ import SearchStart from '@/components/search/SearchStart.vue'
 import UnderstandingBar from '@/components/search/UnderstandingBar.vue'
 import TracePanel from '@/components/trace/TracePanel.vue'
 import ComplementsBlock from '@/components/search/ComplementsBlock.vue'
-import SolutionCard from '@/components/search/SolutionCard.vue'
 import UpgradeCard from '@/components/search/UpgradeCard.vue'
 import AppliedFilters from '@/components/results/AppliedFilters.vue'
 import FamilyCard from '@/components/results/FamilyCard.vue'
@@ -52,7 +51,7 @@ import {
   hasMatchTypes,
   targetView,
 } from '@/lib/matchGroups'
-import { SHOWCASE, SHOW_ASSISTANT_INVITE, SHOW_TARGET_CARD } from '@/lib/showcase'
+import { SHOW_ASSISTANT_INVITE, SHOW_TARGET_CARD } from '@/lib/showcase'
 import type { Refinement, ResultsGroup, ResultsSort } from '@/api/typesResults'
 import {
   FLAT_PAGE,
@@ -94,7 +93,6 @@ import {
 import { usableFacet, withFilter } from '@/lib/facets'
 import { helpAnswerShown, helpHintShown, specPurchase, supplyShown } from '@/lib/procurement'
 import { type SpecLine, lineFromCompanion, lineFromItem, quantityForItem } from '@/lib/spec'
-import type { SlotChoice } from '@/lib/solution'
 import type { ChatCard } from '@/api/typesGuide'
 import AssistantEntryButton from '@/components/assistant/AssistantEntry.vue'
 import AssistantInvite from '@/components/assistant/AssistantInvite.vue'
@@ -348,36 +346,13 @@ const fillHeading = computed(() =>
 const facets = computed(() =>
   hardwareOn.value ? (response.value?.facets ?? []).filter(usableFacet) : [],
 )
-// ── закупка под задачу и старшая редакция ──
+// ── старшая редакция ──
 const solutionsOn = computed(() => featureOn(features.value, 'solutions'))
-// Контур фида: шаблоны решений на узкой витрине скрыты флагом, код на месте.
-const solution = computed(() =>
-  solutionsOn.value && SHOWCASE.solutionTemplates ? (response.value?.solution ?? null) : null,
-)
 const upgrade = computed(() => (solutionsOn.value ? (response.value?.upgrade ?? null) : null))
 const upgradeBase = computed(
   () =>
     response.value?.items.find((i) => i.product_id === upgrade.value?.for_product_id)?.title ?? '',
 )
-
-function onSolutionApply(lines: SpecLine[], choice: SlotChoice) {
-  for (const l of lines) spec.add(l)
-  const sol = solution.value
-  trackQuiet('template_apply', {
-    payload: {
-      template_id: sol?.template_id ?? '',
-      positions: lines.length,
-      seats: sol?.seats ?? null,
-      choice,
-    },
-  })
-  toast.add({
-    tone: 'ok',
-    title: 'Решение добавлено в спецификацию',
-    detail: `${sol?.title ?? ''}: ${lines.length} поз.`,
-    action: openSpecAction(),
-  })
-}
 
 function onUpgradeOpen(u: Upgrade) {
   trackQuiet('companion_click', {
@@ -1106,8 +1081,6 @@ async function onSupply() {
               <span>{{ r.message }}</span>
             </li>
           </ul>
-
-          <SolutionCard v-if="solution" :solution="solution" @apply="onSolutionApply" />
 
           <section v-if="filteredEmpty" class="panel search-page__absent" role="status">
             <h2 class="t-h2">

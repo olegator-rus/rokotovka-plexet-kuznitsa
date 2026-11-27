@@ -1,4 +1,4 @@
-"""Контур коммерции: оборудование, лицензии доступа 2025, правила, шаблоны решений.
+"""Контур коммерции: оборудование, лицензии доступа 2025, правила.
 
 Названия моделей реальные, парт-номера правдоподобные
 (часть совпадает с вендорскими, часть сгенерирована по шаблону вендора), цены — ориентиры.
@@ -598,37 +598,3 @@ ATTR_BY_CATEGORY = {
     "dbms": ["version"],
 }
 
-# ------------------------------------------------------------------ шаблоны решений
-SOLUTION_TEMPLATES = [
-    dict(id="tmpl-workplace", title="Рабочее место сотрудника",
-         triggers=["рабочее место", "рабочих мест", "новый сотрудник", "нового сотрудника", "оснастить офис"],
-         approved=True, slots=[
-             dict(id="laptop", label="Ноутбук", category_id="laptops", query="ноутбук 16 гб",
-                  constraints={"ram_gb": {"op": "gte", "value": 16}}, quantity_strategy="per_seat"),
-             dict(id="os", label="Операционная система (если ноутбук без ОС)", category_id="os-desktop",
-                  query="windows 11 pro", constraints={"if_slot_attr": {"slot": "laptop", "key": "os",
-                                                                       "value": "без ОС"}},
-                  quantity_strategy="per_seat"),
-             dict(id="office", label="Офисный пакет", category_id="office-suite",
-                  query="microsoft 365 business standard", constraints={}, quantity_strategy="per_seat"),
-             dict(id="security", label="Защита рабочего места", category_id="antivirus-business",
-                  query="kaspersky endpoint security", constraints={}, quantity_strategy="per_seat"),
-         ]),
-    dict(id="tmpl-1c-server", title="Сервер под 1С",
-         triggers=["сервер под 1с", "сервер для 1с", "сервер 1с на"], approved=True, slots=[
-             dict(id="server", label="Сервер", category_id="server-systems", query="сервер 2u",
-                  constraints={"ram_gb": {"op": "gte", "value": 128}}, quantity_strategy="one"),
-             dict(id="warranty", label="Гарантия", category_id="server-services", query="гарантия на сервер",
-                  constraints={"compatible_with": "slot:server"}, quantity_strategy="one"),
-             dict(id="os", label="Серверная ОС", category_id="os-server", query="windows server 2025 standard",
-                  constraints={"version": {"op": "eq", "value": "2025"}}, quantity_strategy="per_core"),
-             dict(id="cal", label="Лицензии доступа к серверу", category_id="os-server", query="windows server cal 2025",
-                  constraints={"version": {"op": "gte", "value": "2025"}}, quantity_strategy="per_user"),
-             dict(id="1c-server", label="Сервер 1С:Предприятие", category_id="1c-licenses", query="сервер 1с",
-                  constraints={}, quantity_strategy="one"),
-             dict(id="1c-clients", label="Клиентские лицензии 1С", category_id="1c-licenses",
-                  query="клиентская лицензия 1с", constraints={}, quantity_strategy="per_user"),
-             dict(id="dbms", label="СУБД", category_id="dbms", query="postgres pro", constraints={},
-                  quantity_strategy="one"),
-         ]),
-]

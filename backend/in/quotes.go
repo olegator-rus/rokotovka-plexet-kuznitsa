@@ -8,7 +8,7 @@ type QuoteRequest struct {
 	Comment   string      `json:"comment"`
 }
 
-// QuoteItem — позиция спецификации; Origin — search | companion | template | guide | tz.
+// QuoteItem — позиция спецификации; Origin — search | companion | guide | tz.
 type QuoteItem struct {
 	ProductID      string `json:"product_id"`
 	Quantity       int    `json:"quantity"`

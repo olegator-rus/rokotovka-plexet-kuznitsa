@@ -158,11 +158,10 @@ type ReferencesResult struct {
 	LicenseRules         int      `json:"license_rules"`
 	CompatibilityRules   int      `json:"compatibility_rules"`
 	AttributeDefinitions int      `json:"attribute_definitions"`
-	SolutionTemplates    int      `json:"solution_templates"`
 	Warnings             []string `json:"warnings"`
 }
 
-// ImportReferences — справочники вне фида (связи, клиенты, шаблоны решений, правила) из источника в базу без
+// ImportReferences — справочники вне фида (связи, клиенты, правила) из источника в базу без
 // переимпорта каталога: индекс поиска, векторы, позиции, алиасы и журналы не меняются. Каталог в базе должен быть
 // той же версии, что в источнике; иначе — полный импорт. Работающий API подхватит справочники после перезапуска.
 func (s *Services) ImportReferences(ctx context.Context) (*ReferencesResult, error) {
@@ -186,8 +185,8 @@ func (s *Services) ImportReferences(ctx context.Context) (*ReferencesResult, err
 	}
 	return &ReferencesResult{Source: s.source.Name(), CatalogVersion: snap.Version, Relations: len(snap.Relations),
 		Clients: len(snap.Clients), LicenseRules: len(snap.LicenseRules), CompatibilityRules: len(snap.CompatibilityRules),
-		AttributeDefinitions: len(snap.AttributeDefinitions), SolutionTemplates: len(snap.SolutionTemplates),
-		Warnings: append([]string{}, snap.Warnings...)}, nil
+		AttributeDefinitions: len(snap.AttributeDefinitions),
+		Warnings:             append([]string{}, snap.Warnings...)}, nil
 }
 
 // embedTargets — какие документы получают вектор: все, если каталог до embedAllMax позиций, иначе по одному

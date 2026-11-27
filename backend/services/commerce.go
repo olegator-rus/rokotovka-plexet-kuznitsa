@@ -41,8 +41,7 @@ type commerceCatalog struct {
 	licenseByAnchor map[string][]domain.LicenseRule
 	compatRules     []domain.CompatibilityRule
 	// attrDefs — атрибуты по категории.
-	attrDefs  map[string][]domain.AttributeSpec
-	solutions []domain.SolutionTemplate
+	attrDefs map[string][]domain.AttributeSpec
 	// synthetic — что в данных придумано (catalog.synthetic); пусто — данные не помечены.
 	synthetic []string
 	// compat — индекс совместимости и допродажи (compat.go).
@@ -59,7 +58,6 @@ func newCommerceCatalog(s *domain.CatalogSnapshot) *commerceCatalog {
 		licenseByAnchor: map[string][]domain.LicenseRule{},
 		compatRules:     s.CompatibilityRules,
 		attrDefs:        make(map[string][]domain.AttributeSpec, len(s.AttributeDefinitions)),
-		solutions:       s.SolutionTemplates,
 		synthetic:       append([]string{}, s.Synthetic...),
 	}
 	for i := range s.Products {

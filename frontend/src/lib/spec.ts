@@ -164,7 +164,6 @@ export function setQuantity(lines: readonly SpecLine[], productId: string, qty: 
 
 /** Пометка происхождения строки. */
 export function originLabel(line: Pick<SpecLine, 'origin' | 'companion_class'>): string {
-  if (line.origin === 'template') return 'из шаблона'
   if (line.origin === 'tz') return 'из ТЗ'
   if (line.origin === 'companion') {
     if (line.companion_class === 'conditional_required') return 'условно обязательное'
@@ -263,7 +262,9 @@ export function quoteRequest(
   return body
 }
 
-const ORIGINS: readonly string[] = ['search', 'companion', 'template', 'tz']
+// Происхождение строки. Строки, сохранённые с origin «template» (шаблоны решений сняты), и прочие неизвестные
+// значения читаются как «из поиска».
+const ORIGINS: readonly string[] = ['search', 'companion', 'tz']
 
 function parseTz(x: unknown): SpecTz | undefined {
   if (!x || typeof x !== 'object') return undefined

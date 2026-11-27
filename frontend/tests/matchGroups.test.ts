@@ -1,5 +1,5 @@
 // Контур фида: группы по match_type, подпись цели, цена карточки (src/lib/matchGroups.ts), нулевая цена в
-// formatPrice / priceLabel / cardAction, флаг узкой витрины (src/lib/showcase.ts).
+// formatPrice / priceLabel / cardAction, состав витрины (src/lib/showcase.ts).
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import type { SearchItem, SearchResponse } from '../src/api/types.ts'
@@ -368,7 +368,6 @@ test('подпись альтернативы — без «замена» и «�
   assert.doesNotMatch(ALTERNATIVE_NOTE, /замен|аналог/i)
 })
 
-test('showcaseParts: персонализация включена всегда, шаблоны — только на полной витрине', () => {
-  assert.deepEqual(showcaseParts(false), { personalization: true, solutionTemplates: false })
-  assert.deepEqual(showcaseParts(true), { personalization: true, solutionTemplates: true })
+test('showcaseParts: персонализация включена всегда', () => {
+  assert.deepEqual(showcaseParts(), { personalization: true })
 })

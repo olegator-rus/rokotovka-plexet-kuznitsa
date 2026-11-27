@@ -13,7 +13,6 @@ import {
   Combine,
   Cpu,
   Dot,
-  LayoutTemplate,
   ListFilter,
   ListOrdered,
   Percent,
@@ -65,7 +64,6 @@ const STEP_ICONS: Record<string, Component> = {
   hardware: Cpu,
   companions: PlusCircle,
   upgrade: ArrowUpCircle,
-  solution: LayoutTemplate,
   procurement: ShoppingCart,
 }
 

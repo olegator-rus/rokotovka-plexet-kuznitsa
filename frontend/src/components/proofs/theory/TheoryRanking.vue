@@ -1,7 +1,7 @@
 <script setup lang="ts">
 // Часть 2, выдача: порядок (rank.go, margin.go, search_vendor_core.go), цель и лестница (TheoryAnswer), мало
 // или нет подходящего (search_b3.go, search_ladder.go), техника (hardware*.go,
-// compat.go), модули вокруг выдачи (suggest*.go, companions.go, upgrade.go, solutions.go, purchase_stage.go,
+// compat.go), модули вокруг выдачи (suggest*.go, companions.go, upgrade.go, purchase_stage.go,
 // results.go) и трасса (search_b3.go, traces.go). Пример скора считается здесь по формуле из rank.go.
 import { RouterLink } from 'vue-router'
 import { THEORY_PARAMS as P, pct, ru } from '@/lib/theoryParams'

@@ -7,7 +7,6 @@ import {
   hardwareSummary,
   isP2Field,
   p2HasDetails,
-  solutionSummary,
   upgradeSummary,
 } from './traceP2.ts'
 
@@ -40,7 +39,6 @@ export const STEP_LABELS: Record<string, string> = {
   hardware: 'Оборудование',
   companions: 'Компаньоны',
   upgrade: 'Старшая редакция',
-  solution: 'Решение по шаблону',
   procurement: 'Закупка',
 }
 
@@ -214,8 +212,6 @@ export function stepSummary(step: TraceStep): string {
       return hardwareSummary(step)
     case 'companions':
       return companionsSummary(step)
-    case 'solution':
-      return solutionSummary(step)
     case 'upgrade':
       return upgradeSummary(step)
     default:
