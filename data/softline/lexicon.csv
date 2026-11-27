@@ -44,9 +44,9 @@ nod32,pro32,successor,vendor,pro32,"ComNews, 19.06.2023; research 03, строк
 нод32,pro32,successor,vendor,pro32,"ComNews, 19.06.2023; research 03, строка 2","ESET NOD32 в России не поставляется. На этом рынке — PRO32: российская линейка бывшего дистрибьютора ESET"
 abbyy,content ai,successor,vendor,contentai,"[Ф] имя вендора «Content AI (ООО «Контент ИИ», ранее ABBYY Россия)»; CNews: ContentReader PDF — замена ABBYY FineReader PDF; research 03, строка 3","ABBYY FineReader ушёл с российского рынка. На этом рынке — Content AI (ранее ABBYY Россия): ContentReader PDF, Lingvo"
 абби,content ai,successor,vendor,contentai,"[Ф] имя вендора Content AI; research 03, строка 3","ABBYY FineReader ушёл с российского рынка. На этом рынке — Content AI (ранее ABBYY Россия): ContentReader PDF, Lingvo"
-finereader,content ai,successor,vendor,contentai,"CNews: ContentReader PDF выпущен как замена ABBYY FineReader PDF; research 03, строка 3","ABBYY FineReader ушёл с российского рынка. На этом рынке — Content AI: ContentReader PDF"
-файнридер,content ai,successor,vendor,contentai,"CNews: ContentReader PDF — замена ABBYY FineReader PDF; research 03, строка 3","ABBYY FineReader ушёл с российского рынка. На этом рынке — Content AI: ContentReader PDF"
-abbyy finereader,content ai,successor,vendor,contentai,"CNews: ContentReader PDF — замена ABBYY FineReader PDF; research 03, строка 3","ABBYY FineReader ушёл с российского рынка. На этом рынке — Content AI: ContentReader PDF"
+finereader,contentreader pdf,successor,term,,"CNews: ContentReader PDF выпущен как замена ABBYY FineReader PDF; research 03, строка 3","ABBYY FineReader ушёл с российского рынка. На этом рынке — Content AI: ContentReader PDF"
+файнридер,contentreader pdf,successor,term,,"CNews: ContentReader PDF — замена ABBYY FineReader PDF; research 03, строка 3","ABBYY FineReader ушёл с российского рынка. На этом рынке — Content AI: ContentReader PDF"
+abbyy finereader,contentreader pdf,successor,term,,"CNews: ContentReader PDF — замена ABBYY FineReader PDF; research 03, строка 3","ABBYY FineReader ушёл с российского рынка. На этом рынке — Content AI: ContentReader PDF"
 acronis,кибер бэкап,successor,vendor,cyberprotect,"общее знание (бывш. «Акронис-Инфозащита»), источником не подтверждено — research 03, строка 33","Acronis в России не поставляется. На этом рынке — Киберпротект: Кибер Бэкап (связь по общему знанию, источником не подтверждена)"
 акронис,кибер бэкап,successor,vendor,cyberprotect,"общее знание, источником не подтверждено — research 03, строка 33","Acronis в России не поставляется. На этом рынке — Киберпротект: Кибер Бэкап (связь по общему знанию, источником не подтверждена)"
 сертификат,,drop,term,,"[Ф] «сертификат» в фиде — сертификат техподдержки и раздел «Цифровые сертификаты»; подстановка «сертифицирован» из mock уводила запрос",
@@ -158,3 +158,35 @@ astra linux se,astra linux special edition,spelling,term,,"SE — Special Editio
 сканера-вс,сканер-вс,spelling,term,,"падежная форма «Сканер-ВС» (Эшелон); [Ф] семейство «Эшелон «СКАНЕР-ВС»»",
 сканеру-вс,сканер-вс,spelling,term,,"падежная форма «Сканер-ВС» (Эшелон); [Ф] семейство «Эшелон «СКАНЕР-ВС»»",
 сканере-вс,сканер-вс,spelling,term,,"падежная форма «Сканер-ВС» (Эшелон); [Ф] семейство «Эшелон «СКАНЕР-ВС»»",
+вин,windows,jargon,term,,"сокращение Windows («вин 11»); [Ф] семейства Windows 11; без записи — «Стахановец» 11",
+про32,pro32,spelling,term,,"кириллицей PRO32; [Ф] вендор PRO32; без записи — телевизор «Pro 32»",
+про 32,pro32,spelling,term,,"раздельно PRO32; [Ф] вендор PRO32",
+нод 32,pro32,successor,vendor,pro32,"раздельно NOD32; research 03, строка 2","ESET NOD32 в России не поставляется. На этом рынке — PRO32: российская линейка бывшего дистрибьютора ESET"
+nod 32,pro32,successor,vendor,pro32,"раздельно NOD32; research 03, строка 2","ESET NOD32 в России не поставляется. На этом рынке — PRO32: российская линейка бывшего дистрибьютора ESET"
+kaspersky internet security,kaspersky plus,successor,term,,"Kaspersky Internet Security заменён линейкой Kaspersky Plus (сайт вендора, 2023); [Ф] семейство «Kaspersky Plus + Who Calls»","Kaspersky Internet Security больше не выпускается. На замену — Kaspersky Plus"
+kis,kaspersky plus,successor,term,,"сокращение Kaspersky Internet Security; [Ф] семейство «Kaspersky Plus + Who Calls»","Kaspersky Internet Security больше не выпускается. На замену — Kaspersky Plus"
+касперский интернет секьюрити,kaspersky plus,successor,term,,"кириллицей Kaspersky Internet Security; [Ф] семейство «Kaspersky Plus + Who Calls»","Kaspersky Internet Security больше не выпускается. На замену — Kaspersky Plus"
+свич,коммутатор,jargon,term,,"жаргон switch; [Ф] категория «Коммутаторы»",
+свича,коммутатор,jargon,term,,"форма «свич»; [Ф] категория «Коммутаторы»",
+свичи,коммутатор,jargon,term,,"форма «свич»; [Ф] категория «Коммутаторы»",
+кореловский,coreldraw,jargon,term,,"разговорное CorelDRAW; [Ф] семейства «CorelDRAW Graphics Suite …»",
+корел,coreldraw,jargon,term,,"кириллицей Corel(DRAW); [Ф] семейства «CorelDRAW Graphics Suite …»",
+удаленный доступ,удаленный доступ,jargon,category,327029|327030,"класс ПО удалённого доступа; [Ф] категории «Российские решения удаленного доступа (Импортозамещение)», «Другие решения удаленного доступа»; без записи — точки доступа Wi-Fi",
+удаленного доступа,удаленный доступ,jargon,category,327029|327030,"форма; [Ф] те же категории",
+удалённый доступ,удаленный доступ,jargon,category,327029|327030,"с «ё»; [Ф] те же категории",
+межсетевой экран,межсетевой экран,jargon,category,233731,"[Ф] категория «Межсетевые экраны»; без записи — проекционные экраны",
+межсетевые экраны,межсетевой экран,jargon,category,233731,"[Ф] категория «Межсетевые экраны»",
+сканер документов,сканер,jargon,category,94641,"[Ф] категория «Сканеры» (офисная техника); без записи — «Помощь менеджера»",
+сканер для документов,сканер,jargon,category,94641,"[Ф] категория «Сканеры»",
+маршрутизатор,роутер,jargon,category,86192|85353|85225,"[Ф] категории «Проводные роутеры», «Wi-Fi роутеры», «3G/LTE-роутеры»",
+маршрутизаторы,роутер,jargon,category,86192|85353|85225,"[Ф] те же категории",
+камера видеонаблюдения,камера видеонаблюдения,jargon,category,98673|98826,"[Ф] категории «IP-видеокамеры», «Аналоговые видеокамеры»; без записи — экшн-камеры",
+камеры видеонаблюдения,камера видеонаблюдения,jargon,category,98673|98826,"[Ф] те же категории",
+мать,материнская плата,jargon,category,75936,"жаргон «материнская плата»; [Ф] категория «Материнские платы»",
+материнка,материнская плата,jargon,category,75936,"жаргон; [Ф] категория «Материнские платы»",
+ssd,ssd,jargon,category,79574,"[Ф] категория «Внутренние твердотельные накопители (SSD)»; без записи — «Жесткие диски»",
+ссд,ssd,spelling,category,79574,"кириллицей SSD; [Ф] та же категория",
+свитч,коммутатор,jargon,term,,"жаргон switch; [Ф] категория «Коммутаторы»",
+свитча,коммутатор,jargon,term,,"жаргон switch; [Ф] категория «Коммутаторы»",
+свитчи,коммутатор,jargon,term,,"жаргон switch; [Ф] категория «Коммутаторы»",
+свитчей,коммутатор,jargon,term,,"жаргон switch; [Ф] категория «Коммутаторы»",

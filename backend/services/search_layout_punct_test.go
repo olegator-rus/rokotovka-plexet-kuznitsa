@@ -144,3 +144,20 @@ func TestNamedHit(t *testing.T) {
 		t.Fatal("Astra Linux найден")
 	}
 }
+
+// Назван продукт другой категории — категория словаря уступает: «рубикон межсетевой экран» — Эшелон «Рубикон».
+func TestNamedOutsideAliasCategory(t *testing.T) {
+	snap := p6snapshot([]p6offer{
+		{id: "rb", fam: "f-rb", famName: "INFERIT «Рубикон»", vendor: "inferit", cat: "av", title: "Эшелон «Рубикон» комплекс", kind: "base", price: 900000},
+		{id: "ti", fam: "f-ti", famName: "Traffic Inspector", vendor: "depo", cat: "comm", title: "Traffic Inspector", kind: "base", price: 5000},
+	})
+	lx := newSearchLexicon(snap)
+	ent := queryEntities{families: []string{"f-rb"}, entityTokens: []string{"рубикон", "межсетевой", "экран"}}
+	if !namedOutside(lx, ent, []string{"comm"}) {
+		t.Fatal("Рубикон назван — категория словаря уступает")
+	}
+	ent.entityTokens = []string{"межсетевой", "экран"}
+	if namedOutside(lx, ent, []string{"comm"}) {
+		t.Fatal("продукт не назван — категория словаря остаётся")
+	}
+}

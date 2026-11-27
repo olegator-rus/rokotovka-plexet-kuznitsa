@@ -212,3 +212,31 @@ func TestPackTiers(t *testing.T) {
 		t.Fatal("источник без отметок ступеней не трогается")
 	}
 }
+
+// Категория из словаря главнее категории оборудования по одному слову: «удаленный доступ» — ПО удалённого доступа,
+// а не «Точки доступа».
+func TestAliasCategoryBeatsHardwareWord(t *testing.T) {
+	b := domain.LicenseKindBase
+	s := p6snapshot([]p6offer{
+		{id: "ap", fam: "f-ap", famName: "CUDY AP1200", vendor: "depo", cat: "aps", title: "Точка доступа CUDY AP1200", price: 7000},
+		{id: "rd", fam: "f-rd", famName: "RuDesktop", vendor: "astralinux", cat: "remote", title: "RuDesktop удаленный доступ", kind: b, price: 14000},
+	})
+	net, root := "net", "sw"
+	s.Categories = append(s.Categories, domain.Category{ID: net, Name: "Сетевое оборудование"},
+		domain.Category{ID: "aps", Name: "Точки доступа", ParentID: &net},
+		domain.Category{ID: "remote", Name: "Российские решения удаленного доступа", ParentID: &root})
+	for i := range s.Products {
+		if s.Products[i].CategoryID == "aps" {
+			s.Products[i].Kind = domain.KindHardware
+		}
+	}
+	svc := NewServices(nil, Options{Features: Features{Hardware: true}})
+	svc.SetLexicon([]domain.LexiconEntry{{Alias: "удаленный доступ", Canonical: "удаленный доступ", Kind: domain.LexiconJargon,
+		Target: domain.AliasTargetCategory, TargetIDs: []string{"remote"}}})
+	st := newCatalogState(s, 1)
+	svc.catalog.Store(st)
+	p, ent := computerParse(svc, st, "удаленный доступ")
+	if ent.category != "remote" || p != nil && p.category != "" {
+		t.Fatalf("категория %q, оборудование %q — ждали ПО удалённого доступа", ent.category, p.category)
+	}
+}

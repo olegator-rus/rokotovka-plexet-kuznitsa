@@ -50,6 +50,13 @@ func (p *hwPlan) applyEntities(ent *queryEntities) {
 	if p == nil {
 		return
 	}
+	if ent.categoryByAlias && p.category != "" && p.category != ent.category {
+		if p.hx.hwCats[ent.category] {
+			p.category = ent.category // «ssd» → SSD, а не «Жесткие диски» по синониму
+		} else {
+			p.category = "" // «удаленный доступ» — ПО, а не «Точки доступа»
+		}
+	}
 	if !p.active() && !p.zoneCategory {
 		return
 	}

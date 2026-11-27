@@ -530,3 +530,29 @@ func (lx *searchLexicon) preferQueryWords(named, fams, tokens []string) []string
 	}
 	return out
 }
+
+// nameInQuery — все слова названия семейства, кроме имени вендора, есть в запросе («Эшелон «Рубикон»» — в
+// «рубикон межсетевой экран»).
+func (lx *searchLexicon) nameInQuery(fid string, tokens []string) bool {
+	in := map[string]bool{}
+	for _, t := range tokens {
+		for _, w := range wordsOf(t) {
+			in[w] = true
+		}
+	}
+	vendor := map[string]bool{}
+	for _, w := range wordsOf(lx.vendorName[lx.familyVendor[fid]] + " " + lx.familyVendor[fid]) {
+		vendor[w] = true
+	}
+	n := 0
+	for _, w := range wordsOf(lx.familyName[fid]) {
+		if vendor[w] || lexStopWords[w] {
+			continue
+		}
+		if !in[w] {
+			return false
+		}
+		n++
+	}
+	return n > 0
+}

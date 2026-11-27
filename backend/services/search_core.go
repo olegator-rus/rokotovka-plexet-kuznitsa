@@ -121,7 +121,10 @@ type queryEntities struct {
 	// referenceByVendor — референс аналога — линейка названного вендора («аналог anydesk», «замена microsoft office»),
 	// а не одно семейство: класс берётся по основной категории вендора.
 	referenceByVendor bool
-	category          string
+	// categoryByAlias — категорию назвал словарь (lexicon.csv, target=category): «удаленный доступ», «ssd»,
+	// «камера видеонаблюдения» — она главнее категории оборудования по одному слову («доступа» → «Точки доступа»).
+	categoryByAlias bool
+	category        string
 	// categoryByWords — категория найдена по словам названия категории или назначения («чертежи»), а не
 	// алиасом: маршрут она не меняет (иначе запрос назначения уходит с маршрута C без реранкера).
 	categoryByWords bool
@@ -255,7 +258,7 @@ func findEntities(nr normResult, attrs queryAttrs, lx *searchLexicon, rules *sea
 			}
 		case domain.AliasTargetCategory:
 			if _, ok := lx.categoryName[a.TargetID]; ok {
-				e.category = a.TargetID
+				e.category, e.categoryByAlias = a.TargetID, true
 			}
 		}
 	}
@@ -276,6 +279,12 @@ func findEntities(nr normResult, attrs queryAttrs, lx *searchLexicon, rules *sea
 		}
 	}
 	e.named = lx.preferQueryWords(e.named, e.families, entityTokens)
+	if e.categoryByAlias {
+		// «рубикон межсетевой экран»: назван продукт из другого раздела, чем категория словаря, — продукт главнее.
+		if namedOutside(lx, e, []string{e.category}) {
+			e.category, e.categoryByAlias = "", false
+		}
+	}
 	if attrs.analog {
 		e.reference = lx.preferQueryWords(lx.bestCovered(e.families, entityTokens), e.families, entityTokens)
 		if len(e.reference) > 0 && len(e.vendors) > 0 && lx.familyCoverage(e.reference[0], entityTokens) < namedCoverageMin {

@@ -3,6 +3,7 @@ package services
 import (
 	"context"
 	"errors"
+	"slices"
 	"sort"
 	"strings"
 	"unicode"
@@ -265,6 +266,9 @@ func findCategoryIntent(nr normResult, ent queryEntities, lx *searchLexicon, rul
 			ids := rules.categories[lexiconKey(a.Alias)]
 			if len(ids) > 0 && len(ent.vendors) > 0 && !vendorsIn(lx, ent.vendors, ids) {
 				continue // «касперский … офис»: названный вендор не из этих категорий — слово значит другое
+			}
+			if len(ids) > 0 && namedOutside(lx, ent, ids) {
+				continue // «рубикон межсетевой экран»: назван продукт другой категории — он главнее слова
 			}
 			if len(ids) > 0 {
 				ci := &categoryIntent{cats: ids, word: nounStem(foldText(a.Canonical)), source: "lexicon"}
@@ -855,6 +859,16 @@ func (lx *searchLexicon) softwareCategoryWord(w string, hw map[string]bool) bool
 			continue // раздел, где есть оборудование («Серверы и опции»), — не ПО
 		}
 		if headScore(name, w) >= 2 {
+			return true
+		}
+	}
+	return false
+}
+
+// namedOutside — в запросе назван продукт (все слова его названия, кроме вендора), и он не из категорий ids.
+func namedOutside(lx *searchLexicon, ent queryEntities, ids []string) bool {
+	for _, f := range ent.families {
+		if lx.nameInQuery(f, ent.entityTokens) && !slices.Contains(ids, lx.familyCat[f]) {
 			return true
 		}
 	}
