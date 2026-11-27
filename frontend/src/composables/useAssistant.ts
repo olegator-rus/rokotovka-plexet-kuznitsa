@@ -6,6 +6,7 @@ import { postGuide, postGuideSpec } from '@/api/guide'
 import type { ChatCard, ChatSuggestion, GuideChipAnswer, GuideOffer } from '@/api/typesGuide'
 import {
   addedLine,
+  firstQuery,
   type AssistantEntry,
   type ChatEntry,
   lastAssistantId,
@@ -121,8 +122,12 @@ export function useAssistant() {
     waitText.value = WAIT_FIRST
     if (waitTimer) clearTimeout(waitTimer)
     waitTimer = setTimeout(() => (waitText.value = WAIT_SECOND), 1500)
-    if (!serverState.value) startQuery = input.text ?? ''
-    const body = turnBody(input, serverState.value, startQuery)
+    if (!serverState.value) startQuery = firstQuery(input.text ?? '', context.value)
+    const body = turnBody(
+      serverState.value ? input : { ...input, text: startQuery },
+      serverState.value,
+      startQuery,
+    )
     try {
       if (!app.sessionId) await app.loadMeta()
       if (ctrl !== c) return

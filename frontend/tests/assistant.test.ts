@@ -3,6 +3,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import {
+  firstQuery,
   addedLine,
   isDetailedQuery,
   lastAssistantId,
@@ -88,4 +89,17 @@ test('хранение: битое — пустой разговор; сохра
   assert.deepEqual(back.state, { selection_id: 'x' })
   assert.equal(lastAssistantId(back.entries), -1)
   assert.equal(loadAssistant(null).entries.length, 0)
+})
+
+test('firstQuery: уточнение без продукта берёт запрос поиска, самостоятельная реплика — как написана', () => {
+  const kes = 'Kaspersky Endpoint Security для бизнеса Стандартный'
+  assert.equal(
+    firstQuery('чем отличается от расширенного?', kes),
+    `${kes} чем отличается от расширенного?`,
+  )
+  assert.equal(firstQuery('а цена на 50?', kes), `${kes} а цена на 50?`)
+  assert.equal(firstQuery('антивирус на 15 компов', 'Комплектующие'), 'антивирус на 15 компов')
+  assert.equal(firstQuery('чем отличается?', ''), 'чем отличается?')
+  const long = 'чем расширенный касперский отличается от стандартного, нам на 30 компьютеров'
+  assert.equal(firstQuery(long, 'антивирус'), long)
 })

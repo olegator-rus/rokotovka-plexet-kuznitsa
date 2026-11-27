@@ -20,8 +20,9 @@ const (
 	chatMaxSentences = 3
 	chatShowCards    = 4
 
-	chatTextOutOfScope = "Помощник подбирает товары и лицензии. Условия оплаты — в разделе магазина."
+	chatTextOutOfScope = "Помощник подбирает товары и лицензии. Оплата, доставка и документы — в справке магазина."
 	chatTextHardware   = "Помощник подбирает лицензии на программы. Компьютеры, серверы и комплектующие ищите в каталоге — кнопка ниже откроет поиск."
+	chatTextGreeting   = "Здравствуйте! Напишите, что нужно: продукт, задачу или число мест — например, «антивирус на 20 компьютеров»."
 	chatTextDiscount   = "Не могу изменить цену товара. Могу показать действующие акции."
 	chatTextNoPrompt   = "Этого показать не могу. Помощник подбирает товары и лицензии."
 	chatTextLLMFailed  = "Товары найдены, но не удалось подготовить пояснение."
@@ -46,6 +47,7 @@ const (
 	chatOutDiscount = "discount" // скидка, «отправь», «забудь правила»
 	chatOutPrompt   = "prompt"   // просьба показать инструкции
 	chatOutHardware = "hardware" // оборудование
+	chatOutGreeting = "greeting" // «привет», «?», пустая реплика
 )
 
 // chatModelFailures — модель была нужна (реплика в подборе) и не ответила: текст заменяется сообщением о сбое.
@@ -174,6 +176,14 @@ func (t *guideTurn) chatOutOfScope(c *out.GuideChat) {
 		c.Suggestions = []out.GuideChatSuggestion{{Label: "Показать акции", Message: "покажи акции"}}
 	case chatOutPrompt:
 		c.Text = []string{chatTextNoPrompt}
+	case chatOutGreeting:
+		c.Status = out.ChatQuestion
+		c.Text = []string{chatTextGreeting}
+		c.Suggestions = []out.GuideChatSuggestion{
+			{Label: "Антивирус на 20 компьютеров", Message: "антивирус на 20 компьютеров"},
+			{Label: "Сравнить редакции Kaspersky", Message: "чем отличается kaspersky endpoint security стандартный от расширенного"},
+			{Label: "Российская ОС для офиса", Message: "российская операционная система для офиса на 10 компьютеров"},
+		}
 	case chatOutHardware:
 		c.Text = []string{chatTextHardware}
 		if t.src != "" {
@@ -181,7 +191,7 @@ func (t *guideTurn) chatOutOfScope(c *out.GuideChat) {
 		}
 	default:
 		c.Text = []string{chatTextOutOfScope}
-		c.Links = []out.GuideChatLink{{Kind: "payment", Label: "Перейти к условиям оплаты", URL: "/help"}}
+		c.Links = []out.GuideChatLink{{Kind: "payment", Label: "Открыть справку", URL: "/help"}}
 	}
 }
 

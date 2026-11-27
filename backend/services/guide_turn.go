@@ -74,6 +74,9 @@ type guideTurn struct {
 	outKind    string
 	promo      bool     // ход «покажи акции»
 	notice     []string // фразы кода перед ответом (откат невыполнимого условия)
+	answered   bool     // ход ответил на вопрос о свойстве продукта
+	analogOf   string   // вендор, которому ищут замену («аналог касперского»)
+	analogWord string   // что заменяют («teamviewer»)
 }
 
 func (t *guideTurn) ms(since time.Time) float64 {
@@ -150,6 +153,8 @@ func (s *Services) Guide(ctx context.Context, requestID string, req in.GuideRequ
 	res := t.safeRun(ctx, req)
 	if t.emptiedByCondition(req, res, saved) {
 		t, res = t.rollback(ctx, req, saved, res)
+	} else if line := t.ignoredLine(req, res, saved); line != "" {
+		t.notice = append(t.notice, line)
 	}
 	res.Trace, res.Gaps = t.trace, nonNilStrings(t.gaps)
 	res.Meta = t.meta
@@ -371,9 +376,22 @@ func (t *guideTurn) run(ctx context.Context, req in.GuideRequest) *out.GuideResp
 
 	compare := src != "" && asksCompare(src)
 	r := &st.Requirements
+	// «замена teamviewer», «аналог касперского»: вендор — то, что заменяют, а не условие подбора.
+	if w := analogWord(src); w != "" && (len(st.CandidateFamilyIDs) == 0 || text != "") {
+		t.analogWord = w
+		if vs := guideVendorsIn(w); len(vs) > 0 {
+			t.analogOf = vs[0]
+		}
+		if t.analogOf != "" && r.Vendor == t.analogOf {
+			r.Vendor = ""
+			delete(st.Origin, "vendor")
+		}
+		st.CandidateFamilyIDs = []string{}
+	}
 	// Вопрос о свойстве продукта (D8): ответ только фактом.
 	if src != "" && !compare && reAsksFeature.MatchString(guideNorm(src)) {
 		if res := t.featureQuestion(src); res != nil {
+			t.answered = true
 			return res
 		}
 	}
@@ -446,8 +464,11 @@ func (t *guideTurn) run(ctx context.Context, req in.GuideRequest) *out.GuideResp
 		// В поиск — без числа мест: «на 3 компьютера» тянет в выдачу оборудование.
 		stext := strings.TrimSpace(reGuideCountPhrase.ReplaceAllString(guideNorm(qtext), " "))
 		fams = t.g.searchCatalog(ctx, t.cat, stext, r.Vendor)
-		// Названный продукт должен быть среди кандидатов, даже если поиск его не поднял.
+		// Названный продукт должен быть среди кандидатов, даже если поиск его не поднял (кроме «замена X»).
 		for _, f := range t.nameMatchIfProduct(stext, r.Vendor) {
+			if t.analogWord != "" {
+				break
+			}
 			if !containsStr(fams, f) {
 				fams = append(fams, f)
 			}
@@ -465,6 +486,9 @@ func (t *guideTurn) run(ctx context.Context, req in.GuideRequest) *out.GuideResp
 		if len(fams) > 8 {
 			fams = fams[:8]
 		}
+	}
+	if t.analogWord != "" {
+		fams = t.analogFamilies(fams)
 	}
 	if r.Use == "tls_server" {
 		fams = t.cat.withTLSFamilies(fams, r.Vendor)
@@ -620,6 +644,9 @@ func (t *guideTurn) serviceReply(text string) *out.GuideResponse {
 	case strings.Contains(q, "инструкц") || strings.Contains(q, "промпт") || strings.Contains(q, "system prompt"):
 		lead = "Этого показать не могу. Чем помочь с подбором?"
 		t.outKind = chatOutPrompt
+	case reGreeting.MatchString(q) || !reHasWord.MatchString(q):
+		lead = chatTextGreeting
+		t.outKind = chatOutGreeting
 	case strings.Contains(q, "скидк") || strings.Contains(q, "отправь") || strings.Contains(q, "забудь"):
 		lead = "Скидки я не назначаю и ничего не отправляю без вас. Могу собрать спецификацию по ценам каталога."
 		t.outKind = chatOutDiscount
@@ -694,6 +721,9 @@ func (c *guideCatalog) focusFamilies(fams []string, text string) []string {
 var (
 	reGuideSplit = regexp.MustCompile(`[^а-яёa-z0-9.]+`)
 	// reGuideCountPhrase — «на 3 компьютера», «на 256 ip», «16 хостов»: число мест — условие, а не название продукта.
+	// reGreeting — приветствие без задачи; reHasWord — в реплике есть хоть одно слово или число («?», «...» — нет).
+	reGreeting = regexp.MustCompile(`^(привет\S*|здравствуй\S*|добрый\s+(день|вечер|утро)|доброе\s+утро|хай|hello|hi|ку|алло|эй)[\s!.,)]*$`)
+	reHasWord  = regexp.MustCompile(`[a-zа-яё0-9]`)
 	// reHardwareWord — явное оборудование в реплике посреди подбора («комплектующие», «ноутбук»); без него реплику
 	// («хранение на лентах», «разовая покупка») не считаем оборудованием, даже если поиск находит железо.
 	reHardwareWord     = regexp.MustCompile(`(^|\s)(комплектующ|ноутбук|ноут(\s|$)|монитор|принтер|мфу|сканер(\s|$)|клавиатур|мыш[ьк]|системник|системн[а-яё]*\s+блок|видеокарт|процессор|ssd|hdd|жестк[а-яё]*\s+диск|оперативн[а-яё]*\s+памят|роутер|маршрутизатор|коммутатор|ибп|компьютер[а-яё]*$|комп(ы|а|ов)?$|моноблок|планшет)`)
@@ -1559,4 +1589,128 @@ func (t *guideTurn) homeOnly(fid string) bool {
 		}
 	}
 	return len(ps) > 0
+}
+
+// conditionsKey — условия подбора одной строкой (сравнение до и после хода).
+func conditionsKey(st domain.GuideState) string {
+	var b strings.Builder
+	for _, c := range conditionsOf(st) {
+		b.WriteString(c.Key + "=" + c.Label + ";")
+	}
+	return b.String()
+}
+
+// ignoredLine — реплика ничего не поменяла: ни условий, ни вариантов («а для мака?», «а подешевле»). Без фразы ответ
+// повторяет прошлый слово в слово, и кажется, что помощник завис; фраза говорит, что именно не учтено.
+func (t *guideTurn) ignoredLine(req in.GuideRequest, res *out.GuideResponse, saved domain.GuideState) string {
+	if res == nil || req.Chip != nil || req.Message == "" || saved.Turn == 0 || t.outKind != "" || t.promo || t.answered {
+		return ""
+	}
+	if res.Type != out.GuideSelection && res.Type != out.GuideClarification || t.meta.LLMCalls > 0 || len(t.notice) > 0 ||
+		t.st.SelectionID != saved.SelectionID {
+		return ""
+	}
+	if !slices.Equal(saved.SelectedOfferIDs, t.st.SelectedOfferIDs) {
+		return ""
+	}
+	if conditionsKey(saved) != conditionsKey(*t.st) {
+		// Учтено условие, которое на варианты и цены не влияет («для школы» у Astra без позиций для образования).
+		was := map[string]string{}
+		for _, c := range conditionsOf(saved) {
+			was[c.Key] = c.Label
+		}
+		var same []string
+		for _, c := range conditionsOf(*t.st) {
+			if was[c.Key] == c.Label {
+				continue
+			}
+			switch c.Key {
+			case "org_type", "platform", "use", "operation", "term_months":
+				same = append(same, "«"+c.Label+"»")
+			default:
+				return "" // число мест и прочее меняет сумму — ответ уже другой
+			}
+		}
+		if len(same) == 0 {
+			return ""
+		}
+		return "Учёл " + strings.Join(same, ", ") + " — отдельных вариантов под это в каталоге нет, цены те же."
+	}
+	if strings.Contains(guideNorm(req.Message), "дешев") {
+		return "Дешевле под эти условия в каталоге ничего нет — это самый доступный вариант."
+	}
+	msg := []rune(req.Message)
+	if len(msg) > 40 {
+		msg = append(msg[:40], '…')
+	}
+	return fmt.Sprintf("Не смог учесть «%s». Могу учесть число мест, срок, продление, тип организации или нужную функцию.", string(msg))
+}
+
+var reAnalog = regexp.MustCompile(`(аналог|замен|альтернатив|вместо|импортозамещ)`)
+
+var reAnalogWord = regexp.MustCompile(`(?:аналог\S*|замен\S*|альтернатив\S*|вместо)\s+(?:для\s+)?([a-zа-яё0-9][a-zа-яё0-9.\-]{2,})`)
+
+// analogWord — «замена teamviewer», «аналог касперского»: что заменяют; "" — реплика не про замену.
+func analogWord(text string) string {
+	if m := reAnalogWord.FindStringSubmatch(guideNorm(text)); m != nil {
+		return m[1]
+	}
+	return ""
+}
+
+// analogFamilies — без заменяемого продукта и его вендора; сначала семейства со сведениями базы знаний.
+func (t *guideTurn) analogFamilies(fams []string) []string {
+	stem := []rune(t.analogWord)
+	if len(stem) > 5 {
+		stem = stem[:5]
+	}
+	var other []string
+	for _, f := range fams {
+		name := guideNorm(t.cat.famName[f] + " " + t.cat.famVend[f])
+		if t.cat.famVend[f] == t.analogOf || strings.Contains(name, string(stem)) {
+			continue
+		}
+		other = append(other, f)
+	}
+	if len(other) == 0 {
+		return fams
+	}
+	// Есть семейства со сведениями базы знаний (Dr.Web, PRO32 вместо Kaspersky) — только они: дешёвый посторонний
+	// товар той же категории фида (контент-фильтр среди антивирусов) заменой не считается.
+	var known []string
+	for _, f := range other {
+		if len(t.kb.byFamily[f]) > 0 {
+			known = append(known, f)
+		}
+	}
+	if len(known) > 0 {
+		return known
+	}
+	// Поиск не поднял ни одного семейства из базы: направление ИБ, где есть заменяемый вендор, без него.
+	if t.analogOf != "" {
+		var same []string
+		order := append([]string{"endpoint"}, t.kb.dirOrder...)
+		for _, id := range order {
+			fs := t.kb.subclasses[id]
+			if len(same) > 0 {
+				break // одно направление: рабочие места прежде шлюзов
+			}
+			has := false
+			for _, f := range fs {
+				has = has || t.cat.famVend[f] == t.analogOf
+			}
+			if !has {
+				continue
+			}
+			for _, f := range fs {
+				if t.cat.famVend[f] != t.analogOf && len(t.cat.byFamily[f]) > 0 && !containsStr(same, f) {
+					same = append(same, f)
+				}
+			}
+		}
+		if len(same) > 0 {
+			return same
+		}
+	}
+	return other
 }
