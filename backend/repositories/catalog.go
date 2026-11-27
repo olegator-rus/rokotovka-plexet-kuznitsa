@@ -54,6 +54,46 @@ func (r *Repos) ReplaceCatalog(ctx context.Context, s *domain.CatalogSnapshot, i
 	})
 }
 
+// ReplaceReferences — только справочники вне фида (связи, клиенты с покупками, правила лицензий и совместимости,
+// определения атрибутов, шаблоны решений) — одной транзакцией, если в базе каталог той же версии. Позиции, вендоры,
+// категории, алиасы, индекс поиска и журналы не трогаются. false — каталог в базе другой версии или пуст.
+func (r *Repos) ReplaceReferences(ctx context.Context, s *domain.CatalogSnapshot) (bool, error) {
+	if !r.Enabled() {
+		return false, ErrNoDatabase
+	}
+	ok := false
+	err := r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		var n int64
+		if err := tx.Model(&domain.Product{}).Where("catalog_version = ?", s.Version).Limit(1).Count(&n).Error; err != nil {
+			return err
+		}
+		if n == 0 {
+			return nil
+		}
+		for _, m := range []any{&domain.Relation{}, &domain.Client{}, &domain.LicenseRule{}, &domain.CompatibilityRule{},
+			&domain.AttributeDefinition{}, &domain.SolutionTemplate{}} {
+			if err := tx.Where("1 = 1").Delete(m).Error; err != nil {
+				return err
+			}
+		}
+		for _, insert := range []func() error{
+			func() error { return createAll(tx, s.Relations) },
+			func() error { return createAll(tx, s.Clients) },
+			func() error { return createAll(tx, s.LicenseRules) },
+			func() error { return createAll(tx, s.CompatibilityRules) },
+			func() error { return createAll(tx, s.AttributeDefinitions) },
+			func() error { return createAll(tx, s.SolutionTemplates) },
+		} {
+			if err := insert(); err != nil {
+				return err
+			}
+		}
+		ok = true
+		return nil
+	})
+	return ok, err
+}
+
 // createAll — вставка среза пачками; пустой срез — ничего.
 func createAll[T any](tx *gorm.DB, rows []T) error {
 	if len(rows) == 0 {

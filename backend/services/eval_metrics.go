@@ -96,7 +96,7 @@ func (c *evalCatalog) familyGrades(q domain.EvalQuery) map[string]int {
 	res := map[string]int{}
 	for pid, g := range q.Judgments {
 		f := c.familyOf(pid)
-		if g > res[f] {
+		if cur, ok := res[f]; !ok || g > cur {
 			res[f] = g
 		}
 	}
@@ -241,9 +241,47 @@ func evalScoreQuery(q domain.EvalQuery, o evalOutcome, cat *evalCatalog) out.Eva
 		rec := float64(found) / float64(len(relevantFamilies))
 		r.Recall50 = &rec
 	}
+	// По семействам: оценка позиции — оценка её семейства (максимум по артикулам), семейство — по первому вхождению.
+	// Разметка с явными нулями (пул судьи) — NDCG по размеченным семействам: неразмеченное семейство не считается
+	// нерелевантным и из списка выпадает (condensed list). Разметка без нулей (по построению, mock) полна — там
+	// неразмеченное значит 0, как раньше.
+	explicitZero := false
+	for _, g := range q.Judgments {
+		explicitZero = explicitZero || g == 0
+	}
+	famSeq := make([]int, 0, len(o.Items))
+	judgedSeq := make([]int, 0, len(o.Items))
+	seenFam := map[string]bool{}
+	for _, it := range o.Items {
+		f := it.FamilyID
+		if f == "" {
+			f = cat.familyOf(it.ProductID)
+		}
+		if seenFam[f] {
+			continue
+		}
+		seenFam[f] = true
+		famSeq = append(famSeq, fam[f])
+		if _, judged := fam[f]; judged || !explicitZero {
+			judgedSeq = append(judgedSeq, fam[f])
+		}
+	}
+	r.NDCG10Family = evalNDCG(judgedSeq, ideal, evalTopK)
 	if slices.Contains(exactTypes, q.Type) {
 		hit := len(grades) > 0 && grades[0] >= exactGrade
 		r.ExactHit = &hit
+	}
+	r.ExpectEmpty = expectsEmpty(q, fam)
+	switch {
+	case r.ExpectEmpty:
+		ok := r.Empty || o.EmptyMarker
+		for _, it := range o.Items {
+			ok = ok || it.Group == domain.GroupAnalog
+		}
+		r.ExpectEmptyOK = &ok
+	case slices.Contains(exactTypes, q.Type):
+		hit := len(famSeq) > 0 && famSeq[0] >= exactGrade
+		r.ExactHitFamily = &hit
 	}
 	if slices.Contains(problemTypes, q.Type) && len(relevantFamilies) > 0 {
 		r.Rescued = &r.HasRelevant
@@ -264,13 +302,31 @@ func evalScoreQuery(q domain.EvalQuery, o evalOutcome, cat *evalCatalog) out.Eva
 				}
 				// Только позиции нужного продукта, не ставшие подходящей альтернативой (оценка ≤1):
 				// чужие продукты штрафует NDCG.
-				if _, judged := fam[cat.familyOf(it.ProductID)]; judged && grades[i] < relevantGrade && cat.violates(p, it.ProductID) {
+				if fam[cat.familyOf(it.ProductID)] > 0 && grades[i] < relevantGrade && cat.violates(p, it.ProductID) {
 					r.Violations++
 				}
 			}
 		}
 	}
 	return r
+}
+
+// expectsEmpty — запрос группы «ожидаем пусто или альтернативу»: товара нет в каталоге (тип absent) или exact/sku,
+// у которого в разметке (клики и судья на пуле топ-10 B0–B4) нет ни одного товара с оценкой > 0. Такие запросы
+// не входят в знаменатель «верное семейство первым»: засчитать там нечего.
+func expectsEmpty(q domain.EvalQuery, fam map[string]int) bool {
+	if q.Absent || q.Type == domain.QueryAbsent {
+		return true
+	}
+	if !slices.Contains(exactTypes, q.Type) {
+		return false
+	}
+	for _, g := range fam {
+		if g > 0 {
+			return false
+		}
+	}
+	return true
 }
 
 // evalAggregate — сводные метрики по результатам запросов.
@@ -281,6 +337,7 @@ func evalAggregate(rs []out.EvalQueryResult) out.EvalMetrics {
 		judgedW, relW                           float64
 		noRel, relTop, ndcg, mrr, rec           evalMean
 		exact, rescued, falseRescue, violations evalMean
+		ndcgFam, exactFam, expectEmpty          evalMean
 		latency                                 []float64
 		byRoute                                 = map[string][]float64{}
 	)
@@ -314,6 +371,15 @@ func evalAggregate(rs []out.EvalQueryResult) out.EvalMetrics {
 		if r.ExactHit != nil {
 			exact.addBool(*r.ExactHit)
 		}
+		if r.NDCG10Family != nil {
+			ndcgFam.add(*r.NDCG10Family)
+		}
+		if r.ExactHitFamily != nil {
+			exactFam.addBool(*r.ExactHitFamily)
+		}
+		if r.ExpectEmptyOK != nil {
+			expectEmpty.addBool(*r.ExpectEmptyOK)
+		}
 		if r.Rescued != nil {
 			rescued.addBool(*r.Rescued)
 		}
@@ -346,6 +412,11 @@ func evalAggregate(rs []out.EvalQueryResult) out.EvalMetrics {
 	m.MRR10 = mrr.value()
 	m.Recall50 = rec.value()
 	m.ExactAccuracy = exact.value()
+	m.NDCG10Family = ndcgFam.value()
+	m.ExactAccuracyFamily = exactFam.value()
+	m.ExactQueries = exactFam.n
+	m.ExpectEmptyOK = expectEmpty.value()
+	m.ExpectEmptyQueries = expectEmpty.n
 	m.RescuedRate = rescued.value()
 	m.FalseRescueRate = falseRescue.value()
 	m.ViolationRate = violations.value()

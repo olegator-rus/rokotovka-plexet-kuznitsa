@@ -462,6 +462,9 @@ func (s *Services) Evaluations(ctx context.Context, set string) (*out.Evaluation
 	if resp.JudgeAgreement, err = s.latestJudge(ctx, set); err != nil {
 		return nil, err
 	}
+	if resp.JudgeCalibration, err = s.latestCalibration(ctx); err != nil {
+		return nil, err
+	}
 	for _, r := range rows {
 		v := out.EvaluationView{
 			RunID: r.RunID, Set: r.Set, SetHash: r.SetHash, Queries: r.Queries, Config: r.Config,

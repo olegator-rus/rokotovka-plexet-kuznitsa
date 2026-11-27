@@ -4,7 +4,8 @@
 #   DATA_SOURCE=generic DATA_MAPPING=../data/softline/mapping.yaml go run . import
 #
 # Откат на mock: DATA_SOURCE=mock go run . import (версия mock-2).
-# Маржи, популярности, заказов, связей, правил лицензий и совместимости в фиде нет — разделов нет, справочники пусты.
+# Маржи, популярности, заказов, связей, правил лицензий и совместимости в фиде нет. Связи, демо-покупатели и шаблоны решений
+# собраны командой (разделы ниже); маржи, заказов и правил лицензий нет — справочники пусты.
 
 version: softline-feed
 base_dir: feed
@@ -66,6 +67,28 @@ promos: ../promos.csv
 # Таблица классов допродажи (контур эталонов, VENDORS.md): класс запроса → класс дополнения → причина на карточке.
 upsell_classes: ../upsell_classes.csv
 upsell_links: ../upsell_links.csv
+
+# Справочники вне фида (собраны командой на товарах фида, не данные заказчика). Читаются импортом в базу; без переимпорта
+# каталога их обновляет `go run . import-refs` (индекс, векторы и журналы не трогает).
+#   relations — «С этим покупают»: генерирует scripts/data/softline_relations.py по классам таблицы допродажи;
+#   clients/purchases — демо-покупатели: вымышленные организации без персональных данных, история на позициях фида;
+#   solution_templates — шаблоны «Закупка под задачу», слоты — категории и запросы фида.
+relations:
+  file: ../relations.csv
+  columns: {id: id, from: from, to: to, to_product: to_product, type: type, note: note, requirement: requirement,
+            compatibility: compatibility, quantity_strategy: quantity_strategy, source: source,
+            evidence_level: evidence_level, review_status: review_status}
+clients:
+  file: ../clients.csv
+  columns: {id: id, name: name, segment: segment}
+purchases:
+  file: ../purchases.csv
+  columns: {client_id: client_id, product: product}
+solution_templates: ../solution_templates.json
+
+# Справка магазина (статьи по разделу «Оплата и доставка» store.softline.ru) — читается API при старте, переимпорт
+# не нужен.
+help: ../help.json
 
 # Наборы оценки «по цели» (контур эталонов, `go run . eval --set etalon|tz|neighbors|understanding|feed_tune|feed_regression`):
 # эталоны заказчика, примеры ТЗ, соседи эталонов, контрольный набор понимания. Путь — от base_dir. Закрытого набора

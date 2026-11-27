@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"kuznica/api/prompts"
 	"kuznica/api/services"
 
 	"go.uber.org/zap"
@@ -221,6 +222,50 @@ func runJudge(ctx context.Context, log *zap.Logger, svc *services.Services, args
 		}
 	}
 	fmt.Print(services.FormatJudgeTable(run))
+}
+
+// runJudgeCalib — `go run . judge-calib [--prompt FILE] [--no-family] [--cache DIR] [--out DIR] [--no-persist]`:
+// калибровка судьи на якорях фида (эталоны заказчика и соседи) — сводка в stdout, judge_runs (набор anchors) и JSON.
+func runJudgeCalib(ctx context.Context, log *zap.Logger, svc *services.Services, args []string) {
+	fs := flag.NewFlagSet("judge-calib", flag.ExitOnError)
+	promptFile := fs.String("prompt", "", "файл промпта судьи вместо действующего (калибровка «до»)")
+	noFamily := fs.Bool("no-family", false, "не передавать судье семейство товара (как до judge-v2)")
+	cacheDir := fs.String("cache", "", "каталог кэша оценок; пусто — без кэша")
+	outDir := fs.String("out", "../data/eval", "куда записать JSON калибровки; пусто — не записывать")
+	noPersist := fs.Bool("no-persist", false, "не записывать результат в базу")
+	_ = fs.Parse(args)
+
+	req := services.JudgeCalibRequest{NoFamily: *noFamily, Persist: !*noPersist, CacheDir: *cacheDir}
+	if *promptFile != "" {
+		raw, err := os.ReadFile(*promptFile)
+		if err != nil {
+			log.Fatal("калибровка судьи: промпт", zap.Error(err))
+		}
+		p := prompts.FromText(string(raw))
+		req.Prompt = &p
+	}
+	svc.LoadCatalogState(ctx)
+	defer svc.Wait()
+	res, err := svc.RunJudgeCalibration(ctx, req)
+	if err != nil {
+		if res == nil {
+			log.Fatal("калибровка судьи", zap.Error(err))
+		}
+		log.Error("калибровка судьи", zap.Error(err))
+	}
+	if *outDir != "" {
+		if err := os.MkdirAll(*outDir, 0o755); err != nil {
+			log.Fatal("калибровка судьи: каталог результатов", zap.Error(err))
+		}
+		raw, err := json.MarshalIndent(res, "", "  ")
+		if err == nil {
+			err = os.WriteFile(filepath.Join(*outDir, "judge-calib-"+res.RunID+".json"), raw, 0o644)
+		}
+		if err != nil {
+			log.Fatal("калибровка судьи: JSON", zap.Error(err))
+		}
+	}
+	fmt.Print(services.FormatJudgeCalibration(res))
 }
 
 // runWarmup — `go run . warmup [--limit 100] [--configs B3,B4] [--days 90]`: прогрев кэша разборов частотными

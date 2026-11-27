@@ -15,13 +15,26 @@ import (
 
 // LoadHelp — help.json: статьи справки.
 func (m MockJSON) LoadHelp(_ context.Context) ([]domain.HelpArticle, error) {
+	return readHelp(filepath.Join(m.Dir, "help.json"))
+}
+
+// LoadHelp — статьи справки из файла mapping.help (формат help.json); поля нет или файла нет — ErrNoFile.
+// Читается при старте API, переимпорт не нужен.
+func (g *Generic) LoadHelp(_ context.Context) ([]domain.HelpArticle, error) {
+	if g.mapping.Help == "" {
+		return nil, ErrNoFile
+	}
+	return readHelp(g.mapping.path(g.mapping.Help))
+}
+
+func readHelp(path string) ([]domain.HelpArticle, error) {
 	var hs []domain.HelpArticle
-	if err := readOptional(filepath.Join(m.Dir, "help.json"), &hs); err != nil {
+	if err := readOptional(path, &hs); err != nil {
 		return nil, err
 	}
 	for i, h := range hs {
 		if h.ID == "" || h.Title == "" || len(h.Triggers) == 0 {
-			return nil, fmt.Errorf("help.json[%d]: пустой id, заголовок или триггеры", i)
+			return nil, fmt.Errorf("%s[%d]: пустой id, заголовок или триггеры", filepath.Base(path), i)
 		}
 	}
 	return hs, nil

@@ -13,8 +13,11 @@ import { LoaderCircle, Play, RotateCcw } from 'lucide-vue-next'
 import { getEvaluations, runEvaluation } from '@/api/evaluations'
 import type { ConfigId, EvalJob } from '@/api/types'
 import BlockError from '@/components/common/BlockError.vue'
+import ExplainDialog, { type Explanation } from '@/components/common/ExplainDialog.vue'
+import StatTile from '@/components/common/StatTile.vue'
 import CommerceTab from '@/components/compare/CommerceTab.vue'
 import JudgeAgreement from '@/components/compare/JudgeAgreement.vue'
+import JudgeCalibration from '@/components/compare/JudgeCalibration.vue'
 import MetricsTable from '@/components/compare/MetricsTable.vue'
 import OneQueryCompare from '@/components/compare/OneQueryCompare.vue'
 import PanelTab from '@/components/compare/PanelTab.vue'
@@ -22,9 +25,17 @@ import RegressionsList from '@/components/compare/RegressionsList.vue'
 import { useToast } from '@/components/ui/useToast'
 import { useResource } from '@/composables/useResource'
 import { type ApiError, isApiError, MSG_UNKNOWN } from '@/lib/apiError'
-import { evalColumns, latestRun, regressionCount, reproducibility, shortHash } from '@/lib/evalView'
+import {
+  evalColumns,
+  familyHeadline,
+  latestRun,
+  regressionCount,
+  reproducibility,
+  shortHash,
+} from '@/lib/evalView'
 import { formatInt, formatMs, plural } from '@/lib/format'
-import { MOCK_RUN_LABEL, catalogLabel, isMockCatalog } from '@/lib/feedSummary'
+import { MOCK_RUN_LABEL, catalogLabel, isMockCatalog, runTail } from '@/lib/feedSummary'
+import { formatMetric, metricDef } from '@/lib/metrics'
 import { isConfigId } from '@/lib/searchState'
 import { useAppStore } from '@/stores/app'
 import { useAuthStore } from '@/stores/auth'
@@ -53,7 +64,54 @@ const latest = computed(() => latestRun(columns.value))
 const mockOnly = computed(
   () => columns.value.length > 0 && columns.value.every((c) => isMockCatalog(c.catalog_version)),
 )
-const judge = computed(() => evals.data.value?.judge_agreement ?? null)
+// Согласие судьи с разметкой — только если судья прогонялся на этом же наборе (тот же хэш); иначе на фиде —
+// калибровка судьи на якорях (эталоны заказчика и соседи).
+const judge = computed(() => {
+  const j = evals.data.value?.judge_agreement ?? null
+  return j && repro.value && j.set === repro.value.set && j.set_hash === repro.value.setHash
+    ? j
+    : null
+})
+const calib = computed(() =>
+  mockOnly.value ? null : (evals.data.value?.judge_calibration ?? null),
+)
+/** Главные числа: «верное семейство первым» и NDCG@10 по семействам. */
+const headline = computed(() => familyHeadline(columns.value))
+const explainOpen = ref(false)
+const explanation = ref<Explanation | null>(null)
+function explainHeadline(key: 'exact_accuracy_family' | 'ndcg10_family') {
+  const h = headline.value
+  if (!h) return
+  const def = metricDef(key)
+  const value = key === 'exact_accuracy_family' ? h.exactFamily : h.ndcgFamily
+  const base = key === 'exact_accuracy_family' ? h.baseExactFamily : h.baseNdcgFamily
+  const rows = [
+    { label: 'Конфигурация', value: h.config },
+    { label: 'Набор', value: `${h.run.set}, ${formatInt(h.run.queries)} запросов` },
+  ]
+  if (key === 'exact_accuracy_family' && h.exactQueries !== null)
+    rows.push({ label: 'Запросов exact/sku в знаменателе', value: formatInt(h.exactQueries) })
+  if (h.baseConfig && base !== null)
+    rows.push({ label: `${h.baseConfig} (исходный поиск)`, value: formatMetric(base, def.format) })
+  rows.push({ label: 'Разметка', value: sourceLine.value })
+  rows.push({ label: 'Прогон', value: runTail(h.run.run_id) })
+  rows.push({ label: 'Каталог', value: catalogLabel(h.run.catalog_version) })
+  explanation.value = {
+    title: `${def.label} · ${h.config}`,
+    value: formatMetric(value, def.format),
+    what: def.what,
+    how: def.how,
+    rows,
+    source: `GET /api/evaluations · прогон ${h.run.run_id}`,
+  }
+  explainOpen.value = true
+}
+/** Откуда разметка: на фиде — клики на боевой выдаче и модель-судья, на mock — по построению. */
+const sourceLine = computed(() =>
+  mockOnly.value
+    ? 'синтетика: один правильный товар задан при генерации запроса — потолок метода'
+    : 'клики на боевой выдаче и LLM-судья на пуле топ-10 B0–B4, счёт по семействам',
+)
 const hasB4 = computed(() => columns.value.some((c) => c.config === 'B4'))
 // Правки B4 из запусков агента до разреза журнала: на test B4 — не независимая оценка (GET /api/evaluations).
 const b4PreHoldout = computed(() => evals.data.value?.agent_credit?.pre_holdout === true)
@@ -267,9 +325,47 @@ onBeforeUnmount(() => {
               Внимание: столбцы посчитаны на разных версиях набора.
             </span>
           </p>
+          <p v-if="!mockOnly" class="t-sm compare__source">
+            Данные заказчика: разметка — клики на боевой выдаче и LLM-судья, счёт по семействам
+            (продукт в любом варианте: срок, число мест, редакция). Это оценка с указанием, откуда
+            она, а не ручная разметка; на синтетике правильный товар задан при генерации, и её числа
+            с этими не сравниваются.
+          </p>
+          <p v-else class="t-sm compare__source">
+            Синтетика: один правильный товар задан при генерации запроса — потолок метода, а не
+            качество на данных заказчика.
+          </p>
+          <div v-if="headline" class="compare__headline">
+            <StatTile
+              :label="`${metricDef('exact_accuracy_family').label} · ${headline.config}`"
+              :value="
+                headline.exactFamily !== null ? formatMetric(headline.exactFamily, 'share') : null
+              "
+              :sub="
+                headline.baseConfig && headline.baseExactFamily !== null
+                  ? `${headline.baseConfig} — ${formatMetric(headline.baseExactFamily, 'share')} · запросы exact/sku`
+                  : 'запросы exact/sku'
+              "
+              missing="не посчитано в этом прогоне"
+              @explain="explainHeadline('exact_accuracy_family')"
+            />
+            <StatTile
+              :label="`${metricDef('ndcg10_family').label} · ${headline.config}`"
+              :value="
+                headline.ndcgFamily !== null ? formatMetric(headline.ndcgFamily, 'score') : null
+              "
+              :sub="
+                headline.baseConfig && headline.baseNdcgFamily !== null
+                  ? `${headline.baseConfig} — ${formatMetric(headline.baseNdcgFamily, 'score')} · все запросы с разметкой`
+                  : 'все запросы с разметкой'
+              "
+              missing="не посчитано в этом прогоне"
+              @explain="explainHeadline('ndcg10_family')"
+            />
+          </div>
           <MetricsTable
             :columns="columns"
-            :judge="judge?.set === repro?.set ? judge : null"
+            :judge="judge"
             :b4-pre-holdout="b4PreHoldout"
             @regressions="onRegressions"
           />
@@ -292,6 +388,7 @@ onBeforeUnmount(() => {
             не их эффект.
           </p>
           <JudgeAgreement v-if="judge" :judge="judge" />
+          <JudgeCalibration v-else-if="calib" :calib="calib" />
           <p
             v-if="evals.status.value === 'error' && evals.error.value"
             class="t-xs compare__stale"
@@ -334,6 +431,7 @@ onBeforeUnmount(() => {
         />
       </div>
     </div>
+    <ExplainDialog v-model:open="explainOpen" :explanation="explanation" />
   </section>
 </template>
 
@@ -396,6 +494,21 @@ onBeforeUnmount(() => {
   gap: var(--space-2);
   padding: var(--space-5);
   color: var(--text-2);
+}
+.compare__source {
+  max-width: 52rem;
+  color: var(--text-2);
+}
+.compare__headline {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-3);
+  max-width: 40rem;
+}
+@media (max-width: 639px) {
+  .compare__headline {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
 .compare__mock {
   padding: var(--space-3) var(--space-4);

@@ -511,8 +511,14 @@ func slotAccepts(cc *commerceCatalog, d indexDoc, sl domain.SolutionSlot, cons s
 	if d.CategoryID != sl.CategoryID && !contains(d.CategoryIDs, sl.CategoryID) {
 		return false
 	}
-	if d.LicenseType == domain.LicenseRenewal || docPriceMode(d) == domain.PriceUnavailable {
+	if d.LicenseType == domain.LicenseRenewal || docPriceMode(d) == domain.PriceUnavailable || notNewLicense[d.LicenseKind] {
 		return false
+	}
+	if notNewLicenseTitle.MatchString(strings.ToLower(d.Title)) {
+		return false // продление, обновление, носитель или лицензия для иностранных лиц без разметки вида в фиде
+	}
+	if feedOrg[d.LicenseOrgType] != "" {
+		return false // вариант фида для образования, госучреждений или НКО: условий организации шаблон не знает
 	}
 	if si.origin == "ru" && d.Origin != "ru" {
 		return false
@@ -544,6 +550,15 @@ func slotAccepts(cc *commerceCatalog, d indexDoc, sl domain.SolutionSlot, cons s
 	}
 	return true
 }
+
+// notNewLicense — вид лицензии фида, который в комплект не берут: продление, обновление, переход, техподдержка,
+// модуль, курс (нужна новая полная лицензия).
+var notNewLicense = map[string]bool{domain.LicenseKindRenewal: true, domain.LicenseKindUpgrade: true,
+	domain.LicenseKindMigration: true, domain.LicenseKindSupport: true, domain.LicenseKindModule: true,
+	domain.LicenseKindCourse: true}
+
+// notNewLicenseTitle — то же по названию позиции, когда вид лицензии в фиде не размечен.
+var notNewLicenseTitle = regexp.MustCompile(`продлени|на обновление|иностранных лиц|дистрибутив|media ?pack|медиапак`)
 
 // filterHolds — числовое условие слота.
 func filterHolds(f in.Filter, v float64) bool {
@@ -609,7 +624,9 @@ func slotQuantity(strategy string, d *indexDoc, seats int) int {
 	if !seatStrategy(strategy) {
 		return 1
 	}
-	if d == nil || d.LicenseQuantity == nil || *d.LicenseQuantity <= 1 || isPerUnit(*d) {
+	// Оборудование — штуками; ступень цены фида («от 10 до 14 узлов») — цена за единицу: N мест — N единиц.
+	if d == nil || d.LicenseQuantity == nil || *d.LicenseQuantity <= 1 || isPerUnit(*d) || d.Kind == domain.KindHardware ||
+		d.LicenseTierMin != nil {
 		return seats
 	}
 	return (seats + *d.LicenseQuantity - 1) / *d.LicenseQuantity
@@ -631,7 +648,7 @@ func fitPack(lx *searchLexicon, head indexDoc, strategy string, seats int, ok fu
 		if isOffer(d) && !isOffer(head) {
 			continue // вариант под сделку или организацию (контур доводки) слоту шаблона не подставляется
 		}
-		if d.PriceRub == nil {
+		if d.PriceRub == nil || !tierHolds(d, seats) {
 			continue
 		}
 		q := slotQuantity(strategy, &d, seats)
@@ -644,11 +661,35 @@ func fitPack(lx *searchLexicon, head indexDoc, strategy string, seats int, ok fu
 			best, bestCost, bestWaste = d, cost, waste
 		}
 	}
+	if math.IsInf(bestCost, 1) && !tierHolds(head, seats) {
+		// Ни одна ступень цены не берёт N мест (меньше нижней ступени): берётся нижняя ступень семейства — меньше
+		// её минимума продавец не продаёт.
+		var low *indexDoc
+		for _, pid := range lx.families[head.FamilyID] {
+			d := lx.docs[pid]
+			if !ok(d) || docEdition(d) != edition || d.LicenseType != head.LicenseType || !sameDuration(d, head) ||
+				!sameMetric(d, head) || d.PriceRub == nil || d.LicenseTierMin == nil || *d.LicenseTierMin <= seats {
+				continue
+			}
+			if low == nil || *d.LicenseTierMin < *low.LicenseTierMin || *d.LicenseTierMin == *low.LicenseTierMin && *d.PriceRub < *low.PriceRub {
+				dd := d
+				low = &dd
+			}
+		}
+		if low != nil {
+			return *low, *low.LicenseTierMin, strategy + ":tier_min"
+		}
+	}
 	rule := strategy
 	if best.ProductID != head.ProductID {
 		rule = strategy + ":cheapest_pack"
 	}
 	return best, slotQuantity(strategy, &best, seats), rule
+}
+
+// tierHolds — у позиции нет ступени цены или N мест в её ступени («от 10 до 14 узлов» — для 12 мест).
+func tierHolds(d indexDoc, seats int) bool {
+	return d.LicenseTierMin == nil || seats >= *d.LicenseTierMin && (d.LicenseTierMax == nil || seats <= *d.LicenseTierMax)
 }
 
 func docEdition(d indexDoc) string { return strings.ToLower(strings.TrimSpace(d.LicenseEdition)) }

@@ -59,6 +59,9 @@ type Mapping struct {
 	// UpsellClasses, UpsellLinks — классы продуктов и таблица классов допродажи (контур эталонов, CSV, upsell.go).
 	UpsellClasses string `yaml:"upsell_classes"`
 	UpsellLinks   string `yaml:"upsell_links"`
+	// Help — статьи справки магазина (JSON в формате data/mock/help.json): читаются при старте API, как lexicon.
+	// Пусто — справки нет.
+	Help string `yaml:"help"`
 	// TargetSets — каталог наборов оценки «по цели» (JSONL: эталоны, примеры ТЗ, соседи, набор понимания; контур эталонов,
 	// eval_target.go). Пусто — наборов нет. Закрытого набора здесь нет: он передаётся явным путём.
 	TargetSets string `yaml:"target_sets"`

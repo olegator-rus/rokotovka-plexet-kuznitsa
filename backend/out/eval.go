@@ -20,8 +20,20 @@ type EvalMetrics struct {
 	MRR10         *float64 `json:"mrr10"`
 	// Recall50 — доля релевантных (≥2) семейств разметки, попавших в топ-50.
 	Recall50 *float64 `json:"recall50"`
-	// ExactAccuracy — exact/sku: на 1-м месте позиция с оценкой 3.
+	// ExactAccuracy — exact/sku: на 1-м месте позиция с оценкой 3 (по артикулу: оценка самой показанной позиции).
 	ExactAccuracy *float64 `json:"exact_accuracy"`
+	// NDCG10Family — NDCG@10 по семействам: оценка семейства — максимум по его артикулам, в выдаче — первое вхождение
+	// семейства; при разметке с явными нулями неразмеченные семейства пропускаются (не считаются нерелевантными).
+	// NDCG10 — прежний счёт: оценка показанного артикула, неразмеченное — 0.
+	NDCG10Family *float64 `json:"ndcg10_family"`
+	// ExactAccuracyFamily — exact/sku: у семейства первой позиции оценка 3 («верное семейство первым»); запросы, для
+	// которых в каталоге нет ни одного товара (ExpectEmpty), в знаменатель не входят. ExactQueries — знаменатель.
+	ExactAccuracyFamily *float64 `json:"exact_accuracy_family"`
+	ExactQueries        int      `json:"exact_queries,omitempty"`
+	// ExpectEmptyOK — запросы «ожидаем пусто или альтернативу» (absent и exact/sku без единой оценки > 0 в разметке):
+	// доля с пустой выдачей, ответом «нет в каталоге» или пометкой аналога. ExpectEmptyQueries — сколько их.
+	ExpectEmptyOK      *float64 `json:"expect_empty_ok"`
+	ExpectEmptyQueries int      `json:"expect_empty_queries,omitempty"`
 	// RescuedRate — проблемные типы (typo/layout/slang/alias_gap/license/analog): релевантное в топ-10.
 	RescuedRate *float64 `json:"rescued_rate"`
 	// FalseRescueRate — absent/noise: выдача непустая, без «нет в каталоге» и без пометки аналога.
@@ -73,11 +85,17 @@ type EvalQueryResult struct {
 	Recall50    *float64 `json:"recall50"`
 	HasRelevant bool     `json:"has_relevant"`
 	ExactHit    *bool    `json:"exact_hit,omitempty"`
-	Rescued     *bool    `json:"rescued,omitempty"`
-	FalseRescue *bool    `json:"false_rescue,omitempty"`
-	Violations  int      `json:"violations"`
-	Ms          float64  `json:"ms"`
-	Error       string   `json:"error,omitempty"`
+	// NDCG10Family, ExactHitFamily — то же по семействам (оценка семейства — максимум по артикулам).
+	NDCG10Family   *float64 `json:"ndcg10_family"`
+	ExactHitFamily *bool    `json:"exact_hit_family,omitempty"`
+	// ExpectEmpty — запрос из группы «ожидаем пусто или альтернативу»; ExpectEmptyOK — выдача пустая или честно помечена.
+	ExpectEmpty   bool    `json:"expect_empty,omitempty"`
+	ExpectEmptyOK *bool   `json:"expect_empty_ok,omitempty"`
+	Rescued       *bool   `json:"rescued,omitempty"`
+	FalseRescue   *bool   `json:"false_rescue,omitempty"`
+	Violations    int     `json:"violations"`
+	Ms            float64 `json:"ms"`
+	Error         string  `json:"error,omitempty"`
 	// Target — вердикт запроса набора «по цели» (eval_target.go); у наборов с оценками 0–3 — nil.
 	Target *TargetQueryResult `json:"target,omitempty"`
 	// Guide — диалог режима подбора в прогоне (guide_eval.go).
@@ -142,6 +160,9 @@ type EvaluationsResponse struct {
 	LastJob *EvalJob         `json:"last_job"`
 	// JudgeAgreement — последний прогон LLM-судьи на наборе; null — судья ещё не запускался.
 	JudgeAgreement *JudgeAgreement `json:"judge_agreement"`
+	// JudgeCalibration — последняя калибровка судьи на якорях (эталоны заказчика и их соседи, `go run . judge-calib`);
+	// null — не запускалась.
+	JudgeCalibration *JudgeCalibration `json:"judge_calibration"`
 	// AgentCredit — честность правок агента в столбце B4 этого набора; null — B3 или B4 на наборе не прогонялись.
 	AgentCredit *EvalAgentCredit `json:"agent_credit"`
 	// Rescued — доля спасённых на реплее отложенной недели: только на holdout_week, иначе null.
@@ -288,4 +309,45 @@ type EffectRescued struct {
 	// оптимистичный сценарии.
 	CILow  float64 `json:"ci_low"`
 	CIHigh float64 `json:"ci_high"`
+}
+
+// JudgeCalibration — калибровка LLM-судьи на якорях фида: цели эталонов заказчика и их соседей должны получить 3,
+// запрещённые соседи (цели якорей других вендоров) — не выше 1. Каппы против кликов здесь нет: она вырождена.
+type JudgeCalibration struct {
+	RunID         string    `json:"run_id"`
+	Model         string    `json:"model"`
+	PromptVersion string    `json:"prompt_version"`
+	CreatedAt     time.Time `json:"created_at"`
+	// WithFamily — в карточке товара судье передавалось семейство.
+	WithFamily bool `json:"with_family"`
+	// Targets — пар «якорь — товар целевого семейства»; TargetsHit — из них с оценкой 3; TargetRate — доля.
+	Targets    int      `json:"targets"`
+	TargetsHit int      `json:"targets_hit"`
+	TargetRate *float64 `json:"target_rate"`
+	// EtalonTargets, EtalonHit — то же только по 10 эталонам заказчика.
+	EtalonTargets int `json:"etalon_targets"`
+	EtalonHit     int `json:"etalon_hit"`
+	// Forbidden — пар «якорь — товар цели другого вендора»; ForbiddenOK — из них с оценкой не выше 1.
+	Forbidden     int      `json:"forbidden"`
+	ForbiddenOK   int      `json:"forbidden_ok"`
+	ForbiddenRate *float64 `json:"forbidden_rate"`
+	// TargetGrades, ForbiddenGrades — распределение оценок судьи 0–3.
+	TargetGrades    [4]int `json:"target_grades"`
+	ForbiddenGrades [4]int `json:"forbidden_grades"`
+	// Unjudged — пар без ответа судьи (в доли не входят).
+	Unjudged   int              `json:"unjudged"`
+	Calls      int              `json:"calls"`
+	CostRub    float64          `json:"cost_rub"`
+	DurationMs int              `json:"duration_ms"`
+	Misses     []JudgeCalibMiss `json:"misses"`
+}
+
+// JudgeCalibMiss — промах калибровки: цель не получила 3 или запрещённый сосед получил больше 1.
+type JudgeCalibMiss struct {
+	Query   string `json:"query"`
+	Product string `json:"product"`
+	Family  string `json:"family"`
+	// Expect — target | forbidden.
+	Expect string `json:"expect"`
+	Grade  int    `json:"grade"`
 }

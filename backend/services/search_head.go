@@ -83,6 +83,12 @@ func (rc rankCtx) headLess(a, b indexDoc) (less, ok bool) {
 	if ba, bb := buyable(a), buyable(b); ba != bb {
 		return ba, true
 	}
+	// Дополнение к уже купленной лицензии («дополнительный хост к лицензии», «на дополнительный IP») и переход с
+	// другого продукта («лицензия перехода с Xspider на XSpider Pro») фид помечает базовыми, но купить их без
+	// основной лицензии нельзя: головой — только если о них просили.
+	if xa, xb := rc.addOnHead(a.Title), rc.addOnHead(b.Title); xa != xb {
+		return xb, true
+	}
 	// Сборка под отдельную платформу («на базе п/а Эльбрус», «для Байкал-М», ARM) — головой, только если
 	// платформу назвали: «астра линукс» — это x86-64, а не редакция для Эльбруса.
 	if pa, pb := rc.otherPlatform(a.Title), rc.otherPlatform(b.Title); pa != pb {
@@ -148,6 +154,59 @@ func (rc rankCtx) otherPlatform(title string) bool {
 				}
 			}
 			return true
+		}
+	}
+	return false
+}
+
+// addOnUnits — что докупается к основной лицензии словом «дополнительный»: хост, IP, узел, компонент.
+var addOnUnits = []string{"хост", "ip", "узел", "узл", "компонент"}
+
+// addOnTitle — позиция — дополнение к уже купленной лицензии: «… к лицензии …» или «дополнительный хост / IP /
+// узел / компонент». «Дополнительная защита» — редакция, а не дополнение.
+func addOnTitle(title string) bool {
+	ws := wordsOf(title)
+	for i, w := range ws {
+		if w == "к" && i+1 < len(ws) && strings.HasPrefix(ws[i+1], "лицензи") {
+			return true
+		}
+		if strings.HasPrefix(w, "дополнительн") && i+1 < len(ws) {
+			for _, u := range addOnUnits {
+				if strings.HasPrefix(ws[i+1], u) {
+					return true
+				}
+			}
+		}
+	}
+	return false
+}
+
+// addOnHead — позиция не годится в головы семейства: дополнение или переход, о которых запрос не просил.
+func (rc rankCtx) addOnHead(title string) bool {
+	if addOnTitle(title) {
+		return !rc.asksAddOn()
+	}
+	return migrationTitle(title) && !rc.wantKinds[domain.LicenseKindMigration]
+}
+
+// migrationTitle — переход с другого продукта: «лицензия перехода с …», «переход с …».
+func migrationTitle(title string) bool {
+	ws := wordsOf(title)
+	for i, w := range ws {
+		if (w == "перехода" || w == "переход") && i+1 < len(ws) && (ws[i+1] == "с" || ws[i+1] == "со") {
+			return true
+		}
+	}
+	return false
+}
+
+// asksAddOn — запрос сам называет дополнение («дополнительный хост xspider», «докупить ip»).
+func (rc rankCtx) asksAddOn() bool {
+	for _, t := range rc.ent.textTokens {
+		for _, w := range wordsOf(t) {
+			if strings.HasPrefix(w, "дополнительн") || strings.HasPrefix(w, "докуп") {
+				return true
+			}
 		}
 	}
 	return false

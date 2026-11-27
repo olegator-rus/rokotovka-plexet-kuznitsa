@@ -143,7 +143,7 @@ func normalizeFull(q string, lx *searchLexicon, rules *searchRules, asTyped bool
 	original := append([]string(nil), tokens...)
 	conf := ""
 	if lx != nil && !asTyped {
-		tokens = fixHomoglyphs(tokens, &res)
+		tokens = fixHomoglyphs(tokens, rules, &res)
 		tokens = fixLayoutWith(tokens, lx, rules, &res)
 		for i, t := range tokens {
 			if isProtectedToken(t) {
@@ -265,12 +265,15 @@ var homoglyphs = map[rune]rune{
 
 // fixHomoglyphs — слово из латиницы с вкраплением похожих кириллических букв («prо» с русской «о»)
 // приводится к латинице, и наоборот. Цифры не трогаются («1с» остаётся).
-func fixHomoglyphs(tokens []string, res *normResult) []string {
+func fixHomoglyphs(tokens []string, rules *searchRules, res *normResult) []string {
 	back := map[rune]rune{}
 	for c, l := range homoglyphs {
 		back[l] = c
 	}
 	for i, t := range tokens {
+		if rules != nil && rules.aliases[t].Alias != "" {
+			continue // «о365» — запись словаря (Microsoft 365), а не номер с буквой вместо нуля
+		}
 		if n := digitsWithO(t); n != "" {
 			// «2о21», «2o19»: буква «о» вместо нуля в номере версии.
 			res.changes = append(res.changes, domain.Change{Kind: changeTypo, From: t, To: n})
@@ -571,8 +574,10 @@ func applyAliases(tokens []string, rules *searchRules, res *normResult, lx *sear
 			if !ok {
 				continue
 			}
-			if n == 1 && placeWord(tokens, i, rules.categories[lexiconKey(a.Alias)], lx) {
-				continue // «в офисе», «для офиса», «защита … офис»: место или назначение, а не офисный пакет
+			if n == 1 && a.Kind != domain.LexiconSuccessor && placeWord(tokens, i, rules.categories[lexiconKey(a.Alias)], lx) {
+				// «в офисе», «для офиса», «защита … офис»: место или назначение, а не офисный пакет. Преемник называет
+				// продукт («zoom конференции»), а не место: подставляется всегда.
+				continue
 			}
 			to := aliasReplacement(key, a, lx)
 			// Замена сама — ключ алиаса («drweb» → «доктор веб» → «dr.web»): ещё один шаг, иначе слова замены

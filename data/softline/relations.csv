@@ -1,0 +1,318 @@
+id,from,to,to_product,type,note,requirement,compatibility,quantity_strategy,source,evidence_level,review_status,anchor_class,target_class
+rel-sl-0001,offer-461266,391338,473582,complement,Офисный пакет для рабочего места,recommended,unknown,per_device,catalog_rule,B,approved,workstation,office
+rel-sl-0002,offer-461266,3953,4982,complement,Защита рабочего места,recommended,unknown,per_device,catalog_rule,B,approved,workstation,antivirus
+rel-sl-0003,offer-461273,391338,473582,complement,Офисный пакет для рабочего места,recommended,unknown,per_device,catalog_rule,B,approved,workstation,office
+rel-sl-0004,offer-461273,3953,4982,complement,Защита рабочего места,recommended,unknown,per_device,catalog_rule,B,approved,workstation,antivirus
+rel-sl-0005,offer-516844,286676,380385,complement,"Операционная система, если компьютер без ОС",recommended,unknown,per_device,catalog_rule,B,approved,workstation,os
+rel-sl-0006,offer-516844,121231,517989,complement,"Российская ОС, если компьютер без ОС",recommended,unknown,per_device,catalog_rule,B,approved,workstation,os
+rel-sl-0007,offer-516844,391338,473582,complement,Офисный пакет для рабочего места,recommended,unknown,per_device,catalog_rule,B,approved,workstation,office
+rel-sl-0008,offer-516844,3953,4982,complement,Защита рабочего места,recommended,unknown,per_device,catalog_rule,B,approved,workstation,antivirus
+rel-sl-0009,offer-494401,286676,380385,complement,"Операционная система, если компьютер без ОС",recommended,unknown,per_device,catalog_rule,B,approved,workstation,os
+rel-sl-0010,offer-494401,121231,517989,complement,"Российская ОС, если компьютер без ОС",recommended,unknown,per_device,catalog_rule,B,approved,workstation,os
+rel-sl-0011,offer-494401,391338,473582,complement,Офисный пакет для рабочего места,recommended,unknown,per_device,catalog_rule,B,approved,workstation,office
+rel-sl-0012,offer-494401,3953,4982,complement,Защита рабочего места,recommended,unknown,per_device,catalog_rule,B,approved,workstation,antivirus
+rel-sl-0013,offer-494795,286676,380385,complement,"Операционная система, если компьютер без ОС",recommended,unknown,per_device,catalog_rule,B,approved,workstation,os
+rel-sl-0014,offer-494795,121231,517989,complement,"Российская ОС, если компьютер без ОС",recommended,unknown,per_device,catalog_rule,B,approved,workstation,os
+rel-sl-0015,offer-494795,391338,473582,complement,Офисный пакет для рабочего места,recommended,unknown,per_device,catalog_rule,B,approved,workstation,office
+rel-sl-0016,offer-494795,3953,4982,complement,Защита рабочего места,recommended,unknown,per_device,catalog_rule,B,approved,workstation,antivirus
+rel-sl-0017,offer-459235,286676,380385,complement,"Операционная система, если компьютер без ОС",recommended,unknown,per_device,catalog_rule,B,approved,workstation,os
+rel-sl-0018,offer-459235,121231,517989,complement,"Российская ОС, если компьютер без ОС",recommended,unknown,per_device,catalog_rule,B,approved,workstation,os
+rel-sl-0019,offer-459235,391338,473582,complement,Офисный пакет для рабочего места,recommended,unknown,per_device,catalog_rule,B,approved,workstation,office
+rel-sl-0020,offer-459235,3953,4982,complement,Защита рабочего места,recommended,unknown,per_device,catalog_rule,B,approved,workstation,antivirus
+rel-sl-0021,offer-448457,391338,473582,complement,Офисный пакет для рабочего места,recommended,unknown,per_device,catalog_rule,B,approved,workstation,office
+rel-sl-0022,offer-448457,3953,4982,complement,Защита рабочего места,recommended,unknown,per_device,catalog_rule,B,approved,workstation,antivirus
+rel-sl-0023,offer-448460,391338,473582,complement,Офисный пакет для рабочего места,recommended,unknown,per_device,catalog_rule,B,approved,workstation,office
+rel-sl-0024,offer-448460,3953,4982,complement,Защита рабочего места,recommended,unknown,per_device,catalog_rule,B,approved,workstation,antivirus
+rel-sl-0025,offer-471797,391338,473582,complement,Офисный пакет для рабочего места,recommended,unknown,per_device,catalog_rule,B,approved,workstation,office
+rel-sl-0026,offer-471797,3953,4982,complement,Защита рабочего места,recommended,unknown,per_device,catalog_rule,B,approved,workstation,antivirus
+rel-sl-0027,offer-487394,391338,473582,complement,Офисный пакет для рабочего места,recommended,unknown,per_device,catalog_rule,B,approved,workstation,office
+rel-sl-0028,offer-487394,3953,4982,complement,Защита рабочего места,recommended,unknown,per_device,catalog_rule,B,approved,workstation,antivirus
+rel-sl-0029,offer-533029,286676,380385,complement,"Операционная система, если компьютер без ОС",recommended,unknown,per_device,catalog_rule,B,approved,workstation,os
+rel-sl-0030,offer-533029,121231,517989,complement,"Российская ОС, если компьютер без ОС",recommended,unknown,per_device,catalog_rule,B,approved,workstation,os
+rel-sl-0031,offer-533029,391338,473582,complement,Офисный пакет для рабочего места,recommended,unknown,per_device,catalog_rule,B,approved,workstation,office
+rel-sl-0032,offer-533029,3953,4982,complement,Защита рабочего места,recommended,unknown,per_device,catalog_rule,B,approved,workstation,antivirus
+rel-sl-0033,offer-474351,286676,380385,complement,"Операционная система, если компьютер без ОС",recommended,unknown,per_device,catalog_rule,B,approved,workstation,os
+rel-sl-0034,offer-474351,121231,517989,complement,"Российская ОС, если компьютер без ОС",recommended,unknown,per_device,catalog_rule,B,approved,workstation,os
+rel-sl-0035,offer-474351,391338,473582,complement,Офисный пакет для рабочего места,recommended,unknown,per_device,catalog_rule,B,approved,workstation,office
+rel-sl-0036,offer-474351,3953,4982,complement,Защита рабочего места,recommended,unknown,per_device,catalog_rule,B,approved,workstation,antivirus
+rel-sl-0037,offer-531488,391338,473582,complement,Офисный пакет для рабочего места,recommended,unknown,per_device,catalog_rule,B,approved,workstation,office
+rel-sl-0038,offer-531488,3953,4982,complement,Защита рабочего места,recommended,unknown,per_device,catalog_rule,B,approved,workstation,antivirus
+rel-sl-0039,offer-486508,286676,380385,complement,"Операционная система, если компьютер без ОС",recommended,unknown,per_device,catalog_rule,B,approved,workstation,os
+rel-sl-0040,offer-486508,121231,517989,complement,"Российская ОС, если компьютер без ОС",recommended,unknown,per_device,catalog_rule,B,approved,workstation,os
+rel-sl-0041,offer-486508,391338,473582,complement,Офисный пакет для рабочего места,recommended,unknown,per_device,catalog_rule,B,approved,workstation,office
+rel-sl-0042,offer-486508,3953,4982,complement,Защита рабочего места,recommended,unknown,per_device,catalog_rule,B,approved,workstation,antivirus
+rel-sl-0043,offer-529826,286676,380385,complement,"Операционная система, если компьютер без ОС",recommended,unknown,per_device,catalog_rule,B,approved,workstation,os
+rel-sl-0044,offer-529826,121231,517989,complement,"Российская ОС, если компьютер без ОС",recommended,unknown,per_device,catalog_rule,B,approved,workstation,os
+rel-sl-0045,offer-529826,391338,473582,complement,Офисный пакет для рабочего места,recommended,unknown,per_device,catalog_rule,B,approved,workstation,office
+rel-sl-0046,offer-529826,3953,4982,complement,Защита рабочего места,recommended,unknown,per_device,catalog_rule,B,approved,workstation,antivirus
+rel-sl-0047,offer-529787,286676,380385,complement,"Операционная система, если компьютер без ОС",recommended,unknown,per_device,catalog_rule,B,approved,workstation,os
+rel-sl-0048,offer-529787,121231,517989,complement,"Российская ОС, если компьютер без ОС",recommended,unknown,per_device,catalog_rule,B,approved,workstation,os
+rel-sl-0049,offer-529787,391338,473582,complement,Офисный пакет для рабочего места,recommended,unknown,per_device,catalog_rule,B,approved,workstation,office
+rel-sl-0050,offer-529787,3953,4982,complement,Защита рабочего места,recommended,unknown,per_device,catalog_rule,B,approved,workstation,antivirus
+rel-sl-0051,offer-496935,286676,380385,complement,"Операционная система, если компьютер без ОС",recommended,unknown,per_device,catalog_rule,B,approved,workstation,os
+rel-sl-0052,offer-496935,121231,517989,complement,"Российская ОС, если компьютер без ОС",recommended,unknown,per_device,catalog_rule,B,approved,workstation,os
+rel-sl-0053,offer-496935,391338,473582,complement,Офисный пакет для рабочего места,recommended,unknown,per_device,catalog_rule,B,approved,workstation,office
+rel-sl-0054,offer-496935,3953,4982,complement,Защита рабочего места,recommended,unknown,per_device,catalog_rule,B,approved,workstation,antivirus
+rel-sl-0055,offer-496936,286676,380385,complement,"Операционная система, если компьютер без ОС",recommended,unknown,per_device,catalog_rule,B,approved,workstation,os
+rel-sl-0056,offer-496936,121231,517989,complement,"Российская ОС, если компьютер без ОС",recommended,unknown,per_device,catalog_rule,B,approved,workstation,os
+rel-sl-0057,offer-496936,391338,473582,complement,Офисный пакет для рабочего места,recommended,unknown,per_device,catalog_rule,B,approved,workstation,office
+rel-sl-0058,offer-496936,3953,4982,complement,Защита рабочего места,recommended,unknown,per_device,catalog_rule,B,approved,workstation,antivirus
+rel-sl-0059,offer-495888,286676,380385,complement,"Операционная система, если компьютер без ОС",recommended,unknown,per_device,catalog_rule,B,approved,workstation,os
+rel-sl-0060,offer-495888,121231,517989,complement,"Российская ОС, если компьютер без ОС",recommended,unknown,per_device,catalog_rule,B,approved,workstation,os
+rel-sl-0061,offer-495888,391338,473582,complement,Офисный пакет для рабочего места,recommended,unknown,per_device,catalog_rule,B,approved,workstation,office
+rel-sl-0062,offer-495888,3953,4982,complement,Защита рабочего места,recommended,unknown,per_device,catalog_rule,B,approved,workstation,antivirus
+rel-sl-0063,offer-538620,286676,380385,complement,"Операционная система, если компьютер без ОС",recommended,unknown,per_device,catalog_rule,B,approved,workstation,os
+rel-sl-0064,offer-538620,121231,517989,complement,"Российская ОС, если компьютер без ОС",recommended,unknown,per_device,catalog_rule,B,approved,workstation,os
+rel-sl-0065,offer-538620,391338,473582,complement,Офисный пакет для рабочего места,recommended,unknown,per_device,catalog_rule,B,approved,workstation,office
+rel-sl-0066,offer-538620,3953,4982,complement,Защита рабочего места,recommended,unknown,per_device,catalog_rule,B,approved,workstation,antivirus
+rel-sl-0067,offer-498943,286676,380385,complement,"Операционная система, если компьютер без ОС",recommended,unknown,per_device,catalog_rule,B,approved,workstation,os
+rel-sl-0068,offer-498943,121231,517989,complement,"Российская ОС, если компьютер без ОС",recommended,unknown,per_device,catalog_rule,B,approved,workstation,os
+rel-sl-0069,offer-498943,391338,473582,complement,Офисный пакет для рабочего места,recommended,unknown,per_device,catalog_rule,B,approved,workstation,office
+rel-sl-0070,offer-498943,3953,4982,complement,Защита рабочего места,recommended,unknown,per_device,catalog_rule,B,approved,workstation,antivirus
+rel-sl-0071,offer-498152,286676,380385,complement,"Операционная система, если компьютер без ОС",recommended,unknown,per_device,catalog_rule,B,approved,workstation,os
+rel-sl-0072,offer-498152,121231,517989,complement,"Российская ОС, если компьютер без ОС",recommended,unknown,per_device,catalog_rule,B,approved,workstation,os
+rel-sl-0073,offer-498152,391338,473582,complement,Офисный пакет для рабочего места,recommended,unknown,per_device,catalog_rule,B,approved,workstation,office
+rel-sl-0074,offer-498152,3953,4982,complement,Защита рабочего места,recommended,unknown,per_device,catalog_rule,B,approved,workstation,antivirus
+rel-sl-0075,offer-539692,286676,380385,complement,"Операционная система, если компьютер без ОС",recommended,unknown,per_device,catalog_rule,B,approved,workstation,os
+rel-sl-0076,offer-539692,121231,517989,complement,"Российская ОС, если компьютер без ОС",recommended,unknown,per_device,catalog_rule,B,approved,workstation,os
+rel-sl-0077,offer-539692,391338,473582,complement,Офисный пакет для рабочего места,recommended,unknown,per_device,catalog_rule,B,approved,workstation,office
+rel-sl-0078,offer-539692,3953,4982,complement,Защита рабочего места,recommended,unknown,per_device,catalog_rule,B,approved,workstation,antivirus
+rel-sl-0079,offer-496397,286676,380385,complement,"Операционная система, если компьютер без ОС",recommended,unknown,per_device,catalog_rule,B,approved,workstation,os
+rel-sl-0080,offer-496397,121231,517989,complement,"Российская ОС, если компьютер без ОС",recommended,unknown,per_device,catalog_rule,B,approved,workstation,os
+rel-sl-0081,offer-496397,391338,473582,complement,Офисный пакет для рабочего места,recommended,unknown,per_device,catalog_rule,B,approved,workstation,office
+rel-sl-0082,offer-496397,3953,4982,complement,Защита рабочего места,recommended,unknown,per_device,catalog_rule,B,approved,workstation,antivirus
+rel-sl-0083,offer-530901,286676,380385,complement,"Операционная система, если компьютер без ОС",recommended,unknown,per_device,catalog_rule,B,approved,workstation,os
+rel-sl-0084,offer-530901,121231,517989,complement,"Российская ОС, если компьютер без ОС",recommended,unknown,per_device,catalog_rule,B,approved,workstation,os
+rel-sl-0085,offer-530901,391338,473582,complement,Офисный пакет для рабочего места,recommended,unknown,per_device,catalog_rule,B,approved,workstation,office
+rel-sl-0086,offer-530901,3953,4982,complement,Защита рабочего места,recommended,unknown,per_device,catalog_rule,B,approved,workstation,antivirus
+rel-sl-0087,offer-541868,286676,380385,complement,"Операционная система, если компьютер без ОС",recommended,unknown,per_device,catalog_rule,B,approved,workstation,os
+rel-sl-0088,offer-541868,121231,517989,complement,"Российская ОС, если компьютер без ОС",recommended,unknown,per_device,catalog_rule,B,approved,workstation,os
+rel-sl-0089,offer-541868,391338,473582,complement,Офисный пакет для рабочего места,recommended,unknown,per_device,catalog_rule,B,approved,workstation,office
+rel-sl-0090,offer-541868,3953,4982,complement,Защита рабочего места,recommended,unknown,per_device,catalog_rule,B,approved,workstation,antivirus
+rel-sl-0091,offer-532884,391338,473582,complement,Офисный пакет для рабочего места,recommended,unknown,per_device,catalog_rule,B,approved,workstation,office
+rel-sl-0092,offer-532884,3953,4982,complement,Защита рабочего места,recommended,unknown,per_device,catalog_rule,B,approved,workstation,antivirus
+rel-sl-0093,offer-504258,286676,380385,complement,"Операционная система, если компьютер без ОС",recommended,unknown,per_device,catalog_rule,B,approved,workstation,os
+rel-sl-0094,offer-504258,121231,517989,complement,"Российская ОС, если компьютер без ОС",recommended,unknown,per_device,catalog_rule,B,approved,workstation,os
+rel-sl-0095,offer-504258,391338,473582,complement,Офисный пакет для рабочего места,recommended,unknown,per_device,catalog_rule,B,approved,workstation,office
+rel-sl-0096,offer-504258,3953,4982,complement,Защита рабочего места,recommended,unknown,per_device,catalog_rule,B,approved,workstation,antivirus
+rel-sl-0097,offer-504261,286676,380385,complement,"Операционная система, если компьютер без ОС",recommended,unknown,per_device,catalog_rule,B,approved,workstation,os
+rel-sl-0098,offer-504261,121231,517989,complement,"Российская ОС, если компьютер без ОС",recommended,unknown,per_device,catalog_rule,B,approved,workstation,os
+rel-sl-0099,offer-504261,391338,473582,complement,Офисный пакет для рабочего места,recommended,unknown,per_device,catalog_rule,B,approved,workstation,office
+rel-sl-0100,offer-504261,3953,4982,complement,Защита рабочего места,recommended,unknown,per_device,catalog_rule,B,approved,workstation,antivirus
+rel-sl-0101,offer-509909,286676,380385,complement,"Операционная система, если компьютер без ОС",recommended,unknown,per_device,catalog_rule,B,approved,workstation,os
+rel-sl-0102,offer-509909,121231,517989,complement,"Российская ОС, если компьютер без ОС",recommended,unknown,per_device,catalog_rule,B,approved,workstation,os
+rel-sl-0103,offer-509909,391338,473582,complement,Офисный пакет для рабочего места,recommended,unknown,per_device,catalog_rule,B,approved,workstation,office
+rel-sl-0104,offer-509909,3953,4982,complement,Защита рабочего места,recommended,unknown,per_device,catalog_rule,B,approved,workstation,antivirus
+rel-sl-0105,offer-489135,286676,380385,complement,"Операционная система, если компьютер без ОС",recommended,unknown,per_device,catalog_rule,B,approved,workstation,os
+rel-sl-0106,offer-489135,121231,517989,complement,"Российская ОС, если компьютер без ОС",recommended,unknown,per_device,catalog_rule,B,approved,workstation,os
+rel-sl-0107,offer-489135,391338,473582,complement,Офисный пакет для рабочего места,recommended,unknown,per_device,catalog_rule,B,approved,workstation,office
+rel-sl-0108,offer-489135,3953,4982,complement,Защита рабочего места,recommended,unknown,per_device,catalog_rule,B,approved,workstation,antivirus
+rel-sl-0109,offer-501702,286676,380385,complement,"Операционная система, если компьютер без ОС",recommended,unknown,per_device,catalog_rule,B,approved,workstation,os
+rel-sl-0110,offer-501702,121231,517989,complement,"Российская ОС, если компьютер без ОС",recommended,unknown,per_device,catalog_rule,B,approved,workstation,os
+rel-sl-0111,offer-501702,391338,473582,complement,Офисный пакет для рабочего места,recommended,unknown,per_device,catalog_rule,B,approved,workstation,office
+rel-sl-0112,offer-501702,3953,4982,complement,Защита рабочего места,recommended,unknown,per_device,catalog_rule,B,approved,workstation,antivirus
+rel-sl-0113,offer-530949,286676,380385,complement,"Операционная система, если компьютер без ОС",recommended,unknown,per_device,catalog_rule,B,approved,workstation,os
+rel-sl-0114,offer-530949,121231,517989,complement,"Российская ОС, если компьютер без ОС",recommended,unknown,per_device,catalog_rule,B,approved,workstation,os
+rel-sl-0115,offer-530949,391338,473582,complement,Офисный пакет для рабочего места,recommended,unknown,per_device,catalog_rule,B,approved,workstation,office
+rel-sl-0116,offer-530949,3953,4982,complement,Защита рабочего места,recommended,unknown,per_device,catalog_rule,B,approved,workstation,antivirus
+rel-sl-0117,offer-460304,286676,380385,complement,"Операционная система, если компьютер без ОС",recommended,unknown,per_device,catalog_rule,B,approved,workstation,os
+rel-sl-0118,offer-460304,121231,517989,complement,"Российская ОС, если компьютер без ОС",recommended,unknown,per_device,catalog_rule,B,approved,workstation,os
+rel-sl-0119,offer-460304,391338,473582,complement,Офисный пакет для рабочего места,recommended,unknown,per_device,catalog_rule,B,approved,workstation,office
+rel-sl-0120,offer-460304,3953,4982,complement,Защита рабочего места,recommended,unknown,per_device,catalog_rule,B,approved,workstation,antivirus
+rel-sl-0121,offer-436655,286676,380385,complement,"Операционная система, если компьютер без ОС",recommended,unknown,per_device,catalog_rule,B,approved,workstation,os
+rel-sl-0122,offer-436655,121231,517989,complement,"Российская ОС, если компьютер без ОС",recommended,unknown,per_device,catalog_rule,B,approved,workstation,os
+rel-sl-0123,offer-436655,391338,473582,complement,Офисный пакет для рабочего места,recommended,unknown,per_device,catalog_rule,B,approved,workstation,office
+rel-sl-0124,offer-436655,3953,4982,complement,Защита рабочего места,recommended,unknown,per_device,catalog_rule,B,approved,workstation,antivirus
+rel-sl-0125,offer-529722,286676,380385,complement,"Операционная система, если компьютер без ОС",recommended,unknown,per_device,catalog_rule,B,approved,workstation,os
+rel-sl-0126,offer-529722,121231,517989,complement,"Российская ОС, если компьютер без ОС",recommended,unknown,per_device,catalog_rule,B,approved,workstation,os
+rel-sl-0127,offer-529722,391338,473582,complement,Офисный пакет для рабочего места,recommended,unknown,per_device,catalog_rule,B,approved,workstation,office
+rel-sl-0128,offer-529722,3953,4982,complement,Защита рабочего места,recommended,unknown,per_device,catalog_rule,B,approved,workstation,antivirus
+rel-sl-0129,offer-533072,286676,380385,complement,"Операционная система, если компьютер без ОС",recommended,unknown,per_device,catalog_rule,B,approved,workstation,os
+rel-sl-0130,offer-533072,121231,517989,complement,"Российская ОС, если компьютер без ОС",recommended,unknown,per_device,catalog_rule,B,approved,workstation,os
+rel-sl-0131,offer-533072,391338,473582,complement,Офисный пакет для рабочего места,recommended,unknown,per_device,catalog_rule,B,approved,workstation,office
+rel-sl-0132,offer-533072,3953,4982,complement,Защита рабочего места,recommended,unknown,per_device,catalog_rule,B,approved,workstation,antivirus
+rel-sl-0133,offer-529720,286676,380385,complement,"Операционная система, если компьютер без ОС",recommended,unknown,per_device,catalog_rule,B,approved,workstation,os
+rel-sl-0134,offer-529720,121231,517989,complement,"Российская ОС, если компьютер без ОС",recommended,unknown,per_device,catalog_rule,B,approved,workstation,os
+rel-sl-0135,offer-529720,391338,473582,complement,Офисный пакет для рабочего места,recommended,unknown,per_device,catalog_rule,B,approved,workstation,office
+rel-sl-0136,offer-529720,3953,4982,complement,Защита рабочего места,recommended,unknown,per_device,catalog_rule,B,approved,workstation,antivirus
+rel-sl-0137,offer-529712,286676,380385,complement,"Операционная система, если компьютер без ОС",recommended,unknown,per_device,catalog_rule,B,approved,workstation,os
+rel-sl-0138,offer-529712,121231,517989,complement,"Российская ОС, если компьютер без ОС",recommended,unknown,per_device,catalog_rule,B,approved,workstation,os
+rel-sl-0139,offer-529712,391338,473582,complement,Офисный пакет для рабочего места,recommended,unknown,per_device,catalog_rule,B,approved,workstation,office
+rel-sl-0140,offer-529712,3953,4982,complement,Защита рабочего места,recommended,unknown,per_device,catalog_rule,B,approved,workstation,antivirus
+rel-sl-0141,offer-501525,286676,380385,complement,"Операционная система, если компьютер без ОС",recommended,unknown,per_device,catalog_rule,B,approved,workstation,os
+rel-sl-0142,offer-501525,121231,517989,complement,"Российская ОС, если компьютер без ОС",recommended,unknown,per_device,catalog_rule,B,approved,workstation,os
+rel-sl-0143,offer-501525,391338,473582,complement,Офисный пакет для рабочего места,recommended,unknown,per_device,catalog_rule,B,approved,workstation,office
+rel-sl-0144,offer-501525,3953,4982,complement,Защита рабочего места,recommended,unknown,per_device,catalog_rule,B,approved,workstation,antivirus
+rel-sl-0145,offer-501527,286676,380385,complement,"Операционная система, если компьютер без ОС",recommended,unknown,per_device,catalog_rule,B,approved,workstation,os
+rel-sl-0146,offer-501527,121231,517989,complement,"Российская ОС, если компьютер без ОС",recommended,unknown,per_device,catalog_rule,B,approved,workstation,os
+rel-sl-0147,offer-501527,391338,473582,complement,Офисный пакет для рабочего места,recommended,unknown,per_device,catalog_rule,B,approved,workstation,office
+rel-sl-0148,offer-501527,3953,4982,complement,Защита рабочего места,recommended,unknown,per_device,catalog_rule,B,approved,workstation,antivirus
+rel-sl-0149,offer-501743,286676,380385,complement,"Операционная система, если компьютер без ОС",recommended,unknown,per_device,catalog_rule,B,approved,workstation,os
+rel-sl-0150,offer-501743,121231,517989,complement,"Российская ОС, если компьютер без ОС",recommended,unknown,per_device,catalog_rule,B,approved,workstation,os
+rel-sl-0151,offer-501743,391338,473582,complement,Офисный пакет для рабочего места,recommended,unknown,per_device,catalog_rule,B,approved,workstation,office
+rel-sl-0152,offer-501743,3953,4982,complement,Защита рабочего места,recommended,unknown,per_device,catalog_rule,B,approved,workstation,antivirus
+rel-sl-0153,offer-501526,286676,380385,complement,"Операционная система, если компьютер без ОС",recommended,unknown,per_device,catalog_rule,B,approved,workstation,os
+rel-sl-0154,offer-501526,121231,517989,complement,"Российская ОС, если компьютер без ОС",recommended,unknown,per_device,catalog_rule,B,approved,workstation,os
+rel-sl-0155,offer-501526,391338,473582,complement,Офисный пакет для рабочего места,recommended,unknown,per_device,catalog_rule,B,approved,workstation,office
+rel-sl-0156,offer-501526,3953,4982,complement,Защита рабочего места,recommended,unknown,per_device,catalog_rule,B,approved,workstation,antivirus
+rel-sl-0157,offer-501826,286676,380385,complement,"Операционная система, если компьютер без ОС",recommended,unknown,per_device,catalog_rule,B,approved,workstation,os
+rel-sl-0158,offer-501826,121231,517989,complement,"Российская ОС, если компьютер без ОС",recommended,unknown,per_device,catalog_rule,B,approved,workstation,os
+rel-sl-0159,offer-501826,391338,473582,complement,Офисный пакет для рабочего места,recommended,unknown,per_device,catalog_rule,B,approved,workstation,office
+rel-sl-0160,offer-501826,3953,4982,complement,Защита рабочего места,recommended,unknown,per_device,catalog_rule,B,approved,workstation,antivirus
+rel-sl-0161,offer-476180,286676,380385,complement,"Операционная система, если компьютер без ОС",recommended,unknown,per_device,catalog_rule,B,approved,workstation,os
+rel-sl-0162,offer-476180,121231,517989,complement,"Российская ОС, если компьютер без ОС",recommended,unknown,per_device,catalog_rule,B,approved,workstation,os
+rel-sl-0163,offer-476180,391338,473582,complement,Офисный пакет для рабочего места,recommended,unknown,per_device,catalog_rule,B,approved,workstation,office
+rel-sl-0164,offer-476180,3953,4982,complement,Защита рабочего места,recommended,unknown,per_device,catalog_rule,B,approved,workstation,antivirus
+rel-sl-0165,offer-491771,286676,380385,complement,"Операционная система, если компьютер без ОС",recommended,unknown,per_device,catalog_rule,B,approved,workstation,os
+rel-sl-0166,offer-491771,121231,517989,complement,"Российская ОС, если компьютер без ОС",recommended,unknown,per_device,catalog_rule,B,approved,workstation,os
+rel-sl-0167,offer-491771,391338,473582,complement,Офисный пакет для рабочего места,recommended,unknown,per_device,catalog_rule,B,approved,workstation,office
+rel-sl-0168,offer-491771,3953,4982,complement,Защита рабочего места,recommended,unknown,per_device,catalog_rule,B,approved,workstation,antivirus
+rel-sl-0169,offer-503322,286676,380385,complement,"Операционная система, если компьютер без ОС",recommended,unknown,per_device,catalog_rule,B,approved,workstation,os
+rel-sl-0170,offer-503322,121231,517989,complement,"Российская ОС, если компьютер без ОС",recommended,unknown,per_device,catalog_rule,B,approved,workstation,os
+rel-sl-0171,offer-503322,391338,473582,complement,Офисный пакет для рабочего места,recommended,unknown,per_device,catalog_rule,B,approved,workstation,office
+rel-sl-0172,offer-503322,3953,4982,complement,Защита рабочего места,recommended,unknown,per_device,catalog_rule,B,approved,workstation,antivirus
+rel-sl-0173,offer-501853,286676,380385,complement,"Операционная система, если компьютер без ОС",recommended,unknown,per_device,catalog_rule,B,approved,workstation,os
+rel-sl-0174,offer-501853,121231,517989,complement,"Российская ОС, если компьютер без ОС",recommended,unknown,per_device,catalog_rule,B,approved,workstation,os
+rel-sl-0175,offer-501853,391338,473582,complement,Офисный пакет для рабочего места,recommended,unknown,per_device,catalog_rule,B,approved,workstation,office
+rel-sl-0176,offer-501853,3953,4982,complement,Защита рабочего места,recommended,unknown,per_device,catalog_rule,B,approved,workstation,antivirus
+rel-sl-0177,offer-531179,286676,380385,complement,"Операционная система, если компьютер без ОС",recommended,unknown,per_device,catalog_rule,B,approved,workstation,os
+rel-sl-0178,offer-531179,121231,517989,complement,"Российская ОС, если компьютер без ОС",recommended,unknown,per_device,catalog_rule,B,approved,workstation,os
+rel-sl-0179,offer-531179,391338,473582,complement,Офисный пакет для рабочего места,recommended,unknown,per_device,catalog_rule,B,approved,workstation,office
+rel-sl-0180,offer-531179,3953,4982,complement,Защита рабочего места,recommended,unknown,per_device,catalog_rule,B,approved,workstation,antivirus
+rel-sl-0181,offer-501536,286676,380385,complement,"Операционная система, если компьютер без ОС",recommended,unknown,per_device,catalog_rule,B,approved,workstation,os
+rel-sl-0182,offer-501536,121231,517989,complement,"Российская ОС, если компьютер без ОС",recommended,unknown,per_device,catalog_rule,B,approved,workstation,os
+rel-sl-0183,offer-501536,391338,473582,complement,Офисный пакет для рабочего места,recommended,unknown,per_device,catalog_rule,B,approved,workstation,office
+rel-sl-0184,offer-501536,3953,4982,complement,Защита рабочего места,recommended,unknown,per_device,catalog_rule,B,approved,workstation,antivirus
+rel-sl-0185,offer-501537,286676,380385,complement,"Операционная система, если компьютер без ОС",recommended,unknown,per_device,catalog_rule,B,approved,workstation,os
+rel-sl-0186,offer-501537,121231,517989,complement,"Российская ОС, если компьютер без ОС",recommended,unknown,per_device,catalog_rule,B,approved,workstation,os
+rel-sl-0187,offer-501537,391338,473582,complement,Офисный пакет для рабочего места,recommended,unknown,per_device,catalog_rule,B,approved,workstation,office
+rel-sl-0188,offer-501537,3953,4982,complement,Защита рабочего места,recommended,unknown,per_device,catalog_rule,B,approved,workstation,antivirus
+rel-sl-0189,offer-501745,286676,380385,complement,"Операционная система, если компьютер без ОС",recommended,unknown,per_device,catalog_rule,B,approved,workstation,os
+rel-sl-0190,offer-501745,121231,517989,complement,"Российская ОС, если компьютер без ОС",recommended,unknown,per_device,catalog_rule,B,approved,workstation,os
+rel-sl-0191,offer-501745,391338,473582,complement,Офисный пакет для рабочего места,recommended,unknown,per_device,catalog_rule,B,approved,workstation,office
+rel-sl-0192,offer-501745,3953,4982,complement,Защита рабочего места,recommended,unknown,per_device,catalog_rule,B,approved,workstation,antivirus
+rel-sl-0193,offer-501535,286676,380385,complement,"Операционная система, если компьютер без ОС",recommended,unknown,per_device,catalog_rule,B,approved,workstation,os
+rel-sl-0194,offer-501535,121231,517989,complement,"Российская ОС, если компьютер без ОС",recommended,unknown,per_device,catalog_rule,B,approved,workstation,os
+rel-sl-0195,offer-501535,391338,473582,complement,Офисный пакет для рабочего места,recommended,unknown,per_device,catalog_rule,B,approved,workstation,office
+rel-sl-0196,offer-501535,3953,4982,complement,Защита рабочего места,recommended,unknown,per_device,catalog_rule,B,approved,workstation,antivirus
+rel-sl-0197,offer-501538,286676,380385,complement,"Операционная система, если компьютер без ОС",recommended,unknown,per_device,catalog_rule,B,approved,workstation,os
+rel-sl-0198,offer-501538,121231,517989,complement,"Российская ОС, если компьютер без ОС",recommended,unknown,per_device,catalog_rule,B,approved,workstation,os
+rel-sl-0199,offer-501538,391338,473582,complement,Офисный пакет для рабочего места,recommended,unknown,per_device,catalog_rule,B,approved,workstation,office
+rel-sl-0200,offer-501538,3953,4982,complement,Защита рабочего места,recommended,unknown,per_device,catalog_rule,B,approved,workstation,antivirus
+rel-sl-0201,offer-501747,286676,380385,complement,"Операционная система, если компьютер без ОС",recommended,unknown,per_device,catalog_rule,B,approved,workstation,os
+rel-sl-0202,offer-501747,121231,517989,complement,"Российская ОС, если компьютер без ОС",recommended,unknown,per_device,catalog_rule,B,approved,workstation,os
+rel-sl-0203,offer-501747,391338,473582,complement,Офисный пакет для рабочего места,recommended,unknown,per_device,catalog_rule,B,approved,workstation,office
+rel-sl-0204,offer-501747,3953,4982,complement,Защита рабочего места,recommended,unknown,per_device,catalog_rule,B,approved,workstation,antivirus
+rel-sl-0205,offer-475627,286676,380385,complement,"Операционная система, если компьютер без ОС",recommended,unknown,per_device,catalog_rule,B,approved,workstation,os
+rel-sl-0206,offer-475627,121231,517989,complement,"Российская ОС, если компьютер без ОС",recommended,unknown,per_device,catalog_rule,B,approved,workstation,os
+rel-sl-0207,offer-475627,391338,473582,complement,Офисный пакет для рабочего места,recommended,unknown,per_device,catalog_rule,B,approved,workstation,office
+rel-sl-0208,offer-475627,3953,4982,complement,Защита рабочего места,recommended,unknown,per_device,catalog_rule,B,approved,workstation,antivirus
+rel-sl-0209,offer-504202,286676,380385,complement,"Операционная система, если компьютер без ОС",recommended,unknown,per_device,catalog_rule,B,approved,workstation,os
+rel-sl-0210,offer-504202,121231,517989,complement,"Российская ОС, если компьютер без ОС",recommended,unknown,per_device,catalog_rule,B,approved,workstation,os
+rel-sl-0211,offer-504202,391338,473582,complement,Офисный пакет для рабочего места,recommended,unknown,per_device,catalog_rule,B,approved,workstation,office
+rel-sl-0212,offer-504202,3953,4982,complement,Защита рабочего места,recommended,unknown,per_device,catalog_rule,B,approved,workstation,antivirus
+rel-sl-0213,offer-541348,391338,473582,complement,Офисный пакет для рабочего места,recommended,unknown,per_device,catalog_rule,B,approved,workstation,office
+rel-sl-0214,offer-541348,3953,4982,complement,Защита рабочего места,recommended,unknown,per_device,catalog_rule,B,approved,workstation,antivirus
+rel-sl-0215,offer-539400,286676,380385,complement,"Операционная система, если компьютер без ОС",recommended,unknown,per_device,catalog_rule,B,approved,workstation,os
+rel-sl-0216,offer-539400,121231,517989,complement,"Российская ОС, если компьютер без ОС",recommended,unknown,per_device,catalog_rule,B,approved,workstation,os
+rel-sl-0217,offer-539400,391338,473582,complement,Офисный пакет для рабочего места,recommended,unknown,per_device,catalog_rule,B,approved,workstation,office
+rel-sl-0218,offer-539400,3953,4982,complement,Защита рабочего места,recommended,unknown,per_device,catalog_rule,B,approved,workstation,antivirus
+rel-sl-0219,offer-540504,286676,380385,complement,"Операционная система, если компьютер без ОС",recommended,unknown,per_device,catalog_rule,B,approved,workstation,os
+rel-sl-0220,offer-540504,121231,517989,complement,"Российская ОС, если компьютер без ОС",recommended,unknown,per_device,catalog_rule,B,approved,workstation,os
+rel-sl-0221,offer-540504,391338,473582,complement,Офисный пакет для рабочего места,recommended,unknown,per_device,catalog_rule,B,approved,workstation,office
+rel-sl-0222,offer-540504,3953,4982,complement,Защита рабочего места,recommended,unknown,per_device,catalog_rule,B,approved,workstation,antivirus
+rel-sl-0223,offer-542060,286676,380385,complement,"Операционная система, если компьютер без ОС",recommended,unknown,per_device,catalog_rule,B,approved,workstation,os
+rel-sl-0224,offer-542060,121231,517989,complement,"Российская ОС, если компьютер без ОС",recommended,unknown,per_device,catalog_rule,B,approved,workstation,os
+rel-sl-0225,offer-542060,391338,473582,complement,Офисный пакет для рабочего места,recommended,unknown,per_device,catalog_rule,B,approved,workstation,office
+rel-sl-0226,offer-542060,3953,4982,complement,Защита рабочего места,recommended,unknown,per_device,catalog_rule,B,approved,workstation,antivirus
+rel-sl-0227,offer-506974,286676,380385,complement,"Операционная система, если компьютер без ОС",recommended,unknown,per_device,catalog_rule,B,approved,workstation,os
+rel-sl-0228,offer-506974,121231,517989,complement,"Российская ОС, если компьютер без ОС",recommended,unknown,per_device,catalog_rule,B,approved,workstation,os
+rel-sl-0229,offer-506974,391338,473582,complement,Офисный пакет для рабочего места,recommended,unknown,per_device,catalog_rule,B,approved,workstation,office
+rel-sl-0230,offer-506974,3953,4982,complement,Защита рабочего места,recommended,unknown,per_device,catalog_rule,B,approved,workstation,antivirus
+rel-sl-0231,offer-459534,286676,380385,complement,"Операционная система, если компьютер без ОС",recommended,unknown,per_device,catalog_rule,B,approved,workstation,os
+rel-sl-0232,offer-459534,121231,517989,complement,"Российская ОС, если компьютер без ОС",recommended,unknown,per_device,catalog_rule,B,approved,workstation,os
+rel-sl-0233,offer-459534,391338,473582,complement,Офисный пакет для рабочего места,recommended,unknown,per_device,catalog_rule,B,approved,workstation,office
+rel-sl-0234,offer-459534,3953,4982,complement,Защита рабочего места,recommended,unknown,per_device,catalog_rule,B,approved,workstation,antivirus
+rel-sl-0235,offer-492158,391338,473582,complement,Офисный пакет для рабочего места,recommended,unknown,per_device,catalog_rule,B,approved,workstation,office
+rel-sl-0236,offer-492158,3953,4982,complement,Защита рабочего места,recommended,unknown,per_device,catalog_rule,B,approved,workstation,antivirus
+rel-sl-0237,offer-535374,286676,380385,complement,"Операционная система, если компьютер без ОС",recommended,unknown,per_device,catalog_rule,B,approved,workstation,os
+rel-sl-0238,offer-535374,121231,517989,complement,"Российская ОС, если компьютер без ОС",recommended,unknown,per_device,catalog_rule,B,approved,workstation,os
+rel-sl-0239,offer-535374,391338,473582,complement,Офисный пакет для рабочего места,recommended,unknown,per_device,catalog_rule,B,approved,workstation,office
+rel-sl-0240,offer-535374,3953,4982,complement,Защита рабочего места,recommended,unknown,per_device,catalog_rule,B,approved,workstation,antivirus
+rel-sl-0241,offer-535375,286676,380385,complement,"Операционная система, если компьютер без ОС",recommended,unknown,per_device,catalog_rule,B,approved,workstation,os
+rel-sl-0242,offer-535375,121231,517989,complement,"Российская ОС, если компьютер без ОС",recommended,unknown,per_device,catalog_rule,B,approved,workstation,os
+rel-sl-0243,offer-535375,391338,473582,complement,Офисный пакет для рабочего места,recommended,unknown,per_device,catalog_rule,B,approved,workstation,office
+rel-sl-0244,offer-535375,3953,4982,complement,Защита рабочего места,recommended,unknown,per_device,catalog_rule,B,approved,workstation,antivirus
+rel-sl-0245,offer-467607,408335,495109,complement,Серверная операционная система,recommended,unknown,one,catalog_rule,B,approved,server,os
+rel-sl-0246,offer-467607,173614,418697,complement,Резервное копирование сервера,recommended,unknown,one,catalog_rule,B,approved,server,backup
+rel-sl-0247,offer-467607,4092,532803,complement,Антивирус для сервера,recommended,unknown,one,catalog_rule,B,approved,server,antivirus
+rel-sl-0248,offer-467608,408335,495109,complement,Серверная операционная система,recommended,unknown,one,catalog_rule,B,approved,server,os
+rel-sl-0249,offer-467608,173614,418697,complement,Резервное копирование сервера,recommended,unknown,one,catalog_rule,B,approved,server,backup
+rel-sl-0250,offer-467608,4092,532803,complement,Антивирус для сервера,recommended,unknown,one,catalog_rule,B,approved,server,antivirus
+rel-sl-0251,offer-467609,408335,495109,complement,Серверная операционная система,recommended,unknown,one,catalog_rule,B,approved,server,os
+rel-sl-0252,offer-467609,173614,418697,complement,Резервное копирование сервера,recommended,unknown,one,catalog_rule,B,approved,server,backup
+rel-sl-0253,offer-467609,4092,532803,complement,Антивирус для сервера,recommended,unknown,one,catalog_rule,B,approved,server,antivirus
+rel-sl-0254,offer-528224,408335,495109,complement,Серверная операционная система,recommended,unknown,one,catalog_rule,B,approved,server,os
+rel-sl-0255,offer-528224,173614,418697,complement,Резервное копирование сервера,recommended,unknown,one,catalog_rule,B,approved,server,backup
+rel-sl-0256,offer-528224,4092,532803,complement,Антивирус для сервера,recommended,unknown,one,catalog_rule,B,approved,server,antivirus
+rel-sl-0257,offer-438239,408335,495109,complement,Серверная операционная система,recommended,unknown,one,catalog_rule,B,approved,server,os
+rel-sl-0258,offer-438239,173614,418697,complement,Резервное копирование сервера,recommended,unknown,one,catalog_rule,B,approved,server,backup
+rel-sl-0259,offer-438239,4092,532803,complement,Антивирус для сервера,recommended,unknown,one,catalog_rule,B,approved,server,antivirus
+rel-sl-0260,offer-438240,408335,495109,complement,Серверная операционная система,recommended,unknown,one,catalog_rule,B,approved,server,os
+rel-sl-0261,offer-438240,173614,418697,complement,Резервное копирование сервера,recommended,unknown,one,catalog_rule,B,approved,server,backup
+rel-sl-0262,offer-438240,4092,532803,complement,Антивирус для сервера,recommended,unknown,one,catalog_rule,B,approved,server,antivirus
+rel-sl-0263,offer-438241,408335,495109,complement,Серверная операционная система,recommended,unknown,one,catalog_rule,B,approved,server,os
+rel-sl-0264,offer-438241,173614,418697,complement,Резервное копирование сервера,recommended,unknown,one,catalog_rule,B,approved,server,backup
+rel-sl-0265,offer-438241,4092,532803,complement,Антивирус для сервера,recommended,unknown,one,catalog_rule,B,approved,server,antivirus
+rel-sl-0266,offer-528223,408335,495109,complement,Серверная операционная система,recommended,unknown,one,catalog_rule,B,approved,server,os
+rel-sl-0267,offer-528223,173614,418697,complement,Резервное копирование сервера,recommended,unknown,one,catalog_rule,B,approved,server,backup
+rel-sl-0268,offer-528223,4092,532803,complement,Антивирус для сервера,recommended,unknown,one,catalog_rule,B,approved,server,antivirus
+rel-sl-0269,offer-467610,408335,495109,complement,Серверная операционная система,recommended,unknown,one,catalog_rule,B,approved,server,os
+rel-sl-0270,offer-467610,173614,418697,complement,Резервное копирование сервера,recommended,unknown,one,catalog_rule,B,approved,server,backup
+rel-sl-0271,offer-467610,4092,532803,complement,Антивирус для сервера,recommended,unknown,one,catalog_rule,B,approved,server,antivirus
+rel-sl-0272,offer-528225,408335,495109,complement,Серверная операционная система,recommended,unknown,one,catalog_rule,B,approved,server,os
+rel-sl-0273,offer-528225,173614,418697,complement,Резервное копирование сервера,recommended,unknown,one,catalog_rule,B,approved,server,backup
+rel-sl-0274,offer-528225,4092,532803,complement,Антивирус для сервера,recommended,unknown,one,catalog_rule,B,approved,server,antivirus
+rel-sl-0275,offer-482071,408335,495109,complement,Серверная операционная система,recommended,unknown,one,catalog_rule,B,approved,server,os
+rel-sl-0276,offer-482071,173614,418697,complement,Резервное копирование сервера,recommended,unknown,one,catalog_rule,B,approved,server,backup
+rel-sl-0277,offer-482071,4092,532803,complement,Антивирус для сервера,recommended,unknown,one,catalog_rule,B,approved,server,antivirus
+rel-sl-0278,offer-482054,408335,495109,complement,Серверная операционная система,recommended,unknown,one,catalog_rule,B,approved,server,os
+rel-sl-0279,offer-482054,173614,418697,complement,Резервное копирование сервера,recommended,unknown,one,catalog_rule,B,approved,server,backup
+rel-sl-0280,offer-482054,4092,532803,complement,Антивирус для сервера,recommended,unknown,one,catalog_rule,B,approved,server,antivirus
+rel-sl-0281,offer-531625,408335,495109,complement,Серверная операционная система,recommended,unknown,one,catalog_rule,B,approved,server,os
+rel-sl-0282,offer-531625,173614,418697,complement,Резервное копирование сервера,recommended,unknown,one,catalog_rule,B,approved,server,backup
+rel-sl-0283,offer-531625,4092,532803,complement,Антивирус для сервера,recommended,unknown,one,catalog_rule,B,approved,server,antivirus
+rel-sl-0284,offer-542029,408335,495109,complement,Серверная операционная система,recommended,unknown,one,catalog_rule,B,approved,server,os
+rel-sl-0285,offer-542029,173614,418697,complement,Резервное копирование сервера,recommended,unknown,one,catalog_rule,B,approved,server,backup
+rel-sl-0286,offer-542029,4092,532803,complement,Антивирус для сервера,recommended,unknown,one,catalog_rule,B,approved,server,antivirus
+rel-sl-0287,offer-542027,408335,495109,complement,Серверная операционная система,recommended,unknown,one,catalog_rule,B,approved,server,os
+rel-sl-0288,offer-542027,173614,418697,complement,Резервное копирование сервера,recommended,unknown,one,catalog_rule,B,approved,server,backup
+rel-sl-0289,offer-542027,4092,532803,complement,Антивирус для сервера,recommended,unknown,one,catalog_rule,B,approved,server,antivirus
+rel-sl-0290,offer-542031,408335,495109,complement,Серверная операционная система,recommended,unknown,one,catalog_rule,B,approved,server,os
+rel-sl-0291,offer-542031,173614,418697,complement,Резервное копирование сервера,recommended,unknown,one,catalog_rule,B,approved,server,backup
+rel-sl-0292,offer-542031,4092,532803,complement,Антивирус для сервера,recommended,unknown,one,catalog_rule,B,approved,server,antivirus
+rel-sl-0293,offer-542032,408335,495109,complement,Серверная операционная система,recommended,unknown,one,catalog_rule,B,approved,server,os
+rel-sl-0294,offer-542032,173614,418697,complement,Резервное копирование сервера,recommended,unknown,one,catalog_rule,B,approved,server,backup
+rel-sl-0295,offer-542032,4092,532803,complement,Антивирус для сервера,recommended,unknown,one,catalog_rule,B,approved,server,antivirus
+rel-sl-0296,offer-542028,408335,495109,complement,Серверная операционная система,recommended,unknown,one,catalog_rule,B,approved,server,os
+rel-sl-0297,offer-542028,173614,418697,complement,Резервное копирование сервера,recommended,unknown,one,catalog_rule,B,approved,server,backup
+rel-sl-0298,offer-542028,4092,532803,complement,Антивирус для сервера,recommended,unknown,one,catalog_rule,B,approved,server,antivirus
+rel-sl-0299,offer-542030,408335,495109,complement,Серверная операционная система,recommended,unknown,one,catalog_rule,B,approved,server,os
+rel-sl-0300,offer-542030,173614,418697,complement,Резервное копирование сервера,recommended,unknown,one,catalog_rule,B,approved,server,backup
+rel-sl-0301,offer-542030,4092,532803,complement,Антивирус для сервера,recommended,unknown,one,catalog_rule,B,approved,server,antivirus
+rel-sl-0302,offer-542026,408335,495109,complement,Серверная операционная система,recommended,unknown,one,catalog_rule,B,approved,server,os
+rel-sl-0303,offer-542026,173614,418697,complement,Резервное копирование сервера,recommended,unknown,one,catalog_rule,B,approved,server,backup
+rel-sl-0304,offer-542026,4092,532803,complement,Антивирус для сервера,recommended,unknown,one,catalog_rule,B,approved,server,antivirus
+rel-sl-0305,330309,22268,411620,complement,СКЗИ для работы с электронной подписью на токене,recommended,unknown,per_device,catalog_rule,B,approved,token,crypto
+rel-sl-0306,37302,22268,411620,complement,СКЗИ для работы с электронной подписью на токене,recommended,unknown,per_device,catalog_rule,B,approved,token,crypto
+rel-sl-0307,360103,22268,411620,complement,СКЗИ для работы с электронной подписью на токене,recommended,unknown,per_device,catalog_rule,B,approved,token,crypto
+rel-sl-0308,360110,22268,411620,complement,СКЗИ для работы с электронной подписью на токене,recommended,unknown,per_device,catalog_rule,B,approved,token,crypto
+rel-sl-0309,188229,22268,411620,complement,СКЗИ для работы с электронной подписью на токене,recommended,unknown,per_device,catalog_rule,B,approved,token,crypto
+rel-sl-0310,37267,22268,411620,complement,СКЗИ для работы с электронной подписью на токене,recommended,unknown,per_device,catalog_rule,B,approved,token,crypto
+rel-sl-0311,426903,22268,411620,complement,СКЗИ для работы с электронной подписью на токене,recommended,unknown,per_device,catalog_rule,B,approved,token,crypto
+rel-sl-0312,413744,22268,411620,complement,СКЗИ для работы с электронной подписью на токене,recommended,unknown,per_device,catalog_rule,B,approved,token,crypto
+rel-sl-0313,443262,22268,411620,complement,СКЗИ для работы с электронной подписью на токене,recommended,unknown,per_device,catalog_rule,B,approved,token,crypto
+rel-sl-0314,443254,22268,411620,complement,СКЗИ для работы с электронной подписью на токене,recommended,unknown,per_device,catalog_rule,B,approved,token,crypto
+rel-sl-0315,447881,22268,411620,complement,СКЗИ для работы с электронной подписью на токене,recommended,unknown,per_device,catalog_rule,B,approved,token,crypto
+rel-sl-0316,37278,22268,411620,complement,СКЗИ для работы с электронной подписью на токене,recommended,unknown,per_device,catalog_rule,B,approved,token,crypto
+rel-sl-0317,413761,22268,411620,complement,СКЗИ для работы с электронной подписью на токене,recommended,unknown,per_device,catalog_rule,B,approved,token,crypto

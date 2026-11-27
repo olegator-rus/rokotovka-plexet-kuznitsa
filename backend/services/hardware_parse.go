@@ -71,6 +71,18 @@ type hwPlan struct {
 	structHits []domain.RankedHit
 	err        string
 	ms         float64
+	// indexed — характеристики, под которые в индексе есть поля specs.* (nil — неизвестно, фильтры как есть).
+	// Характеристика без поля в индексе (разобрана из атрибутов фида при старте) проверяется в памяти (reject).
+	indexed map[string]bool
+	// relaxed — числовые условия, которым не соответствует ни одна позиция категории: сняты, выдача — похожие
+	// (relaxSpecs); missing — у позиций категории этой характеристики нет вовсе.
+	relaxed []hwRelaxed
+}
+
+// hwRelaxed — снятое условие характеристики и почему.
+type hwRelaxed struct {
+	cond    hwCond
+	missing bool
 }
 
 // active — в запросе есть признак оборудования: шаг меняет фильтры, маршрут и чипы.

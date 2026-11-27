@@ -56,10 +56,11 @@ test('formatMetric: доля в %, скор тремя знаками, мс, п�
   assert.equal(formatMetric(null, 'share'), '—')
 })
 
-test('orderMetricKeys: известные по порядку, неизвестные в конце по алфавиту', () => {
-  assert.deepEqual(orderMetricKeys(['zeta', 'empty_rate', 'ndcg10', 'alpha']), [
-    'ndcg10',
+test('orderMetricKeys: известные по порядку (семейные — первыми), неизвестные в конце по алфавиту', () => {
+  assert.deepEqual(orderMetricKeys(['zeta', 'empty_rate', 'ndcg10', 'ndcg10_family', 'alpha']), [
+    'ndcg10_family',
     'empty_rate',
+    'ndcg10',
     'alpha',
     'zeta',
   ])

@@ -66,6 +66,15 @@ test.describe('Жюри', () => {
       await expect(table.getByRole('columnheader', { name: new RegExp(`^${cfg}`) })).toBeVisible()
     }
     await expect(table.getByRole('rowheader', { name: /NDCG/ }).first()).toBeVisible()
+    // Главные числа — по семействам, с подписью источника разметки; прежний счёт по артикулу — ниже в таблице.
+    await expect(page.getByRole('button', { name: /^Верное семейство первым · B4: .*Как посчитано/ })).toBeVisible()
+    await expect(page.getByRole('button', { name: /^NDCG@10 по семействам · B4: .*Как посчитано/ })).toBeVisible()
+    await expect(page.getByText(/разметка — клики на боевой выдаче и LLM-судья, счёт по семействам/)).toBeVisible()
+    await expect(table.getByRole('rowheader', { name: /Точный товар на 1-м месте \(по артикулу\)/ })).toBeVisible()
+    // Судья: калибровка на якорях фида, согласия с прежним mock-набором и каппы против кликов нет.
+    await expect(page.getByRole('heading', { name: 'Калибровка LLM-судьи на якорях' })).toBeVisible()
+    await expect(page.getByRole('heading', { name: 'Проверка LLM-судьёй' })).toHaveCount(0)
+    await expect(page.getByText(/Взвешенная каппа/)).toHaveCount(0)
     await expect(page.getByText(/заморожен — поиск B0–B3 на нём не настраивался/)).toBeVisible()
     await expect(page.getByText(/Воспроизводимость: хэш набора/)).toBeVisible()
 
@@ -75,6 +84,12 @@ test.describe('Жюри', () => {
     await expect(dialog).toBeVisible()
     await page.keyboard.press('Escape')
     await expect(dialog).toBeHidden()
+  })
+  test('F7: «Подсказки» и «Коммерция» — подписаны как mock-каталог с причиной', async ({ page }) => {
+    await page.goto('/proofs?tab=compare&view=panel')
+    await expect(page.getByText(/набора префиксов\s+по фиду пока нет/)).toBeVisible()
+    await page.goto('/proofs?tab=compare&view=commerce')
+    await expect(page.getByText(/пары «товар → дополнение» не\s+размечены/)).toBeVisible()
   })
 })
 

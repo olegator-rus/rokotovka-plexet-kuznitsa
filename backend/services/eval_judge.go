@@ -193,6 +193,8 @@ func judgeShuffleKey(p *judgePairIn) string {
 
 // judgeCard — товар для судьи: то, что видит покупатель в карточке.
 type judgeCard struct {
+	// Family — семейство товара (продукт без варианта: срок, число мест, редакция) — по нему судья ставит 3.
+	Family      string `json:"family,omitempty"`
 	Title       string `json:"title"`
 	Vendor      string `json:"vendor"`
 	Category    string `json:"category"`
@@ -209,6 +211,12 @@ type judgeItem struct {
 
 // judgeBatch — один вызов судьи на пачку пар (с одним повтором при сбое или неполном ответе).
 func (s *Services) judgeBatch(ctx context.Context, system string, lx *searchLexicon, batch []*judgePairIn) (float64, int, error) {
+	return s.judgeBatchWith(ctx, system, lx, batch, true)
+}
+
+// judgeBatchWith — judgeBatch; withFamily=false — карточка без семейства (так судья работал до judge-v2: нужно
+// калибровке «до» на прежнем промпте).
+func (s *Services) judgeBatchWith(ctx context.Context, system string, lx *searchLexicon, batch []*judgePairIn, withFamily bool) (float64, int, error) {
 	items := make([]judgeItem, 0, len(batch))
 	byID := map[string]*judgePairIn{}
 	for i, p := range batch {
@@ -222,15 +230,24 @@ func (s *Services) judgeBatch(ctx context.Context, system string, lx *searchLexi
 		}
 		id := fmt.Sprintf("p%d", i+1)
 		byID[id] = p
+		family := ""
+		if withFamily {
+			family = d.FamilyName
+		}
 		items = append(items, judgeItem{ID: id, Query: p.q.Text, Product: judgeCard{
-			Title: d.Title, Vendor: d.Vendor, Category: d.CategoryPath, License: licenseLine(d), Origin: origin,
+			Family: family, Title: d.Title, Vendor: d.Vendor, Category: d.CategoryPath, License: licenseLine(d), Origin: origin,
 			Description: judgeTruncate(d.Description, judgeMaxDescLen),
 		}})
 	}
 	if len(items) == 0 {
 		return 0, 0, nil
 	}
-	raw, err := json.Marshal(map[string]any{"pairs": items})
+	var payload any = map[string]any{"pairs": items}
+	if withFamily {
+		// judge-v2: пары сгруппированы по запросу — модель не путает, к какому запросу относится оценка.
+		payload = map[string]any{"queries": groupJudgeItems(items)}
+	}
+	raw, err := json.Marshal(payload)
 	if err != nil {
 		return 0, 0, err
 	}
@@ -270,6 +287,44 @@ func (s *Services) judgeBatch(ctx context.Context, system string, lx *searchLexi
 		lastErr = err
 	}
 	return cost, 2, lastErr
+}
+
+// judgeQueryGroup — запрос и его товары (формат judge-v2).
+type judgeQueryGroup struct {
+	Query    string         `json:"query"`
+	Products []judgeProduct `json:"products"`
+}
+
+type judgeProduct struct {
+	ID string `json:"id"`
+	judgeCard
+}
+
+// groupJudgeItems — пары пачки по запросам в порядке первого появления запроса.
+func groupJudgeItems(items []judgeItem) []judgeQueryGroup {
+	var groups []judgeQueryGroup
+	at := map[string]int{}
+	for _, it := range items {
+		i, ok := at[it.Query]
+		if !ok {
+			i = len(groups)
+			at[it.Query] = i
+			groups = append(groups, judgeQueryGroup{Query: it.Query})
+		}
+		groups[i].Products = append(groups[i].Products, judgeProduct{ID: it.ID, judgeCard: it.Product})
+	}
+	return groups
+}
+
+// judgeOrder — порядок пар для пачек: по запросу (пары одного запроса — в одной пачке рядом), внутри запроса —
+// детерминированно перемешан (хэш пары): позиция и конфигурация судье не видны.
+func judgeOrder(ps []*judgePairIn) {
+	sort.Slice(ps, func(i, j int) bool {
+		if ps[i].q.ID != ps[j].q.ID {
+			return ps[i].q.ID < ps[j].q.ID
+		}
+		return judgeShuffleKey(ps[i]) < judgeShuffleKey(ps[j])
+	})
 }
 
 // applyJudgeGrades — оценки из ответа судьи; missing — пары без оценки.

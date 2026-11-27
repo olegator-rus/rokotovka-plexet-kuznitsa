@@ -4,6 +4,7 @@ import assert from 'node:assert/strict'
 import type { EvalMetrics, EvaluationView } from '../src/api/types.ts'
 import {
   evalColumns,
+  familyHeadline,
   flattenMetrics,
   metricRows,
   regressionRows,
@@ -89,12 +90,12 @@ test('flattenMetrics: счётчики отброшены, задержка — 
 
 test('metricRows: только посчитанные метрики, дельта к предыдущему столбцу', () => {
   const rows = metricRows([
-    view('B0', { metrics: metrics({ ndcg10: 0.3, empty_rate: 0.4 }) }),
-    view('B1', { metrics: metrics({ ndcg10: 0.6, empty_rate: 0.1 }) }),
+    view('B0', { metrics: metrics({ ndcg10_family: 0.3, empty_rate: 0.4 }) }),
+    view('B1', { metrics: metrics({ ndcg10_family: 0.6, empty_rate: 0.1 }) }),
   ])
   assert.deepEqual(
     rows.map((r) => r.key),
-    ['ndcg10', 'empty_rate'],
+    ['ndcg10_family', 'empty_rate'],
   )
   const ndcg = rows[0]
   assert.equal(ndcg.cells[0].delta, null)
@@ -162,4 +163,18 @@ test('judgeView: порядок лестницы и пары, где судья 
   )
   assert.deepEqual(v?.swapped, [['B2', 'B3']])
   assert.ok(Math.abs((v?.rows[3].diff ?? 0) + 0.084) < 1e-9)
+})
+
+test('familyHeadline: семейные метрики последнего и первого столбца; без них — null', () => {
+  const col = (config: string, m: Record<string, unknown>) =>
+    ({ config, metrics: m, run_id: 'r', set: 'test', queries: 1 }) as never
+  const h = familyHeadline([
+    col('B0', { exact_accuracy_family: 0.25, ndcg10_family: 0.11 }),
+    col('B4', { exact_accuracy_family: 0.86, ndcg10_family: 0.78, exact_queries: 71 }),
+  ])
+  assert.equal(h?.config, 'B4')
+  assert.equal(h?.exactFamily, 0.86)
+  assert.equal(h?.baseNdcgFamily, 0.11)
+  assert.equal(h?.exactQueries, 71)
+  assert.equal(familyHeadline([col('B3', { ndcg10: 0.5 })]), null)
 })

@@ -166,9 +166,21 @@ func (p *hwPlan) chips(chips []out.Chip, found []domain.FoundAttribute) ([]out.C
 	return chips, found
 }
 
+// stdAttrs — подписи характеристик из stdUnits для каталога без реестра атрибутов (фид заказчика): чип «Порты 24
+// портов», а не «ports_count 24». Реестр каталога их переопределяет.
+var stdAttrs = map[string]hwAttr{
+	"ram_gb": {key: "ram_gb", label: "Память", unit: "ГБ", typ: "number"}, "storage_gb": {key: "storage_gb", label: "Накопитель", unit: "ГБ", typ: "number"},
+	"screen_inch": {key: "screen_inch", label: "Диагональ", unit: "″", typ: "number"}, "refresh_hz": {key: "refresh_hz", label: "Частота обновления", unit: "Гц", typ: "number"},
+	"ports_count": {key: "ports_count", label: "Порты", unit: "портов", typ: "number"}, "net_gbps": {key: "net_gbps", label: "Скорость аплинка", unit: "Гбит/с", typ: "number"},
+	"power_w": {key: "power_w", label: "Мощность", unit: "Вт", typ: "number"}, "form_factor_u": {key: "form_factor_u", label: "Высота в стойке", unit: "U", typ: "number"},
+}
+
 // condChip — чип условия: «Память ≥ 32 ГБ», «Диагональ 24–27″», «Без ОС», «Тип памяти: DDR4».
 func (p *hwPlan) condChip(c hwCond) out.Chip {
-	a := p.hx.attrs[c.Key]
+	a, ok := p.hx.attrs[c.Key]
+	if !ok {
+		a = stdAttrs[c.Key]
+	}
 	label := a.label
 	if label == "" {
 		label = c.Key
@@ -228,8 +240,8 @@ func (p *hwPlan) filters() []any {
 		f = append(f, map[string]any{"term": map[string]any{"category_ids": p.category}})
 	}
 	for _, c := range p.conds {
-		if c.typ != "number" {
-			continue
+		if c.typ != "number" || p.indexed != nil && !p.indexed[c.Key] {
+			continue // поля в индексе нет: условие держит reject по характеристикам в памяти
 		}
 		field := "specs." + c.Key
 		switch c.Op {
@@ -335,6 +347,9 @@ func (s *Services) exactRetrieve(ctx context.Context, p *hwPlan, filters []any) 
 // затем популярность. Текст карточки может не содержать слов запроса («память» при «Модуль RDIMM …»), а
 // структурное совпадение — это и есть ответ на «память 16 гб для R740».
 func (p *hwPlan) structuredHits() []domain.RankedHit {
+	if p.active() && p.category != "" && len(p.relaxed) > 0 && len(p.conds) == 0 && p.compatMode != "filter" {
+		return p.nearestHits()
+	}
 	if !p.active() || p.compatMode != "filter" && (p.category == "" || len(p.conds) == 0) {
 		return nil
 	}

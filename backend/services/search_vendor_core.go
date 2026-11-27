@@ -33,6 +33,47 @@ func (rc rankCtx) markVendorCore(fams []*familyHit) {
 		a.quantity == 0 && !a.renewal && a.duration == 0 && !rc.vendorOnly {
 		return
 	}
+	rc.markCoreByCategory(fams)
+	rc.markKnownLines(fams)
+}
+
+// knownLineBonus — прибавка к ступени core у семейства основной линейки из базы знаний: выше любой ступени по
+// категории (максимум 3), порядок внутри линеек по категории сохраняется.
+const knownLineBonus = 3
+
+// markKnownLines — основная линейка вендора из базы знаний (vendor_families.json): «астра» — Astra Linux SE, а не
+// DCImanager из категории, где у Группы Астра больше семейств; «криптопро» — КриптоПро CSP, а не аппаратная
+// платформа NGate. Категория этого не различает: у КриптоПро все семейства в одной. Носители и услуги — не линейка.
+func (rc rankCtx) markKnownLines(fams []*familyHit) {
+	if len(rc.vendorLines) == 0 {
+		return
+	}
+	for _, fh := range fams {
+		if fh.group != domain.GroupExact || !rc.vendorLines[fh.id] || rc.lx.familyVendor[fh.id] != rc.ent.vendors[0] ||
+			rc.serviceFamily(fh.id) || mediaName(rc.lx.familyName[fh.id]) {
+			continue
+		}
+		fh.core += knownLineBonus
+	}
+}
+
+// vendorLineFamilies — семейства основных линеек из базы знаний подбора; нет базы — пусто.
+func (s *Services) vendorLineFamilies() map[string]bool {
+	kb := s.guide().knowledge()
+	if kb == nil || len(kb.lines) == 0 {
+		return nil
+	}
+	out := make(map[string]bool, len(kb.lines))
+	for f, l := range kb.lines {
+		if l.Line != "" {
+			out[f] = true
+		}
+	}
+	return out
+}
+
+// markCoreByCategory — ступень core по основной категории вендора (см. markVendorCore).
+func (rc rankCtx) markCoreByCategory(fams []*familyHit) {
 	count := map[string]int{}
 	best, bestN := "", 0
 	for _, fh := range fams {

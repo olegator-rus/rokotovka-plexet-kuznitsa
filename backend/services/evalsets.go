@@ -43,6 +43,8 @@ const (
 const (
 	labelImplicit = "implicit"
 	labelJudge    = "judge"
+	// labelImplicitJudge — неявная оценка, которую судья повысил (судья повышает, но не понижает).
+	labelImplicitJudge = "implicit+judge"
 )
 
 // Проблемы запроса из журнала (DerivedQuery.Problem).
@@ -87,6 +89,9 @@ type DerivedQuery struct {
 	// Sources — откуда оценка товара: implicit | judge.
 	Sources map[string]string `json:"judgment_sources"`
 	Problem string            `json:"problem,omitempty"`
+	// TargetFamily — целевое семейство exact/sku-запроса: семейство с наибольшей неявной поддержкой (поисков с
+	// действием); при равенстве или без кликов — пусто, и правило «клик 2 → 3» не применяется.
+	TargetFamily string `json:"target_family,omitempty"`
 	// Searches, EmptyShare, ClickShare — что о запросе знает журнал.
 	Searches   int     `json:"searches"`
 	EmptyShare float64 `json:"empty_share"`

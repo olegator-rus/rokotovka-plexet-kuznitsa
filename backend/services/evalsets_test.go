@@ -222,7 +222,7 @@ func TestBuildSets(t *testing.T) {
 		t.Fatalf("проблемный запрос: %+v", e)
 	}
 	j := res.Report.Judge
-	if j == nil || j.Calls == 0 || j.Filled == 0 || j.CostRub <= 0 || j.VsImplicit.Judged != 1 {
+	if j == nil || j.Calls == 0 || j.Filled == 0 || j.CostRub <= 0 || j.VsImplicit.Judged == 0 || j.PoolFamilies == 0 {
 		t.Fatalf("судья: %+v", j)
 	}
 	if k.Sources["kis-5dev-1y"] == labelJudge && k.Judgments["kis-5dev-1y"] != 2 {
@@ -259,5 +259,29 @@ func TestBuildSetsNeedsJournal(t *testing.T) {
 	env := imported(t, false)
 	if _, err := env.svc.BuildSets(t.Context(), BuildSetsRequest{Events: []domain.LogEvent{}}); err == nil {
 		t.Fatal("пустой журнал принят")
+	}
+}
+
+// TestApplyTargetFamily — клик 2 → 3 только у exact/sku и только в семействе с наибольшей неявной поддержкой; при
+// равенстве лидеров правило не применяется.
+func TestApplyTargetFamily(t *testing.T) {
+	fam := map[string]string{"a1": "A", "a2": "A", "b1": "B"}
+	family := func(pid string) string { return fam[pid] }
+	mk := func(typ string) *DerivedQuery {
+		return &DerivedQuery{EvalQuery: domain.EvalQuery{Type: typ, Judgments: map[string]int{"a1": 2, "a2": 1, "b1": 2}},
+			Sources: map[string]string{"a1": labelImplicit, "a2": labelImplicit, "b1": labelImplicit}}
+	}
+	q := mk(domain.QueryExact)
+	if n := applyTargetFamily(q, map[string]int{"a1": 3, "a2": 1, "b1": 2}, family); n != 1 || q.TargetFamily != "A" ||
+		q.Judgments["a1"] != 3 || q.Judgments["a2"] != 1 || q.Judgments["b1"] != 2 {
+		t.Fatalf("цель A: %d %+v %s", n, q.Judgments, q.TargetFamily)
+	}
+	tie := mk(domain.QuerySKU)
+	if n := applyTargetFamily(tie, map[string]int{"a1": 2, "b1": 2}, family); n != 0 || tie.TargetFamily != "" {
+		t.Fatalf("равенство — без цели: %d %s", n, tie.TargetFamily)
+	}
+	other := mk(domain.QueryPurpose)
+	if n := applyTargetFamily(other, map[string]int{"a1": 3}, family); n != 0 {
+		t.Fatalf("не exact — правило не применяется: %d", n)
 	}
 }

@@ -160,7 +160,10 @@ function sourcesLabel(src: Record<string, number> | undefined) {
 
       <template v-else>
         <p v-if="isMockCatalog(run.catalog_version)" class="panel t-sm pt__mock">
-          Прогон на каталоге «{{ MOCK_RUN_LABEL }}». Числа на фиде магазина —
+          Прогон на каталоге «{{ MOCK_RUN_LABEL }}». Набор префиксов собран по журналу mock-каталога
+          (data/mock/prefixes.json): цели префиксов — товары mock, на фиде их нет, а набора
+          префиксов по фиду пока нет. Поэтому эти числа качество подсказок на фиде не показывают.
+          Числа на фиде магазина —
           <RouterLink :to="{ query: { tab: 'feed' } }">«На данных заказчика»</RouterLink>.
         </p>
         <p class="t-sm pt__lead">

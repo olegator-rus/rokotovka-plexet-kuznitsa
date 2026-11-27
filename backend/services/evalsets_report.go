@@ -36,6 +36,9 @@ type SetsReport struct {
 	// UnknownProducts — действия с товарами, которых нет в каталоге; LowSupport — пар ниже минимальной поддержки.
 	UnknownProducts int `json:"unknown_products"`
 	LowSupport      int `json:"low_support"`
+	// TargetQueries — exact/sku-запросов с целевым семейством; TargetRaised — неявных оценок 2 → 3 по правилу цели.
+	TargetQueries int `json:"target_queries"`
+	TargetRaised  int `json:"target_raised"`
 
 	Queries       int                       `json:"queries"`
 	Clusters      int                       `json:"clusters"`
@@ -75,7 +78,11 @@ func (r *SetsReport) fill(qs []*DerivedQuery) {
 		if q.Problem != "" {
 			r.Problems[q.Problem]++
 		}
-		if len(q.Judgments) == 0 {
+		positive := false
+		for _, g := range q.Judgments {
+			positive = positive || g > 0
+		}
+		if !positive {
 			r.Unlabeled++
 		}
 		if !r.HoldoutFrom.IsZero() {
@@ -321,20 +328,24 @@ func FormatSetsMarkdown(r *SetsReport, source string) string {
 	p("Неявная (по журналу): заказ 3, корзина или запрос цены 2; клик без корзины — %d, если после него сессия не искала\n", r.ClickGrade)
 	p("сразу другое (за %d с), иначе 1; частый клик (≥ %.0f %% поисков запроса с поправкой на позицию: вес √pos, не больше %.0f;\n", int(reformulateWindow.Seconds()), setsClickShare2*100, setsPosBiasCap)
 	p("не меньше двух) — 2. Минимальная поддержка — %d поиск(а).\n", r.MinSupport)
-	p("Остальное — LLM-судья вслепую на пуле топ-10 B0–B3. Неявная оценка судьёй не перезаписывается.\n\n")
+	p("Правило цели (exact/sku): неявная оценка 2 становится 3, если товар из целевого семейства — семейства с наибольшей\n")
+	p("неявной поддержкой; при равенстве лидеров цели нет. Целевое семейство найдено у %d запросов, повышено оценок: %d.\n", r.TargetQueries, r.TargetRaised)
+	p("Остальное — LLM-судья вслепую на пуле топ-10 B0–B4, по одному товару на семейство запроса; оценка семейства\n")
+	p("переносится на все его артикулы в запросе. Судья может повысить неявную оценку (источник implicit+judge), но не понизить.\n\n")
 	p("| Источник | 0 | 1 | 2 | 3 |\n| --- | --- | --- | --- | --- |\n")
-	for _, src := range []string{labelImplicit, labelJudge} {
+	for _, src := range []string{labelImplicit, labelImplicitJudge, labelJudge} {
 		g := r.Grades[src]
 		p("| %s | %d | %d | %d | %d |\n", src, g[0], g[1], g[2], g[3])
 	}
 	p("\nЗапросов без единой оценки > 0: %d (пустые `judgments` — для absent/non_product/noise это ответ «нет»).\n\n", r.Unlabeled)
 	if j := r.Judge; j != nil {
-		p("Судья %s (%s): пул %d пар (из них с неявной оценкой %d), оценено %d (из кэша %d), добито %d (из них 0 — %d), %d вызовов, %.2f ₽ из %.0f ₽.",
-			j.Model, j.PromptVersion, j.PoolPairs, j.PoolImplicit, j.Judged, j.Cached, j.Filled, j.FilledZero, j.Calls, j.CostRub, j.BudgetRub)
+		p("Судья %s (%s): пул %d пар (из них с неявной оценкой %d), семейств в пуле %d, оценено %d (из кэша %d), добито пар %d (из них 0 — %d), повышено неявных %d, %d вызовов, %.2f ₽ из %.0f ₽.",
+			j.Model, j.PromptVersion, j.PoolPairs, j.PoolImplicit, j.PoolFamilies, j.Judged, j.Cached, j.Filled, j.FilledZero, j.Raised, j.Calls, j.CostRub, j.BudgetRub)
 		if j.Stopped != "" {
 			p(" Остановлен: %s.", j.Stopped)
 		}
-		p("\n\nСогласие судьи с неявной разметкой (%d пар): %s.\n\n", j.VsImplicit.Judged, agreementLine(j.VsImplicit))
+		p("\n\nСогласие судьи с кликами не публикуется: неявные оценки почти все 2, каппа против них вырождена. Калибровка судьи —\n")
+		p("на эталонах заказчика и их соседях (`go run . judge-calib`).\n\n")
 	} else if r.JudgeSkipped != "" {
 		p("Судья не вызывался: %s.\n\n", r.JudgeSkipped)
 	}

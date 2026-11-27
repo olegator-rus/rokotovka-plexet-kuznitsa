@@ -45,6 +45,9 @@ func Intent() Prompt { return parse(intentText) }
 // Judge — промпт LLM-судьи: вслепую оценивает пары запрос–товар по шкале 0–3 (ARCHITECTURE §6).
 func Judge() Prompt { return parse(judgeText) }
 
+// FromText — промпт из произвольного текста с той же строкой версии (калибровка судьи на прежнем промпте).
+func FromText(raw string) Prompt { return parse(raw) }
+
 //go:embed agent.md
 var agentText string
 

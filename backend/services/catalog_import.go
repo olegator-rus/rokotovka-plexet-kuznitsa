@@ -149,6 +149,47 @@ func (s *Services) ImportCatalog(ctx context.Context) (*out.ImportResult, error)
 	return res, nil
 }
 
+// ReferencesResult — итог `go run . import-refs`.
+type ReferencesResult struct {
+	Source               string   `json:"source"`
+	CatalogVersion       string   `json:"catalog_version"`
+	Relations            int      `json:"relations"`
+	Clients              int      `json:"clients"`
+	LicenseRules         int      `json:"license_rules"`
+	CompatibilityRules   int      `json:"compatibility_rules"`
+	AttributeDefinitions int      `json:"attribute_definitions"`
+	SolutionTemplates    int      `json:"solution_templates"`
+	Warnings             []string `json:"warnings"`
+}
+
+// ImportReferences — справочники вне фида (связи, клиенты, шаблоны решений, правила) из источника в базу без
+// переимпорта каталога: индекс поиска, векторы, позиции, алиасы и журналы не меняются. Каталог в базе должен быть
+// той же версии, что в источнике; иначе — полный импорт. Работающий API подхватит справочники после перезапуска.
+func (s *Services) ImportReferences(ctx context.Context) (*ReferencesResult, error) {
+	if !s.importMu.TryLock() {
+		return nil, errs.NewConflictError(MsgImportRunning)
+	}
+	defer s.importMu.Unlock()
+	if s.source == nil {
+		return nil, errs.NewUnavailableError(MsgNoSource)
+	}
+	snap, err := s.source.Load(ctx)
+	if err != nil {
+		return nil, errs.NewUnavailableError(MsgSourceBroken).WithCause(err)
+	}
+	ok, err := s.repos.ReplaceReferences(ctx, snap)
+	if err != nil {
+		return nil, errs.NewInternalError("Справочники не записаны в базу").WithCause(err)
+	}
+	if !ok {
+		return nil, errs.NewConflictError("В базе каталог другой версии (" + snap.Version + " нет) — нужен полный импорт")
+	}
+	return &ReferencesResult{Source: s.source.Name(), CatalogVersion: snap.Version, Relations: len(snap.Relations),
+		Clients: len(snap.Clients), LicenseRules: len(snap.LicenseRules), CompatibilityRules: len(snap.CompatibilityRules),
+		AttributeDefinitions: len(snap.AttributeDefinitions), SolutionTemplates: len(snap.SolutionTemplates),
+		Warnings: append([]string{}, snap.Warnings...)}, nil
+}
+
 // embedTargets — какие документы получают вектор: все, если каталог до embedAllMax позиций, иначе по одному
 // на семейство (embedRepresentative).
 func embedTargets(docs []indexDoc) ([]int, string) {

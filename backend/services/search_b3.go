@@ -161,6 +161,10 @@ func (s *Services) searchB3(ctx context.Context, requestID string, req in.Search
 		}
 		return nil, err
 	}
+	hw.setIndexed(info)
+	if hw.relaxSpecs() { // «коммутатор 24 порта», а таких позиций нет — похожие с пояснением (hardware_specs.go)
+		resp.Chips = hw.relaxedChips(resp.Chips)
+	}
 
 	// Текст для поиска: без атрибутов, слов намерения и служебных слов; исходные слова алиасов — отдельно.
 	var words, vendorWords []string
@@ -291,6 +295,9 @@ func (s *Services) searchB3(ctx context.Context, requestID string, req in.Search
 	rc.hw = hw
 	rc.versions = queryVersions(req.Query)
 	rc.vendorOnly = vendorOnlyText
+	if vendorOnlyText || attrs.quantity > 0 || attrs.renewal || attrs.duration > 0 {
+		rc.vendorLines = s.vendorLineFamilies()
+	}
 	rc.upgradeTargets = upgradeTargetSet(s.commerceFor(ctx))
 	rc.wantKinds = wantedKinds(nr.tokens, attrs)   // голова семейства — базовая лицензия, если о другом не просили (search_head.go)
 	cq := s.companionQuantity(ctx, lx, attrs, ent) // «на 50 пользователей» к серверу — количество CAL (search_companion_qty.go)
@@ -554,6 +561,9 @@ func (s *Services) searchB3(ctx context.Context, requestID string, req in.Search
 		}
 	}
 	resp.Relaxed = relaxedMessages(rc, fams)
+	if len(fams) > 0 {
+		resp.Relaxed = append(resp.Relaxed, hw.relaxedMessages()...)
+	}
 	if m := metricRelaxedMessage(metricRelaxed, rc.attrs.quantity, fams); m != nil {
 		resp.Relaxed = append(resp.Relaxed, *m)
 	}

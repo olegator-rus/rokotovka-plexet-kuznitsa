@@ -102,6 +102,9 @@ type rankCtx struct {
 	versions []string
 	// vendorOnly — запрос — одно имя вендора («касперский»): порядок — основная линейка вендора (markVendorCore).
 	vendorOnly bool
+	// vendorLines — семейства основных линеек вендоров из базы знаний (kb/vendor_families.json: KES, КриптоПро CSP,
+	// Astra Linux SE…): в запросе «только вендор» они выше остальных семейств вендора (markVendorCore).
+	vendorLines map[string]bool
 }
 
 // textTopN — сколько первых мест BM25 считаются совпадением по названию (не отсекаются категорией).
@@ -246,7 +249,7 @@ type familyHit struct {
 	// Для одного места не действует: поштучная лицензия на 1 место — то же самое.
 	exactQty int
 	// core — основная линейка вендора в запросе «вендор + условия» (search_vendor_core.go): 3 — редакция линейки, 2 — общий продукт
-	// основной категории, 1 — специализированный, 0 — остальное.
+	// основной категории, 1 — специализированный, 0 — остальное; линейка из базы знаний — ещё +3 (knownLineBonus).
 	core int
 	// wantKind — 1: голова семейства — вид лицензии, названный в запросе («техподдержка кибер бэкап» — семейство с
 	// техподдержкой выше семейства, где её нет).
@@ -415,15 +418,68 @@ func (rc rankCtx) namedCategory(fid string) bool {
 // fullNamed — среди нескольких семейств, названных в запросе, это названо целиком (все значимые слова названия, кроме
 // имени вендора, есть в запросе), а хотя бы одно другое — нет: у него в названии есть слово, которого в запросе нет.
 func (rc rankCtx) fullNamed(fid string) bool {
-	if len(rc.ent.named) < 2 || !rc.namedWhole(fid) {
+	if len(rc.ent.named) < 2 {
+		return false
+	}
+	if rc.namedWhole(fid) {
+		for _, f := range rc.ent.named {
+			if f != fid && !rc.namedWhole(f) && !rc.pointsTo(f, fid) {
+				return true
+			}
+		}
+	}
+	// Отличающее слово названия совпало со словом категории и в значимые не попало: у «Кибер Хранилище» и «Кибер
+	// Инфраструктура» значимое слово одно — «кибер», и на «кибер инфраструктура» оба семейства названы «целиком».
+	// Тогда решает полное название: целиком назван тот, у кого все слова названия есть в запросе.
+	if !rc.namedWholeRaw(fid) {
 		return false
 	}
 	for _, f := range rc.ent.named {
-		if f != fid && !rc.namedWhole(f) && !rc.pointsTo(f, fid) {
+		if f != fid && !rc.namedWholeRaw(f) && rc.sameSignificant(f, fid) {
 			return true
 		}
 	}
 	return false
+}
+
+// namedWholeRaw — каждое слово названия семейства (кроме служебных и имени вендора) есть в запросе, включая слова,
+// которые совпали со словами категорий и в значимые не попали.
+func (rc rankCtx) namedWholeRaw(fid string) bool {
+	in := map[string]bool{}
+	for _, t := range rc.ent.entityTokens {
+		for _, w := range wordsOf(t) {
+			in[w] = true
+		}
+	}
+	vendor := map[string]bool{}
+	for _, w := range wordsOf(rc.lx.vendorName[rc.lx.familyVendor[fid]]) {
+		vendor[w] = true
+	}
+	n := 0
+	for _, w := range wordsOf(rc.lx.familyName[fid]) {
+		if lexStopWords[w] || vendor[w] {
+			continue
+		}
+		if !in[w] {
+			return false
+		}
+		n++
+	}
+	return n > 0
+}
+
+// sameSignificant — у двух семейств одинаковые значимые слова названия: по ним их не различить.
+func (rc rankCtx) sameSignificant(a, b string) bool {
+	wa, wb := rc.lx.familyWords[a], rc.lx.familyWords[b]
+	if len(wa) != len(wb) {
+		return false
+	}
+	for w := range wa {
+		if !wb[w] {
+			return false
+		}
+	}
+	return true
 }
 
 // pointsTo — в запросе есть слово, которое называет семейство f, но не fid: слово его названия или основа слова из

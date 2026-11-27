@@ -124,6 +124,10 @@ func main() {
 		runImport(ctx, log, svc)
 		return
 	}
+	if len(os.Args) > 1 && os.Args[1] == "import-refs" {
+		runImportRefs(ctx, log, svc)
+		return
+	}
 	if len(os.Args) > 1 && os.Args[1] == "import-logs" {
 		runImportLogs(ctx, log, svc)
 		return
@@ -135,6 +139,10 @@ func main() {
 	if len(os.Args) > 1 && os.Args[1] == "guide-eval" {
 		svc.SetGuideMinFactStatus(cfg.GuideMinFactStatus) // порог показа фактов — как у API
 		runGuideEval(ctx, log, svc, os.Args[2:])
+		return
+	}
+	if len(os.Args) > 1 && os.Args[1] == "judge-calib" {
+		runJudgeCalib(ctx, log, svc, os.Args[2:])
 		return
 	}
 	if len(os.Args) > 1 && os.Args[1] == "judge" {
@@ -267,6 +275,19 @@ func runImport(ctx context.Context, log *zap.Logger, svc *services.Services) {
 	// Исторические логи поведения — для аналитики и агента (сводка — в журнале).
 	if _, err := svc.ImportSearchLogs(ctx); err != nil {
 		log.Fatal("импорт логов", zap.Error(err))
+	}
+	enc := json.NewEncoder(os.Stdout)
+	enc.SetIndent("", "  ")
+	enc.SetEscapeHTML(false)
+	_ = enc.Encode(res)
+}
+
+// runImportRefs — `go run . import-refs`: только справочники вне фида (связи, клиенты, шаблоны решений, правила)
+// в базу, без индекса и векторов; сбой — код выхода 1.
+func runImportRefs(ctx context.Context, log *zap.Logger, svc *services.Services) {
+	res, err := svc.ImportReferences(ctx)
+	if err != nil {
+		log.Fatal("импорт справочников", zap.Error(err))
 	}
 	enc := json.NewEncoder(os.Stdout)
 	enc.SetIndent("", "  ")

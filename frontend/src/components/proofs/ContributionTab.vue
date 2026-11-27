@@ -34,6 +34,10 @@ watch(set, () => void res.load())
 
 const data = computed(() => res.data.value)
 const run = computed(() => data.value?.run ?? null)
+/** Прогон с метриками по семействам (после их появления): в таблице — они, иначе прежние по артикулу. */
+const famCols = computed(() =>
+  (run.value?.rows ?? []).some((r) => typeof r.metrics.exact_accuracy_family === 'number'),
+)
 const ladder = computed(() => run.value?.rows.filter((r) => r.kind === 'ladder') ?? [])
 const singles = computed(() => run.value?.rows.filter((r) => r.kind === 'single_change') ?? [])
 const blockingFailed = computed(
@@ -162,6 +166,10 @@ const verdictText = { keep: 'оставить', remove: 'прироста нет
         Прогон на каталоге «{{ MOCK_RUN_LABEL }}». Числа на фиде магазина — в разделе «На данных
         заказчика».
       </p>
+      <p v-if="famCols && !isMockCatalog(run.catalog_version)" class="t-sm ctb__mock">
+        Данные заказчика: разметка — клики на боевой выдаче и LLM-судья, счёт по семействам. Это
+        оценка с указанием, откуда она, а не ручная разметка.
+      </p>
       <p class="t-sm ctb__lead">
         Набор <strong>{{ run.set }}</strong>: {{ formatInt(run.queries) }}
         {{ plural(run.queries, ['запрос', 'запроса', 'запросов']) }}. Каждая строка лестницы
@@ -178,10 +186,12 @@ const verdictText = { keep: 'оставить', remove: 'прироста нет
             <thead>
               <tr>
                 <th scope="col">Строка</th>
-                <th scope="col" class="num">NDCG@10</th>
+                <th scope="col" class="num">{{ famCols ? 'NDCG@10 по семействам' : 'NDCG@10' }}</th>
                 <th scope="col" class="num">Пустые</th>
                 <th scope="col" class="num">Нарушения условий</th>
-                <th scope="col" class="num">Точные на 1-м</th>
+                <th scope="col" class="num">
+                  {{ famCols ? 'Верное семейство первым' : 'Точные на 1-м' }}
+                </th>
                 <th scope="col" class="num">Ложное спасение</th>
                 <th scope="col" class="num">P95, мс</th>
                 <th scope="col" class="num">₽ LLM / 1000</th>
@@ -197,13 +207,17 @@ const verdictText = { keep: 'оставить', remove: 'прироста нет
                   <th scope="row" class="ctb__row">
                     <span class="t-mono">{{ r.id }}</span> {{ r.label }}
                   </th>
-                  <td class="num">{{ num3(r.metrics.ndcg10) }}</td>
+                  <td class="num">
+                    {{ num3(famCols ? r.metrics.ndcg10_family : r.metrics.ndcg10) }}
+                  </td>
                   <td class="num">{{ pct(r.metrics.empty_rate) }}</td>
                   <td class="num">
                     {{ pct(r.metrics.violation_rate) }}
                     <span class="t-xs t-muted ctb__sub">{{ r.metrics.violation_items }} поз.</span>
                   </td>
-                  <td class="num">{{ pct(r.metrics.exact_accuracy) }}</td>
+                  <td class="num">
+                    {{ pct(famCols ? r.metrics.exact_accuracy_family : r.metrics.exact_accuracy) }}
+                  </td>
                   <td class="num">{{ pct(r.metrics.false_rescue_rate) }}</td>
                   <td class="num">{{ ms(r.metrics.latency.p95) }}</td>
                   <td

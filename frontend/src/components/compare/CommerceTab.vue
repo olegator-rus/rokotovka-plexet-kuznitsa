@@ -25,7 +25,7 @@ import {
 } from '@/lib/commerce'
 import { shortHash } from '@/lib/evalView'
 import { formatDecimal, formatInt, formatPercent, plural } from '@/lib/format'
-import { runTail } from '@/lib/feedSummary'
+import { MOCK_RUN_LABEL, runTail } from '@/lib/feedSummary'
 import { compatibilityLabel } from '@/lib/relations'
 
 const res = useResource((opts) => getCommerceEval(opts))
@@ -129,6 +129,11 @@ function explainMetric(key: CommerceMetricKey) {
     </div>
 
     <template v-else-if="data">
+      <p class="panel t-sm com__mock">
+        Прогон на каталоге «{{ MOCK_RUN_LABEL }}». На фиде заказчика пары «товар → дополнение» не
+        размечены, поэтому лестница C0–C3 считается на mock-каталоге и качество на фиде не
+        показывает.
+      </p>
       <div class="com__lead">
         <p class="t-sm">
           Набор <strong>{{ data.set ?? 'p2' }}</strong>{{ setSize }}
@@ -317,6 +322,10 @@ function explainMetric(key: CommerceMetricKey) {
 </template>
 
 <style scoped>
+.com__mock {
+  padding: var(--space-3) var(--space-4);
+  color: var(--text-2);
+}
 .com {
   display: flex;
   flex-direction: column;

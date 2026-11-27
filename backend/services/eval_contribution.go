@@ -310,27 +310,43 @@ func contribChecks(rows []out.ContributionRow) []out.ContributionCheck {
 		return []out.ContributionCheck{}
 	}
 	is1 := func(v *float64) bool { return v != nil && *v >= 0.9999 }
+	exact := contribExact
 	errsTotal := 0
 	for _, r := range rows {
 		errsTotal += r.Metrics.Errors
 	}
 	checks := []out.ContributionCheck{
-		{ID: "exact_full", Label: "Точные запросы на 1-м месте в полном пути — 100 %", Blocking: true,
-			Passed: is1(full.Metrics.ExactAccuracy), Value: pctText(full.Metrics.ExactAccuracy)},
+		{ID: "exact_full", Label: "Точные запросы: верное семейство на 1-м месте в полном пути — 100 %", Blocking: true,
+			Passed: is1(exact(full.Metrics)), Value: pctText(exact(full.Metrics))},
 		{ID: "rerank_exact", Label: "Реранкер не сдвигает точные запросы", Blocking: true,
-			Passed: full.Metrics.ExactAccuracy != nil && noRr.Metrics.ExactAccuracy != nil && *full.Metrics.ExactAccuracy >= *noRr.Metrics.ExactAccuracy,
-			Value:  pctText(noRr.Metrics.ExactAccuracy) + " → " + pctText(full.Metrics.ExactAccuracy)},
+			Passed: exact(full.Metrics) != nil && exact(noRr.Metrics) != nil && *exact(full.Metrics) >= *exact(noRr.Metrics),
+			Value:  pctText(exact(noRr.Metrics)) + " → " + pctText(exact(full.Metrics))},
 		{ID: "no_errors", Label: "Ни одной ошибки поиска ни в одной строке", Blocking: true, Passed: errsTotal == 0,
 			Value: fmt.Sprintf("ошибок %d", errsTotal)},
 		{ID: "offline_answers", Label: "Без моделей поиск отвечает: ни одной ошибки", Blocking: true,
 			Passed: off.Metrics.Errors == 0, Value: fmt.Sprintf("ошибок %d из %d", off.Metrics.Errors, off.Metrics.Queries+off.Metrics.Errors)},
-		{ID: "offline_exact", Label: "Без моделей точные запросы на 1-м месте — 100 %",
-			Passed: is1(off.Metrics.ExactAccuracy), Value: pctText(off.Metrics.ExactAccuracy)},
+		{ID: "offline_exact", Label: "Без моделей точные запросы: верное семейство на 1-м месте — 100 %",
+			Passed: is1(exact(off.Metrics)), Value: pctText(exact(off.Metrics))},
 		{ID: "false_rescue", Label: "Порог: ложное спасение полного пути не выше, чем у векторов без порога (B2)",
 			Passed: full.Metrics.FalseRescueRate != nil && b2.Metrics.FalseRescueRate != nil && *full.Metrics.FalseRescueRate <= *b2.Metrics.FalseRescueRate,
 			Value:  pctText(b2.Metrics.FalseRescueRate) + " → " + pctText(full.Metrics.FalseRescueRate)},
 	}
 	return checks
+}
+
+// contribExact, contribNDCG — метрики проверок и решений: по семействам; прогон до семейных метрик — по артикулу.
+func contribExact(m out.EvalMetrics) *float64 {
+	if m.ExactAccuracyFamily != nil {
+		return m.ExactAccuracyFamily
+	}
+	return m.ExactAccuracy
+}
+
+func contribNDCG(m out.EvalMetrics) *float64 {
+	if m.NDCG10Family != nil {
+		return m.NDCG10Family
+	}
+	return m.NDCG10
 }
 
 // contribDecisions — предварительные решения по реранкеру, векторной ветке и LLM.
@@ -357,8 +373,8 @@ func contribDecisions(rows []out.ContributionRow) []out.ContributionDecision {
 		} else {
 			d.Improvements, d.Regressions = wo.Regressions, wo.Improvements
 		}
-		if full.Metrics.NDCG10 != nil && wo.Metrics.NDCG10 != nil {
-			v := round4(*full.Metrics.NDCG10 - *wo.Metrics.NDCG10)
+		if f, w := contribNDCG(full.Metrics), contribNDCG(wo.Metrics); f != nil && w != nil {
+			v := round4(*f - *w)
 			d.DeltaNDCG = &v
 		}
 		switch {
@@ -481,13 +497,13 @@ func FormatContributionTable(r *out.ContributionRun) string {
 	}
 	var b strings.Builder
 	fmt.Fprintf(&b, "Вклад компонентов %s · %s\n\n", r.RunID, r.Repro)
-	b.WriteString("| Строка | NDCG@10 | Пустые | Нарушения условий | Точные | Ложное спасение | P50 / P95, мс | ₽ LLM / 1000 (без кэша) | Улучш. / ухудш. |\n")
+	b.WriteString("| Строка | NDCG@10 (сем.) | Пустые | Нарушения условий | Точные (сем.) | Ложное спасение | P50 / P95, мс | ₽ LLM / 1000 (без кэша) | Улучш. / ухудш. |\n")
 	b.WriteString("| --- | --- | --- | --- | --- | --- | --- | --- | --- |\n")
 	for _, row := range r.Rows {
 		m := row.Metrics
 		ndcg := "—"
-		if m.NDCG10 != nil {
-			ndcg = fmt.Sprintf("%.3f", *m.NDCG10)
+		if v := contribNDCG(m); v != nil {
+			ndcg = fmt.Sprintf("%.3f", *v)
 		}
 		cold := "LLM выкл."
 		if row.Cost.ColdLLMRubPer1k != nil {
@@ -498,7 +514,7 @@ func FormatContributionTable(r *out.ContributionRun) string {
 			vs = fmt.Sprintf("+%d / −%d к %s", row.Improvements, row.Regressions, row.Against)
 		}
 		fmt.Fprintf(&b, "| %s %s | %s | %s | %s (%d поз.) | %s | %s | %.1f / %.1f | %.2f (%s) | %s |\n", row.ID, row.Label, ndcg,
-			pctText(m.EmptyRate), pctText(m.ViolationRate), m.ViolationItems, pctText(m.ExactAccuracy), pctText(m.FalseRescueRate),
+			pctText(m.EmptyRate), pctText(m.ViolationRate), m.ViolationItems, pctText(contribExact(m)), pctText(m.FalseRescueRate),
 			m.Latency.P50, m.Latency.P95, row.Cost.LLMRubPer1k, cold, vs)
 	}
 	b.WriteString("\nПроверки:\n")

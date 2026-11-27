@@ -181,3 +181,44 @@ func TestEvalAggregateEmpty(t *testing.T) {
 		t.Fatalf("пусто: %+v", m)
 	}
 }
+
+// TestEvalFamilyMetrics — по семействам: первым показан другой артикул того же продукта (оценка 3 стоит у соседнего
+// артикула) — по артикулу промах, по семейству попадание; exact без единой оценки > 0 уходит в группу
+// «ожидаем пусто или альтернативу» и не входит в знаменатель «верное семейство первым».
+func TestEvalFamilyMetrics(t *testing.T) {
+	cat := &evalCatalog{family: map[string]string{"a1": "A", "a2": "A", "b1": "B"}}
+	q := domain.EvalQuery{ID: "q", Type: domain.QueryExact, Judgments: map[string]int{"a2": 3, "b1": 1}}
+	o := evalOutcome{Items: []evalItem{{ProductID: "a1", FamilyID: "A"}, {ProductID: "b1", FamilyID: "B"}}}
+	r := evalScoreQuery(q, o, cat)
+	if r.ExactHit == nil || *r.ExactHit || r.ExactHitFamily == nil || !*r.ExactHitFamily {
+		t.Fatalf("артикул — промах, семейство — попадание: %v %v", r.ExactHit, r.ExactHitFamily)
+	}
+	if r.NDCG10Family == nil || !evalNear(*r.NDCG10Family, 1) || r.NDCG10 == nil || *r.NDCG10 >= 1 {
+		t.Fatalf("NDCG: семейство %v, артикул %v", r.NDCG10Family, r.NDCG10)
+	}
+	none := domain.EvalQuery{ID: "n", Type: domain.QueryExact, Judgments: map[string]int{"b1": 0}}
+	rn := evalScoreQuery(none, evalOutcome{Items: []evalItem{{ProductID: "b1", FamilyID: "B", Group: domain.GroupAnalog}}}, cat)
+	if !rn.ExpectEmpty || rn.ExactHitFamily != nil || rn.ExpectEmptyOK == nil || !*rn.ExpectEmptyOK {
+		t.Fatalf("ожидаем пусто: %+v", rn)
+	}
+	m := evalAggregate([]out.EvalQueryResult{r, rn})
+	if m.ExactAccuracyFamily == nil || *m.ExactAccuracyFamily != 1 || m.ExactQueries != 1 || m.ExpectEmptyQueries != 1 ||
+		m.ExactAccuracy == nil || *m.ExactAccuracy != 0 {
+		t.Fatalf("сводка: %+v", m)
+	}
+}
+
+// TestEvalFamilyNDCGJudgedOnly — разметка с явными нулями: неразмеченное семейство в выдаче не штрафует NDCG по
+// семействам (пропускается), размеченный 0 — штрафует.
+func TestEvalFamilyNDCGJudgedOnly(t *testing.T) {
+	cat := &evalCatalog{family: map[string]string{"a": "A", "u": "U", "z": "Z"}}
+	q := domain.EvalQuery{ID: "q", Type: domain.QueryPurpose, Judgments: map[string]int{"a": 3, "z": 0}}
+	r := evalScoreQuery(q, evalOutcome{Items: []evalItem{{ProductID: "u", FamilyID: "U"}, {ProductID: "a", FamilyID: "A"}}}, cat)
+	if r.NDCG10Family == nil || *r.NDCG10Family != 1 {
+		t.Fatalf("неразмеченное пропускается: %v", r.NDCG10Family)
+	}
+	r = evalScoreQuery(q, evalOutcome{Items: []evalItem{{ProductID: "z", FamilyID: "Z"}, {ProductID: "a", FamilyID: "A"}}}, cat)
+	if r.NDCG10Family == nil || *r.NDCG10Family >= 1 {
+		t.Fatalf("размеченный 0 штрафует: %v", r.NDCG10Family)
+	}
+}

@@ -47,6 +47,8 @@ export function flattenMetrics(m: EvalMetrics | null | undefined): Record<string
     'judged_searches',
     'rescued_searches',
     'lost_searches',
+    'exact_queries',
+    'expect_empty_queries',
   ])
   for (const [k, v] of Object.entries(m)) if (!skip.has(k)) out[k] = num(v)
   if (m.latency && m.latency.count > 0) {
@@ -240,4 +242,40 @@ export function judgeView(ja: JudgeAgreement | null | undefined): JudgeView | nu
       swapped.push([a.config, b.config])
   }
   return { rows, swapped }
+}
+
+export interface FamilyHeadline {
+  /** Последняя посчитанная конфигурация лестницы (полный путь) и первая (исходный поиск). */
+  config: ConfigId
+  baseConfig: ConfigId | null
+  exactFamily: number | null
+  ndcgFamily: number | null
+  baseExactFamily: number | null
+  baseNdcgFamily: number | null
+  /** Знаменатель «верное семейство первым». */
+  exactQueries: number | null
+  run: EvaluationView
+}
+
+/**
+ * Главные числа экрана «Метрики»: «верное семейство первым» и NDCG@10 по семействам у последнего столбца лестницы
+ * и у первого. Прогон без семейных метрик (до их появления) — null: плиток нет.
+ */
+export function familyHeadline(columns: readonly EvaluationView[]): FamilyHeadline | null {
+  if (columns.length === 0) return null
+  const last = columns[columns.length - 1]
+  const first = columns.length > 1 ? columns[0] : null
+  const exactFamily = num(last.metrics?.exact_accuracy_family)
+  const ndcgFamily = num(last.metrics?.ndcg10_family)
+  if (exactFamily === null && ndcgFamily === null) return null
+  return {
+    config: last.config,
+    baseConfig: first?.config ?? null,
+    exactFamily,
+    ndcgFamily,
+    baseExactFamily: first ? num(first.metrics?.exact_accuracy_family) : null,
+    baseNdcgFamily: first ? num(first.metrics?.ndcg10_family) : null,
+    exactQueries: num(last.metrics?.exact_queries),
+    run: last,
+  }
 }

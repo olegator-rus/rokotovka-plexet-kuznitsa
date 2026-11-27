@@ -269,7 +269,7 @@ func buildDocs(s *domain.CatalogSnapshot) []indexDoc {
 			Kind:            p.Kind,
 			MPNRaw:          p.MPN,
 			MPNNormalized:   normalizeMPN(p.MPN),
-			Specs:           p.Specs,
+			Specs:           docSpecs(p),
 			CompatibleWith:  p.CompatibleWith,
 			ModelID:         p.ModelID,
 			PriceMode:       p.PriceMode,
@@ -469,7 +469,7 @@ func specKeys(s *domain.CatalogSnapshot) []string {
 		}
 	}
 	for _, p := range s.Products {
-		for k := range p.Specs {
+		for k := range docSpecs(p) {
 			set[k] = true
 		}
 	}

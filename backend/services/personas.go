@@ -19,7 +19,7 @@ var demoPersonas = []demoPersona{
 	{id: "buyer-smb", name: "Ольга Северцева", role: RoleBuyer, title: "Закупки ИТ, малый бизнес", clientID: "client-a",
 		note: "Покупала Kaspersky — на «продлить антивирус» первой будет её лицензия"},
 	{id: "buyer-enterprise", name: "Артём Белозёров", role: RoleBuyer, title: "ИТ-директор, крупная компания", clientID: "client-c",
-		note: "Windows Server, CAL, Veeam и KES в истории — своя выдача и допродажи к серверу"},
+		note: "Windows Server, CAL, резервное копирование и KES в истории — своя выдача и допродажи к серверу"},
 	{id: "buyer-gov", name: "Наталья Громова", role: RoleBuyer, title: "Контрактный управляющий, госсектор", clientID: "client-d",
 		note: "Dr.Web и Secret Net в истории — продления этих лицензий первыми"},
 	{id: "staff-ecom", name: "Илья Ветров", role: RoleEcom, title: "Администратор поиска",

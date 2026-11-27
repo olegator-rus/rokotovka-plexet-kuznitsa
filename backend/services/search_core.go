@@ -247,6 +247,7 @@ func findEntities(nr normResult, attrs queryAttrs, lx *searchLexicon, rules *sea
 			e.vendorTokens[t] = true
 		}
 	}
+	e.markAliasVendorWords(nr.aliasHits, lx)
 	seenV := map[string]bool{}
 	for _, v := range e.vendors {
 		seenV[v] = true
@@ -687,4 +688,30 @@ func onlyShopCommands(tokens []string) bool {
 		}
 	}
 	return n > 0
+}
+
+// markAliasVendorWords — слова подстановки алиаса вендора, которые есть в имени этого вендора («астра» → «группа
+// астра»), — тоже имя вендора: иначе «группа» остаётся словом текста, и выдача «только вендора» сужается до позиций,
+// в названии которых написано «Группа Астра», без Astra Linux. Слова продукта в подстановке («acronis» → «кибер
+// бэкап») именем вендора не становятся.
+func (e *queryEntities) markAliasVendorWords(hits []domain.Alias, lx *searchLexicon) {
+	for _, a := range hits {
+		if a.Target != domain.AliasTargetVendor || a.TargetID == "" {
+			continue
+		}
+		name := map[string]bool{}
+		for _, w := range wordsOf(lx.vendorName[a.TargetID]) {
+			name[w] = true
+		}
+		for _, t := range e.entityTokens {
+			ws := wordsOf(t)
+			all := len(ws) > 0
+			for _, w := range ws {
+				all = all && name[w]
+			}
+			if all {
+				e.vendorTokens[t] = true
+			}
+		}
+	}
 }

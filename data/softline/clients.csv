@@ -1,0 +1,4 @@
+id,name,segment
+client-a,Клиент А,smb
+client-c,Клиент В,enterprise
+client-d,Клиент Г,gov

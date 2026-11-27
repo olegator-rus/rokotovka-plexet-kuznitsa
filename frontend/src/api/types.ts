@@ -501,6 +501,14 @@ export interface EvalMetrics {
   mrr10: number | null
   recall50: number | null
   exact_accuracy: number | null
+  /** По семействам: оценка семейства — максимум по артикулам; «верное семейство первым» — exact/sku. */
+  ndcg10_family?: number | null
+  exact_accuracy_family?: number | null
+  /** Знаменатель «верное семейство первым»: exact/sku без группы «ожидаем пусто». */
+  exact_queries?: number
+  /** Группа «ожидаем пусто или альтернативу»: доля честных ответов и число запросов. */
+  expect_empty_ok?: number | null
+  expect_empty_queries?: number
   rescued_rate: number | null
   false_rescue_rate: number | null
   violation_rate: number | null
@@ -597,12 +605,37 @@ export interface JudgeAgreement {
   duration_ms: number
 }
 
+/** Калибровка LLM-судьи на якорях: цели должны получить 3, запрещённые соседи — не выше 1. */
+export interface JudgeCalibration {
+  run_id: string
+  model: string
+  prompt_version: string
+  created_at: string
+  with_family: boolean
+  targets: number
+  targets_hit: number
+  target_rate: number | null
+  etalon_targets: number
+  etalon_hit: number
+  forbidden: number
+  forbidden_ok: number
+  forbidden_rate: number | null
+  target_grades: number[]
+  forbidden_grades: number[]
+  unjudged: number
+  calls: number
+  cost_rub: number
+  duration_ms: number
+}
+
 export interface EvaluationsResponse {
   set: string
   configs: EvaluationView[]
   running: EvalJob | null
   last_job: EvalJob | null
   judge_agreement?: JudgeAgreement | null
+  /** Калибровка судьи на якорях фида (эталоны заказчика и соседи); null — не запускалась. */
+  judge_calibration?: JudgeCalibration | null
   /** Честность правок агента в столбце B4 этого набора; null — нет B3 или B4. */
   agent_credit?: EvalAgentCredit | null
 }
