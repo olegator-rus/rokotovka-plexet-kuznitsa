@@ -68,6 +68,38 @@ export interface SelectedOffer {
   total: number
   /** «× 100 устройств = 429 000 ₽» или цена позиции. */
   sum: string
+  /** Объяснение простыми словами для карточки. */
+  plain: PlainOffer
+}
+
+export interface PlainOffer {
+  /** «Вы ищете на 20 пользователей»; пусто — запрос не назвал количество. */
+  need: string
+  /** «Продление · 2 года · Стандартный» — без ступени: она сказана в priceNote. */
+  variant: string
+  /** За что цена: «Лицензия на одного пользователя», «Один пакет на 10 устройств», «Цена». */
+  unitLabel: string
+  /** «Такая цена при заказе от 20 пользователей»; пусто — цена от количества не зависит. */
+  priceNote: string
+  /** «На 20 пользователей» / «Нужно 10 пакетов»; пусто — итог равен цене. */
+  totalLabel: string
+  /** «20 × 4 290 ₽». */
+  calc: string
+}
+
+/** «на 1 пользователя», «на 2 устройства» — формы после «на». */
+const FOR_FORMS: Record<string, [string, string, string]> = {
+  device: ['устройство', 'устройства', 'устройств'],
+  user: ['пользователя', 'пользователя', 'пользователей'],
+  server: ['сервер', 'сервера', 'серверов'],
+  core: ['ядро', 'ядра', 'ядер'],
+}
+
+const ONE_LICENSE: Record<string, string> = {
+  device: 'Лицензия на одно устройство',
+  user: 'Лицензия на одного пользователя',
+  server: 'Лицензия на один сервер',
+  core: 'Лицензия на одно ядро',
 }
 
 function durationText(months: number | null | undefined): string {
@@ -119,7 +151,28 @@ export function selectedOffer(
     sum = `${formatPrice(item.price_rub)} × ${quantity} ${plural(quantity, ['пакет', 'пакета', 'пакетов'])} по ${pack} ${plural(pack, forms)} = ${formatPrice(total)}`
   else if (quantity > 1)
     sum = `${formatPrice(item.price_rub)} × ${quantity} ${plural(quantity, forms)} = ${formatPrice(total)}`
-  return { label: parts.join(' · '), quantity, unitPrice: item.price_rub, total, sum }
+  const asked = purchase.quantity ?? 0
+  const askedForms = FOR_FORMS[purchase.metric || metric]
+  const forText = (n: number, f: [string, string, string] | undefined) =>
+    f ? `на ${n} ${plural(n, f)}` : `на ${n} шт.`
+  const one = ONE_LICENSE[metric] ?? 'Цена за 1 шт.'
+  let unitLabel = tier || quantity > 1 ? one : 'Цена'
+  if (pack > 1) unitLabel = `Один пакет ${forText(pack, FOR_FORMS[metric])}`
+  let totalLabel = ''
+  if (quantity > 1)
+    totalLabel =
+      pack > 1
+        ? `Нужно ${quantity} ${plural(quantity, ['пакет', 'пакета', 'пакетов'])}`
+        : `Всего ${forText(quantity, FOR_FORMS[metric])}`
+  const plain: PlainOffer = {
+    need: asked > 0 ? `Вы ищете ${forText(asked, askedForms)}` : '',
+    variant: parts.filter((p) => p !== step).join(' · '),
+    unitLabel,
+    priceNote: tier ? `Такая цена при заказе ${tierLabel(item)} ${forms[2]}` : '',
+    totalLabel,
+    calc: quantity > 1 ? `${quantity} × ${formatPrice(item.price_rub)}` : '',
+  }
+  return { label: parts.join(' · '), quantity, unitPrice: item.price_rub, total, sum, plain }
 }
 
 /** Параметры закупки для строки спецификации; null — запрос ничего не назвал. */

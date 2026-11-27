@@ -372,11 +372,13 @@ test('хранение: битое — пустой разговор с новы
   assert.equal(saved.expanded, true)
 })
 
-test('флаг: VITE_CONSULTANT=1, ?consultant=1 или localStorage', () => {
-  assert.equal(consultantEnabled({}), false)
+test('флаг: консультант по умолчанию; помощник контура помощника — по ?consultant=0, localStorage или VITE_CONSULTANT=0', () => {
+  assert.equal(consultantEnabled({}), true)
   assert.equal(consultantEnabled({ env: '1' }), true)
-  assert.equal(consultantEnabled({ search: '?q=x&consultant=1' }), true)
+  assert.equal(consultantEnabled({ env: '0' }), false)
+  assert.equal(consultantEnabled({ search: '?q=x&consultant=1', env: '0' }), true)
   assert.equal(consultantEnabled({ search: '?consultant=0' }), false)
-  assert.equal(consultantEnabled({ stored: '1' }), true)
   assert.equal(consultantEnabled({ stored: '0' }), false)
+  assert.equal(consultantEnabled({ stored: '1', env: '0' }), true)
+  assert.equal(consultantEnabled({ search: '?consultant=1', stored: '0' }), true)
 })

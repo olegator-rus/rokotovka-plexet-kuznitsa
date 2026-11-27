@@ -449,14 +449,19 @@ export function parseConversation(raw: string | null): StoredConversation {
 
 // ── Флаг (CONTRACT.md, «Флаг») ──
 
+/**
+ * Консультант включён по умолчанию (решение владельца). Помощник контура помощника остаётся запасным: адрес
+ * ?consultant=0, localStorage.consultant = '0' или сборка с VITE_CONSULTANT=0. Адрес важнее остального.
+ */
 export function consultantEnabled(opts: {
   env?: string | undefined
   search?: string
   stored?: string | null
 }): boolean {
-  if (opts.env === '1') return true
-  if (opts.search && new URLSearchParams(opts.search).get('consultant') === '1') return true
-  return opts.stored === '1'
+  const asked = new URLSearchParams(opts.search ?? '').get('consultant')
+  if (asked === '1' || asked === '0') return asked === '1'
+  if (opts.stored === '1' || opts.stored === '0') return opts.stored === '1'
+  return opts.env !== '0'
 }
 
 // ── Тексты ──

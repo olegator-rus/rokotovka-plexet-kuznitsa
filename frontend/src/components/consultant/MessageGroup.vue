@@ -1,7 +1,6 @@
 <script setup lang="ts">
-// Группа реплик одного собеседника подряд: значок консультанта только у первой реплики, 4 px внутри, 16 px между
-// собеседниками (отступ задаёт лента).
-import { MessageSquareText } from 'lucide-vue-next'
+// Группа реплик одного собеседника подряд: 4 px внутри, 16 px между собеседниками (отступ задаёт лента). Значка у
+// реплик консультанта нет (он только в шапке окна): ответ и вложения занимают всю ширину ленты.
 import type { ChatMessage } from '@/lib/consultant'
 import MessageBubble from './MessageBubble.vue'
 
@@ -11,9 +10,6 @@ defineEmits<{ retry: [] }>()
 
 <template>
   <div class="mg" :class="`mg--${role}`">
-    <span v-if="role === 'assistant'" class="mg__avatar" aria-hidden="true">
-      <MessageSquareText :size="15" />
-    </span>
     <div class="mg__list">
       <MessageBubble v-for="m in messages" :key="m.id" :message="m" @retry="$emit('retry')" />
     </div>
@@ -29,26 +25,11 @@ defineEmits<{ retry: [] }>()
 .mg--user {
   justify-content: flex-end;
 }
-.mg__avatar {
-  display: grid;
-  flex-shrink: 0;
-  place-items: center;
-  width: 1.75rem;
-  height: 1.75rem;
-  border-radius: var(--radius-pill);
-  background: var(--accent-soft);
-  color: var(--accent);
-}
 .mg__list {
   display: flex;
   min-width: 0;
   flex: 1;
   flex-direction: column;
   gap: var(--space-1);
-}
-@media (max-width: 640px) {
-  .mg__avatar {
-    display: none;
-  }
 }
 </style>

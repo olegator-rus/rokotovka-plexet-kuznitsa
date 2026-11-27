@@ -71,6 +71,10 @@ async function noHorizontalScroll(page: Page) {
 
 test.describe("П10: помощник по выбору", () => {
   test.use({ storageState: GUEST });
+  // По умолчанию включён консультант контура консультанта; здесь проверяется запасной помощник контура помощника.
+  test.beforeEach(async ({ page }) => {
+    await page.addInitScript(() => localStorage.setItem("consultant", "0"));
+  });
 
   test("панель не открывается сама: ни запрос-вопрос, ни загрузка, ни «ничего не найдено», ни перезагрузка", async ({
     page,

@@ -1,26 +1,40 @@
 <script setup lang="ts">
 // Круглая кнопка консультанта (CONSULTANT.md §3): та же позиция, что у кнопки помощника контура помощника, не двигается.
-// Окно открывается только этим нажатием. Точка — ответ пришёл при закрытом окне, без анимации.
-import { MessageSquareText, Minus } from 'lucide-vue-next'
+// Окно открывается только этим нажатием и раскрывается из неё: пока оно открыто, кнопка спрятана, свернуть — в шапке
+// окна. Точка — ответ пришёл при закрытом окне, без анимации.
+import { nextTick, ref, watch } from 'vue'
+import { MessageSquareText } from 'lucide-vue-next'
 import { useConsultant } from './composables/useConsultant'
 
 const c = useConsultant()
+const button = ref<HTMLButtonElement | null>(null)
+
+// Свернули из окна — фокус возвращается на кнопку, а не теряется в body.
+watch(
+  () => c.open.value,
+  async (open) => {
+    if (open) return
+    const inside = document.getElementById('consultant-window')?.contains(document.activeElement)
+    await nextTick()
+    if (inside || document.activeElement === document.body) button.value?.focus()
+  },
+)
 </script>
 
 <template>
   <button
+    ref="button"
     type="button"
     class="cl"
     :class="{ 'cl--open': c.open.value }"
-    :aria-label="c.open.value ? 'Свернуть консультанта' : 'Открыть консультанта'"
-    :title="c.open.value ? 'Свернуть консультанта' : 'Открыть консультанта'"
+    aria-label="Открыть консультанта"
+    title="Открыть консультанта"
     :aria-expanded="c.open.value"
     aria-controls="consultant-window"
     data-testid="consultant-launcher"
     @click="c.toggle()"
   >
-    <Minus v-if="c.open.value" class="cl__icon" aria-hidden="true" />
-    <MessageSquareText v-else class="cl__icon" aria-hidden="true" />
+    <MessageSquareText class="cl__icon" aria-hidden="true" />
     <span v-if="c.unread.value && !c.open.value" class="cl__dot" data-testid="consultant-unread">
       <span class="sr-only">есть новый ответ</span>
     </span>
@@ -46,6 +60,24 @@ const c = useConsultant()
   cursor: pointer;
   transition: background var(--dur-fast) var(--ease-standard);
 }
+/* Окно открыто — кнопка «стала окном»; появляется снова, когда окно свернулось в круг. */
+.cl--open {
+  visibility: hidden;
+}
+/* Проявляется под конец сворачивания. Скрываем только прозрачностью: фокус кнопка принимает сразу. */
+.cl:not(.cl--open) {
+  animation: cl-back 120ms var(--ease-standard) 240ms backwards;
+}
+@keyframes cl-back {
+  from {
+    opacity: 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .cl:not(.cl--open) {
+    animation: none;
+  }
+}
 .cl:hover {
   background: var(--accent-hover);
 }
@@ -66,12 +98,6 @@ const c = useConsultant()
   border: var(--focus-w) solid var(--surface);
   border-radius: var(--radius-pill);
   background: var(--text);
-}
-/* Телефон: открытое окно — на весь экран, кнопка под ним не нужна (свернуть — в шапке). */
-@media (max-width: 640px) {
-  .cl--open {
-    display: none;
-  }
 }
 </style>
 

@@ -142,8 +142,9 @@ test.describe('сценарии S2 и S3 на фиде', () => {
       await expect(first).toContainText('Стандартный')
       await expect(first.getByTestId('per-place')).toHaveText('за узел')
       const offer = first.getByTestId('selected-offer')
-      await expect(offer).toContainText('ступень 100–149 устройств')
-      await expect(offer).toContainText(/3\s070,80\s₽ за узел × 100 устройств = 307\s080\s₽/)
+      await expect(offer).toContainText('Такая цена при заказе 100–149 устройств')
+      await expect(offer).toContainText(/Лицензия на одно устройство —\s*3\s070,80\s₽/)
+      await expect(offer.getByTestId('offer-total')).toContainText(/100 × 3\s070,80\s₽ =\s*307\s080\s₽/)
 
       // «Запросить КП» в одно нажатие из спецификации: в заявке 100 мест.
       await offer.getByTestId('offer-spec').click()

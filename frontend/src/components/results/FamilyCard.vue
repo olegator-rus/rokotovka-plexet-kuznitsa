@@ -46,7 +46,7 @@ const props = defineProps<{
   density?: 'default' | 'compact'
   /**
    * Плотный вид: количество под условия (контур ТЗ — из ТЗ, тем же правилом, что уходит в спецификацию). Итог и
-   * расчёт карточки — цена позиции × это количество; без него — расчёт «Выбрано по запросу».
+   * расчёт карточки — цена позиции × это количество; без него — расчёт выбранного по запросу варианта.
    */
   quantity?: number | null
 }>()
@@ -82,6 +82,8 @@ const altNote = computed(() =>
 const explainShown = computed(() => (isAlternative.value ? '' : (props.item.explain ?? '')))
 // Одна позиция на одно место: цена и «В спецификацию» уже справа — в блоке выбранного не повторяем.
 const offerRepeatsSide = computed(() => action.value === 'spec' && offer.value?.quantity === 1)
+// Главная кнопка на карточке одна: когда она в блоке выбранного варианта, «Выбрать лицензию» — обычная.
+const hasOfferAction = computed(() => Boolean(offer.value) && !offerRepeatsSide.value)
 const isSoftware = computed(
   () => (props.item.kind ?? 'software') !== 'hardware' && !!props.item.attrs,
 )
@@ -198,7 +200,8 @@ function rowQuantity(v: SearchItemBase): string {
         </p>
 
         <p class="fcard__badges">
-          <span v-if="!compact && item.matches_query && named.size" class="badge">
+          <!-- Есть блок выбранного варианта — «подходит под запрос» сказано в нём, плашка не повторяет. -->
+          <span v-if="!compact && !offer && item.matches_query && named.size" class="badge">
             Подходит под запрос
           </span>
           <span v-if="item.group === 'analog' && !item.match_type" class="badge badge--strong">
@@ -250,30 +253,43 @@ function rowQuantity(v: SearchItemBase): string {
             <span class="sr-only"> (откроется в новой вкладке)</span>
           </a>
         </p>
+        <!-- Простыми словами: что ищут → сколько стоит одна → как получается итог. -->
         <div v-if="offer && !compact" class="fcard__offer t-sm" data-testid="selected-offer">
-          <p>
-            <span class="t-muted">Выбрано по запросу:</span>&nbsp;<strong>{{ offer.label }}</strong>
+          <p class="fcard__offer-need">
+            <strong>{{ offer.plain.need || 'Подходит под ваш запрос' }}</strong>
+            <span v-if="offer.plain.variant" class="t-muted"> · {{ offer.plain.variant }}</span>
           </p>
+          <p>
+            {{ offer.plain.unitLabel }} —
+            <strong class="t-num">{{ formatPrice(offer.unitPrice) }}</strong>
+          </p>
+          <p v-if="offer.plain.priceNote" class="t-xs t-muted">{{ offer.plain.priceNote }}</p>
           <template v-if="!offerRepeatsSide">
-            <p class="t-num">{{ offer.sum }}</p>
-            <span
-              v-if="inSpec(item.product_id)"
-              class="t-xs t-muted"
-              role="status"
-              tabindex="-1"
-              :data-spec-done="`offer:${item.product_id}`"
-            >
-              В спецификации
-            </span>
-            <button
-              v-else
-              type="button"
-              class="btn btn--primary btn--sm"
-              data-testid="offer-spec"
-              @click="addToSpec(item, 'offer')"
-            >
-              <ListPlus :size="14" aria-hidden="true" /> В спецификацию
-            </button>
+            <div class="fcard__offer-deal">
+              <p v-if="offer.plain.totalLabel" data-testid="offer-total">
+                {{ offer.plain.totalLabel }}:
+                <span class="t-num">{{ offer.plain.calc }} =</span>
+                <strong class="fcard__offer-sum t-num">{{ formatPrice(offer.total) }}</strong>
+              </p>
+              <span
+                v-if="inSpec(item.product_id)"
+                class="fcard__offer-done"
+                role="status"
+                tabindex="-1"
+                :data-spec-done="`offer:${item.product_id}`"
+              >
+                <Check :size="14" aria-hidden="true" /> В спецификации
+              </span>
+              <button
+                v-else
+                type="button"
+                class="btn btn--primary btn--sm fcard__offer-btn"
+                data-testid="offer-spec"
+                @click="addToSpec(item, 'offer')"
+              >
+                <ListPlus :size="14" aria-hidden="true" /> В спецификацию
+              </button>
+            </div>
           </template>
         </div>
       </div>
@@ -358,7 +374,7 @@ function rowQuantity(v: SearchItemBase): string {
           <button
             v-if="action === 'choose'"
             type="button"
-            class="btn btn--primary btn--sm"
+            :class="['btn btn--sm', hasOfferAction ? 'btn--secondary' : 'btn--primary']"
             :aria-expanded="expanded"
             :aria-controls="detailsId"
             @click="toggle"
@@ -533,23 +549,43 @@ function rowQuantity(v: SearchItemBase): string {
 }
 .fcard__offer {
   display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--space-1) var(--space-3);
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
   margin-top: var(--space-2);
   padding: var(--space-2) var(--space-3);
-  border: var(--border-w) solid var(--border-control);
-  border-radius: var(--radius-card);
+  border-radius: var(--radius-control);
   background: var(--surface-2);
+  overflow-wrap: anywhere;
 }
 .fcard__offer p {
   margin: 0;
 }
-.fcard__offer p.t-num {
-  font-size: var(--fs-h1);
-  line-height: var(--lh-h1);
-  font-weight: var(--fw-bold);
-  white-space: normal;
+.fcard__offer-deal {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2) var(--space-3);
+  margin-top: var(--space-1);
+  padding-top: var(--space-2);
+  border-top: var(--border-w) solid var(--border);
+}
+.fcard__offer-sum {
+  margin-left: 0.25em;
+  font-size: var(--fs-h2);
+  white-space: nowrap;
+}
+.fcard__offer-btn {
+  margin-left: auto;
+}
+.fcard__offer-done {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  margin-left: auto;
+  color: var(--status-accepted);
+  font-weight: var(--fw-semibold);
 }
 .fcard {
   container-type: inline-size;

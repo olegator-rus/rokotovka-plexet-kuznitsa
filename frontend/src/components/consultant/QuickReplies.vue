@@ -24,7 +24,6 @@ defineEmits<{ pick: [text: string] }>()
   display: flex;
   flex-wrap: wrap;
   gap: var(--space-2);
-  padding-left: calc(1.75rem + var(--space-2));
 }
 .qr__btn {
   min-height: 2.25rem;
@@ -46,9 +45,6 @@ defineEmits<{ pick: [text: string] }>()
   outline-offset: 2px;
 }
 @media (max-width: 640px) {
-  .qr {
-    padding-left: 0;
-  }
   .qr__btn {
     min-height: 2.75rem;
   }

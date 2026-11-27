@@ -177,7 +177,7 @@ const hiddenCount = computed(() =>
 )
 
 // Контур подбора (SPEC §1): вход в подбор со страницы семейства — запрос строки = семейство, вопрос-чип уходит первым ходом.
-// Помощник (контур помощника) и консультант (контур консультанта, ?consultant=1) оба принимают /search?q=…&guide=<вопрос>.
+// Консультант (контур консультанта, по умолчанию) и помощник (контур помощника, ?consultant=0) оба принимают /search?q=…&guide=<вопрос>.
 const guide = computed(() => (p.value ? guideQuestions(p.value, p.value.variants) : []))
 function openGuide(message?: string) {
   const item = p.value

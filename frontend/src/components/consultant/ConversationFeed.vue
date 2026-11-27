@@ -125,9 +125,6 @@ defineExpose({ toBottom: () => scroll.toBottom() })
   outline: var(--focus-w) solid var(--focus-ring);
   outline-offset: -2px;
 }
-.cf__typing {
-  padding-left: calc(1.75rem + var(--space-2));
-}
 .cf__new {
   position: absolute;
   bottom: var(--space-3);
@@ -150,9 +147,6 @@ defineExpose({ toBottom: () => scroll.toBottom() })
 @media (max-width: 640px) {
   .cf {
     padding: var(--space-3);
-  }
-  .cf__typing {
-    padding-left: 0;
   }
 }
 </style>

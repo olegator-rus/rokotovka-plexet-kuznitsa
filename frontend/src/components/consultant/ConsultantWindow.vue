@@ -1,7 +1,7 @@
 <script setup lang="ts">
 // Окно консультанта (CONSULTANT.md §3): монтируется один раз в оболочке, поэтому разговор переживает смену
-// страницы. На десктопе — немодальное окно 440 × 680 (развёрнутое 640 × 760) над кнопкой; на телефоне (≤ 640 px) —
-// полный экран, фон не прокручивается, поле ввода держится над клавиатурой (visualViewport).
+// страницы. На десктопе — немодальное окно 440 × 680 (развёрнутое 640 × 760) в правом нижнем углу: раскрывается из
+// круглой кнопки и сворачивается в неё (кнопка на это время спрятана); на телефоне (≤ 640 px) — полный экран, фон не прокручивается, поле ввода держится над клавиатурой (visualViewport).
 import { nextTick, onBeforeUnmount, ref, watch } from 'vue'
 import { useMediaQuery } from '@/composables/useMediaQuery'
 import { useSpecStore } from '@/stores/spec'
@@ -86,43 +86,45 @@ function onKey(e: KeyboardEvent) {
 </script>
 
 <template>
-  <section
-    v-show="c.open.value"
-    id="consultant-window"
-    ref="root"
-    class="cw consultant-window"
-    :data-expanded="c.expanded.value"
-    :style="phone && vvHeight ? { height: vvHeight } : undefined"
-    role="dialog"
-    aria-labelledby="consultant-title"
-    data-testid="consultant-window"
-    @keydown="onKey"
-  >
-    <ConsultantHeader
-      :spec-count="spec.count"
-      :expanded="c.expanded.value"
-      @spec="openSpec"
-      @expand="c.expanded.value = !c.expanded.value"
-      @reset="confirmNew = true"
-      @close="c.hide()"
-    />
-    <ConversationFeed
-      ref="feed"
-      :messages="c.messages.value"
-      :generating="c.generating.value"
-      :step="c.step.value"
-      :quick="c.quick.value"
-      @send="send"
-      @retry="c.retry()"
-    />
-    <MessageComposer
-      ref="composer"
-      v-model="c.draft.value"
-      :busy="c.generating.value"
-      @send="send"
-    />
-    <NewConversationDialog v-model:open="confirmNew" @confirm="reset" />
-  </section>
+  <Transition name="cw-pop">
+    <section
+      v-show="c.open.value"
+      id="consultant-window"
+      ref="root"
+      class="cw consultant-window"
+      :data-expanded="c.expanded.value"
+      :style="phone && vvHeight ? { height: vvHeight } : undefined"
+      role="dialog"
+      aria-labelledby="consultant-title"
+      data-testid="consultant-window"
+      @keydown="onKey"
+    >
+      <ConsultantHeader
+        :spec-count="spec.count"
+        :expanded="c.expanded.value"
+        @spec="openSpec"
+        @expand="c.expanded.value = !c.expanded.value"
+        @reset="confirmNew = true"
+        @close="c.hide()"
+      />
+      <ConversationFeed
+        ref="feed"
+        :messages="c.messages.value"
+        :generating="c.generating.value"
+        :step="c.step.value"
+        :quick="c.quick.value"
+        @send="send"
+        @retry="c.retry()"
+      />
+      <MessageComposer
+        ref="composer"
+        v-model="c.draft.value"
+        :busy="c.generating.value"
+        @send="send"
+      />
+      <NewConversationDialog v-model:open="confirmNew" @confirm="reset" />
+    </section>
+  </Transition>
 </template>
 
 <style scoped>
@@ -133,15 +135,17 @@ function onKey(e: KeyboardEvent) {
   --cw-pad: var(--space-4);
   position: fixed;
   right: calc(var(--fab-right) + env(safe-area-inset-right, 0px));
-  bottom: calc(var(--fab-bottom) + var(--fab-size) + var(--space-4));
+  bottom: calc(var(--fab-bottom) + env(safe-area-inset-bottom, 0px));
   z-index: 45;
   display: flex;
   flex-direction: column;
   width: min(440px, calc(100vw - 48px));
-  height: min(680px, calc(100dvh - var(--fab-bottom) - var(--fab-size) - var(--space-8)));
+  height: min(680px, calc(100dvh - var(--fab-bottom) - var(--space-6)));
   overflow: hidden;
   border: 1px solid var(--border);
-  border-radius: var(--radius-panel);
+  /* Нижний правый угол — по радиусу кнопки: окно «выросло» из неё. */
+  border-radius: var(--radius-panel) var(--radius-panel) calc(var(--fab-size) / 2)
+    var(--radius-panel);
   background: var(--surface);
   box-shadow: var(--shadow-overlay);
   color: var(--text);
@@ -153,7 +157,38 @@ function onKey(e: KeyboardEvent) {
   --cw-price-fs: 1.25rem;
   --cw-pad: var(--space-5);
   width: min(640px, calc(100vw - 48px));
-  height: min(760px, calc(100dvh - var(--fab-bottom) - var(--fab-size) - var(--space-8)));
+  height: min(760px, calc(100dvh - var(--fab-bottom) - var(--space-6)));
+}
+/* Раскрытие из круга кнопки: круг в нижнем правом углу окна растёт до всего окна, при закрытии — обратно. */
+.cw-pop-enter-active,
+.cw-pop-leave-active {
+  transition:
+    clip-path 320ms var(--ease-standard),
+    opacity 320ms var(--ease-standard);
+}
+.cw-pop-enter-from,
+.cw-pop-leave-to {
+  clip-path: circle(
+    calc(var(--fab-size) / 2) at calc(100% - var(--fab-size) / 2) calc(100% - var(--fab-size) / 2)
+  );
+  opacity: 0.4;
+}
+.cw-pop-enter-to,
+.cw-pop-leave-from {
+  clip-path: circle(150% at calc(100% - var(--fab-size) / 2) calc(100% - var(--fab-size) / 2));
+}
+@media (prefers-reduced-motion: reduce) {
+  .cw-pop-enter-active,
+  .cw-pop-leave-active {
+    transition: none;
+  }
+}
+/* Кнопка отправки не должна упираться в скруглённый угол. */
+@media (min-width: 641px) {
+  .cw > :deep(:last-child) {
+    padding-right: var(--space-4);
+    padding-bottom: var(--space-4);
+  }
 }
 @media (max-width: 640px) {
   .cw,

@@ -52,8 +52,11 @@ test.describe("П11: консультант на заглушке", () => {
     await expect(win(page)).toContainText("Здравствуйте! Помогу подобрать ПО");
     await expect(page.getByTestId("consultant-starters").getByRole("button")).toHaveCount(4);
     await expect(input(page)).toBeFocused();
-    await launcher(page).click();
+    // Кнопка «стала окном»: пока оно открыто, её не видно; свернуть — в шапке, фокус возвращается на кнопку.
+    await expect(launcher(page)).toBeHidden();
+    await page.getByTestId("consultant-close").click();
     await expect(win(page)).toBeHidden();
+    await expect(launcher(page)).toBeFocused();
   });
 
   test("сценарий 2 текстом: таблица 84 402 / 122 445 ₽ → 50 и шифрование → 197 010 ₽ → в спецификацию", async ({
