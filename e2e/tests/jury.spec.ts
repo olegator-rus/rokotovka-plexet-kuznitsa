@@ -49,15 +49,16 @@ test.describe('Жюри', () => {
     await expect(tracePanel(page)).toHaveCount(0)
   })
 
-  test('F7: «До / После» — таблица метрик B0–B4 на mock-каталоге с подписью и строка воспроизводимости', async ({
+  test('F7: «До / После» — таблица метрик B0–B4 на фиде заказчика и строка воспроизводимости', async ({
     page,
   }) => {
     // Без адреса раздел открывает сводку на данных заказчика (S6); прежние метрики — по своему адресу.
     await page.goto('/proofs?tab=compare&view=metrics')
     await expect(page.getByRole('heading', { level: 1, name: 'Доказательства' })).toBeVisible()
     await expect(page.getByRole('tab', { name: 'Метрики' })).toHaveAttribute('aria-selected', 'true')
-    // Прогоны test сделаны на mock-каталоге — подписаны, не удалены.
-    await expect(page.getByText('mock-каталог, до данных заказчика').first()).toBeVisible()
+    // Прогоны test перезапущены на фиде заказчика (набор из журнала): подписи mock-каталога нет.
+    await expect(page.getByText('фид заказчика').first()).toBeVisible()
+    await expect(page.getByText('mock-каталог, до данных заказчика')).toHaveCount(0)
 
     const table = page.getByRole('region', { name: 'Таблица метрик' })
     await expect(table).toBeVisible()

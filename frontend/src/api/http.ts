@@ -28,13 +28,15 @@ async function request<T>(
   opts: RequestOptions = {},
 ): Promise<T> {
   const headers: Record<string, string> = { Accept: 'application/json', ...opts.headers }
-  if (body !== undefined) headers['Content-Type'] = 'application/json'
+  // FormData (загрузка файла) — заголовок с границей частей ставит сам браузер.
+  const form = typeof FormData !== 'undefined' && body instanceof FormData
+  if (body !== undefined && !form) headers['Content-Type'] = 'application/json'
   let resp: Response
   try {
     resp = await fetch(BASE + path, {
       method,
       headers,
-      body: body === undefined ? undefined : JSON.stringify(body),
+      body: body === undefined ? undefined : form ? body : JSON.stringify(body),
       credentials: 'include',
       cache: 'no-store',
       signal: opts.signal,

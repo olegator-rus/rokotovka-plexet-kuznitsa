@@ -153,11 +153,18 @@ export function rateSub(r: IntentRate | null | undefined, unit: [string, string,
 }
 
 /** Режим прогона по имени (old | new). */
+/** Подписи режимов на экране: в файле прогона они записаны с номерами пакетов, покупателю и жюри это ничего не говорит. */
+export const PANEL_MODE_LABELS: Record<string, string> = {
+  old: 'Прежние подсказки',
+  new: 'Новая панель',
+}
+
 export function panelMode(
   run: PanelEvalRun | null | undefined,
   mode: string,
 ): PanelModeResult | null {
-  return run?.modes.find((m) => m.mode === mode) ?? null
+  const m = run?.modes.find((x) => x.mode === mode)
+  return m ? { ...m, label: PANEL_MODE_LABELS[m.mode] ?? m.label } : null
 }
 
 /** Изменение new против old: лучше | хуже | равно | нет данных. */

@@ -73,7 +73,7 @@ export interface SearchRequest {
   clarify: Record<string, string>
   limit: number
   /** compare — поиск из «Одного запроса»: пишется в журнал, но не входит в аналитику и стоимость. */
-  source?: 'live' | 'compare'
+  source?: 'live' | 'compare' | 'tz'
   /** Контур коммерции: фасеты оборудования; пустые не отправляются. */
   filters?: SearchFilter[]
   /** Контур выдачи (§11.1): намерение, из которого отправлен запрос. */

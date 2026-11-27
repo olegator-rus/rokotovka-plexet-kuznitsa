@@ -154,8 +154,10 @@ func (s *Services) RunContribution(ctx context.Context, set string, persist bool
 	}
 	run.Checks = contribChecks(run.Rows)
 	run.Decisions = contribDecisions(run.Rows)
+	if !strings.HasPrefix(run.CatalogVersion, "softline") {
+		run.Notes = append(run.Notes, "Прогон на mock-каталоге с разметкой по построению: выводы по реранкеру и векторам предварительные.")
+	}
 	run.Notes = append(run.Notes,
-		"Данные и разметка — mock, по построению: решения по реранкеру и векторам предварительные, окончательные — на данных задачи.",
 		"Стоимость LLM — по трассам прогона (кэш разборов как на стенде в момент прогона); верхняя граница без кэша — доля маршрута D × стоимость разбора.",
 		"Эмбеддер и реранкер — свой сервис моделей на своём сервере: в ₽ за запрос не входят, это часть сервера (COSTS.md).",
 		"Время — локальная машина, поиски последовательно; не замер стенда под нагрузкой.",

@@ -166,8 +166,10 @@ function chipMatches(c: NamedChip, attrs: ItemAttrs): boolean {
   }
 }
 
-export function durationLabel(months: number | null): string {
-  if (months === null || months === 0) return 'Бессрочно'
+export function durationLabel(months: number | null, licenseType?: string | null): string {
+  // Нет срока у подписки — срок не указан, а не «бессрочно» (подписка без срока в фиде: PhotoDirector).
+  if (months === null || months === 0)
+    return licenseType && licenseType !== 'perpetual' ? '—' : 'Бессрочно'
   if (months % 12 === 0) {
     const y = months / 12
     return `${y} ${plural(y, ['год', 'года', 'лет'])}`
@@ -203,7 +205,7 @@ export function attrCells(
     {
       key: 'duration',
       label: 'Срок',
-      value: attrs.license_type ? durationLabel(attrs.duration_months) : dash,
+      value: attrs.license_type ? durationLabel(attrs.duration_months, attrs.license_type) : dash,
       highlight: false,
     },
     {

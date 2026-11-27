@@ -31,3 +31,29 @@ func TestSuggestDictRelated(t *testing.T) {
 		t.Fatalf("без словаря — прежний список: %q", got)
 	}
 }
+
+func TestMergeDeclensions(t *testing.T) {
+	byText := map[string]*logQuery{
+		"продление касперский":  {text: "продление касперский", searches: 4, succ: 4},
+		"продление касперского": {text: "продление касперского", searches: 3, succ: 3},
+		"касперский на 10 пк":   {text: "касперский на 10 пк", searches: 2, succ: 1},
+		"касперский":            {text: "касперский", searches: 5, succ: 2},
+		"винда":                 {text: "винда", searches: 2, succ: 2},
+		"винду":                 {text: "винду", searches: 2, succ: 1},
+	}
+	order := []string{"продление касперского", "касперский", "продление касперский", "касперский на 10 пк", "винда", "винду"}
+	got := mergeDeclensions(order, byText)
+	want := []string{"продление касперский", "касперский", "касперский на 10 пк", "винда", "винду"}
+	if !slices.Equal(got, want) {
+		t.Fatalf("порядок: %v, want %v", got, want)
+	}
+	if q := byText["продление касперский"]; q.searches != 7 || q.succ != 7 {
+		t.Fatalf("счётчики не сложены: %+v", q)
+	}
+	if _, ok := byText["продление касперского"]; ok {
+		t.Fatal("склонение осталось отдельной строкой")
+	}
+	if q := byText["касперский"]; q.searches != 5 {
+		t.Fatalf("продолжение фразы склеено с ней: %+v", q)
+	}
+}

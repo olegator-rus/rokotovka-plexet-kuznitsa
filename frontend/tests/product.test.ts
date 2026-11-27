@@ -4,6 +4,7 @@ import assert from 'node:assert/strict'
 import {
   backTarget,
   compatStateText,
+  descriptionText,
   durationText,
   isSearchPath,
   licenseRows,
@@ -11,6 +12,7 @@ import {
   parseProductRef,
   productHref,
   specText,
+  termText,
 } from '../src/lib/product.ts'
 
 test('ссылка с rid и pos и без них', () => {
@@ -90,6 +92,33 @@ test('условия лицензии строками', () => {
       { label: 'Срок', value: 'бессрочная' },
     ],
   )
+  // Подписка без срока в данных: срок не выдумывается — строки «Срок» нет (было «бессрочная» у подписки).
+  assert.deepEqual(
+    licenseRows({
+      type: 'subscription',
+      metric: null,
+      quantity: null,
+      duration_months: null,
+      edition: '',
+    }),
+    [{ label: 'Тип', value: 'Подписка' }],
+  )
+  assert.deepEqual(
+    licenseRows({
+      type: 'subscription',
+      metric: 'device',
+      quantity: 100,
+      duration_months: 12,
+      edition: '',
+      tier_min: 100,
+      tier_max: 149,
+    })[1],
+    { label: 'Количество', value: '100–149 устройств' },
+  )
+  assert.equal(termText('subscription', null), '')
+  assert.equal(termText('renewal', 0), '')
+  assert.equal(termText('perpetual', null), 'бессрочная')
+  assert.equal(termText('subscription', 24), '2 года')
   assert.equal(durationText(18), '18 месяцев')
   assert.equal(durationText(36), '3 года')
 })
@@ -105,4 +134,12 @@ test('совместимость, происхождение, единицы', (
   assert.equal(specText(64, 'ГБ'), '64 ГБ')
   assert.equal(specText(27, '″'), '27″')
   assert.equal(specText(2.5, ''), '2,5')
+})
+
+test('описание фида: пробел между склеенными предложениями', () => {
+  assert.equal(
+    descriptionText('для приложений.INFERIT RS212 имеет  диски U.2 NVMe.Задняя панель'),
+    'для приложений. INFERIT RS212 имеет диски U.2 NVMe. Задняя панель',
+  )
+  assert.equal(descriptionText('Версия 1.8, Intel Core i5'), 'Версия 1.8, Intel Core i5')
 })

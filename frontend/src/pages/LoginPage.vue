@@ -41,6 +41,8 @@ let timer: ReturnType<typeof setInterval> | undefined
 const locked = computed(() => busy.value !== null || waitSeconds.value > 0)
 const config = computed(() => auth.config)
 const personas = computed<Persona[]>(() => config.value?.personas ?? [])
+/** Демо-покупатели заведены не на каждом каталоге (на фиде заказчика их нет): без них про выдачу покупателя не пишем. */
+const hasBuyers = computed(() => personas.value.some((p) => p.role === 'buyer'))
 const demoOn = computed(() => !!config.value?.demo_login && personas.value.length > 0)
 const returnTo = computed(() => safeReturnTo(route.query.returnTo))
 /** Сюда вернули из бэк-офиса: без входа или покупателем. */
@@ -120,8 +122,11 @@ async function demo(p: Persona) {
         <BrandMark class="login__brand" />
         <h1 id="login-title" class="login__title">Вход</h1>
         <p class="t-sm t-muted">
-          Витрина и «Доказательства» работают без входа. Покупатель видит свою выдачу, сотрудники —
-          бэк-офис своей роли.
+          Витрина и «Доказательства» работают без входа.
+          <template v-if="hasBuyers">
+            Покупатель видит свою выдачу, сотрудники — бэк-офис своей роли.
+          </template>
+          <template v-else>Сотрудники после входа видят бэк-офис своей роли.</template>
         </p>
 
         <p v-if="expired" class="login__note" role="status">

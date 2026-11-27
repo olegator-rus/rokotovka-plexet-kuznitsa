@@ -187,7 +187,7 @@ export interface ProductCompanions {
   upgrade: Upgrade | null
 }
 
-export type QuoteOrigin = 'search' | 'companion' | 'template'
+export type QuoteOrigin = 'search' | 'companion' | 'template' | 'tz'
 
 export interface QuoteItem {
   product_id: string

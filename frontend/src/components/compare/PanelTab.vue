@@ -178,7 +178,7 @@ function sourcesLabel(src: Record<string, number> | undefined) {
         <div class="data-scroll">
           <table class="data-table pt__table">
             <caption class="sr-only">
-              Метрики панели: прежние подсказки и панель контура выдачи
+              Метрики панели: прежние подсказки и новая панель
             </caption>
             <thead>
               <tr>
@@ -252,7 +252,7 @@ function sourcesLabel(src: Record<string, number> | undefined) {
           <h2 id="pt-changes" class="t-h2">Ухудшения и улучшения по префиксам</h2>
           <p v-if="!run.changes.length" class="panel pt__box t-sm t-muted">
             Место цели не изменилось ни на одном префиксе
-            <template v-if="!newMode?.available"> — панель контура выдачи не прогнана</template>.
+            <template v-if="!newMode?.available"> — новая панель не прогнана</template>.
           </p>
           <PanelChanges v-else :changes="run.changes" />
         </section>

@@ -21,7 +21,7 @@ onMounted(async () => {
 <template>
   <article class="page help-page">
     <h1 class="t-h1">Помощь покупателю</h1>
-    <p class="t-muted">
+    <p v-if="help.data.value?.items.length" class="t-muted">
       Счета, документы, доставка, возврат, продление и активация лицензий. Поиск отвечает отсюда на
       вопросы о покупке.
     </p>
@@ -36,7 +36,7 @@ onMounted(async () => {
       class="panel help-page__empty"
     >
       <p class="t-muted">
-        Статей справки на этом каталоге нет. Вопрос о заказе, оплате или лицензии задайте менеджеру
+        Статей справки на этом каталоге нет. Вопрос о покупке, оплате или лицензии задайте менеджеру
         из спецификации — кнопка «Запросить КП».
       </p>
       <RouterLink to="/search" class="btn btn--secondary btn--sm">К поиску</RouterLink>

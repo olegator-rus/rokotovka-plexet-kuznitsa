@@ -122,14 +122,7 @@ function toggle() {
             class="btn btn--secondary btn--sm"
             @click="emit('action', 'add_to_cart', item, position)"
           >
-            В корзину
-          </button>
-          <button
-            type="button"
-            class="btn btn--ghost btn--sm"
-            @click="emit('action', 'order', item, position)"
-          >
-            Заказать
+            В спецификацию
           </button>
         </template>
         <button
@@ -196,7 +189,7 @@ function toggle() {
                 class="btn btn--ghost btn--sm"
                 @click="emit('action', 'add_to_cart', v, position)"
               >
-                В корзину
+                В спецификацию
               </button>
               <button
                 v-else

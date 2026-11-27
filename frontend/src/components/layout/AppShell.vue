@@ -2,7 +2,7 @@
 // Оболочка приложения: красная шапка с логотипом и разделами (на узком экране разделы — в выезжающей
 // панели, reka Dialog) и содержимое раздела. Ссылка «К содержимому» — первый Tab на странице.
 import { ref, watch } from 'vue'
-import { RouterLink, useRoute } from 'vue-router'
+import { RouterLink, useRoute, useRouter } from 'vue-router'
 import {
   DialogClose,
   DialogContent,
@@ -15,9 +15,18 @@ import { X } from 'lucide-vue-next'
 import AppHeader from './AppHeader.vue'
 import AppNav from './AppNav.vue'
 import BrandMark from './BrandMark.vue'
+import ConsultantLauncher from '@/components/consultant/ConsultantLauncher.vue'
+import ConsultantWindow from '@/components/consultant/ConsultantWindow.vue'
+import { consultantFlags } from '@/components/consultant/composables/useConsultant'
+import GlobalTzDropzone from '@/components/tz/GlobalTzDropzone.vue'
+import TzUploadStatus from '@/components/tz/TzUploadStatus.vue'
+
+/** Консультант контура консультанта вместо помощника контура помощника (CONTRACT.md, «Флаг»): один раз на всё приложение. */
+const consultantOn = consultantFlags().enabled
 
 const drawer = ref(false)
 const route = useRoute()
+const router = useRouter()
 
 watch(
   () => route.fullPath,
@@ -32,12 +41,16 @@ watch(
   <div class="shell">
     <AppHeader @open-menu="drawer = true" />
     <main id="main" class="shell__content" tabindex="-1">
+      <!-- Контур ТЗ: файл ТЗ, брошенный на другой странице, — полоса разбора и ошибки здесь; на «Поиске» — под строкой. -->
+      <div v-if="route.path !== '/search'" class="shell__tz">
+        <TzUploadStatus @regular="router.push('/search')" />
+      </div>
       <slot />
     </main>
     <footer class="shell__footer t-xs">
       <span>
-        Концепт для хакатона, не сайт компании. Каталог — выгрузка магазина; покупатели и заказы
-        вымышлены. На сайте применяются рекомендательные технологии.
+        Концепт для хакатона, не сайт компании. Каталог — выгрузка магазина; демо-аккаунты и запросы
+        КП вымышлены. На сайте применяются рекомендательные технологии.
         <RouterLink class="link" to="/rules">Правила рекомендаций</RouterLink>
       </span>
       <span class="shell__footer-end">
@@ -46,6 +59,13 @@ watch(
       </span>
     </footer>
   </div>
+
+  <GlobalTzDropzone />
+
+  <template v-if="consultantOn">
+    <ConsultantWindow />
+    <ConsultantLauncher />
+  </template>
 
   <DialogRoot v-model:open="drawer">
     <DialogPortal>
@@ -90,6 +110,13 @@ watch(
   flex-direction: column;
   min-width: 0;
   outline: none;
+}
+.shell__tz {
+  box-sizing: border-box;
+  width: 100%;
+  max-width: var(--content-max);
+  margin-inline: auto;
+  padding-inline: var(--gutter);
 }
 .shell__footer-end {
   display: flex;

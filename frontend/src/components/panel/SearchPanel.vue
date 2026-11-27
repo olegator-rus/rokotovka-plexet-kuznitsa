@@ -11,7 +11,9 @@ import {
   ArrowRight,
   CircleHelp,
   Clock,
+  FileText,
   Folder,
+  Paperclip,
   Plus,
   Search,
   SearchX,
@@ -71,6 +73,9 @@ import { useAppStore } from '@/stores/app'
 import { useSpecStore } from '@/stores/spec'
 import { useToast } from '@/components/ui/useToast'
 import VendorLogo from '@/components/common/VendorLogo.vue'
+import UiTooltip from '@/components/ui/UiTooltip.vue'
+import { TZ_TEXT } from '@/lib/tz'
+import { useTzStore } from '@/stores/tz'
 import PanelProductCard from './PanelProductCard.vue'
 
 const model = defineModel<string>({ required: true })
@@ -85,8 +90,19 @@ watch(
   },
   { flush: 'sync' },
 )
-const props = defineProps<{ clientId: string | null }>()
-const emit = defineEmits<{ submit: [payload: PanelSubmit] }>()
+const props = defineProps<{
+  clientId: string | null
+  /** Контур ТЗ: открыто ТЗ — на месте текста плашка с именем файла (TZ-UI.md §4). */
+  tzFile?: string | null
+}>()
+const emit = defineEmits<{
+  submit: [payload: PanelSubmit]
+  /** Крестик при плашке ТЗ: выход из режима ТЗ, пустое поле с фокусом. */
+  tzExit: []
+}>()
+const tz = useTzStore()
+/** Плашка файла видна, пока человек не начал печатать: начал — обычный поиск. */
+const chipShown = computed(() => Boolean(props.tzFile) && !text.value)
 
 const app = useAppStore()
 const { sessionId } = storeToRefs(app)
@@ -218,8 +234,11 @@ function clearRefinements() {
   for (const r of [...applied.value]) onRefinementRemove(r)
 }
 
+/** Контур ТЗ: строка «Найти товары по ТЗ» в панели под пустой строкой; при вводе уступает место подсказкам. */
+const tzHint = computed(() => typed.value.length === 0 && !chipShown.value)
+
 const hasContent = computed(() => {
-  if (idle.value) return options.value.length > 0
+  if (idle.value) return tzHint.value || options.value.length > 0
   return Boolean(view.value) || failed.value || applied.value.length > 0
 })
 const visible = computed(() => open.value && hasContent.value)
@@ -815,7 +834,17 @@ function onRefinementRemove(r: PanelRefinement) {
   inputRef.value?.focus()
 }
 
+function pickTz() {
+  close('outcome')
+  tz.openPicker()
+}
+
 function clearText() {
+  if (chipShown.value) {
+    emit('tzExit')
+    inputRef.value?.focus()
+    return
+  }
   text.value = ''
   applied.value = []
   stopNetwork()
@@ -885,6 +914,16 @@ const popularCache = vueRef<Sugg[] | null>(null)
     <form class="sp__form" role="search" @submit.prevent="commit('enter')">
       <div class="sp__field">
         <Search :size="18" aria-hidden="true" class="sp__icon" />
+        <span
+          v-if="chipShown"
+          class="sp__tzchip"
+          :title="tzFile ?? ''"
+          data-testid="tz-file-chip"
+          @click="focus"
+        >
+          <FileText :size="14" aria-hidden="true" class="sp__tzchip-icon" />
+          <span class="sp__tzchip-name">{{ tzFile }}</span>
+        </span>
         <input
           ref="inputRef"
           :value="text"
@@ -903,23 +942,43 @@ const popularCache = vueRef<Sugg[] | null>(null)
           :aria-expanded="visible"
           :aria-controls="listId"
           :aria-activedescendant="visible && activeOption ? activeOption.id : undefined"
-          placeholder="Название, задача своими словами или артикул"
+          :placeholder="chipShown ? '' : 'Название, задача своими словами или артикул'"
           @pointerdown="onPointerDown"
           @input="onInput"
           @compositionend="typedChanged"
           @keydown="onKeydown"
         />
         <button
-          v-if="text"
+          v-if="text || chipShown"
           type="button"
           class="btn btn--ghost btn--icon btn--sm sp__clear"
-          aria-label="Очистить строку"
+          :aria-label="chipShown ? TZ_TEXT.exit : 'Очистить строку'"
+          data-testid="search-clear"
           @click="clearText"
         >
           <X :size="16" aria-hidden="true" />
         </button>
       </div>
-      <button type="submit" class="btn btn--primary sp__submit">Найти</button>
+      <UiTooltip :text="TZ_TEXT.tooltip" side="bottom">
+        <button
+          type="button"
+          class="btn btn--ghost btn--icon sp__attach"
+          :aria-label="TZ_TEXT.accessibleLabel"
+          data-testid="tz-attach"
+          @click="pickTz"
+        >
+          <Paperclip :size="18" aria-hidden="true" />
+        </button>
+      </UiTooltip>
+      <button
+        type="submit"
+        class="btn btn--primary sp__submit"
+        aria-label="Найти"
+        :disabled="chipShown"
+      >
+        <span class="sp__submit-text">Найти</span>
+        <Search :size="20" aria-hidden="true" class="sp__submit-icon" />
+      </button>
     </form>
 
     <div v-if="visible && desktop" class="sp__scrim" aria-hidden="true" />
@@ -956,6 +1015,20 @@ const popularCache = vueRef<Sugg[] | null>(null)
           {{ r.label.replace(/^\+\s*/, '') }}
         </button>
       </div>
+
+      <button
+        v-if="tzHint"
+        type="button"
+        class="sp__tzhint"
+        data-testid="tz-suggestion"
+        @click="pickTz"
+      >
+        <Paperclip :size="16" aria-hidden="true" class="sp__opt-icon" />
+        <span class="sp__tzhint-text">
+          <strong>{{ TZ_TEXT.suggestionTitle }}</strong>
+          <span class="t-sm sp__tzhint-desc">{{ TZ_TEXT.suggestionDescription }}</span>
+        </span>
+      </button>
 
       <div v-if="noMatches" class="sp__none" role="status" data-testid="panel-no-matches">
         <span class="sp__none-badge" aria-hidden="true"><SearchX :size="22" /></span>
@@ -1427,9 +1500,98 @@ const popularCache = vueRef<Sugg[] | null>(null)
 .sp__submit.btn--primary:hover:not(:disabled) {
   background: var(--hero-button-hover);
 }
+/* Плашка ТЗ без текста: повторный разбор открытого документа не нужен — «Найти» недоступна. */
+.sp__submit:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+.sp__submit-icon {
+  display: none;
+}
+/* Контур ТЗ: скрепка — серая кнопка-значок 40 × 40 (на телефоне 44 × 44), главным остаётся «Найти». */
+.sp__attach {
+  flex: none;
+  width: 40px;
+  height: 40px;
+  color: var(--text-2);
+}
+.sp__attach:hover {
+  color: var(--text);
+}
+.sp__tzchip {
+  display: inline-flex;
+  flex: 0 1 auto;
+  align-items: center;
+  gap: var(--space-1);
+  min-width: 0;
+  max-width: 60%;
+  margin-left: var(--space-2);
+  padding: 2px var(--space-2);
+  border: var(--border-w) solid var(--border-control);
+  border-radius: var(--radius-control);
+  background: var(--surface-2);
+  font-size: var(--fs-sm);
+  font-weight: var(--fw-medium);
+}
+.sp__tzchip-icon {
+  flex: none;
+  color: var(--text-2);
+}
+.sp__tzchip-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.sp__tzhint {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  width: 100%;
+  padding: var(--space-3) var(--space-4);
+  border: 0;
+  border-bottom: var(--border-w) solid var(--border);
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.sp__tzhint:hover,
+.sp__tzhint:focus-visible {
+  background: var(--surface-2);
+}
+.sp__tzhint-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.sp__tzhint-desc {
+  color: var(--text-2);
+}
+@media (max-width: 767px) {
+  .sp__attach,
+  .sp__clear {
+    width: 44px;
+    min-width: 44px;
+    height: 44px;
+  }
+  .sp__clear {
+    margin-right: 0;
+  }
+}
+/* Телефон: «Найти» заменяется значком лупы 20 px, область нажатия 44 × 44. */
 @media (max-width: 479px) {
   .sp__submit {
+    width: 44px;
+    min-width: 44px;
+    padding: 0;
+  }
+  .sp__submit-text {
     display: none;
+  }
+  .sp__submit-icon {
+    display: block;
   }
 }
 

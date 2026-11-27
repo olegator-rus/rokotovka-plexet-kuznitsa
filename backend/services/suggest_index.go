@@ -652,6 +652,7 @@ func (s *Services) earlyQueries(ctx context.Context, lx *searchLexicon, rules *s
 	if total > 0 {
 		p0 = float64(succ) / float64(total)
 	}
+	order = mergeDeclensions(order, byText)
 	var res []*logQuery
 	for _, t := range order {
 		q := byText[t]
@@ -797,6 +798,7 @@ func (s *Services) journalQueries(ctx context.Context, lx *searchLexicon, rules 
 	if total > 0 {
 		p0 = float64(succ) / float64(total)
 	}
+	order = mergeDeclensions(order, byText)
 	var res []*logQuery
 	for _, t := range order {
 		q := byText[t]

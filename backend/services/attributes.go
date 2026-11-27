@@ -50,6 +50,10 @@ type queryAttrs struct {
 	edition         string
 	editionAnswered bool
 	reestrRequired  bool
+	// tzSoftQty — количество пришло из позиции ТЗ (tz_search.go): позиция каталога без числа мест его не нарушает.
+	tzSoftQty bool
+	// tzSearch — поиск по позиции ТЗ (source = tz): порядок равных вариантов — tzHeadLess.
+	tzSearch bool
 	// consumed — индексы токенов, ушедших в атрибуты: в текстовый поиск они не идут.
 	consumed map[int]bool
 	found    []domain.FoundAttribute
@@ -238,6 +242,7 @@ func (a *queryAttrs) applyRequest(req in.SearchRequest) {
 		}
 	}
 	a.applyPurchaseRequest(req)
+	a.applyTZ(req.TZ)
 	if v, ok := req.Clarify[domain.FieldLicenseMetric]; ok && a.metricUnresolved {
 		switch v {
 		case domain.MetricDevice, domain.MetricUser, domain.MetricCore, domain.MetricServer:

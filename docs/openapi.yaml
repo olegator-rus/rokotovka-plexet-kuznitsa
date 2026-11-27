@@ -2205,13 +2205,19 @@ components:
             type: { type: string }
             metric: { type: [string, "null"] }
             quantity: { type: [integer, "null"] }
-            duration_months: { type: [integer, "null"], description: "null — бессрочная" }
+            duration_months: { type: [integer, "null"], description: "null — срок не задан (бессрочная — при type=perpetual)" }
             edition: { type: string }
             kind: { type: string, enum: [base, renewal, upgrade, migration, support, module, course, other], description: "вид позиции по типу лицензии фида; в mock нет" }
             org_type: { type: string, description: "commercial | academic | government | nonprofit | home; в mock нет" }
             tier_min: { type: integer, description: "ступень цены за единицу «от N»" }
             tier_max: { type: [integer, "null"], description: "верхняя граница ступени" }
+            org_label: { type: string, description: "для кого вариант («Образовательное учреждение»); пусто — без ограничения" }
         price_rub: { type: [number, "null"] }
+        old_price_rub: { type: number, description: "цена до скидки по фиду, только если выше price_rub; нет — скидки нет" }
+        promos:
+          type: array
+          description: "действующие акции семейства, как на карточке выдачи (только фид); [] — акций нет"
+          items: { $ref: "#/components/schemas/ItemPromo" }
         price_on_request: { type: boolean }
         price_mode: { type: string, enum: [fixed, from, quote_required, customer_specific, unavailable] }
         offer_url: { type: string, description: "карточка позиции в магазине («На сайте ↗»); пусто — адрес не собран" }
@@ -2252,7 +2258,9 @@ components:
               product_id: { type: string }
               title: { type: string }
               license_line: { type: string }
+              license: { type: object, description: "те же поля, что license страницы: по ним видно, чем варианты различаются" }
               price_rub: { type: [number, "null"] }
+              old_price_rub: { type: number, description: "цена до скидки, только если выше price_rub" }
               price_on_request: { type: boolean }
               price_mode: { type: string }
         compatibility:

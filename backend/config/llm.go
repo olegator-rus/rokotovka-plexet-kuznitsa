@@ -48,6 +48,9 @@ type LLMConfig struct {
 	// JudgeModel — модель LLM-судьи оценки (LLM_JUDGE_MODEL, по умолчанию qwen3.6-35b-a3b): другого семейства,
 	// чем разбор и агент; пусто — судьи нет.
 	JudgeModel string
+	// ConsultantReplyModel — модель второго вызова консультанта (CONSULTANT_REPLY_MODEL, контур консультанта); пусто — та же,
+	// что у подбора (модель разбора).
+	ConsultantReplyModel string
 }
 
 // Online — модель настроена: провайдер openai-compatible и ключ задан.
@@ -69,11 +72,14 @@ func LoadLLM() (LLMConfig, error) {
 		IntentModel:   env("LLM_INTENT_MODEL", defaultLLMModel),
 		FallbackModel: env("LLM_FALLBACK_MODEL", ""),
 		JudgeModel:    env("LLM_JUDGE_MODEL", defaultJudgeModel),
+
+		ConsultantReplyModel: env("CONSULTANT_REPLY_MODEL", ""),
 	}
 	l.Model = l.modelURI(l.Model)
 	l.IntentModel = l.modelURI(l.IntentModel)
 	l.FallbackModel = l.modelURI(l.FallbackModel)
 	l.JudgeModel = l.modelURI(l.JudgeModel)
+	l.ConsultantReplyModel = l.modelURI(l.ConsultantReplyModel)
 	switch l.Provider {
 	case "":
 		l.Provider = LLMNone

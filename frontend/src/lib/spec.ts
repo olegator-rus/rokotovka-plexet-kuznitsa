@@ -3,7 +3,8 @@
 import type { Companion, QuoteOrigin, QuoteRequest } from '@/api/typesP2'
 import type { SearchItemBase } from '@/api/types'
 import { formatPrice, isPositivePrice, plural } from './format.ts'
-import { parsePurchase, purchaseQuantity, type SpecPurchase } from './procurement.ts'
+import { parsePurchase, purchaseNote, purchaseQuantity, type SpecPurchase } from './procurement.ts'
+import { tzSourceLabel } from './tz.ts'
 
 export const SPEC_MAX_QTY = 100000
 
@@ -24,6 +25,14 @@ export interface SpecLine {
   anchor?: string
   /** Контур доводки: исходный запрос и параметры закупки — уходят в заявку КП. */
   purchase?: SpecPurchase
+  /** Контур ТЗ: из какого ТЗ и каких его пунктов строка («по ТЗ, п. 1 и 4»). */
+  tz?: SpecTz
+}
+
+export interface SpecTz {
+  hash: string
+  file_name: string
+  positions: number[]
 }
 
 /** Режим цены позиции выдачи: поле контура коммерции, иначе по старому флагу. */
@@ -88,17 +97,61 @@ export function lineFromCompanion(c: Companion, quantity: number | null, anchor 
   }
 }
 
+/** Строка из позиции ТЗ: количество и условия — из ТЗ, происхождение «из ТЗ», номер пункта. */
+export function lineFromTz(
+  item: SearchItemBase,
+  quantity: number,
+  purchase: SpecPurchase | null,
+  tz: { hash: string; file_name: string; number: number },
+): SpecLine {
+  return {
+    ...lineFromItem(item, quantity, purchase),
+    origin: 'tz',
+    tz: { hash: tz.hash, file_name: tz.file_name, positions: [tz.number] },
+  }
+}
+
 /**
  * Добавить позицию: та же позиция уже есть — количество не складывается, а берётся новое (покупатель
  * второй раз добавляет ту же лицензию с уточнённым числом). Порядок сохраняется.
+ * Контур ТЗ: тот же товар из другого пункта того же ТЗ — одна строка, количество складывается, номер пункта
+ * дописывается («по ТЗ, п. 1 и 4»); повтор из того же пункта — как раньше, без дубля.
  */
 export function addLine(lines: readonly SpecLine[], line: SpecLine): SpecLine[] {
   const i = lines.findIndex((l) => l.product_id === line.product_id)
   if (i < 0) return [...lines, { ...line, quantity: clampQty(line.quantity) }]
   const next = [...lines]
   const prev = next[i] as SpecLine
+  if (line.origin === 'tz' && line.tz) {
+    const fresh = line.tz.positions.filter((n) => !(prev.tz?.positions ?? []).includes(n))
+    if (prev.tz && prev.tz.hash === line.tz.hash && fresh.length) {
+      next[i] = {
+        ...prev,
+        origin: 'tz',
+        quantity: clampQty(prev.quantity + line.quantity),
+        tz: { ...prev.tz, positions: [...prev.tz.positions, ...fresh].sort((a, b) => a - b) },
+      }
+      return next
+    }
+    // Строка из поиска или из другого ТЗ становится строкой этого пункта: подпись и отметка — по нему.
+    next[i] = {
+      ...prev,
+      origin: 'tz',
+      quantity: clampQty(line.quantity),
+      tz: prev.tz?.hash === line.tz.hash ? prev.tz : line.tz,
+      ...(line.purchase ? { purchase: line.purchase } : {}),
+    }
+    return next
+  }
   next[i] = { ...prev, quantity: clampQty(line.quantity) }
   return next
+}
+
+/** Пункты ТЗ с хешем hash, из которых в спецификации есть хотя бы один товар. */
+export function tzPositionsInSpec(lines: readonly SpecLine[], hash: string): Set<number> {
+  const out = new Set<number>()
+  for (const l of lines) if (l.tz?.hash === hash) for (const n of l.tz.positions) out.add(n)
+  return out
 }
 
 export function removeLine(lines: readonly SpecLine[], productId: string): SpecLine[] {
@@ -112,6 +165,7 @@ export function setQuantity(lines: readonly SpecLine[], productId: string, qty: 
 /** Пометка происхождения строки. */
 export function originLabel(line: Pick<SpecLine, 'origin' | 'companion_class'>): string {
   if (line.origin === 'template') return 'из шаблона'
+  if (line.origin === 'tz') return 'из ТЗ'
   if (line.origin === 'companion') {
     if (line.companion_class === 'conditional_required') return 'условно обязательное'
     // Старшая редакция — замена базовой позиции, а не дополнение к ней.
@@ -128,6 +182,16 @@ export function originLabel(line: Pick<SpecLine, 'origin' | 'companion_class'>):
 export function anchorOf(line: Pick<SpecLine, 'anchor' | 'companion_class'>): string {
   if (!line.anchor || line.companion_class === 'upgrade') return ''
   return line.anchor
+}
+
+/**
+ * Подпись условий строки: у строки из ТЗ «по ТЗ, п. N» встаёт на место «по запросу «…»» (TZ-UI.md §9), условия
+ * закупки остаются.
+ */
+export function sourceNote(line: Pick<SpecLine, 'purchase' | 'tz'>): string {
+  if (!line.tz) return purchaseNote(line.purchase)
+  const terms = line.purchase ? purchaseNote({ ...line.purchase, query: '' }) : ''
+  return [terms, tzSourceLabel(line.tz.positions)].filter(Boolean).join(' · ')
 }
 
 export interface SpecSummary {
@@ -173,7 +237,8 @@ export function specText(lines: readonly SpecLine[]): string {
     const price = priceModeLabel(l)
     const lic = l.license_line ? ` (${l.license_line})` : ''
     const anchor = anchorOf(l) ? ` к «${anchorOf(l)}»` : ''
-    return `${i + 1}. ${l.title}${lic} × ${l.quantity} — ${price} — ${originLabel(l)}${anchor}`
+    const tz = l.tz ? `, ${tzSourceLabel(l.tz.positions)}` : ''
+    return `${i + 1}. ${l.title}${lic} × ${l.quantity} — ${price} — ${originLabel(l)}${anchor}${tz}`
   })
   return ['Спецификация', ...rows, summarize(lines).text].join('\n')
 }
@@ -198,7 +263,22 @@ export function quoteRequest(
   return body
 }
 
-const ORIGINS: readonly string[] = ['search', 'companion', 'template']
+const ORIGINS: readonly string[] = ['search', 'companion', 'template', 'tz']
+
+function parseTz(x: unknown): SpecTz | undefined {
+  if (!x || typeof x !== 'object') return undefined
+  const r = x as Record<string, unknown>
+  if (typeof r.hash !== 'string' || !r.hash || !Array.isArray(r.positions)) return undefined
+  const positions = [
+    ...new Set(r.positions.filter((n): n is number => Number.isInteger(n) && (n as number) > 0)),
+  ]
+  if (!positions.length) return undefined
+  return {
+    hash: r.hash.slice(0, 128),
+    file_name: typeof r.file_name === 'string' ? r.file_name.slice(0, 300) : '',
+    positions: positions.sort((a, b) => a - b),
+  }
+}
 
 /** Разбор сохранённой спецификации: битое и чужое отбрасывается построчно. */
 export function parseStored(raw: string | null): SpecLine[] {
@@ -229,6 +309,7 @@ export function parseStored(raw: string | null): SpecLine[] {
       ...(typeof r.companion_class === 'string' ? { companion_class: r.companion_class } : {}),
       ...(typeof r.anchor === 'string' && r.anchor ? { anchor: r.anchor } : {}),
       ...(parsePurchase(r.purchase) ? { purchase: parsePurchase(r.purchase) } : {}),
+      ...(parseTz(r.tz) ? { tz: parseTz(r.tz) } : {}),
     })
   }
   return out

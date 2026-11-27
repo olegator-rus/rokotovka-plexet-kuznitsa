@@ -194,7 +194,7 @@ const nextSchedule = computed(() => {
             </td>
             <td class="runs__plan">
               <span v-if="planLine(r)" :title="planLine(r)">{{ planLine(r) }}</span>
-              <span v-else class="t-muted" title="Запуск до контура автономии: план не записывался">—</span>
+              <span v-else class="t-muted" title="Ранний запуск: план не записывался">—</span>
             </td>
             <td class="runs__outcome" data-testid="run-outcome">{{ outcomeLine(r) }}</td>
             <td class="num">{{ formatMoney(r.cost_rub) }}</td>

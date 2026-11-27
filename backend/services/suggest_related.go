@@ -98,3 +98,41 @@ func phraseStem(s string) string {
 	}
 	return strings.Join(words, " ")
 }
+
+// mergeDeclensions — склонения одной фразы журнала («продление касперский» и «продление касперского») — одна
+// подсказка: остаётся форма с наибольшим числом поисков (при равенстве — успехов, затем первая), счётчики
+// складываются. Сравнение — как у «Похожих» (phraseStem), но без продолжений: «касперский» и «касперский на 10 пк»
+// остаются разными.
+func mergeDeclensions(order []string, byText map[string]*logQuery) []string {
+	groups := map[string][]string{}
+	var stems []string
+	for _, t := range order {
+		st := phraseStem(t)
+		if _, ok := groups[st]; !ok {
+			stems = append(stems, st)
+		}
+		groups[st] = append(groups[st], t)
+	}
+	res := make([]string, 0, len(stems))
+	for _, st := range stems {
+		forms := groups[st]
+		best := byText[forms[0]]
+		for _, t := range forms[1:] {
+			if q := byText[t]; q.searches > best.searches || (q.searches == best.searches && q.succ > best.succ) {
+				best = q
+			}
+		}
+		for _, t := range forms {
+			if q := byText[t]; q != best {
+				best.searches += q.searches
+				best.succ += q.succ
+				if q.last.After(best.last) {
+					best.last = q.last
+				}
+				delete(byText, t)
+			}
+		}
+		res = append(res, best.text)
+	}
+	return res
+}

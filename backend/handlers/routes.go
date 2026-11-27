@@ -4,6 +4,9 @@ import "github.com/gofiber/fiber/v2"
 
 // RegisterRoutes — вся таблица маршрутов API в одном месте.
 func RegisterRoutes(app *fiber.App, h *Handler) {
+	// Потолок тела 1 МиБ на всё, кроме загрузки ТЗ (server.go).
+	app.Use(LimitBody)
+
 	// Liveness для healthcheck compose и мониторинга: процесс жив.
 	app.Get("/health", h.Health)
 
@@ -86,7 +89,13 @@ func RegisterRoutes(app *fiber.App, h *Handler) {
 	api.Post("/guide", h.Guide)
 	api.Post("/guide/route", h.GuideRoute)
 	api.Post("/guide/spec", h.GuideSpec)
+	api.Post("/consultant", h.Consultant)
 	api.Get("/guide/gaps", h.GuideGaps) // бэк-офис: пробелы подбора для SearchOps
+	// Контур ТЗ: поиск по ТЗ (TZ-CORE §2, витрина).
+	api.Post("/tz", h.TZUpload)
+	api.Get("/tz/operations/:id", h.TZOperation)
+	api.Delete("/tz/operations/:id", h.TZCancel)
+	api.Get("/tz/:hash", h.TZResult)
 
 	// Служебное: режим LLM без перезапуска (ADMIN_ENABLED).
 	api.Post("/admin/llm-mode", h.SetLLMMode)

@@ -12,7 +12,7 @@ import type { Purchase, SearchItem, SearchItemBase } from '@/api/types'
 import CompatBadge from '@/components/search/CompatBadge.vue'
 import PromoLine from '@/components/results/PromoLine.vue'
 import { hasTier, perPlaceLabel } from '@/lib/offerNotes'
-import { formatScore } from '@/lib/format'
+import { formatPrice, formatScore, plural } from '@/lib/format'
 import { reestrTone, selectedOffer } from '@/lib/procurement'
 import { productHref } from '@/lib/product'
 import { isPurchasable, licenseKindLabel, otherVariants, priceLabel } from '@/lib/license'
@@ -38,6 +38,17 @@ const props = defineProps<{
   purchase?: Purchase | null
   /** Номер поиска: уходит в ссылку на страницу товара. */
   requestId?: string | null
+  /**
+   * Контур ТЗ (TZ-UI.md §7): плотный вид для выдачи по ТЗ — меняется плотность, не логика. Значок 32 px, вендор без
+   * категории, одна строка условий, справа итог, под ним расчёт и кнопка; без «Подходит под запрос», ссылки на
+   * сайт, пояснения и скора.
+   */
+  density?: 'default' | 'compact'
+  /**
+   * Плотный вид: количество под условия (контур ТЗ — из ТЗ, тем же правилом, что уходит в спецификацию). Итог и
+   * расчёт карточки — цена позиции × это количество; без него — расчёт «Выбрано по запросу».
+   */
+  quantity?: number | null
 }>()
 
 const emit = defineEmits<{
@@ -50,6 +61,7 @@ const emit = defineEmits<{
 }>()
 
 const expanded = ref(false)
+const compact = computed(() => props.density === 'compact')
 const offer = computed(() => selectedOffer(props.item, props.purchase))
 const variants = computed(() => otherVariants(props.item))
 const action = computed(() => cardAction(props.item, variants.value.length))
@@ -104,6 +116,27 @@ async function addToSpec(target: SearchItemBase, place: 'offer' | 'side' | 'row'
     ?.focus()
 }
 
+/** Плотный вид: итог под условия и расчёт «цена × количество» под ним (если количество больше одного). */
+const compactCalcBase = computed<{ unit: number; qty: number } | null>(() => {
+  const q = props.quantity
+  if (typeof q === 'number' && q > 0) {
+    const unit = props.item.price_rub
+    if (props.item.price_on_request || typeof unit !== 'number' || !(unit > 0)) return null
+    return { unit, qty: q }
+  }
+  return offer.value ? { unit: offer.value.unitPrice, qty: offer.value.quantity } : null
+})
+const compactTotal = computed(() =>
+  compactCalcBase.value ? formatPrice(compactCalcBase.value.unit * compactCalcBase.value.qty) : '',
+)
+const compactCalc = computed(() =>
+  compactCalcBase.value && compactCalcBase.value.qty > 1
+    ? `${formatPrice(compactCalcBase.value.unit)} × ${compactCalcBase.value.qty}`
+    : '',
+)
+/** Строка условий плотной карточки: выбранный под условия вариант, иначе строка лицензии. */
+const compactTerms = computed(() => offer.value?.label || props.item.license_line || '')
+
 function rowQuantity(v: SearchItemBase): string {
   const a = v.attrs
   if (!a) return v.license_line || '—'
@@ -115,7 +148,7 @@ function rowQuantity(v: SearchItemBase): string {
 <template>
   <article
     ref="root"
-    :class="['fcard', { 'fcard--selected': selected }]"
+    :class="['fcard', { 'fcard--selected': selected, 'fcard--compact': compact }]"
     :aria-label="item.title"
     :data-product="item.product_id"
   >
@@ -124,8 +157,10 @@ function rowQuantity(v: SearchItemBase): string {
         <VendorLogo :vendor="item.vendor" :image="item.image_url" class="fcard__main-logo" />
         <p class="fcard__meta t-xs">
           <span class="fcard__vendor">{{ item.vendor }}</span>
-          <span v-if="item.category" aria-hidden="true"> · </span>
-          <span v-if="item.category">{{ item.category }}</span>
+          <template v-if="!compact">
+            <span v-if="item.category" aria-hidden="true"> · </span>
+            <span v-if="item.category">{{ item.category }}</span>
+          </template>
         </p>
         <h3 class="fcard__title">
           <RouterLink
@@ -138,7 +173,10 @@ function rowQuantity(v: SearchItemBase): string {
           </RouterLink>
         </h3>
 
-        <dl v-if="isSoftware" class="fcard__attrs t-xs">
+        <p v-if="compact" class="fcard__terms t-xs" data-testid="compact-terms">
+          {{ compactTerms }}
+        </p>
+        <dl v-else-if="isSoftware" class="fcard__attrs t-xs">
           <div
             v-for="c in cells"
             :key="c.key"
@@ -160,7 +198,9 @@ function rowQuantity(v: SearchItemBase): string {
         </p>
 
         <p class="fcard__badges">
-          <span v-if="item.matches_query && named.size" class="badge">Подходит под запрос</span>
+          <span v-if="!compact && item.matches_query && named.size" class="badge">
+            Подходит под запрос
+          </span>
           <span v-if="item.group === 'analog' && !item.match_type" class="badge badge--strong">
             Аналог
           </span>
@@ -190,10 +230,14 @@ function rowQuantity(v: SearchItemBase): string {
         <p v-if="isAlternative" class="fcard__alt t-xs" data-testid="alternative-note">
           {{ altNote }}
         </p>
-        <p v-if="explainShown" class="fcard__note t-xs t-muted" data-testid="item-explain">
+        <p
+          v-if="explainShown && !compact"
+          class="fcard__note t-xs t-muted"
+          data-testid="item-explain"
+        >
           {{ explainShown }}
         </p>
-        <p v-if="store" class="fcard__store t-xs">
+        <p v-if="store && !compact" class="fcard__store t-xs">
           <a
             :href="store.url"
             target="_blank"
@@ -206,7 +250,7 @@ function rowQuantity(v: SearchItemBase): string {
             <span class="sr-only"> (откроется в новой вкладке)</span>
           </a>
         </p>
-        <div v-if="offer" class="fcard__offer t-sm" data-testid="selected-offer">
+        <div v-if="offer && !compact" class="fcard__offer t-sm" data-testid="selected-offer">
           <p>
             <span class="t-muted">Выбрано по запросу:</span>&nbsp;<strong>{{ offer.label }}</strong>
           </p>
@@ -234,7 +278,69 @@ function rowQuantity(v: SearchItemBase): string {
         </div>
       </div>
 
-      <div class="fcard__side">
+      <div v-if="compact" class="fcard__side fcard__side--compact">
+        <p
+          :class="[
+            'fcard__price t-num',
+            { 'fcard__price--request': !compactTotal && price.state === 'on_request' },
+          ]"
+          data-testid="card-price"
+          :data-price-state="compactTotal ? 'priced' : price.state"
+        >
+          <template v-if="compactTotal">{{ compactTotal }}</template>
+          <template v-else>
+            <s v-if="price.old" class="fcard__old t-sm" data-testid="old-price">
+              <span class="sr-only">Старая цена </span>{{ price.old }}
+            </s>
+            {{ price.label }}
+            <span v-if="perPlace" class="fcard__unit t-xs" data-testid="per-place">{{
+              perPlace
+            }}</span>
+          </template>
+        </p>
+        <p v-if="compactCalc" class="fcard__calc t-xs t-num" data-testid="compact-calc">
+          {{ compactCalc }}
+        </p>
+        <div class="fcard__actions fcard__actions--compact">
+          <span
+            v-if="inSpec(item.product_id)"
+            class="btn btn--ghost btn--sm fcard__cta"
+            role="status"
+            tabindex="-1"
+            :data-spec-done="`side:${item.product_id}`"
+          >
+            <Check :size="14" aria-hidden="true" /> В спецификации
+          </span>
+          <button
+            v-else-if="compactTotal || action === 'spec'"
+            type="button"
+            class="btn btn--primary btn--sm fcard__cta"
+            data-testid="compact-spec"
+            @click="addToSpec(item, 'side')"
+          >
+            <ListPlus :size="14" aria-hidden="true" /> В спецификацию
+          </button>
+          <button
+            v-else-if="action !== 'choose'"
+            type="button"
+            class="btn btn--secondary btn--sm fcard__cta"
+            @click="addToSpec(item, 'side', true)"
+          >
+            Запросить цену
+          </button>
+          <button
+            v-if="action === 'choose'"
+            type="button"
+            class="link fcard__choose t-sm"
+            :aria-expanded="expanded"
+            :aria-controls="detailsId"
+            @click="toggle"
+          >
+            Выбрать лицензию
+          </button>
+        </div>
+      </div>
+      <div v-else class="fcard__side">
         <p
           :class="['fcard__price t-num', { 'fcard__price--request': price.state === 'on_request' }]"
           data-testid="card-price"
@@ -314,7 +420,7 @@ function rowQuantity(v: SearchItemBase): string {
       {{
         expanded
           ? 'Скрыть варианты'
-          : `ещё ${variants.length} ${variants.length === 1 ? 'вариант' : variants.length < 5 ? 'варианта' : 'вариантов'}`
+          : `ещё ${variants.length} ${plural(variants.length, ['вариант', 'варианта', 'вариантов'])}`
       }}
     </button>
 
@@ -345,7 +451,11 @@ function rowQuantity(v: SearchItemBase): string {
               {{ licenseKindLabel(v) || '—' }}
             </td>
             <td data-label="Срок">
-              {{ v.attrs?.license_type ? durationLabel(v.attrs.duration_months) : '—' }}
+              {{
+                v.attrs?.license_type
+                  ? durationLabel(v.attrs.duration_months, v.attrs.license_type)
+                  : '—'
+              }}
             </td>
             <td data-label="Количество">{{ rowQuantity(v) }}</td>
             <td data-label="Цена" class="vtable__num t-num">{{ priceLabel(v) }}</td>
@@ -671,6 +781,74 @@ function rowQuantity(v: SearchItemBase): string {
   }
   .vtable__act {
     justify-content: flex-end;
+  }
+}
+/* Контур ТЗ: плотный вид (TZ-UI.md §7). */
+.fcard--compact .fcard__row {
+  gap: var(--space-2);
+  padding: var(--space-3);
+}
+.fcard--compact .fcard__main > .fcard__main-logo {
+  --logo-size: 2rem;
+  grid-row: 1 / span 2;
+}
+.fcard--compact .fcard__title-link {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+}
+.fcard__terms {
+  margin: 0;
+  color: var(--text-2);
+  overflow-wrap: anywhere;
+}
+.fcard__calc {
+  margin: 0;
+  color: var(--text-2);
+}
+.fcard--compact .fcard__price {
+  font-size: var(--fs-h1);
+  line-height: var(--lh-h1);
+}
+.fcard__side--compact {
+  flex-direction: column;
+  align-items: stretch;
+  gap: var(--space-1);
+}
+.fcard__actions--compact {
+  flex-direction: column;
+  align-items: stretch;
+  gap: var(--space-1);
+}
+.fcard--compact .fcard__cta {
+  justify-content: center;
+  min-height: 44px;
+}
+.fcard__choose {
+  align-self: center;
+  padding: var(--space-1) 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  font-size: var(--fs-sm);
+  cursor: pointer;
+}
+@container (min-width: 40rem) {
+  .fcard--compact .fcard__row {
+    grid-template-columns: minmax(0, 1fr) 12rem;
+  }
+  .fcard__side--compact {
+    align-items: flex-end;
+    text-align: right;
+  }
+  .fcard__actions--compact {
+    align-items: stretch;
+    width: 100%;
+  }
+  .fcard--compact .fcard__cta {
+    min-height: var(--control-h-sm);
   }
 }
 /* Значок производителя — своя колонка слева от названия и атрибутов. */

@@ -91,7 +91,7 @@ export function rejectReasonLabel(id: string | null | undefined): string {
 
 const STALE_REASONS: Record<string, string> = {
   catalog_changed: 'новый каталог: правка проверялась на прежнем словаре',
-  removed_p4: 'вид предложения убран из продукта (контур доводки)',
+  removed_p4: 'вид предложения убран из продукта',
   pre_holdout: 'запуск до разреза журнала: агент видел неделю, отложенную для проверки',
 }
 

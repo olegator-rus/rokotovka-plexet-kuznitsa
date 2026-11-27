@@ -1,7 +1,10 @@
 package handlers
 
 import (
+	"strings"
 	"time"
+
+	"kuznica/api/services"
 
 	"github.com/gofiber/fiber/v2"
 )
@@ -23,12 +26,32 @@ func ServerConfig(t Timeouts) fiber.Config {
 		ReadTimeout:  t.Read,
 		WriteTimeout: t.Write,
 		IdleTimeout:  t.Idle,
-		BodyLimit:    MaxRequestBody,
+		// Потолок тела на уровне сервера — для загрузки ТЗ (20 МиБ); остальным маршрутам LimitBody оставляет 1 МиБ.
+		BodyLimit: MaxUploadBody,
 	}
 }
 
-// MaxRequestBody — потолок тела запроса: JSON API без загрузки файлов. Появятся загрузки — поднять здесь.
+// MaxRequestBody — потолок тела запроса для всех маршрутов, кроме загрузок (uploadRoutes).
 const MaxRequestBody = 1 << 20
+
+// MaxUploadBody — потолок тела загрузки файла ТЗ (POST /api/tz): файл до 20 МиБ и обёртка multipart.
+const MaxUploadBody = services.TZMaxFileBytes + 64<<10
+
+// uploadRoutes — маршруты с телом больше MaxRequestBody: метод + путь.
+var uploadRoutes = map[string]bool{fiber.MethodPost + " /api/tz": true}
+
+// LimitBody — 413 для тела больше MaxRequestBody на всех маршрутах, кроме uploadRoutes. Сервер принимает до
+// MaxUploadBody (fiber.Config.BodyLimit один на приложение), поэтому общий потолок держит этот мидлвар:
+// по Content-Length, а без него (chunked) — по прочитанному телу.
+func LimitBody(c *fiber.Ctx) error {
+	if uploadRoutes[c.Method()+" "+strings.TrimRight(c.Path(), "/")] {
+		return c.Next()
+	}
+	if n := c.Request().Header.ContentLength(); n > MaxRequestBody || len(c.Request().Body()) > MaxRequestBody {
+		return fiber.ErrRequestEntityTooLarge
+	}
+	return c.Next()
+}
 
 // ProxyHeader — заголовок с адресом клиента, который ставит Caddy (deploy/Caddyfile:
 // header_up X-Real-IP {remote_host}). Один адрес, не цепочка: X-Forwarded-For клиент может дописать

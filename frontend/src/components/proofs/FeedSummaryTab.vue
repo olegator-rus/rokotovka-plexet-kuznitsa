@@ -29,6 +29,7 @@ import {
   formatMoney,
   formatMs,
   formatPercent,
+  plural,
 } from '@/lib/format'
 
 const res = useResource((opts) => getFeedSummary(opts))
@@ -353,9 +354,10 @@ function explainRow(r: FeedRow) {
             <button type="button" class="num-btn" @click="explainGuide">
               <strong>{{ formatCost(guide.dialog_cost_rub) }}</strong>
             </button>
-            в среднем на диалог ({{ formatInt(guide.dialogs) }} диалогов × {{ guide.runs }} прогона;
-            где модель вызывалась — {{ formatCost(guide.dialog_llm_cost_rub) }}). В стоимость поиска
-            выше не входит.
+            в среднем на диалог ({{ formatInt(guide.dialogs) }}
+            {{ plural(guide.dialogs, ['диалог', 'диалога', 'диалогов']) }} × {{ guide.runs }}
+            {{ plural(guide.runs, ['прогон', 'прогона', 'прогонов']) }}; где модель вызывалась —
+            {{ formatCost(guide.dialog_llm_cost_rub) }}). В стоимость поиска выше не входит.
           </p>
           <p v-for="n in cost.notes" :key="n" class="t-xs t-muted">{{ n }}</p>
         </section>

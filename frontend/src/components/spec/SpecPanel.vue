@@ -28,8 +28,14 @@ import VendorLogo from '@/components/common/VendorLogo.vue'
 import SpecCompanions from '@/components/spec/SpecCompanions.vue'
 import { useToast } from '@/components/ui/useToast'
 import { formatPrice } from '@/lib/format'
-import { anchorOf, hasKnownPrice, originLabel, priceModeLabel, specText } from '@/lib/spec'
-import { purchaseNote } from '@/lib/procurement'
+import {
+  anchorOf,
+  hasKnownPrice,
+  originLabel,
+  priceModeLabel,
+  sourceNote,
+  specText,
+} from '@/lib/spec'
 import { useSpecStore } from '@/stores/spec'
 import { useAuthStore } from '@/stores/auth'
 import { contactProblem } from '@/lib/auth'
@@ -165,8 +171,8 @@ function startOver() {
                       <span class="badge">{{ originLabel(l) }}</span>
                       <span v-if="anchorOf(l)" class="t-muted"> к «{{ anchorOf(l) }}»</span>
                     </p>
-                    <p v-if="l.purchase" class="t-xs t-muted" data-testid="spec-purchase">
-                      {{ purchaseNote(l.purchase) }}
+                    <p v-if="l.purchase || l.tz" class="t-xs t-muted" data-testid="spec-purchase">
+                      {{ sourceNote(l) }}
                     </p>
                   </div>
                   <button
@@ -215,7 +221,7 @@ function startOver() {
                   </div>
                 </div>
                 <SpecCompanions
-                  v-if="l.origin === 'search'"
+                  v-if="l.origin === 'search' || l.origin === 'tz'"
                   :product-id="l.product_id"
                   :title="l.title"
                 />
@@ -253,8 +259,7 @@ function startOver() {
                 {{ contactErr }}
               </p>
               <p v-else class="t-xs t-muted spec-sheet__hint">
-                Стенд демонстрационный — подойдёт вымышленный контакт. Покупателю после входа
-                контакт не нужен.
+                Стенд демонстрационный — подойдёт вымышленный контакт.
               </p>
             </div>
 

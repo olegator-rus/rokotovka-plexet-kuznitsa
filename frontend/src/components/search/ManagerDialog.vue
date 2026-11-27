@@ -6,7 +6,12 @@ import { CircleAlert, CircleCheck, RotateCcw } from 'lucide-vue-next'
 import UiDialog from '@/components/ui/UiDialog.vue'
 
 const open = defineModel<boolean>('open', { default: false })
-const props = defineProps<{ query: string; send: () => Promise<unknown> }>()
+const props = defineProps<{
+  query: string
+  send: () => Promise<unknown>
+  /** Контур ТЗ: цитата позиции ТЗ — менеджер видит исходные требования. */
+  quote?: string
+}>()
 
 const status = ref<'sending' | 'sent' | 'error'>('sending')
 
@@ -28,6 +33,9 @@ watch(open, (v) => {
 <template>
   <UiDialog v-model:open="open" title="Спросить менеджера">
     <div class="manager" aria-live="polite">
+      <blockquote v-if="quote" class="manager__quote t-sm" data-testid="manager-quote">
+        {{ quote }}
+      </blockquote>
       <p v-if="status === 'sending'" class="t-muted">Передаём запрос…</p>
       <template v-else-if="status === 'sent'">
         <p class="manager__line">
@@ -65,6 +73,16 @@ watch(open, (v) => {
   display: flex;
   flex-direction: column;
   gap: var(--space-2);
+}
+.manager__quote {
+  max-height: 10rem;
+  margin: 0;
+  padding-left: var(--space-3);
+  overflow-y: auto;
+  border-left: 2px solid var(--border-control);
+  color: var(--text-2);
+  overflow-wrap: anywhere;
+  white-space: pre-line;
 }
 .manager__line {
   display: flex;

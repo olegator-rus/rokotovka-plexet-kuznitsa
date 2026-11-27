@@ -76,3 +76,10 @@ var guideText string
 // Guide — промпт режима подбора (контур подбора, services/guide_llm.go): модель выбирает идентификаторы и пишет связующую
 // фразу; всё остальное строит код.
 func Guide() Prompt { return parse(guideText) }
+
+//go:embed consultant.md
+var consultantText string
+
+// Consultant — промпт второго вызова консультанта (контур консультанта, services/consultant_reply.go): текст по листу фактов
+// со вставками; числа, названия и адреса подставляет код.
+func Consultant() Prompt { return parse(consultantText) }

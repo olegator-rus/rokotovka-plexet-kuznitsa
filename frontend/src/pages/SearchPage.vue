@@ -100,8 +100,16 @@ import AssistantEntryButton from '@/components/assistant/AssistantEntry.vue'
 import AssistantInvite from '@/components/assistant/AssistantInvite.vue'
 import AssistantPanel from '@/components/assistant/AssistantPanel.vue'
 import { useAssistant } from '@/composables/useAssistant'
+import { consultantFlags, useConsultant } from '@/components/consultant/composables/useConsultant'
 import { guideMode, lineFromOffer } from '@/lib/guide'
 import type { AssistantEntry } from '@/lib/assistant'
+import TzBackLink from '@/components/tz/TzBackLink.vue'
+import TzSearchResults from '@/components/tz/TzSearchResults.vue'
+import TzUploadStatus from '@/components/tz/TzUploadStatus.vue'
+import { useTzDocument } from '@/composables/useTzResults'
+import { parseTzHash, parseTzItem, positionPurchase, positionQuantity, sameQuery } from '@/lib/tz'
+import { lineFromTz } from '@/lib/spec'
+import { useTzStore } from '@/stores/tz'
 
 const route = useRoute()
 const router = useRouter()
@@ -140,8 +148,56 @@ let pendingIntent: string | null = null
 let resultsIntent: { q: string; id: string } | null = null
 let ctrl: AbortController | null = null
 
+// ── Контур ТЗ: поиск по ТЗ. /search?tz=<хеш> — выдача по позициям; /search?q=…&fromTz=<хеш>&tzItem=N — полный поиск
+// по позиции со строкой «Вернуться к ТЗ…». ──
+const tz = useTzStore()
+const tzMode = computed(() => route.query.tz !== undefined)
+const tzHash = computed(() => parseTzHash(route.query.tz))
+const tzFileName = ref<string | null>(null)
+const fromTz = computed(() => (tzMode.value ? null : parseTzHash(route.query.fromTz)))
+const tzItem = computed(() => (fromTz.value ? parseTzItem(route.query.tzItem) : null))
+const fromTzDoc = useTzDocument(fromTz)
+/**
+ * Позиция, к которой привязаны добавления из полного поиска: пока запрос — тот, что открыт из позиции. Человек
+ * полностью заменил запрос — привязка снимается, ссылка возврата остаётся.
+ */
+const boundPosition = computed(() => {
+  const d = fromTzDoc.value
+  if (!d || !tzItem.value || d.hash !== fromTz.value) return null
+  const p = d.positions.find((x) => x.number === tzItem.value)
+  return p && sameQuery(state.value.q, p.search_query) ? p : null
+})
+
+/** Строка спецификации: из позиции ТЗ — происхождение «из ТЗ», количество и условия позиции. */
+function bindTz(target: SearchItemBase, line: SpecLine): SpecLine {
+  const p = boundPosition.value
+  const d = fromTzDoc.value
+  if (!p || !d) return line
+  const purchase = positionPurchase(p)
+  return lineFromTz(target, positionQuantity(target, p), purchase ? specPurchase(purchase) : null, {
+    hash: d.hash,
+    file_name: d.file_name,
+    number: p.number,
+  })
+}
+
 function go(next: SearchState, mode: 'push' | 'replace' = 'push') {
-  return router[mode]({ path: '/search', query: serializeSearchState(next) })
+  const query: Record<string, string | string[]> = serializeSearchState(next)
+  // Ссылка возврата к ТЗ переживает фильтры и новый текст запроса.
+  if (fromTz.value) {
+    query.fromTz = fromTz.value
+    if (tzItem.value) query.tzItem = String(tzItem.value)
+  }
+  return router[mode]({ path: '/search', query })
+}
+
+function exitTz() {
+  void router.push({ path: '/search' })
+  void nextTick(() => box.value?.focus())
+}
+
+function focusSearch() {
+  box.value?.focus()
 }
 
 async function run(s: SearchState) {
@@ -212,7 +268,7 @@ watch(
 watch(
   () => state.value.client,
   (c) => {
-    if (!onSearchRoute()) return
+    if (!onSearchRoute() || tzMode.value) return
     const own = clientId.value === GUEST_CLIENT_ID ? null : clientId.value
     if (
       (c === null && route.query.client === undefined && own !== null) ||
@@ -227,7 +283,7 @@ watch(
   { immediate: true },
 )
 watch(clientId, (id) => {
-  if (!onSearchRoute()) return
+  if (!onSearchRoute() || tzMode.value) return
   const current = state.value.client ?? GUEST_CLIENT_ID
   if (id !== current)
     void go({ ...state.value, client: id === GUEST_CLIENT_ID ? null : id }, 'replace')
@@ -421,10 +477,13 @@ function onVariantExpand(item: SearchItem, position: number) {
 
 function onSpecTarget(target: SearchItemBase, position: number) {
   spec.add(
-    lineFromItem(
+    bindTz(
       target,
-      quantityForItem(target, response.value?.chips ?? []),
-      specPurchase(response.value?.purchase),
+      lineFromItem(
+        target,
+        quantityForItem(target, response.value?.chips ?? []),
+        specPurchase(response.value?.purchase),
+      ),
     ),
   )
   trackQuiet('click', { productId: target.product_id, position, payload: { action: 'spec' } })
@@ -562,10 +621,13 @@ function openSpecAction() {
 
 function onSpec(item: SearchItem) {
   spec.add(
-    lineFromItem(
+    bindTz(
       item,
-      quantityForItem(item, response.value?.chips ?? []),
-      specPurchase(response.value?.purchase),
+      lineFromItem(
+        item,
+        quantityForItem(item, response.value?.chips ?? []),
+        specPurchase(response.value?.purchase),
+      ),
     ),
   )
   toast.add({
@@ -659,6 +721,8 @@ function submit(raw: string) {
 
 /** Панель поиска (контур выдачи): Enter, подсказка, категория, производитель, товар — с условиями бейджей. */
 function onPanelSubmit(p: PanelSubmit) {
+  // Обычный поиск во время разбора ТЗ: разбор отменяется, поздний переход на страницу ТЗ не случится.
+  tz.onTextSearch()
   pendingIntent = p.intentId
   const next = { ...withQuery(state.value, p.q), filters: p.filters }
   if (
@@ -707,22 +771,19 @@ function onWhy(item: SearchItem) {
   setTrace(true)
 }
 
-const ACTION_TOAST: Record<ItemAction, string> = {
-  add_to_cart: 'Добавлено в корзину',
-  order: 'Заказ записан',
-  price_request: 'Запрос цены записан',
-}
-
 /**
  * «Запросить цену» у позиции без цены: позиция ложится в спецификацию с пометкой «Цена по запросу», цену назовёт
  * КП — тот же путь, что у старшей редакции по запросу. Событие price_request пишется как раньше.
  */
 function onPriceRequest(target: SearchItemBase, position: number) {
   spec.add(
-    lineFromItem(
+    bindTz(
       target,
-      quantityForItem(target, response.value?.chips ?? []),
-      specPurchase(response.value?.purchase),
+      lineFromItem(
+        target,
+        quantityForItem(target, response.value?.chips ?? []),
+        specPurchase(response.value?.purchase),
+      ),
     ),
   )
   trackQuiet('price_request', { productId: target.product_id, position })
@@ -734,57 +795,57 @@ function onPriceRequest(target: SearchItemBase, position: number) {
   })
 }
 
+/**
+ * Действия старой карточки выдачи (запасная ветка без страницы результатов): «В корзину» и «Заказать» были
+ * заглушкой карточки магазина — теперь, как и везде, позиция ложится в спецификацию.
+ */
 function onAction(type: ItemAction, target: SearchItemBase, position: number) {
-  if (type === 'price_request') {
-    onPriceRequest(target, position)
-    return
-  }
-  track(type, { productId: target.product_id, position })
-    .then(() =>
-      toast.add({
-        tone: 'ok',
-        title: ACTION_TOAST[type],
-        detail: `${target.title}. Демо-стенд: действие записано событием для аналитики.`,
-      }),
-    )
-    .catch((e: unknown) =>
-      toast.add({
-        tone: 'error',
-        title: 'Действие не записано',
-        detail: isApiError(e) ? e.message : MSG_UNKNOWN,
-      }),
-    )
+  if (type === 'price_request') onPriceRequest(target, position)
+  else onSpecTarget(target, position)
 }
 
+/** «С этим покупают»: позиция в спецификацию (цена по запросу — с этим режимом), событие клика блока. */
 function onComplement(type: 'add_to_cart' | 'price_request', c: Complement, index: number) {
-  track(type, { productId: c.product_id, position: index + 1, payload: { block: 'complements' } })
-    .then(() =>
-      toast.add({
-        tone: 'ok',
-        title: ACTION_TOAST[type],
-        detail: `${c.title}. Демо-стенд: действие записано событием для аналитики.`,
-      }),
-    )
-    .catch((e: unknown) =>
-      toast.add({
-        tone: 'error',
-        title: 'Действие не записано',
-        detail: isApiError(e) ? e.message : MSG_UNKNOWN,
-      }),
-    )
+  spec.add({
+    product_id: c.product_id,
+    title: c.title,
+    vendor: c.vendor,
+    category: c.category,
+    license_line: c.license_line,
+    price_rub: c.price_rub,
+    price_mode: c.price_on_request || type === 'price_request' ? 'quote_required' : 'fixed',
+    quantity: 1,
+    origin: 'search',
+  })
+  trackQuiet(type === 'price_request' ? 'price_request' : 'click', {
+    productId: c.product_id,
+    position: index + 1,
+    payload: { block: 'complements', action: 'spec' },
+  })
+  toast.add({
+    tone: 'ok',
+    title: 'Добавлено в спецификацию',
+    detail: c.title,
+    action: openSpecAction(),
+  })
 }
 
 // ── Контур помощника: помощник по выбору (CHAT.md). Плавающее окно поверх выдачи; уже 1024 px — на весь экран.
 // Открывается ТОЛЬКО нажатием покупателя: круглая кнопка в углу, строка-приглашение над выдачей, вход со страницы
 // продукта (тоже нажатие). Ни запрос, ни загрузка страницы, ни «ничего не найдено» панель не открывают. ──
 const assistant = useAssistant()
+/** Контур консультанта: при включённом консультанте помощник контура помощника не показывается (он — запасной вариант). */
+const consultantOn = consultantFlags().enabled
+const consultant = consultantOn ? useConsultant() : null
 const assistantWide = useMediaQuery(DESKTOP_QUERY)
-const assistantFloating = computed(() => assistant.open.value && assistantWide.value)
-const assistantFull = computed(() => assistant.open.value && !assistantWide.value)
+const assistantFloating = computed(
+  () => !consultantOn && assistant.open.value && assistantWide.value,
+)
+const assistantFull = computed(() => !consultantOn && assistant.open.value && !assistantWide.value)
 /** Общий запрос (категория, задача, число мест без продукта, вопрос) — строка-приглашение над выдачей. */
 const inviteShown = computed(() => {
   const resp = response.value
-  if (!resp || status.value !== 'ready' || assistant.open.value) return false
+  if (consultantOn || !resp || status.value !== 'ready' || assistant.open.value) return false
   if (helpShown.value || blocks.value.nothing) return false
   return guideMode(resp.query, resp) !== 'search'
 })
@@ -809,9 +870,15 @@ watch(
   (entry) => {
     if (!entry) return
     const q = state.value.q
-    assistant.openPanel('product', '', q)
-    // Вопрос с кнопки страницы продукта — с названием продукта, иначе серверу не понять предмет.
-    if (entry !== '1') void assistant.send(q ? `${q}: ${entry}` : entry)
+    if (consultant) {
+      // Нажатие на странице продукта открывает консультанта (тоже по нажатию покупателя).
+      consultant.show()
+      if (entry !== '1') consultant.send(q ? `${q}: ${entry}` : entry)
+    } else {
+      assistant.openPanel('product', '', q)
+      // Вопрос с кнопки страницы продукта — с названием продукта, иначе серверу не понять предмет.
+      if (entry !== '1') void assistant.send(q ? `${q}: ${entry}` : entry)
+    }
     const rest = { ...route.query }
     delete rest.guide
     void router.replace({ path: '/search', query: rest })
@@ -915,8 +982,11 @@ async function onSupply() {
           v-model="text"
           class="search-hero__panel"
           :client-id="state.client ?? GUEST_CLIENT_ID"
+          :tz-file="tzMode ? (tzFileName ?? '') || null : null"
           @submit="onPanelSubmit"
+          @tz-exit="exitTz"
         />
+        <TzUploadStatus @regular="focusSearch" />
         <LlmModeNote />
       </div>
     </div>
@@ -934,7 +1004,16 @@ async function onSupply() {
           <UiSwitch label="Трасса" :model-value="state.trace" @update:model-value="setTrace" />
         </Teleport>
 
-        <ResultSkeleton v-if="status === 'loading'" />
+        <TzBackLink v-if="fromTz" :hash="fromTz" :item="tzItem" :doc="fromTzDoc" />
+
+        <TzSearchResults
+          v-if="tzMode"
+          :hash="tzHash"
+          @regular="exitTz"
+          @file="tzFileName = $event"
+        />
+
+        <ResultSkeleton v-else-if="status === 'loading'" />
 
         <SearchError v-else-if="status === 'error' && error" :error="error" @retry="run(state)" />
 
@@ -1528,7 +1607,7 @@ async function onSupply() {
         />
       </aside>
       <AssistantEntryButton
-        v-if="!assistant.open.value"
+        v-if="!consultantOn && !assistant.open.value"
         ref="assistantButton"
         :unread="assistant.unread.value"
         @open="openAssistant"

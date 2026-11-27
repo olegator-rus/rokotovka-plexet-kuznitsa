@@ -60,7 +60,7 @@ export function backTarget(historyBack: unknown): 'back' | '/search' {
   return isSearchPath(historyBack) ? 'back' : '/search'
 }
 
-const LICENSE_TYPES: Record<string, string> = {
+export const LICENSE_TYPES: Record<string, string> = {
   subscription: 'Подписка',
   perpetual: 'Бессрочная',
   renewal: 'Продление',
@@ -69,7 +69,7 @@ const LICENSE_TYPES: Record<string, string> = {
   cloud: 'Облачная',
 }
 
-const METRIC_FORMS: Record<string, [string, string, string]> = {
+export const METRIC_FORMS: Record<string, [string, string, string]> = {
   device: ['устройство', 'устройства', 'устройств'],
   user: ['пользователь', 'пользователя', 'пользователей'],
   server: ['сервер', 'сервера', 'серверов'],
@@ -91,6 +91,9 @@ export interface LicenseTerms {
   quantity: number | null
   duration_months: number | null
   edition: string
+  /** Ступень цены за место (фид): «100–149 устройств» вместо «100 устройств». */
+  tier_min?: number | null
+  tier_max?: number | null
 }
 
 /** line — `license_line` позиции: вид из её начала («Переход с другого продукта») главнее типа атрибутов. */
@@ -104,15 +107,33 @@ export function licenseRows(
   else if (l.type) rows.push({ label: 'Тип', value: LICENSE_TYPES[l.type] ?? l.type })
   const forms = l.metric ? METRIC_FORMS[l.metric] : undefined
   if (l.metric === 'org') rows.push({ label: 'Метрика', value: METRIC_ONE.org })
-  else if (forms && l.quantity !== null && l.quantity > 0)
+  else if (forms && typeof l.tier_min === 'number' && l.tier_min > 0) {
+    // Цена за место на ступени: количество — диапазон ступени, как в таблице вариантов.
+    const max = typeof l.tier_max === 'number' && l.tier_max >= l.tier_min ? l.tier_max : null
+    const range =
+      max === null ? `от ${l.tier_min}` : max === l.tier_min ? `${max}` : `${l.tier_min}–${max}`
+    rows.push({ label: 'Количество', value: `${range} ${plural(max ?? l.tier_min, forms)}` })
+  } else if (forms && l.quantity !== null && l.quantity > 0)
     rows.push({ label: 'Количество', value: `${l.quantity} ${plural(l.quantity, forms)}` })
   else if (l.metric) rows.push({ label: 'Метрика', value: METRIC_ONE[l.metric] ?? l.metric })
-  rows.push({ label: 'Срок', value: durationText(l.duration_months) })
+  // Срок: у бессрочной — «бессрочная»; у подписки, продления и прочих без срока в данных строки нет — отсутствие
+  // срока не значит «бессрочная» (PhotoDirector «подписка» без срока в фиде).
+  const term = termText(l.type, l.duration_months)
+  if (term) rows.push({ label: 'Срок', value: term })
   if (l.edition) rows.push({ label: 'Редакция', value: l.edition })
   return rows
 }
 
-/** Срок лицензии: null или 0 — «бессрочная», кратно 12 — годы, иначе месяцы. */
+/**
+ * Срок по типу лицензии: месяцы заданы — годы или месяцы; без срока — «бессрочная» только у type=perpetual, иначе ''
+ * (срок не указан).
+ */
+export function termText(type: string | null | undefined, months: number | null): string {
+  if (months !== null && months > 0) return durationText(months)
+  return type === 'perpetual' ? 'бессрочная' : ''
+}
+
+/** Срок лицензии: null или 0 — «бессрочная», кратно 12 — годы, иначе месяцы. Тип не учитывает — см. termText. */
 export function durationText(months: number | null): string {
   if (months === null || months <= 0) return 'бессрочная'
   if (months % 12 === 0) {
@@ -146,4 +167,15 @@ export function specText(value: number, unit: string): string {
   const v = String(value).replace('.', ',')
   if (!unit) return v
   return unit === '″' ? `${v}${unit}` : `${v} ${unit}`
+}
+
+/**
+ * Описание из фида: предложения склеены без пробела («приложений.INFERIT RS212») — пробел после точки перед
+ * заглавной буквой; лишние пробелы схлопываются. Текст не меняется по смыслу.
+ */
+export function descriptionText(text: string): string {
+  return text
+    .replace(/([а-яёa-z)»])\.(?=[A-ZА-ЯЁ])/g, '$1. ')
+    .replace(/[ \t]{2,}/g, ' ')
+    .trim()
 }

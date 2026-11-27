@@ -41,6 +41,7 @@ func AllModels() []any {
 		&IssueCluster{}, &AgentRun{}, &AgentStep{}, &Proposal{}, &Decision{}, &MemorySuppress{}, &MemoryEpisode{},
 		&LicenseRule{}, &CompatibilityRule{}, &AttributeDefinition{}, &SolutionTemplate{}, &QuoteRequest{}, &CatalogInfo{},
 		&Suggestion{}, &GuideTurn{},
+		&TZResult{},
 	}
 }
 

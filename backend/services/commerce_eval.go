@@ -259,7 +259,7 @@ func (s *Services) RunCommerceEvaluation(ctx context.Context, persist bool) (*ou
 	if !ready["margin"] {
 		res.Notes = append(res.Notes, "политика маржи: не готово — флаг выключен или политика не прочитана")
 	} else if sameWeight(marginW, marginBaseWeight) {
-		res.Notes = append(res.Notes, fmt.Sprintf("политика маржи: действующий вес %.2f равен весу контура поиска — C3 совпадает с C2 по построению", marginW))
+		res.Notes = append(res.Notes, fmt.Sprintf("политика маржи: действующий вес %.2f равен базовому весу — C3 совпадает с C2 по построению", marginW))
 	}
 	if baseRel == nil && len(marginCats) == 0 {
 		res.Notes = append(res.Notes, "C4: принятых правок SearchOps Commerce нет (связи — как в каталоге, весов маржи по категориям нет) — C4 совпадает с C3 по построению")

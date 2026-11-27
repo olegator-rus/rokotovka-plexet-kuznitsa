@@ -61,11 +61,20 @@ func (s *Services) Search(ctx context.Context, requestID string, req in.SearchRe
 
 // SearchWith — поиск с внутренними параметрами: снимок правил песочницы, без записи в журнал (оценка).
 func (s *Services) SearchWith(ctx context.Context, requestID string, req in.SearchRequest, opts SearchOptions) (*out.SearchResponse, error) {
+	resp, err := s.searchWith(ctx, requestID, req, opts)
+	if err == nil {
+		tzServiceResult(req, resp) // позиция ТЗ — работы: товар каталога не бывает точным совпадением
+	}
+	return resp, err
+}
+
+func (s *Services) searchWith(ctx context.Context, requestID string, req in.SearchRequest, opts SearchOptions) (*out.SearchResponse, error) {
 	started := time.Now()
 	cfg, limit, err := validateSearch(&req)
 	if err != nil {
 		return nil, err
 	}
+	ctx, req = tzSearch(ctx, req) // поиск по позиции ТЗ: без разбора моделью, количество и срок — из фильтров
 	if !s.search.Enabled() {
 		return nil, errs.NewUnavailableError(MsgSearchDisabled)
 	}
@@ -225,9 +234,9 @@ func validateSearch(req *in.SearchRequest) (string, int, error) {
 		}
 	}
 	switch req.Source = strings.ToLower(strings.TrimSpace(req.Source)); req.Source {
-	case "", domain.EventSourceLive, domain.EventSourceCompare, domain.EventSourceTraffic:
+	case "", domain.EventSourceLive, domain.EventSourceCompare, domain.EventSourceTraffic, domain.EventSourceTZ:
 	default:
-		bad = append(bad, errs.FieldError{Field: "source", Code: errs.CodeInvalidFormat, Message: "Источник — live, compare или traffic"})
+		bad = append(bad, errs.FieldError{Field: "source", Code: errs.CodeInvalidFormat, Message: "Источник — live, compare, traffic или tz"})
 	}
 	bad = append(bad, validateFilters(req.Filters)...)
 	if len(bad) > 0 {
@@ -463,6 +472,9 @@ func (s *Services) saveSearch(req in.SearchRequest, normalized string, resp *out
 	}
 	if req.Source == domain.EventSourceCompare || req.Source == domain.EventSourceTraffic {
 		ev.Source = req.Source
+	}
+	if req.Source == domain.EventSourceTZ {
+		ev.Source = domain.EventSourceCompare // поиск по позиции ТЗ — не живой поиск: вне аналитики и стоимости
 	}
 	st := &domain.SearchTrace{RequestID: tr.RequestID, Trace: raw}
 	s.writes.Add(1)

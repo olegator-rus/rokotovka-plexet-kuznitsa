@@ -10,8 +10,10 @@ COPY backend/ .
 RUN CGO_ENABLED=0 GOOS=linux go build -trimpath -ldflags="-s -w" -o /out/api .
 
 FROM alpine:3.20
-# wget — для healthcheck в compose; tzdata — Europe/Moscow.
-RUN apk add --no-cache ca-certificates tzdata wget && adduser -D -u 10001 app
+# wget — для healthcheck в compose; tzdata — Europe/Moscow; tesseract-ocr с языками rus и eng (Apache-2.0) —
+# распознавание сканов ТЗ, запасной путь к Yandex Vision OCR (контур ТЗ, backend/externalApi/ocr/tesseract.go).
+RUN apk add --no-cache ca-certificates tzdata wget tesseract-ocr tesseract-ocr-data-rus tesseract-ocr-data-eng && \
+    adduser -D -u 10001 app
 COPY --from=build /out/ /app/
 USER app
 WORKDIR /app

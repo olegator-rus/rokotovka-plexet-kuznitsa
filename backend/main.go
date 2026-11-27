@@ -15,11 +15,13 @@ import (
 	"os/signal"
 	"path/filepath"
 	"runtime/debug"
+	"strings"
 	"syscall"
 	"time"
 
 	"kuznica/api/config"
 	"kuznica/api/externalApi/llm"
+	"kuznica/api/externalApi/ocr"
 	"kuznica/api/externalApi/opensearch"
 	"kuznica/api/externalApi/tei"
 	"kuznica/api/handlers"
@@ -79,6 +81,10 @@ func main() {
 		IntentFallback: intentModel(cfg.LLM, cfg.LLM.FallbackModel),
 		JudgeModel:     intentModel(cfg.LLM, cfg.LLM.JudgeModel),
 
+		ConsultantModel: intentModel(cfg.LLM, cfg.LLM.ConsultantReplyModel),
+		ConsultantLinks: services.ConsultantLinks{Payment: consultantLink("CONSULTANT_LINK_PAYMENT"),
+			Delivery: consultantLink("CONSULTANT_LINK_DELIVERY"), Contacts: consultantLink("CONSULTANT_LINK_CONTACTS")},
+
 		AgentModel: agentModel(cfg.LLM, cfg.Agent.Model),
 		Agent: services.AgentOptions{MaxRegressionWorse: cfg.Agent.MaxRegressionWorse, RegressionSets: cfg.Agent.RegressionSets,
 			FeedRegressionSets: cfg.Agent.FeedRegressionSets, Holdout: services.HoldoutFromEnv(), ReadOnly: cfg.Agent.ReadOnly,
@@ -105,6 +111,11 @@ func main() {
 		UpsellTitle:     cfg.UpsellTitle,
 		UpsellRatio:     cfg.UpsellSameVendorMaxRatio,
 	})
+	// Контур ТЗ: распознавание сканов ТЗ (Yandex Vision OCR); не настроено — скан получает причину ocr.
+	// Запасной путь — локальный tesseract (в образе API), если Vision OCR отказал.
+	if chain := tzOCRChain(config.LoadOCR(cfg.LLM)); len(chain) > 0 {
+		svc.SetTZOCR(chain)
+	}
 
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
@@ -210,6 +221,21 @@ const (
 	modelsTimeout = 120 * time.Second
 )
 
+// ocrTimeout — срок распознавания одной страницы скана.
+const ocrTimeout = 40 * time.Second
+
+// tzOCRChain — распознавание сканов ТЗ: Vision OCR (если настроен), затем tesseract (если установлен).
+func tzOCRChain(oc config.OCRConfig) ocr.Chain {
+	var chain ocr.Chain
+	if oc.Online() {
+		chain = append(chain, ocr.New(oc.URL, oc.APIKey, oc.FolderID, ocrTimeout))
+	}
+	if t := ocr.NewTesseract(); t != nil {
+		chain = append(chain, t)
+	}
+	return chain
+}
+
 // llmTimeout — срок HTTP-вызова модели; разбор ставит свой, более короткий срок через контекст.
 const llmTimeout = 30 * time.Second
 
@@ -266,4 +292,13 @@ func picturesFile(mapping string) string {
 		return ""
 	}
 	return filepath.Join(filepath.Dir(mapping), "feed", "pictures.json")
+}
+
+// consultantLink — адрес сервисной темы консультанта из окружения: только https://store.softline.ru/…; иначе пусто.
+func consultantLink(key string) string {
+	v := strings.TrimSpace(os.Getenv(key))
+	if strings.HasPrefix(v, "https://store.softline.ru/") {
+		return v
+	}
+	return ""
 }

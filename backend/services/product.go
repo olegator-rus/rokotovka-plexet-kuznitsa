@@ -82,8 +82,10 @@ func (s *Services) Product(ctx context.Context, id string) (*out.ProductPage, er
 		Description: p.Description, LicenseLine: withOrgLine(d),
 		License: out.ProductLicense{Type: p.License.Type, Metric: p.License.Metric, Quantity: p.License.Quantity,
 			DurationMonths: p.License.DurationMonths, Edition: p.License.Edition, Kind: p.License.Kind,
-			OrgType: p.License.OrgType, TierMin: p.License.TierMin, TierMax: p.License.TierMax},
-		PriceRub: p.PriceRub, PriceOnRequest: p.PriceOnRequest, PriceMode: docPriceMode(d), OfferURL: d.OfferURL, Origin: p.Origin,
+			OrgType: p.License.OrgType, TierMin: p.License.TierMin, TierMax: p.License.TierMax,
+			OrgLabel: orgLabelOf(d.LicenseOrgType)},
+		PriceRub: p.PriceRub, OldPriceRub: discountedFrom(d), Promos: []out.ItemPromo{},
+		PriceOnRequest: p.PriceOnRequest, PriceMode: docPriceMode(d), OfferURL: d.OfferURL, ImageURL: pictureOf(d.ProductID), Origin: p.Origin,
 		Attributes: productPageAttrs(cc, p), Specs: productSpecs(cc, p),
 		Variants: productVariants(lx, p), Compatibility: productCompat(cc, p),
 		Companions: out.ProductPageCompanions{Required: []out.Companion{}, Items: []out.Companion{}},
@@ -91,6 +93,12 @@ func (s *Services) Product(ctx context.Context, id string) (*out.ProductPage, er
 	}
 	if kind != domain.KindHardware {
 		res.Reestr = s.reestrOf(lx, p.FamilyID)
+	}
+	// Акции — как на карточке выдачи: только на фиде (у mock адресов магазина нет), по семейству и названию позиции.
+	if d.OfferURL != "" {
+		if pr := s.upsellIndexFor(lx).promosFor(p.FamilyID, []string{p.Title}, s.now()); len(pr) > 0 {
+			res.Promos = pr
+		}
 	}
 	qty := 1
 	if p.License.Quantity != nil && *p.License.Quantity > 0 {
@@ -213,7 +221,12 @@ func productVariants(lx *searchLexicon, p *domain.Product) []out.ProductVariant 
 		}
 		d := lx.docs[pid]
 		res = append(res, out.ProductVariant{ProductID: pid, Title: d.Title, LicenseLine: withOrgLine(d),
-			PriceRub: d.PriceRub, PriceOnRequest: d.PriceOnRequest, PriceMode: docPriceMode(d)})
+			License: out.ProductLicense{Type: d.LicenseType, Metric: d.LicenseMetric, Quantity: d.LicenseQuantity,
+				DurationMonths: d.LicenseDuration, Edition: d.LicenseEdition, Kind: d.LicenseKind,
+				OrgType: d.LicenseOrgType, TierMin: d.LicenseTierMin, TierMax: d.LicenseTierMax,
+				OrgLabel: orgLabelOf(d.LicenseOrgType)},
+			PriceRub: d.PriceRub, OldPriceRub: discountedFrom(d), PriceOnRequest: d.PriceOnRequest,
+			PriceMode: docPriceMode(d)})
 	}
 	priced := func(v out.ProductVariant) bool { return v.PriceRub != nil && !v.PriceOnRequest }
 	sort.SliceStable(res, func(i, j int) bool {
@@ -283,6 +296,19 @@ func productAnalogs(cc *commerceCatalog, lx *searchLexicon, p *domain.Product) [
 			Note: rel.Note})
 	}
 	return res
+}
+
+// orgLabelOf — для кого вариант фида («Образовательное учреждение»); "" — без ограничения организацией.
+func orgLabelOf(feedOrgType string) string {
+	return orgLabels[feedOrg[feedOrgType]]
+}
+
+// discountedFrom — цена до скидки, если она выше текущей (как зачёркнутая цена карточки выдачи); иначе nil.
+func discountedFrom(d indexDoc) *float64 {
+	if d.OldPriceRub == nil || d.PriceRub == nil || d.PriceOnRequest || *d.PriceRub <= 0 || *d.OldPriceRub <= *d.PriceRub {
+		return nil
+	}
+	return d.OldPriceRub
 }
 
 // withOrgLine — строка лицензии с типом организации, если вариант не для всех («для: образование»): на странице товара

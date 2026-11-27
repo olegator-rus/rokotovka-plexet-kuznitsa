@@ -22,8 +22,14 @@ type ProductPage struct {
 	PriceRub       *float64        `json:"price_rub"`
 	PriceOnRequest bool            `json:"price_on_request"`
 	PriceMode      string          `json:"price_mode"`
+	// OldPriceRub — цена до скидки по фиду (как в выдаче); nil — скидки нет.
+	OldPriceRub *float64 `json:"old_price_rub,omitempty"`
+	// Promos — действующие акции семейства (как на карточке выдачи); [] — акций нет.
+	Promos []ItemPromo `json:"promos"`
 	// OfferURL — карточка позиции в магазине («На сайте ↗»); пусто — адрес не собран.
 	OfferURL string `json:"offer_url"`
+	// ImageURL — картинка позиции из каталога заказчика; пусто — значок производителя.
+	ImageURL string `json:"image_url,omitempty"`
 	Origin   string `json:"origin"` // ru | foreign
 	// Reestr — статус в реестре российского ПО; null у оборудования.
 	Reestr        *Reestr               `json:"reestr"`
@@ -61,6 +67,8 @@ type ProductLicense struct {
 	OrgType string `json:"org_type,omitempty"`
 	TierMin *int   `json:"tier_min,omitempty"`
 	TierMax *int   `json:"tier_max,omitempty"`
+	// OrgLabel — для кого вариант («Образовательное учреждение»); пусто — без ограничения (коммерческий).
+	OrgLabel string `json:"org_label,omitempty"`
 }
 
 // ProductAttr — атрибут позиции: подпись даёт сервер, значение — строкой.
@@ -78,14 +86,17 @@ type ProductSpec struct {
 	Unit  string  `json:"unit"`
 }
 
-// ProductVariant — другая позиция того же семейства.
+// ProductVariant — другая позиция того же семейства. Условия — те же поля, что license у страницы: по ним фронт
+// показывает, чем варианты различаются (редакция, вид, срок, количество, для кого).
 type ProductVariant struct {
-	ProductID      string   `json:"product_id"`
-	Title          string   `json:"title"`
-	LicenseLine    string   `json:"license_line"`
-	PriceRub       *float64 `json:"price_rub"`
-	PriceOnRequest bool     `json:"price_on_request"`
-	PriceMode      string   `json:"price_mode"`
+	ProductID      string         `json:"product_id"`
+	Title          string         `json:"title"`
+	LicenseLine    string         `json:"license_line"`
+	License        ProductLicense `json:"license"`
+	PriceRub       *float64       `json:"price_rub"`
+	OldPriceRub    *float64       `json:"old_price_rub,omitempty"`
+	PriceOnRequest bool           `json:"price_on_request"`
+	PriceMode      string         `json:"price_mode"`
 }
 
 // ProductCompat — правило совместимости позиции с моделью системы.

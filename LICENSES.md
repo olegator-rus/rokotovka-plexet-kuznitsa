@@ -21,6 +21,8 @@
 | richardlehane/mscfb, msoleps | v1.0.x | github.com/richardlehane | Apache-2.0 | backend (косвенно: excelize — старые контейнеры OLE) |
 | tiendc/go-deepcopy | v1.7.2 | github.com/tiendc/go-deepcopy | MIT | backend (косвенно: excelize) |
 | golang.org/x/text, x/net, x/crypto | v0.43 / v0.62 / v0.58 | go.googlesource.com | BSD-3-Clause | backend (cp1251 в generic-импорте; x/crypto/bcrypt — пароли AUTH_ACCOUNTS при входе по ролям; x/net — косвенно: excelize) |
+| ledongthuc/pdf | v0.0.0-20261125152515-e8918f005efa | github.com/ledongthuc/pdf | BSD-3-Clause | backend (текст PDF в поиске по ТЗ, контур ТЗ; обход потока содержимого в services/tz_pdf.go повторяет Page.Content()) |
+| Tesseract OCR + tessdata rus, eng | 5.3.x (Alpine 3.20) | github.com/tesseract-ocr/tesseract | Apache-2.0 | образ API (deploy/Dockerfile.api): распознавание сканов ТЗ, запасной путь к Yandex Vision OCR |
 | golang.org/x/sync | v0.24 | go.googlesource.com | BSD-3-Clause | backend (singleflight: один вызов LLM на одинаковые параллельные разборы) |
 | yaml.v3 | v3.0.1 | gopkg.in/yaml.v3 | MIT AND Apache-2.0 | backend (файл сопоставления mapping.yaml) |
 | Vue | 3.5.x | vuejs.org | MIT | frontend |

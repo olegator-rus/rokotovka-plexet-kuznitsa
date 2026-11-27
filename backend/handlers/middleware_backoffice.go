@@ -52,6 +52,10 @@ var publicRoutes = map[string]bool{
 	fiber.MethodPost + " /api/guide":       true,
 	fiber.MethodPost + " /api/guide/route": true,
 	fiber.MethodPost + " /api/guide/spec":  true,
+	// Контур консультанта: консультант (CONTRACT.md), гостевой, как /api/guide.
+	fiber.MethodPost + " /api/consultant": true,
+	// Контур ТЗ: загрузка ТЗ (TZ-CORE §2), гостевая; опрос операции и разбор по хешу — tzPublic.
+	fiber.MethodPost + " /api/tz": true,
 	// «К этой позиции» в спецификации: компаньоны из справочника, без цифр маржи.
 	fiber.MethodGet + " /api/companions": true,
 	fiber.MethodGet + " /api/help":       true,
@@ -81,7 +85,19 @@ func isPublic(method, path string) bool {
 		!strings.Contains(id, "/") {
 		return true
 	}
+	if tzPublic(method, path) {
+		return true
+	}
 	return publicRoutes[method+" "+path]
+}
+
+// tzPublic — опрос и отмена операции разбора ТЗ и разбор по хешу (контур ТЗ): путь с параметром.
+func tzPublic(method, path string) bool {
+	if op, ok := strings.CutPrefix(path, "/api/tz/operations/"); ok {
+		return (method == fiber.MethodGet || method == fiber.MethodDelete) && op != "" && !strings.Contains(op, "/")
+	}
+	hash, ok := strings.CutPrefix(path, "/api/tz/")
+	return ok && method == fiber.MethodGet && hash != "" && !strings.Contains(hash, "/")
 }
 
 // productsPrefix — префикс страницы товара: путь с параметром в publicRoutes не попадает.

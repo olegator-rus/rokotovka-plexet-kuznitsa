@@ -23,6 +23,18 @@ type SearchRequest struct {
 	Sort     string `json:"sort"`
 	Group    string `json:"group"`
 	IntentID string `json:"intent_id"`
+	// TZ — условия позиции ТЗ (контур ТЗ): сервер переносит в них количество, метрику и срок из Filters при
+	// source = tz. Клиент это поле не задаёт.
+	TZ *TZConditions `json:"-"`
+}
+
+// TZConditions — количество, метрика и срок позиции ТЗ: в поиске — как названные в тексте («на 50 узлов на 1 год»).
+type TZConditions struct {
+	Quantity       int
+	Metric         string
+	DurationMonths int
+	Edition        string
+	Service        bool // позиция — работы или услуги (TZ-CORE §6)
 }
 
 // Filter — условие фасета: {"key": "ram_gb", "op": "gte", "value": 32}; range — value..value2.

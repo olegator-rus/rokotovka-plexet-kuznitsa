@@ -25,10 +25,10 @@ defineEmits<{ action: [type: 'add_to_cart' | 'price_request', item: Complement, 
         <button
           type="button"
           class="btn btn--secondary btn--sm"
-          :aria-label="`${isPurchasable(c) ? 'В корзину' : 'Запросить цену'}: ${c.title}`"
+          :aria-label="`${isPurchasable(c) ? 'В спецификацию' : 'Запросить цену'}: ${c.title}`"
           @click="$emit('action', isPurchasable(c) ? 'add_to_cart' : 'price_request', c, i)"
         >
-          {{ isPurchasable(c) ? 'В корзину' : 'Запросить цену' }}
+          {{ isPurchasable(c) ? 'В спецификацию' : 'Запросить цену' }}
         </button>
       </li>
     </ul>

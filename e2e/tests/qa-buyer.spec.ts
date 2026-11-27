@@ -109,9 +109,9 @@ test.describe("QA покупателя: страница товара", () => {
     );
     await expect(site).toHaveAttribute("target", "_blank");
     await expect(page.getByTestId("product-per-place")).toHaveText("за узел");
-    // Коммерческий и академический варианты с одинаковыми условиями различаются подписью типа организации.
-    await expect(page.locator("main")).toContainText(
-      "для: образовательное учреждение",
-    );
+    // Варианты — таблицей: свёрнуто — та же организация; «Показать все» добавляет колонку «Для кого», и
+    // коммерческий и образовательный варианты с одинаковыми условиями различимы.
+    await page.getByRole("button", { name: /Показать все \d+ вариант/ }).click();
+    await expect(page.locator("main")).toContainText(/образовательн/i);
   });
 });

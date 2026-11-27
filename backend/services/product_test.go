@@ -185,6 +185,42 @@ func TestProductJSONShape(t *testing.T) {
 	}
 }
 
+// Варианты несут условия лицензии (по ним страница показывает, чем они различаются); promos — всегда массив; цена до
+// скидки — только выше текущей; тип организации — подписью, коммерческий — без подписи.
+func TestProductVariantLicenseAndDiscount(t *testing.T) {
+	svc := productSvc(t, "../../data/mock", Features{})
+	cs := svc.catalog.Load()
+	for _, pids := range cs.lex.families {
+		if len(pids) < 2 {
+			continue
+		}
+		p := productPage(t, svc, pids[0])
+		if p.Promos == nil {
+			t.Fatalf("%s: promos = null", p.ProductID)
+		}
+		for _, v := range p.Variants {
+			d := cs.lex.docs[v.ProductID]
+			if v.License.Type != d.LicenseType || v.License.Edition != d.LicenseEdition {
+				t.Fatalf("%s: условия варианта %+v, в каталоге %q/%q", v.ProductID, v.License, d.LicenseType, d.LicenseEdition)
+			}
+		}
+		break
+	}
+	f := func(x float64) *float64 { return &x }
+	if discountedFrom(indexDoc{PriceRub: f(100), OldPriceRub: f(120)}) == nil {
+		t.Fatal("старая цена выше текущей — должна быть")
+	}
+	for _, d := range []indexDoc{{PriceRub: f(100), OldPriceRub: f(100)}, {PriceRub: f(100)},
+		{PriceRub: f(0), OldPriceRub: f(10)}, {PriceRub: f(100), OldPriceRub: f(120), PriceOnRequest: true}} {
+		if discountedFrom(d) != nil {
+			t.Fatalf("скидки нет, а есть: %+v", d)
+		}
+	}
+	if orgLabelOf("academic") != "Образовательное учреждение" || orgLabelOf("commercial") != "" || orgLabelOf("") != "" {
+		t.Fatalf("подписи организаций: %q %q", orgLabelOf("academic"), orgLabelOf("commercial"))
+	}
+}
+
 // Ошибки: неизвестная позиция — 404, id длиннее 128 — ошибка валидации поля id, каталог не загружен — 503.
 func TestProductErrors(t *testing.T) {
 	svc := productSvc(t, "../testdata/catalog", Features{})

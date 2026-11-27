@@ -1,6 +1,7 @@
 // Страница товара: гость на витрине. Клик по названию карточки
 // пишет click с payload.action = product_page и открывает /product/:id; «← К результатам» возвращает к той же выдаче;
-// действия на странице пишут события с номером поиска из адреса; 404, ошибка с повтором и ширина 360 px.
+// действия на странице пишут события с номером поиска из адреса; таблица вариантов с отмеченным открытым, честный срок,
+// ссылка на магазин и подсказки помощнику без шаблона «N»; 404, ошибка с повтором и ширина 360 px.
 // События не уходят в аналитику: фикстура отвечает на POST /api/events 204, тело читается из запроса.
 import type { Page, Request } from '@playwright/test'
 import { GUEST, type SearchBody, expect, openSearch, results, search, test } from './fixtures'
@@ -47,10 +48,14 @@ test.describe('страница товара — гость', () => {
         u.searchParams.get('pos') === '1',
     )
     await expect(page.getByRole('heading', { level: 1 })).toHaveText(first.title)
-    await expect(page.getByTestId('product-demo-note')).toBeVisible()
+    await expect(page.getByTestId('product-demo-note')).toHaveText(
+      'Цена и условия — из каталога магазина.',
+    )
+    await expect(page.getByRole('heading', { name: 'Варианты этого продукта' })).toBeVisible()
+    // Открытый вариант — строка таблицы с пометкой, ровно одна.
     await expect(
-      page.getByRole('heading', { name: 'Другие варианты этого продукта' }),
-    ).toBeVisible()
+      page.getByTestId('variant-row').and(page.locator('[aria-current="true"]')),
+    ).toHaveCount(1)
 
     await expect.poll(() => events.filter((e) => e.type === 'click').length).toBe(1)
     const click = events.find((e) => e.type === 'click')!
@@ -60,19 +65,21 @@ test.describe('страница товара — гость', () => {
     expect(click.payload).toEqual({ action: 'product_page' })
 
     // Действие на странице — тот же request_id и позиция из адреса, тост демо-стенда.
-    const buy = page.getByRole('button', { name: 'В корзину' })
+    const buy = page.getByRole('button', { name: 'В спецификацию' })
     const ask = page.getByRole('button', { name: 'Запросить цену' })
     const action = (await buy.count()) ? buy : ask
-    const type = (await buy.count()) ? 'add_to_cart' : 'price_request'
+    const type = (await buy.count()) ? 'click' : 'price_request'
     await action.click()
-    await expect.poll(() => events.filter((e) => e.type === type).length).toBe(1)
-    const ev = events.find((e) => e.type === type)!
+    await expect
+      .poll(() => events.filter((e) => e.type === type && e.product_id === first.product_id).length)
+      .toBeGreaterThan(0)
+    const ev = events.findLast((e) => e.type === type && e.product_id === first.product_id)!
     expect(ev.request_id).toBe(body.request_id)
     expect(ev.position).toBe(1)
     expect(ev.product_id).toBe(first.product_id)
     await expect(
       page
-        .getByText('Демо-стенд: действие записано событием для аналитики', { exact: false })
+        .getByText('Спецификация и запрос КП — на странице поиска', { exact: false })
         .first(),
     ).toBeVisible()
 
@@ -111,6 +118,30 @@ test.describe('страница товара — гость', () => {
     await page.unroute('**/api/products/**')
     await retry.click()
     await expect(page.getByRole('heading', { level: 1 })).toHaveText(body.items[0].title)
+  })
+
+  test('условия честные: срок без выдумки, ссылка на магазин, подсказки без шаблона «N»', async ({
+    page,
+    request,
+  }) => {
+    await openSearch(page)
+    const body = await search(page, 'касперский')
+    const id = body.items[0].product_id
+    const api = await (await request.get(`/api/products/${encodeURIComponent(id)}`)).json()
+    await page.goto(`/product/${encodeURIComponent(id)}`)
+    await expect(page.getByRole('heading', { level: 1 })).toBeVisible()
+
+    // «бессрочная» — только у бессрочной лицензии; у подписки без срока строки «Срок» нет.
+    const attrs = page.locator('section[aria-labelledby="pp-attrs"]')
+    if (api.license.type !== 'perpetual') {
+      await expect(attrs.getByText('бессрочная', { exact: true })).toHaveCount(0)
+    }
+    if (api.offer_url) {
+      await expect(page.getByTestId('product-site')).toHaveAttribute('href', api.offer_url)
+    }
+    const chips = await page.getByTestId('product-guide-chip').allInnerTexts()
+    expect(chips.length).toBeGreaterThan(0)
+    for (const c of chips) expect(c).not.toMatch(/\bN\b/)
   })
 
   test('360 px: нет горизонтальной прокрутки', async ({ page }) => {

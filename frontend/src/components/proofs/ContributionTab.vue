@@ -165,8 +165,7 @@ const verdictText = { keep: 'оставить', remove: 'прироста нет
       <p class="t-sm ctb__lead">
         Набор <strong>{{ run.set }}</strong>: {{ formatInt(run.queries) }}
         {{ plural(run.queries, ['запрос', 'запроса', 'запросов']) }}. Каждая строка лестницы
-        добавляет один компонент; ниже — полный путь без одного компонента. Данные mock: решения
-        предварительные, окончательные — на данных задачи.
+        добавляет один компонент; ниже — полный путь без одного компонента.
       </p>
 
       <section class="ctb__section" aria-labelledby="ctb-ladder">

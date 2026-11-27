@@ -1,26 +1,28 @@
 <script setup lang="ts">
 // Страница товара: всё, что каталог знает о позиции, — GET /api/products/{id}. Открывается по названию
-// карточки выдачи (/product/:id?rid=…&pos=…); rid и pos идут только в события действий. На стенде страница
-// демонстрационная: в магазине здесь открывается его карточка товара. Фото, наличия, доставки и отзывов в данных нет —
-// их и нет на странице.
-import { computed, watch } from 'vue'
+// карточки выдачи (/product/:id?rid=…&pos=…); rid и pos идут только в события действий. Цена, скидка, акции и строка
+// лицензии — те же, что на карточке выдачи; «На сайте» ведёт на карточку позиции в магазине (offer_url). Наличия,
+// доставки и отзывов в данных нет — их и нет на странице.
 import { RouterLink, useRoute, useRouter } from 'vue-router'
-import { ArrowLeft, ExternalLink, ListChecks, Search, ShoppingCart } from 'lucide-vue-next'
+import { computed, ref, watch } from 'vue'
+import { ArrowLeft, Check, ExternalLink, ListChecks, ListPlus, Search } from 'lucide-vue-next'
 import { postEvent } from '@/api/events'
 import { getProduct } from '@/api/product'
 import type { EventType } from '@/api/types'
 import BlockError from '@/components/common/BlockError.vue'
+import PromoLine from '@/components/results/PromoLine.vue'
 import VendorLogo from '@/components/common/VendorLogo.vue'
 import { useToast } from '@/components/ui/useToast'
 import { useResource } from '@/composables/useResource'
-import { isApiError, MSG_UNKNOWN } from '@/lib/apiError'
 import { modelTitle } from '@/lib/companions'
 import { buildEvent } from '@/lib/events'
+import { plural } from '@/lib/format'
 import { isPurchasable, priceLabel } from '@/lib/license'
 import { reestrTone } from '@/lib/procurement'
 import {
   backTarget,
   compatStateText,
+  descriptionText,
   licenseRows,
   originText,
   parseProductRef,
@@ -28,11 +30,22 @@ import {
   specText,
 } from '@/lib/product'
 import { perPlaceLabel } from '@/lib/offerNotes'
+import {
+  collapsedRows,
+  titleTails,
+  variantColumns,
+  discountView,
+  guideQuestions,
+  specQuantity,
+  variantTable,
+} from '@/lib/productVariants'
 import { useAppStore } from '@/stores/app'
+import { useSpecStore } from '@/stores/spec'
 
 const route = useRoute()
 const router = useRouter()
 const app = useAppStore()
+const spec = useSpecStore()
 const toast = useToast()
 
 const id = computed(() => String(route.params.id ?? ''))
@@ -73,41 +86,62 @@ function goBack() {
   router.back()
 }
 
-const ACTION_TOAST: Record<'add_to_cart' | 'order' | 'price_request', string> = {
-  add_to_cart: 'Добавлено в корзину',
-  order: 'Заказ записан',
-  price_request: 'Запрос цены записан',
+const discount = computed(() => (p.value ? discountView(p.value) : { old: '', badge: '' }))
+/** Хост ссылки «На сайте» (store.softline.ru) — подпись честно говорит, куда ведёт ссылка. */
+const siteHost = computed(() => {
+  try {
+    return p.value?.offer_url ? new URL(p.value.offer_url).host : ''
+  } catch {
+    return ''
+  }
+})
+const inSpec = computed(() => (p.value ? spec.has(p.value.product_id) : false))
+
+/** Спецификация открывается в шапке «Поиска»: возвращаемся к выдаче (или на /search) и открываем панель. */
+async function openSpec() {
+  if (back.value === 'back') router.back()
+  else await router.push('/search')
+  spec.open = true
 }
 
-/** Действие пишет то же событие, что в выдаче, с номером поиска и позицией из адреса. */
-function act(type: 'add_to_cart' | 'order' | 'price_request') {
+/**
+ * «В спецификацию» и «Запросить цену» — как в выдаче: позиция ложится в спецификацию (цена по запросу — с этим
+ * режимом цены), событие — с номером поиска и позицией из адреса. У ступени цены за место количество — нижняя
+ * граница ступени (100–149 устройств → 100): по цене за место меньше не купить.
+ */
+function act(type: 'spec' | 'price_request') {
   const item = p.value
   if (!item) return
-  const ctx = {
-    requestId: from.value.requestId,
-    sessionId: app.sessionId,
-    clientId: app.clientId,
-  }
-  postEvent(
-    buildEvent(type as EventType, ctx, {
-      productId: item.product_id,
-      position: from.value.position,
-    }),
-  )
-    .then(() =>
-      toast.add({
-        tone: 'ok',
-        title: ACTION_TOAST[type],
-        detail: `${item.title}. Демо-стенд: действие записано событием для аналитики.`,
-      }),
-    )
-    .catch((e: unknown) =>
-      toast.add({
-        tone: 'error',
-        title: 'Действие не записано',
-        detail: isApiError(e) ? e.message : MSG_UNKNOWN,
-      }),
-    )
+  spec.add({
+    product_id: item.product_id,
+    title: item.title,
+    vendor: item.vendor.name,
+    category: item.category.name,
+    license_line: item.license_line,
+    price_rub: item.price_rub,
+    price_mode: item.price_mode || (item.price_on_request ? 'quote_required' : 'fixed'),
+    quantity: specQuantity(item.license),
+    origin: 'search',
+  })
+  const ctx = { requestId: from.value.requestId, sessionId: app.sessionId, clientId: app.clientId }
+  const ev =
+    type === 'spec'
+      ? buildEvent('click' as EventType, ctx, {
+          productId: item.product_id,
+          position: from.value.position,
+          payload: { action: 'spec' },
+        })
+      : buildEvent('price_request' as EventType, ctx, {
+          productId: item.product_id,
+          position: from.value.position,
+        })
+  postEvent(ev).catch(() => {})
+  toast.add({
+    tone: 'ok',
+    title: type === 'spec' ? 'Добавлено в спецификацию' : 'Запрос цены — в спецификации',
+    detail: `${item.title}. Спецификация и запрос КП — на странице поиска.`,
+    action: { label: 'Открыть', run: () => void openSpec() },
+  })
 }
 
 /**
@@ -125,11 +159,26 @@ const specRows = computed(() => {
   return rows.filter((r) => (seen.has(r.label) ? false : (seen.add(r.label), true)))
 })
 
+/** Варианты: текущая позиция и остальные одной таблицей; колонки — только различающиеся условия. */
+const table = computed(() =>
+  p.value ? variantTable(p.value, p.value.variants, p.value.vendor.name) : null,
+)
+const showAllVariants = ref(false)
+watch(id, () => (showAllVariants.value = false))
+const shownRows = computed(() => {
+  const t = table.value
+  if (!t) return []
+  return showAllVariants.value ? t.rows : collapsedRows(t.rows)
+})
+const shownColumns = computed(() => variantColumns(shownRows.value))
+const shownTitles = computed(() => titleTails(shownRows.value))
+const hiddenCount = computed(() =>
+  table.value ? table.value.rows.length - shownRows.value.length : 0,
+)
+
 // Контур подбора (SPEC §1): вход в подбор со страницы семейства — запрос строки = семейство, вопрос-чип уходит первым ходом.
-const GUIDE_QUESTIONS = [
-  { label: 'Чем отличаются редакции?', message: 'Чем отличаются редакции?' },
-  { label: 'Сколько стоит на N мест?', message: 'Сколько будет стоить на нужное число мест?' },
-] as const
+// Помощник (контур помощника) и консультант (контур консультанта, ?consultant=1) оба принимают /search?q=…&guide=<вопрос>.
+const guide = computed(() => (p.value ? guideQuestions(p.value, p.value.variants) : []))
 function openGuide(message?: string) {
   const item = p.value
   if (!item) return
@@ -210,7 +259,7 @@ function companionPrice(c: { price_rub: number | null; price_mode: string }) {
         <!-- Шапка товара: производитель, название, главные факты -->
         <header class="pp__head">
           <div class="pp__brand">
-            <VendorLogo :vendor="p.vendor.name" class="pp__logo" />
+            <VendorLogo :vendor="p.vendor.name" :image="p.image_url" class="pp__logo" />
             <p class="t-sm t-muted">
               <span class="pp__vendor">{{ p.vendor.name }}</span>
               <template v-if="p.category.name"> · {{ p.category.name }}</template>
@@ -250,6 +299,14 @@ function companionPrice(c: { price_rub: number | null; price_mode: string }) {
 
         <!-- Цена и действия: справа и прилипает при прокрутке на широком экране -->
         <aside class="pp__buy panel" aria-label="Цена и действия">
+          <p v-if="discount.badge" class="pp__deal">
+            <s class="t-sm t-muted t-num" data-testid="product-old-price">
+              <span class="sr-only">Старая цена </span>{{ discount.old }}
+            </s>
+            <span class="badge badge--tone pp__discount" data-testid="product-discount">
+              {{ discount.badge }}
+            </span>
+          </p>
           <p
             :class="['pp__price t-num', { 'pp__price--request': !isPurchasable(p) }]"
             data-testid="product-price"
@@ -260,15 +317,24 @@ function companionPrice(c: { price_rub: number | null; price_mode: string }) {
             {{ perPlace }}
           </p>
           <p v-if="p.license_line" class="t-sm t-muted pp__price-for">{{ p.license_line }}</p>
+          <PromoLine :promos="p.promos" />
           <div class="pp__actions">
-            <template v-if="isPurchasable(p)">
-              <button type="button" class="btn btn--primary pp__btn" @click="act('add_to_cart')">
-                <ShoppingCart :size="16" aria-hidden="true" /> В корзину
-              </button>
-              <button type="button" class="btn btn--secondary pp__btn" @click="act('order')">
-                Заказать
+            <template v-if="inSpec">
+              <p class="pp__in-spec t-sm" role="status" data-testid="product-in-spec">
+                <Check :size="16" aria-hidden="true" /> В спецификации
+              </p>
+              <button type="button" class="btn btn--secondary pp__btn" @click="openSpec">
+                Открыть спецификацию
               </button>
             </template>
+            <button
+              v-else-if="isPurchasable(p)"
+              type="button"
+              class="btn btn--primary pp__btn"
+              @click="act('spec')"
+            >
+              <ListPlus :size="16" aria-hidden="true" /> В спецификацию
+            </button>
             <button
               v-else
               type="button"
@@ -288,58 +354,129 @@ function companionPrice(c: { price_rub: number | null; price_mode: string }) {
               <ListChecks :size="16" aria-hidden="true" /> Спросить про лицензии
             </button>
             <ul class="pp__guide-chips" aria-label="Вопросы о лицензии">
-              <li v-for="g in GUIDE_QUESTIONS" :key="g.label">
-                <button type="button" class="pp__guide-chip" @click="openGuide(g.message)">
+              <li v-for="g in guide" :key="g.label">
+                <button
+                  type="button"
+                  class="pp__guide-chip"
+                  data-testid="product-guide-chip"
+                  @click="openGuide(g.message)"
+                >
                   {{ g.label }}
                 </button>
               </li>
             </ul>
           </div>
-          <a
-            v-if="p.offer_url"
-            :href="p.offer_url"
-            target="_blank"
-            rel="noopener"
-            class="pp__site t-sm"
-            data-testid="product-site"
-          >
-            На сайте <ExternalLink :size="14" aria-hidden="true" />
-          </a>
+          <p v-if="p.offer_url" class="pp__site-row t-sm">
+            <a
+              :href="p.offer_url"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="pp__site"
+              data-testid="product-site"
+            >
+              {{ siteHost ? `Открыть на ${siteHost}` : 'На сайте магазина' }}
+              <ExternalLink :size="14" aria-hidden="true" />
+              <span class="sr-only"> (откроется в новой вкладке)</span>
+            </a>
+          </p>
           <p class="t-xs t-muted pp__demo" data-testid="product-demo-note">
-            Демо-стенд. В магазине здесь открывается карточка товара магазина — поиск передаёт ей
-            переход и действия событиями.
+            Цена и условия — из каталога магазина.
           </p>
         </aside>
 
         <div class="pp__main">
-          <!-- Варианты: текущий выделен, остальные — ссылки на свои страницы -->
-          <section class="pp__section" aria-labelledby="pp-variants">
-            <h2 id="pp-variants" class="pp__h2">Другие варианты этого продукта</h2>
-            <p v-if="!p.variants.length" class="t-sm t-muted">
-              Других вариантов этого продукта в каталоге нет.
-            </p>
-            <ul v-else class="pp__variants">
-              <li class="pp__variant pp__variant--current" aria-current="true">
-                <span class="pp__variant-name">{{ p.license_line || p.title }}</span>
-                <span class="pp__variant-price t-num">{{ priceLabel(p) }}</span>
-                <span class="pp__variant-note t-xs">Сейчас открыт</span>
-              </li>
-              <li v-for="v in p.variants" :key="v.product_id">
-                <RouterLink
-                  :to="productHref(v.product_id)"
-                  class="pp__variant"
-                  :aria-label="`Открыть: ${v.title}`"
-                >
-                  <span class="pp__variant-name">{{ v.license_line || v.title }}</span>
-                  <span class="pp__variant-price t-num">{{ priceLabel(v) }}</span>
-                </RouterLink>
-              </li>
-            </ul>
+          <!-- Варианты: одной таблицей с текущим; колонки — только различающиеся условия -->
+          <section
+            v-if="p.variants.length && table"
+            class="pp__section"
+            aria-labelledby="pp-variants"
+            data-testid="product-variants"
+          >
+            <h2 id="pp-variants" class="pp__h2">Варианты этого продукта</h2>
+            <template v-if="table">
+              <p class="t-sm t-muted">
+                В каталоге {{ table.rows.length }}
+                {{ plural(table.rows.length, ['вариант', 'варианта', 'вариантов']) }}, открытый
+                отмечен.
+                <template v-if="hiddenCount > 0">
+                  Показаны ближайшие к нему: тот же вид лицензии и та же организация.
+                </template>
+              </p>
+              <table class="vt t-sm">
+                <caption class="sr-only">
+                  Варианты:
+                  {{
+                    p.family_name || p.title
+                  }}
+                </caption>
+                <thead>
+                  <tr>
+                    <th v-for="c in shownColumns" :key="c.key" scope="col">{{ c.label }}</th>
+                    <th scope="col" class="vt__num">Цена</th>
+                    <th scope="col"><span class="sr-only">Открыть</span></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr
+                    v-for="r in shownRows"
+                    :key="r.productId"
+                    :class="{ vt__current: r.current }"
+                    :aria-current="r.current ? 'true' : undefined"
+                    data-testid="variant-row"
+                  >
+                    <td
+                      v-for="c in shownColumns"
+                      :key="c.key"
+                      :data-label="c.label"
+                      :class="{ vt__title: c.key === 'title' }"
+                    >
+                      <template v-if="c.key === 'title'">
+                        <span :title="r.cells.title">{{ shownTitles.get(r.productId) }}</span>
+                      </template>
+                      <template v-else>{{ r.cells[c.key] }}</template>
+                    </td>
+                    <td data-label="Цена" class="vt__num t-num">
+                      <span
+                        >{{ r.price
+                        }}<span v-if="r.perPlace" class="vt__unit t-xs">
+                          {{ r.perPlace }}</span
+                        ></span
+                      >
+                    </td>
+                    <td class="vt__act">
+                      <span v-if="r.current" class="vt__mark t-xs">Открыт</span>
+                      <RouterLink
+                        v-else
+                        :to="productHref(r.productId)"
+                        class="link t-sm"
+                        :aria-label="`Открыть вариант: ${r.cells.title}`"
+                      >
+                        Открыть
+                      </RouterLink>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+              <button
+                v-if="hiddenCount > 0 || showAllVariants"
+                type="button"
+                class="btn btn--ghost btn--sm pp__more"
+                :aria-expanded="showAllVariants"
+                data-testid="variants-toggle"
+                @click="showAllVariants = !showAllVariants"
+              >
+                {{
+                  showAllVariants
+                    ? 'Свернуть'
+                    : `Показать все ${table.rows.length} ${plural(table.rows.length, ['вариант', 'варианта', 'вариантов'])}`
+                }}
+              </button>
+            </template>
           </section>
 
           <section v-if="p.description" class="pp__section" aria-labelledby="pp-desc">
             <h2 id="pp-desc" class="pp__h2">Описание</h2>
-            <p class="pp__desc">{{ p.description }}</p>
+            <p class="pp__desc">{{ descriptionText(p.description) }}</p>
           </section>
 
           <section v-if="specRows.length" class="pp__section" aria-labelledby="pp-attrs">
@@ -384,7 +521,9 @@ function companionPrice(c: { price_rub: number | null; price_mode: string }) {
             <ul class="pp__cards">
               <li v-for="c in companions" :key="`${c.class}:${c.product_id}`" class="pp__card">
                 <span class="t-xs t-muted">{{ c.vendor }}</span>
-                <strong class="pp__strong t-sm">{{ c.title }}</strong>
+                <RouterLink :to="productHref(c.product_id)" class="pp__strong pp__card-link t-sm">
+                  {{ c.title }}
+                </RouterLink>
                 <span v-if="c.license_line" class="t-xs t-muted">{{ c.license_line }}</span>
                 <span v-if="c.reason" class="t-xs pp__reason">{{ c.reason }}</span>
                 <span class="pp__card-price t-num">{{ companionPrice(c) }}</span>
@@ -397,7 +536,9 @@ function companionPrice(c: { price_rub: number | null; price_mode: string }) {
             <ul class="pp__cards">
               <li v-for="a in p.analogs" :key="a.family_id" class="pp__card">
                 <span class="t-xs t-muted">{{ a.vendor }}</span>
-                <strong class="pp__strong t-sm">{{ a.title }}</strong>
+                <RouterLink :to="productHref(a.product_id)" class="pp__strong pp__card-link t-sm">
+                  {{ a.title }}
+                </RouterLink>
                 <span v-if="a.license_line" class="t-xs t-muted">{{ a.license_line }}</span>
                 <span v-if="a.note" class="t-xs pp__reason">{{ a.note }}</span>
                 <span class="pp__card-price t-num">{{ priceLabel(a) }}</span>
@@ -478,7 +619,7 @@ function companionPrice(c: { price_rub: number | null; price_mode: string }) {
   gap: var(--space-2);
 }
 .pp__logo {
-  --logo-size: 2.25rem;
+  --logo-size: 4.5rem;
 }
 .pp__vendor {
   color: var(--text);
@@ -630,45 +771,69 @@ function companionPrice(c: { price_rub: number | null; price_mode: string }) {
   overflow-wrap: anywhere;
 }
 
-.pp__variants {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(min(100%, 13rem), 1fr));
-  gap: var(--space-2);
-  margin: 0;
-  padding: 0;
-  list-style: none;
+.vt {
+  width: 100%;
+  border-collapse: collapse;
 }
-.pp__variant {
-  display: flex;
-  height: 100%;
-  flex-direction: column;
-  gap: 2px;
-  padding: var(--space-3);
-  border: var(--border-w) solid var(--border);
-  border-radius: var(--radius-card);
-  color: var(--text);
-  text-decoration: none;
-  transition:
-    border-color 0.15s,
-    background-color 0.15s;
+.vt th {
+  padding: var(--space-2) var(--space-3) var(--space-2) 0;
+  color: var(--text-2);
+  font-weight: var(--fw-medium);
+  text-align: left;
+  vertical-align: bottom;
 }
-a.pp__variant:hover {
-  border-color: var(--border-control);
-  background: var(--surface-2);
+.vt td {
+  padding: var(--space-2) var(--space-3) var(--space-2) 0;
+  border-top: var(--border-w) solid var(--border);
+  vertical-align: top;
 }
-.pp__variant--current {
-  border-color: var(--text);
-  box-shadow: inset 0 0 0 1px var(--text);
+.vt .vt__num {
+  text-align: right;
+  white-space: nowrap;
 }
-.pp__variant-name {
-  font-size: var(--fs-sm);
+.vt__unit {
+  display: block;
+  color: var(--text-2);
+}
+.vt__title {
+  max-width: 22rem;
+  color: var(--text-2);
   overflow-wrap: anywhere;
 }
-.pp__variant-price {
+.vt .vt__act {
+  text-align: right;
+  white-space: nowrap;
+}
+.vt__current td {
+  background: var(--surface-2);
   font-weight: var(--fw-semibold);
 }
-.pp__variant-note {
-  color: var(--text-3);
+.vt__current td:first-child {
+  box-shadow: inset 3px 0 0 var(--text);
+  padding-left: var(--space-3);
+}
+.vt__mark {
+  color: var(--text-2);
+}
+.pp__more {
+  align-self: flex-start;
+}
+.pp__deal {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+.pp__discount {
+  --tone: var(--status-accepted);
+  --tone-bg: var(--status-accepted-bg);
+}
+.pp__in-spec {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-1);
+  color: var(--text-2);
 }
 
 .pp__dl {
@@ -737,9 +902,79 @@ a.pp__variant:hover {
   padding-top: var(--space-2);
   font-weight: var(--fw-semibold);
 }
+.pp__card-link {
+  color: var(--text);
+  text-decoration: underline;
+  text-decoration-color: var(--border-control);
+  text-underline-offset: 3px;
+}
+.pp__card-link:hover {
+  text-decoration-color: currentColor;
+}
 .pp__strong {
   font-weight: var(--fw-semibold);
   overflow-wrap: anywhere;
+}
+
+@media (max-width: 40rem) {
+  .vt thead {
+    display: none;
+  }
+  .vt,
+  .vt tbody,
+  .vt tr,
+  .vt td {
+    display: block;
+  }
+  .vt tr {
+    padding: var(--space-2) var(--space-3);
+    border-top: var(--border-w) solid var(--border);
+  }
+  .vt td {
+    display: flex;
+    justify-content: space-between;
+    gap: var(--space-3);
+    padding: 2px 0;
+    border: 0;
+    text-align: right;
+  }
+  .vt td[data-label]::before {
+    content: attr(data-label);
+    flex: none;
+    color: var(--text-2);
+    font-weight: var(--fw-regular);
+    text-align: left;
+  }
+  .vt__current {
+    background: var(--surface-2);
+    box-shadow: inset 3px 0 0 var(--text);
+  }
+  .vt__current td,
+  .vt__current td:first-child {
+    background: transparent;
+    box-shadow: none;
+    padding-left: 0;
+  }
+  .vt .vt__num {
+    white-space: normal;
+  }
+  .vt__unit {
+    display: inline;
+    margin-left: 0.25em;
+  }
+  /* Название — заголовок карточки варианта: слева, без подписи «Позиция». */
+  .vt td.vt__title {
+    display: block;
+    max-width: none;
+    color: var(--text);
+    text-align: left;
+  }
+  .vt td.vt__title::before {
+    content: none;
+  }
+  .vt td.vt__act {
+    justify-content: flex-end;
+  }
 }
 
 @media (max-width: 30rem) {
@@ -769,12 +1004,13 @@ a.pp__variant:hover {
     top: calc(var(--header-actual, var(--header-h)) + var(--space-4));
   }
 }
+.pp__site-row {
+  margin-top: var(--space-3) !important;
+}
 .pp__site {
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  align-self: flex-start;
-  margin-top: var(--space-3);
   color: var(--text);
   text-decoration: underline;
   text-underline-offset: 3px;

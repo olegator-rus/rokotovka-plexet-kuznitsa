@@ -132,7 +132,7 @@ export function ladderColumns(rows: CommerceConfigRun[]): CommerceMetricDef[] {
 }
 
 export const CONFIG_LABELS: Record<string, string> = {
-  C0: 'C0 · поиск контура поиска',
+  C0: 'C0 · базовый поиск',
   C1: 'C1 · + оборудование',
   C2: 'C2 · + блок допродажи',
   C3: 'C3 · + политика маржи',

@@ -160,6 +160,8 @@ func (rc rankCtx) fit(d indexDoc) (int, bool) {
 			score += 8
 		case quantityOK(d, a.quantity):
 			score += 6
+		case a.tzQuantity(d):
+			score += 2 // поиск по ТЗ: число мест у позиции не указано — количество задаётся при заказе
 		default:
 			ok = false
 		}
@@ -301,6 +303,9 @@ func (rc rankCtx) buildFamily(fid string, rel float64, rejected *[]domain.Reject
 		}
 		if vi, vj := rc.namesVersion(ok[i].d.Title), rc.namesVersion(ok[j].d.Title); vi != vj {
 			return vi
+		}
+		if less, decided := rc.attrs.tzHeadLess(ok[i].d, ok[j].d); decided {
+			return less
 		}
 		if ri, rj := rc.productRel[ok[i].d.ProductID], rc.productRel[ok[j].d.ProductID]; ri != rj {
 			return ri > rj
@@ -510,7 +515,8 @@ func (rc rankCtx) dropQuantityMisfits(fams []*familyHit, rejected *[]domain.Reje
 	// как в rejectReason. Раньше здесь метрика была строгой, и для «аналог фотошопа на 20 пользователей»
 	// ФотоМАСТЕР и Affinity (поштучно, на устройство) уходили в отказы — оставался один CorelDRAW.
 	strictOK := func(d indexDoc) bool {
-		return quantityOK(d, a.quantity) && (a.metric == "" || d.LicenseMetric == nil || *d.LicenseMetric == a.metric || isPerUnit(d))
+		return (quantityOK(d, a.quantity) || a.tzQuantity(d)) &&
+			(a.metric == "" || d.LicenseMetric == nil || *d.LicenseMetric == a.metric || isPerUnit(d))
 	}
 	// Названный продукт не уходит в отказы по количеству («алд про на 50 пользователей»: у ALD Pro в фиде числа мест
 	// нет или стоит 1 без метрики) — иначе первым становится чужое «… Pro» поштучно. Условие показывается неучтённым.
@@ -608,6 +614,8 @@ func (rc rankCtx) licenseFit(d indexDoc) float64 {
 		fit = 1
 	case quantityOK(d, n):
 		fit = 0.4
+	case rc.attrs.tzQuantity(d):
+		fit = 0.3
 	}
 	if m := rc.attrs.metric; m != "" && d.LicenseMetric != nil && *d.LicenseMetric != m {
 		fit *= 0.5
