@@ -13,6 +13,9 @@ const ConfigKindSuggestions = "suggestions"
 const (
 	SuggestSourceQuery    = "successful_query"
 	SuggestSourceTemplate = "catalog_template"
+	// SuggestSourceDictionary — форма из словаря понимания запросов («винда», «касперский», «астра линукс»): так
+	// пишут покупатели (контур эталонов).
+	SuggestSourceDictionary = "dictionary"
 )
 
 // Suggestion — строка индекса подсказок.

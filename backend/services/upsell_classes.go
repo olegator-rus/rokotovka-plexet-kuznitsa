@@ -196,6 +196,7 @@ func (r *upsellRun) classCandsUncached(from string, l domain.UpsellLink) []upsel
 	}
 	anchorFam, anchorVendor := r.anchor.FamilyID, r.lx.familyVendor[r.anchor.FamilyID]
 	terms := anchorNameTerms(r.anchor.FamilyName)
+	anchorHome := homeFamily(r.anchor.FamilyName) || r.anchor.LicenseOrgType == "home"
 	evTitle := "Логика заказчика: " + r.ix.classTitle(from) + " → " + r.ix.classTitle(l.To) + " (" + l.Source + ")"
 	var res []scored
 	for _, fid := range r.ix.classFams[l.To] {
@@ -235,6 +236,9 @@ func (r *upsellRun) classCandsUncached(from string, l domain.UpsellLink) []upsel
 			continue
 		}
 		d := r.lx.docs[pid]
+		if !anchorHome && (homeFamily(r.lx.familyName[fid]) || d.LicenseOrgType == "home") {
+			continue // бизнес-якорю — не домашние и семейные редакции (Microsoft 365 Family к МТС Линк)
+		}
 		phrase := namesAnchor(r.lx.familyName[fid], terms)
 		if phrase == "" {
 			phrase = namesAnchor(d.Title, terms)
@@ -334,6 +338,15 @@ func (r *upsellRun) selfVariantCands(l domain.UpsellLink) []upsellCand {
 			evURL:   r.lx.docs[x.pid].OfferURL, rank: i})
 	}
 	return res
+}
+
+// homeRe — домашняя или семейная редакция по названию семейства; «для дома и бизнеса» — не домашняя.
+var homeRe = regexp.MustCompile(`для дома|для семьи|домашн|(^| )personal( |$)|персональн|(^| )family( |$)|(^| )home( |$)`)
+
+// homeFamily — семейство — домашняя или семейная редакция (Microsoft 365 Family, Personal, Office для дома и учёбы).
+func homeFamily(name string) bool {
+	low := foldText(name)
+	return homeRe.MatchString(low) && !strings.Contains(low, "бизнес")
 }
 
 var numRe = regexp.MustCompile(`\d+(?:\.\d+)?`)

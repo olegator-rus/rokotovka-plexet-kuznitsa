@@ -218,6 +218,25 @@ func (s *Services) SuggestPanel(ctx context.Context, requestID string, req Sugge
 	compText, compVendor := comp.text, comp.vendor
 	if compOK {
 		tr.Candidates = append(tr.Candidates, prefixCompletion+":"+compText)
+		// Подсказки-запросы и по дополнению: «каспер» → «kaspersky endpoint security», «вин» → «windows 11 pro».
+		// По набранному остаются только запросы журнала и формы словаря: шаблон каталога с тем же началом слова
+		// («Винтех RCAM» на «вин») уступает дополнению.
+		kept := hits[:0]
+		for _, h := range hits {
+			if src := dict.entries[h.entry].source; src == domain.SuggestSourceQuery || src == domain.SuggestSourceDictionary {
+				kept = append(kept, h)
+			}
+		}
+		var ch []dictHit
+		for _, h := range dict.matchW(compText, panelSuggestions*6, true) {
+			// Цель дополнения — категории («офи» → офисные пакеты): подсказки только с результатами в них, не
+			// «Kaspersky Small Office Security».
+			if len(comp.cats) > 0 && !overlapList(dict.entries[h.entry].categories, comp.cats) {
+				continue
+			}
+			ch = append(ch, h)
+		}
+		hits = mergeDictHits(kept, ch)
 	}
 
 	// Товары — в фоне, пока считаются остальные секции.
@@ -267,14 +286,15 @@ func (s *Services) SuggestPanel(ctx context.Context, requestID string, req Sugge
 				}
 				// Цель алиаса — вендор или категория: семейства берутся из каталога целиком (в первые кандидаты
 				// текстового поиска главное семейство вендора может не попасть); термин — текстовым поиском.
+				// Есть дополнение — товары только по нему: «вин» → Windows, а не «набор скоб и винтов» по началу слова.
 				if cr := completionFamilies(lx, comp, s.upsellIndexFor(lx).classOf); cr != nil {
-					return mergeInstant(cr, r), nil
+					return cr, nil
 				}
 				cr, cerr := s.instantProducts(c, lx, compText, "", pct)
-				if cerr != nil {
-					return r, nil // дополнение не посчиталось — секция по набранному
+				if cerr != nil || len(cr.families) == 0 {
+					return r, nil // дополнение не посчиталось или пусто — секция по набранному
 				}
-				return mergeInstant(orderCompletion(lx, cr, comp.cats, "", s.upsellIndexFor(lx).classOf), r), nil
+				return orderCompletion(lx, cr, comp.cats, "", s.upsellIndexFor(lx).classOf), nil
 			}
 			var r *instantResult
 			var err error
@@ -312,6 +332,13 @@ func (s *Services) SuggestPanel(ctx context.Context, requestID string, req Sugge
 	tr.Margin = marginState
 	if r != nil {
 		resp.Products = panelProducts(lx, r, req.Limit)
+		// Дополнение по словарю с целью-термином («эни» → anydesk, «макс» → maxpatrol): вендор первого семейства
+		// дополнения — в секцию вендоров, если ввод вендора не назвал.
+		if compOK && len(resp.Vendors) == 0 && len(resp.Products) > 0 {
+			if v := lx.familyVendor[resp.Products[0].FamilyID]; v != "" && lx.vendorName[v] != "" {
+				resp.Vendors = []out.PanelVendor{{ID: v, Name: suggestDisplay(lx.vendorName[v])}}
+			}
+		}
 		resp.TotalHint = r.total
 		tr.ProductsMs, tr.Shifts, tr.Before = r.ms, r.shifts, r.before
 		if r.margin != "" && marginState == "applied" {
@@ -407,9 +434,39 @@ func panelVendors(lx *searchLexicon, rules *searchRules, text string, pq prefixQ
 		if len(res) == panelVendorsMax {
 			break
 		}
-		res = append(res, out.PanelVendor{ID: id, Name: lx.vendorName[id]})
+		res = append(res, out.PanelVendor{ID: id, Name: suggestDisplay(lx.vendorName[id])})
 	}
 	_ = pq
+	return res
+}
+
+func overlapList(a, b []string) bool {
+	for _, x := range a {
+		if contains(b, x) {
+			return true
+		}
+	}
+	return false
+}
+
+// mergeDictHits — подсказки по набранному и по дополнению словаря без повторов, по убыванию веса.
+func mergeDictHits(a, b []dictHit) []dictHit {
+	best := map[int]dictHit{}
+	for _, h := range append(append([]dictHit(nil), a...), b...) {
+		if cur, ok := best[h.entry]; !ok || h.score > cur.score {
+			best[h.entry] = h
+		}
+	}
+	res := make([]dictHit, 0, len(best))
+	for _, h := range best {
+		res = append(res, h)
+	}
+	sort.SliceStable(res, func(i, j int) bool {
+		if res[i].score != res[j].score {
+			return res[i].score > res[j].score
+		}
+		return res[i].entry < res[j].entry
+	})
 	return res
 }
 
@@ -422,7 +479,7 @@ func rankPanelVendors(lx *searchLexicon, vs []out.PanelVendor, first string) []o
 			found = found || v.ID == first
 		}
 		if !found {
-			vs = append([]out.PanelVendor{{ID: first, Name: lx.vendorName[first]}}, vs...)
+			vs = append([]out.PanelVendor{{ID: first, Name: suggestDisplay(lx.vendorName[first])}}, vs...)
 		}
 	}
 	w := map[string]int{}

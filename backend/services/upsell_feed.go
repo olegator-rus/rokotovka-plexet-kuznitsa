@@ -1026,6 +1026,15 @@ func upsellAnchor(resp *out.SearchResponse, analog bool) (int, string, string) {
 	case out.TargetFamily, out.TargetSKU:
 	case out.TargetVendor, out.TargetVendorCategory:
 		conf = "medium"
+	case out.TargetCategory:
+		// Цель — категория («антивирь», «офис», «винда»): якорь — первое семейство выдачи, кроме «Популярного» и
+		// альтернатив; уверенность средняя.
+		for i, it := range resp.Items {
+			if it.MatchType != out.MatchFallback && it.MatchType != out.MatchAlternative {
+				return i, "medium", ""
+			}
+		}
+		return -1, "", "цель — категория, карточек из неё нет"
 	default:
 		return -1, "", "цель — " + resp.Target.Type + ": товар не назван"
 	}

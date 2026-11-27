@@ -217,8 +217,12 @@ func TestUpsellAnchorNeedsNamedTarget(t *testing.T) {
 	if i, c, _ := upsellAnchor(&out.SearchResponse{Target: &out.Target{Type: out.TargetFamily}, Items: items}, false); i != 1 || c != "high" {
 		t.Fatalf("семейство: якорь — первая точная карточка, high: %d %s", i, c)
 	}
-	if i, _, _ := upsellAnchor(&out.SearchResponse{Target: &out.Target{Type: out.TargetCategory}, Items: items}, false); i != -1 {
-		t.Fatal("категория — без якоря")
+	if i, c, _ := upsellAnchor(&out.SearchResponse{Target: &out.Target{Type: out.TargetCategory}, Items: items}, false); i != 0 || c != "medium" {
+		t.Fatalf("категория — первое семейство выдачи, medium: %d %s", i, c)
+	}
+	fb := []out.SearchItem{{MatchType: out.MatchFallback}}
+	if i, _, _ := upsellAnchor(&out.SearchResponse{Target: &out.Target{Type: out.TargetCategory}, Items: fb}, false); i != -1 {
+		t.Fatal("категория, но только «Популярное» — без якоря")
 	}
 	if i, _, _ := upsellAnchor(&out.SearchResponse{Target: &out.Target{Type: out.TargetFamily}, Items: items}, true); i != -1 {
 		t.Fatal("аналог — без якоря")
@@ -462,5 +466,24 @@ func TestUpsellSameVendorPriceRatio(t *testing.T) {
 	r3, _ := f.runAt("a-orel-ws", data, now)
 	if cs = r3.classCands("os", data.links[3]); cs[0].fid != "rubackup" {
 		t.Fatalf("порог 0 — тот же вендор первым: %+v", cs)
+	}
+}
+
+func TestUpsellBusinessAnchorSkipsHomeEditions(t *testing.T) {
+	f, data := classFixture()
+	f.add(indexDoc{ProductID: "m365f", FamilyID: "m365fam", FamilyName: "Microsoft 365 Family (для семьи)", VendorID: "microsoft",
+		Vendor: "microsoft", CategoryID: "office", Title: "Microsoft 365 для семьи", LicenseKind: domain.LicenseKindBase, PriceRub: ptr(100.0)})
+	f.add(indexDoc{ProductID: "mts", FamilyID: "mts", FamilyName: "МТС Линк Стандарт", VendorID: "webinar", Vendor: "МТС Линк",
+		CategoryID: "video", Title: "МТС Линк Стандарт", LicenseKind: domain.LicenseKindBase, LicenseOrgType: "commercial"})
+	data.classes = append(data.classes, domain.UpsellClass{ID: "video", Title: "Видеосвязь", Categories: []string{"video"}})
+	data.links = append(data.links, domain.UpsellLink{From: "video", To: "office", Max: 2, Reason: "Совместная работа", Source: "кикофф"})
+	r, _ := f.runAt("mts", data, time.Date(2026, 5, 28, 12, 0, 0, 0, time.UTC))
+	for _, c := range r.classCands("video", data.links[len(data.links)-1]) {
+		if c.fid == "m365fam" || c.fid == "m365" {
+			t.Fatalf("бизнес-якорю — без домашних и семейных редакций: %+v", c)
+		}
+	}
+	if !homeFamily("Microsoft 365 Personal (Персональный)") || homeFamily("Microsoft Office 2024 для дома и бизнеса") {
+		t.Fatal("homeFamily: Personal — домашняя, «для дома и бизнеса» — нет")
 	}
 }

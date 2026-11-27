@@ -1,0 +1,195 @@
+{
+  "api": "http://127.0.0.1:8088",
+  "rows": [
+    {
+      "prefix": "вин",
+      "suggestions": [
+        "винда",
+        "виндовс",
+        "Операционные системы Windows"
+      ],
+      "first_product": "Microsoft Windows 11 Home (Домашняя)",
+      "ok": true,
+      "vendors": [
+        "Программы и лицензии Microsoft Corporation"
+      ]
+    },
+    {
+      "prefix": "каспер",
+      "suggestions": [
+        "kaspersky small office security",
+        "касперский на 50 пользователей",
+        "kaspersky security для интернет-шлюзов"
+      ],
+      "first_product": "Kaspersky Endpoint Security для бизнеса Стандартный",
+      "ok": true,
+      "vendors": [
+        "Лаборатория Касперского"
+      ]
+    },
+    {
+      "prefix": "астр",
+      "suggestions": [
+        "астра линукс",
+        "астра",
+        "астра се"
+      ],
+      "first_product": "Astra Linux Special Edition",
+      "ok": true,
+      "vendors": [
+        "Группа Астра"
+      ]
+    },
+    {
+      "prefix": "крип",
+      "suggestions": [
+        "криптопро",
+        "крипто про csp 5.0",
+        "сертификаты криптопро csp"
+      ],
+      "first_product": "Программа КриптоПро NGate",
+      "ok": true,
+      "vendors": [
+        "КриптоПро",
+        "Криптоком"
+      ]
+    },
+    {
+      "prefix": "офи",
+      "suggestions": [
+        "офис",
+        "microsoft office для дома и бизнеса",
+        "microsoft office"
+      ],
+      "first_product": "Microsoft Office 2024 для дома и учёбы",
+      "ok": true,
+      "vendors": [
+        "Программы и лицензии Microsoft Corporation"
+      ]
+    },
+    {
+      "prefix": "анти",
+      "suggestions": [
+        "антивирь",
+        "антивирус для сервера",
+        "Антивирусы для дома"
+      ],
+      "first_product": "PRO32 Endpoint Security Standard",
+      "ok": true,
+      "vendors": [
+        "PRO32"
+      ]
+    },
+    {
+      "prefix": "серв",
+      "suggestions": [
+        "сервер",
+        "сервера ред ос",
+        "антивирус для сервера"
+      ],
+      "first_product": "Сертификат на техническую поддержку СХД и серверов",
+      "ok": true,
+      "vendors": []
+    },
+    {
+      "prefix": "кибер",
+      "suggestions": [
+        "кибер бэкап",
+        "лицензия кибер бэкапа",
+        "кибербекап"
+      ],
+      "first_product": "Кибер Бэкап Расширенная редакция",
+      "ok": true,
+      "vendors": [
+        "Киберпротект"
+      ]
+    },
+    {
+      "prefix": "1с",
+      "suggestions": [
+        "1С-Битрикс24",
+        "1С-Битрикс",
+        "1С: Управление автотранспортом Проф"
+      ],
+      "first_product": "1С-Битрикc: Управление сайтом",
+      "ok": true,
+      "vendors": []
+    },
+    {
+      "prefix": "dr",
+      "suggestions": [
+        "dr.web",
+        "dr web",
+        "dr.web enterprise security suite"
+      ],
+      "first_product": "ИБП Powercom Однофазные DRU  500 (DRU-500)",
+      "ok": true,
+      "vendors": []
+    },
+    {
+      "prefix": "мтс",
+      "suggestions": [
+        "мтс",
+        "МТС Линк",
+        "МТС Линк Про"
+      ],
+      "first_product": "МТС Линк Optimum 30",
+      "ok": true,
+      "vendors": [
+        "МТС Линк"
+      ]
+    },
+    {
+      "prefix": "365",
+      "suggestions": [
+        "о 365",
+        "microsoft 365",
+        "Kaspersky Security для Microsoft Office 365"
+      ],
+      "first_product": "Облачная платформа Microsoft 365 Business Basic",
+      "ok": true,
+      "vendors": []
+    },
+    {
+      "prefix": "ред",
+      "suggestions": [
+        "ред ос",
+        "сервера ред ос",
+        "операционная система ред ос"
+      ],
+      "first_product": "Операционная система РЕД ОС",
+      "ok": true,
+      "vendors": [
+        "РЕД СОФТ"
+      ]
+    },
+    {
+      "prefix": "альт",
+      "suggestions": [
+        "Альт СП 10",
+        "Альт Домен",
+        "Альт Домен 11"
+      ],
+      "first_product": "Альт-Прогноз 3",
+      "ok": true,
+      "vendors": [
+        "BaseALT",
+        "Альт-Инвест"
+      ]
+    },
+    {
+      "prefix": "adob",
+      "suggestions": [
+        "Adobe XD",
+        "Adobe Systems",
+        "Adobe Stock"
+      ],
+      "first_product": "Adobe Creative Cloud Professional for Teams",
+      "ok": true,
+      "vendors": [
+        "Adobe Systems"
+      ]
+    }
+  ],
+  "fails": 0
+}

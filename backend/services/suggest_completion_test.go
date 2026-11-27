@@ -93,3 +93,53 @@ func TestOrderCompletionPrefersClassedLine(t *testing.T) {
 		t.Fatalf("без класса — после семейств с классом, хоть позиций и больше: %s", r.families[len(r.families)-1].id)
 	}
 }
+
+func TestSuggestDisplay(t *testing.T) {
+	cases := map[string]string{
+		"«Лаборатория Касперского»":                    "Лаборатория Касперского",
+		"Программа КриптоПро CSP 5.0":                  "КриптоПро CSP 5.0",
+		"Операционная система РЕД ОС":                  "РЕД ОС",
+		"Эшелон «СКАНЕР-ВС»":                           "Эшелон СКАНЕР-ВС",
+		"Программный комплекс «ALD Pro»":               "ALD Pro",
+		"Microsoft Windows 11 Pro  (Профессиональная)": "Microsoft Windows 11 Pro",
+		"Kaspersky (для дома)":                         "Kaspersky (для дома)",
+	}
+	for in, want := range cases {
+		if got := suggestDisplay(in); got != want {
+			t.Errorf("%q → %q, ждали %q", in, got, want)
+		}
+	}
+}
+
+func TestMergeDictHits(t *testing.T) {
+	got := mergeDictHits([]dictHit{{entry: 1, score: 0.5}, {entry: 2, score: 0.4}}, []dictHit{{entry: 2, score: 0.9}, {entry: 3, score: 0.1}})
+	if len(got) != 3 || got[0].entry != 2 || got[0].score != 0.9 {
+		t.Fatalf("без повторов, лучший вес, по убыванию: %+v", got)
+	}
+}
+
+func TestDictionaryForms(t *testing.T) {
+	lex := []domain.LexiconEntry{
+		{Alias: "винда", Canonical: "windows", Kind: domain.LexiconJargon, Target: "category"},
+		{Alias: "винду", Canonical: "windows", Kind: domain.LexiconJargon, Target: "category"},
+		{Alias: "кибербэкап", Canonical: "кибер бэкап", Kind: domain.LexiconSpelling, Target: "term"},
+		{Alias: "кибер бекап", Canonical: "кибер бэкап", Kind: domain.LexiconSpelling, Target: "term"},
+		{Alias: "eset", Canonical: "pro32", Kind: domain.LexiconSuccessor, Target: "term"},
+		{Alias: "касперыч", Canonical: "kaspersky", Kind: domain.LexiconJargon, Target: "vendor"},
+	}
+	base := []domain.Alias{{Alias: "касперский", Canonical: "kaspersky", Kind: "transliteration", Target: "vendor", TargetID: "kaspersky"},
+		{Alias: "kaspersky-lab", Canonical: "kaspersky", Kind: "alias", Target: "vendor", TargetID: "kaspersky"}}
+	got := map[string]float64{}
+	for _, f := range dictionaryForms(lex, base) {
+		got[f.text] = f.freq
+	}
+	want := map[string]float64{"винда": 0.3, "кибер бекап": 0.6, "кибер бэкап": 0.6, "касперский": 0.6}
+	if len(got) != len(want) {
+		t.Fatalf("одна форма на каноническую + термин: %v", got)
+	}
+	for k, v := range want {
+		if got[k] != v {
+			t.Errorf("%q: %v, ждали %v (всё: %v)", k, got[k], v, got)
+		}
+	}
+}

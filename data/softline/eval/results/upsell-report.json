@@ -2,19 +2,19 @@
  "api": "http://127.0.0.1:8088",
  "summary": {
   "queries": 17,
-  "with_block": 13,
-  "cards_total": 35,
+  "with_block": 16,
+  "cards_total": 41,
   "cards_per_block": {
    "1": 1,
-   "2": 6,
+   "2": 9,
    "3": 2,
    "4": 4
   },
-  "all_reason_and_level": 13,
-  "all_priced": 13,
-  "one_family_per_vendor": 13,
-  "le_4": 13,
-  "no_same_family_other": 12,
+  "all_reason_and_level": 16,
+  "all_priced": 16,
+  "one_family_per_vendor": 16,
+  "le_4": 16,
+  "no_same_family_other": 15,
   "same_family_other_labels": [
    "Вариант под платформу"
   ],
@@ -22,29 +22,29 @@
   "doc_a_shown_a": 11,
   "levels": {
    "A": 11,
-   "B": 24
+   "B": 30
   },
-  "same_family_cards": 9,
+  "same_family_cards": 10,
   "kinds": {
-   "class_logic": 15,
+   "class_logic": 20,
    "compat_document": 11,
-   "license_kind": 8,
+   "license_kind": 9,
    "sku_platform": 1
   },
   "classes": {
    "compatible": 12,
-   "complement": 15,
-   "renewal": 8
+   "complement": 20,
+   "renewal": 9
   }
  },
  "by_set": {
   "etalon": {
    "queries": 10,
    "with_block": 10,
-   "cards_total": 26,
+   "cards_total": 25,
    "cards_per_block": {
-    "2": 6,
-    "3": 2,
+    "2": 7,
+    "3": 1,
     "4": 2
    },
    "all_reason_and_level": 10,
@@ -59,49 +59,53 @@
    "doc_a_shown_a": 5,
    "levels": {
     "A": 5,
-    "B": 21
+    "B": 20
    },
    "same_family_cards": 6,
    "kinds": {
-    "class_logic": 15,
+    "class_logic": 14,
     "compat_document": 5,
     "license_kind": 5,
     "sku_platform": 1
    },
    "classes": {
     "compatible": 6,
-    "complement": 15,
+    "complement": 14,
     "renewal": 5
    }
   },
   "tz": {
    "queries": 7,
-   "with_block": 3,
-   "cards_total": 9,
+   "with_block": 6,
+   "cards_total": 16,
    "cards_per_block": {
     "1": 1,
+    "2": 2,
+    "3": 1,
     "4": 2
    },
-   "all_reason_and_level": 3,
-   "all_priced": 3,
-   "one_family_per_vendor": 3,
-   "le_4": 3,
-   "no_same_family_other": 3,
+   "all_reason_and_level": 6,
+   "all_priced": 6,
+   "one_family_per_vendor": 6,
+   "le_4": 6,
+   "no_same_family_other": 6,
    "same_family_other_labels": [],
    "doc_a_cards": 6,
    "doc_a_shown_a": 6,
    "levels": {
     "A": 6,
-    "B": 3
+    "B": 10
    },
-   "same_family_cards": 3,
+   "same_family_cards": 4,
    "kinds": {
+    "class_logic": 6,
     "compat_document": 6,
-    "license_kind": 3
+    "license_kind": 4
    },
    "classes": {
     "compatible": 6,
-    "renewal": 3
+    "complement": 6,
+    "renewal": 4
    }
   }
  },
@@ -523,7 +527,7 @@
    "anchor_family_id": "46421",
    "anchor_family": "Эшелон «СКАНЕР-ВС»",
    "anchor_confidence": "high",
-   "cards": 3,
+   "cards": 2,
    "all_reason_and_level": true,
    "all_priced": true,
    "one_family_per_vendor": true,
@@ -532,7 +536,7 @@
    "doc_a_shown_a": 0,
    "same_family_other": [],
    "levels": {
-    "B": 3
+    "B": 2
    },
    "items": [
     {
@@ -549,22 +553,6 @@
      "has_level": true,
      "priced": true,
      "same_family": true,
-     "doc_a": false
-    },
-    {
-     "title": "Доктор Веб Комплексная защита + Центр управления на 1 год на 5 ПК",
-     "family_id": "4069",
-     "family": "Dr.Web Desktop Security Suite",
-     "vendor": "Доктор Веб",
-     "class": "complement",
-     "label": "Антивирус для организаций",
-     "price_rub": 10102.3,
-     "level": "B",
-     "kind": "class_logic",
-     "has_reason": true,
-     "has_level": true,
-     "priced": true,
-     "same_family": false,
      "doc_a": false
     },
     {
@@ -606,13 +594,13 @@
    },
    "items": [
     {
-     "title": "Microsoft 365 для семьи (Family) 6GQ-00084: подписка на 6 пользователей, 1 год",
-     "family_id": "165034",
-     "family": "Microsoft 365 Family (для семьи)",
-     "vendor": "Программы и лицензии Microsoft Corporation",
+     "title": "Группа Астра WorksPad DX Base (клиентские лицензии, срочные), WorksPad DX Base клиентская лицензия на 1 пользователя,",
+     "family_id": "300796",
+     "family": "Workspad",
+     "vendor": "Группа Астра",
      "class": "complement",
      "label": "Офисный пакет",
-     "price_rub": 11250,
+     "price_rub": 1800,
      "level": "B",
      "kind": "class_logic",
      "has_reason": true,
@@ -622,13 +610,13 @@
      "doc_a": false
     },
     {
-     "title": "Группа Астра WorksPad DX Base (клиентские лицензии, срочные), WorksPad DX Base клиентская лицензия на 1 пользователя,",
-     "family_id": "300796",
-     "family": "Workspad",
-     "vendor": "Группа Астра",
+     "title": "Яндекс 360 для бизнеса, Тариф Основной на 1 учетную запись (продление подписки, дозакуп сервисов до конца действующей",
+     "family_id": "316177",
+     "family": "Яндекс 360 для бизнеса",
+     "vendor": "Яндекс",
      "class": "complement",
      "label": "Офисный пакет",
-     "price_rub": 1800,
+     "price_rub": 549,
      "level": "B",
      "kind": "class_logic",
      "has_reason": true,
@@ -758,22 +746,179 @@
    "set": "tz",
    "id": "t02",
    "query": "антивирь",
-   "block": false,
-   "cards": 0
+   "block": true,
+   "anchor_family_id": "409060",
+   "anchor_family": "Dr.Web Server Security Suite Base Price",
+   "anchor_confidence": "medium",
+   "cards": 2,
+   "all_reason_and_level": true,
+   "all_priced": true,
+   "one_family_per_vendor": true,
+   "le_4": true,
+   "doc_a_cards": 0,
+   "doc_a_shown_a": 0,
+   "same_family_other": [],
+   "levels": {
+    "B": 2
+   },
+   "items": [
+    {
+     "title": "Доктор Веб Антивирус + Центр Управления продление лицензии на 1 год на 1 год на 1 ПК",
+     "family_id": "409060",
+     "family": "Dr.Web Server Security Suite Base Price",
+     "vendor": "Доктор Веб",
+     "class": "renewal",
+     "label": "Продление",
+     "price_rub": 4225,
+     "level": "B",
+     "kind": "license_kind",
+     "has_reason": true,
+     "has_level": true,
+     "priced": true,
+     "same_family": true,
+     "doc_a": false
+    },
+    {
+     "title": "Киберпротект Кибер Бэкап Расширенная редакция (базовый пакет для сертифицированной версии программного комплекса,",
+     "family_id": "173615",
+     "family": "Кибер Бэкап Расширенная редакция",
+     "vendor": "Киберпротект",
+     "class": "complement",
+     "label": "Резервное копирование",
+     "price_rub": 610,
+     "level": "B",
+     "kind": "class_logic",
+     "has_reason": true,
+     "has_level": true,
+     "priced": true,
+     "same_family": false,
+     "doc_a": false
+    }
+   ]
   },
   {
    "set": "tz",
    "id": "t03",
    "query": "офис",
-   "block": false,
-   "cards": 0
+   "block": true,
+   "anchor_family_id": "391338",
+   "anchor_family": "Microsoft Office 2024 для дома и бизнеса",
+   "anchor_confidence": "medium",
+   "cards": 2,
+   "all_reason_and_level": true,
+   "all_priced": true,
+   "one_family_per_vendor": true,
+   "le_4": true,
+   "doc_a_cards": 0,
+   "doc_a_shown_a": 0,
+   "same_family_other": [],
+   "levels": {
+    "B": 2
+   },
+   "items": [
+    {
+     "title": "Доктор Веб Комплексная защита + Центр управления на 1 год на 5 ПК",
+     "family_id": "4069",
+     "family": "Dr.Web Desktop Security Suite",
+     "vendor": "Доктор Веб",
+     "class": "complement",
+     "label": "Антивирус для организаций",
+     "price_rub": 10102.3,
+     "level": "B",
+     "kind": "class_logic",
+     "has_reason": true,
+     "has_level": true,
+     "priced": true,
+     "same_family": false,
+     "doc_a": false
+    },
+    {
+     "title": "Киберпротект Кибер Бэкап Расширенная редакция (базовый пакет для сертифицированной версии программного комплекса,",
+     "family_id": "173615",
+     "family": "Кибер Бэкап Расширенная редакция",
+     "vendor": "Киберпротект",
+     "class": "complement",
+     "label": "Резервное копирование",
+     "price_rub": 610,
+     "level": "B",
+     "kind": "class_logic",
+     "has_reason": true,
+     "has_level": true,
+     "priced": true,
+     "same_family": false,
+     "doc_a": false
+    }
+   ]
   },
   {
    "set": "tz",
    "id": "t04",
    "query": "винда",
-   "block": false,
-   "cards": 0
+   "block": true,
+   "anchor_family_id": "310176",
+   "anchor_family": "Microsoft Windows 11 Home (Домашняя)",
+   "anchor_confidence": "medium",
+   "cards": 3,
+   "all_reason_and_level": true,
+   "all_priced": true,
+   "one_family_per_vendor": true,
+   "le_4": true,
+   "doc_a_cards": 0,
+   "doc_a_shown_a": 0,
+   "same_family_other": [],
+   "levels": {
+    "B": 3
+   },
+   "items": [
+    {
+     "title": "Доктор Веб Комплексная защита + Центр управления на 1 год на 5 ПК",
+     "family_id": "4069",
+     "family": "Dr.Web Desktop Security Suite",
+     "vendor": "Доктор Веб",
+     "class": "complement",
+     "label": "Антивирус для организаций",
+     "price_rub": 10102.3,
+     "level": "B",
+     "kind": "class_logic",
+     "has_reason": true,
+     "has_level": true,
+     "priced": true,
+     "same_family": false,
+     "doc_a": false
+    },
+    {
+     "title": "Код безопасности Secret Net Studio 8 (дополнительная защита), Электронная лицензия на 1 год",
+     "family_id": "42240",
+     "family": "Код безопасности: Secret Net Studio 8",
+     "vendor": "Код безопасности",
+     "class": "complement",
+     "label": "СКЗИ, защита информации",
+     "price_rub": 2154,
+     "level": "B",
+     "kind": "class_logic",
+     "has_reason": true,
+     "has_level": true,
+     "priced": true,
+     "same_family": false,
+     "doc_a": false
+    },
+    {
+     "title": "Киберпротект Кибер Бэкап Расширенная редакция (базовый пакет для сертифицированной версии программного комплекса,",
+     "family_id": "173615",
+     "family": "Кибер Бэкап Расширенная редакция",
+     "vendor": "Киберпротект",
+     "class": "complement",
+     "label": "Резервное копирование",
+     "price_rub": 610,
+     "level": "B",
+     "kind": "class_logic",
+     "has_reason": true,
+     "has_level": true,
+     "priced": true,
+     "same_family": false,
+     "doc_a": false
+    }
+   ]
   },
   {
    "set": "tz",

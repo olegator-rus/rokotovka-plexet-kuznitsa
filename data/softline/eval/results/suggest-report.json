@@ -5,19 +5,19 @@
   "prefix_ok": 10,
   "prefix_by_family": 4,
   "prefix_by_vendor": 6,
-  "prefix_vendor_listed": 5,
+  "prefix_vendor_listed": 9,
   "corr_total": 3,
   "corr_ok": 3,
   "inputs": 13,
   "together_nonempty": 13,
   "repeats": 5,
   "samples": 65,
-  "client_p50": 6.5,
-  "client_p95": 41.8,
-  "server_p50": 5.7,
-  "server_p95": 41.0,
-  "first_p50": 27.4,
-  "first_p95": 102.5,
+  "client_p50": 7.8,
+  "client_p95": 48.8,
+  "server_p50": 6.8,
+  "server_p95": 48.0,
+  "first_p50": 17.8,
+  "first_p95": 56.0,
   "failures": 0
  },
  "rows": [
@@ -99,8 +99,8 @@
    "vendor_listed": true,
    "corrected": null,
    "together": [
-    "Microsoft 365 Family (для семьи)",
-    "Workspad"
+    "Workspad",
+    "Яндекс 360 для бизнеса"
    ],
    "etalon": "мтс",
    "kind": "prefix"
@@ -110,8 +110,10 @@
    "ok": true,
    "how": "семейство",
    "first": "MaxPatrol Endpoint Protection Platform",
-   "vendors": [],
-   "vendor_listed": false,
+   "vendors": [
+    "positive-technologies"
+   ],
+   "vendor_listed": true,
    "corrected": null,
    "together": [
     "Кибер Бэкап Расширенная редакция"
@@ -124,8 +126,10 @@
    "ok": true,
    "how": "семейство",
    "first": "AnyDesk",
-   "vendors": [],
-   "vendor_listed": false,
+   "vendors": [
+    "anydesk"
+   ],
+   "vendor_listed": true,
    "corrected": null,
    "together": [
     "Dr.Web Desktop Security Suite",
@@ -139,11 +143,12 @@
    "ok": true,
    "how": "семейство",
    "first": "Эшелон «СКАНЕР-ВС»",
-   "vendors": [],
-   "vendor_listed": false,
+   "vendors": [
+    "npo-echelon"
+   ],
+   "vendor_listed": true,
    "corrected": null,
    "together": [
-    "Dr.Web Desktop Security Suite",
     "Код безопасности: Secret Net Studio 8"
    ],
    "etalon": "сканер-вс",
@@ -154,8 +159,10 @@
    "ok": true,
    "how": "вендор",
    "first": "Microsoft Office 2024 для дома и учёбы",
-   "vendors": [],
-   "vendor_listed": false,
+   "vendors": [
+    "microsoft"
+   ],
+   "vendor_listed": true,
    "corrected": null,
    "together": [
     "Dr.Web Desktop Security Suite",
@@ -244,328 +251,328 @@
  "latency_ms": [
   {
    "q": "аст",
-   "client": 34.15,
-   "server": 20.59
+   "client": 28.88,
+   "server": 18.7
   },
   {
    "q": "аст",
-   "client": 7.3,
-   "server": 6.37
+   "client": 7.22,
+   "server": 6.3
   },
   {
    "q": "аст",
-   "client": 6.45,
-   "server": 5.7
+   "client": 8.81,
+   "server": 7.86
   },
   {
    "q": "аст",
-   "client": 6.22,
+   "client": 9.23,
+   "server": 8.35
+  },
+  {
+   "q": "аст",
+   "client": 8.77,
+   "server": 7.94
+  },
+  {
+   "q": "касп",
+   "client": 19.96,
+   "server": 19.34
+  },
+  {
+   "q": "касп",
+   "client": 7.19,
+   "server": 6.57
+  },
+  {
+   "q": "касп",
+   "client": 9.98,
+   "server": 5
+  },
+  {
+   "q": "касп",
+   "client": 9.71,
+   "server": 8.52
+  },
+  {
+   "q": "касп",
+   "client": 7.13,
+   "server": 6.35
+  },
+  {
+   "q": "крип",
+   "client": 6.4,
+   "server": 5.74
+  },
+  {
+   "q": "крип",
+   "client": 6.41,
+   "server": 5.48
+  },
+  {
+   "q": "крип",
+   "client": 5.58,
+   "server": 4.87
+  },
+  {
+   "q": "крип",
+   "client": 16.66,
+   "server": 11.8
+  },
+  {
+   "q": "крип",
+   "client": 7.84,
+   "server": 7.06
+  },
+  {
+   "q": "кибер",
+   "client": 6.5,
+   "server": 5.52
+  },
+  {
+   "q": "кибер",
+   "client": 5.38,
+   "server": 4.68
+  },
+  {
+   "q": "кибер",
+   "client": 5.31,
+   "server": 4.66
+  },
+  {
+   "q": "кибер",
+   "client": 5.17,
+   "server": 4.58
+  },
+  {
+   "q": "кибер",
+   "client": 7.79,
+   "server": 7.09
+  },
+  {
+   "q": "мтс",
+   "client": 5.16,
+   "server": 4.59
+  },
+  {
+   "q": "мтс",
+   "client": 6.67,
    "server": 5.56
   },
   {
-   "q": "аст",
-   "client": 6.29,
-   "server": 5.58
+   "q": "мтс",
+   "client": 7.3,
+   "server": 6.48
   },
   {
-   "q": "касп",
-   "client": 41.79,
-   "server": 41.04
-  },
-  {
-   "q": "касп",
-   "client": 6.36,
-   "server": 5.58
-  },
-  {
-   "q": "касп",
-   "client": 5.98,
+   "q": "мтс",
+   "client": 6.25,
    "server": 5.39
   },
   {
-   "q": "касп",
-   "client": 6.13,
-   "server": 5.35
+   "q": "мтс",
+   "client": 6.19,
+   "server": 5.46
   },
   {
-   "q": "касп",
-   "client": 6.03,
-   "server": 5.36
+   "q": "макс",
+   "client": 19.51,
+   "server": 18.87
   },
   {
-   "q": "крип",
-   "client": 23.02,
-   "server": 22.29
+   "q": "макс",
+   "client": 5.2,
+   "server": 4.61
   },
   {
-   "q": "крип",
-   "client": 6.0,
-   "server": 5.31
+   "q": "макс",
+   "client": 5.35,
+   "server": 4.71
   },
   {
-   "q": "крип",
-   "client": 5.9,
-   "server": 5.29
+   "q": "макс",
+   "client": 6.17,
+   "server": 5.13
   },
   {
-   "q": "крип",
+   "q": "макс",
+   "client": 7.6,
+   "server": 6.9
+  },
+  {
+   "q": "эни",
+   "client": 48.75,
+   "server": 47.97
+  },
+  {
+   "q": "эни",
+   "client": 37.27,
+   "server": 36.53
+  },
+  {
+   "q": "эни",
+   "client": 34.66,
+   "server": 34.12
+  },
+  {
+   "q": "эни",
+   "client": 44.22,
+   "server": 43.14
+  },
+  {
+   "q": "эни",
+   "client": 47.17,
+   "server": 45.74
+  },
+  {
+   "q": "скан",
+   "client": 24.61,
+   "server": 23.94
+  },
+  {
+   "q": "скан",
    "client": 6.51,
-   "server": 5.71
-  },
-  {
-   "q": "крип",
-   "client": 5.95,
-   "server": 5.25
-  },
-  {
-   "q": "кибер",
-   "client": 27.35,
-   "server": 26.69
-  },
-  {
-   "q": "кибер",
-   "client": 6.07,
-   "server": 5.38
-  },
-  {
-   "q": "кибер",
-   "client": 6.1,
-   "server": 5.47
-  },
-  {
-   "q": "кибер",
-   "client": 6.42,
-   "server": 5.75
-  },
-  {
-   "q": "кибер",
-   "client": 6.02,
-   "server": 5.26
-  },
-  {
-   "q": "мтс",
-   "client": 12.04,
-   "server": 11.43
-  },
-  {
-   "q": "мтс",
-   "client": 5.7,
-   "server": 5.04
-  },
-  {
-   "q": "мтс",
-   "client": 5.58,
-   "server": 4.93
-  },
-  {
-   "q": "мтс",
-   "client": 5.69,
-   "server": 5.02
-  },
-  {
-   "q": "мтс",
-   "client": 5.78,
-   "server": 5.08
-  },
-  {
-   "q": "макс",
-   "client": 29.56,
-   "server": 28.92
-  },
-  {
-   "q": "макс",
-   "client": 6.04,
-   "server": 5.39
-  },
-  {
-   "q": "макс",
-   "client": 5.6,
-   "server": 5.03
-  },
-  {
-   "q": "макс",
-   "client": 5.79,
-   "server": 5.1
-  },
-  {
-   "q": "макс",
-   "client": 5.77,
-   "server": 5.15
-  },
-  {
-   "q": "эни",
-   "client": 65.1,
-   "server": 64.45
-  },
-  {
-   "q": "эни",
-   "client": 35.54,
-   "server": 34.85
-  },
-  {
-   "q": "эни",
-   "client": 35.2,
-   "server": 34.48
-  },
-  {
-   "q": "эни",
-   "client": 35.5,
-   "server": 34.82
-  },
-  {
-   "q": "эни",
-   "client": 34.55,
-   "server": 33.93
+   "server": 5.55
   },
   {
    "q": "скан",
-   "client": 33.63,
-   "server": 33.03
+   "client": 6.24,
+   "server": 5.46
   },
   {
    "q": "скан",
-   "client": 5.97,
-   "server": 5.26
-  },
-  {
-   "q": "скан",
-   "client": 6.02,
+   "client": 6.36,
    "server": 5.32
   },
   {
    "q": "скан",
-   "client": 5.56,
-   "server": 4.94
-  },
-  {
-   "q": "скан",
-   "client": 5.53,
-   "server": 4.95
+   "client": 8.63,
+   "server": 6.8
   },
   {
    "q": "офис",
-   "client": 21.26,
-   "server": 20.57
+   "client": 16.54,
+   "server": 15.82
   },
   {
    "q": "офис",
-   "client": 6.08,
-   "server": 5.42
+   "client": 7.04,
+   "server": 6.1
   },
   {
    "q": "офис",
-   "client": 5.52,
-   "server": 4.95
+   "client": 7.28,
+   "server": 6.54
   },
   {
    "q": "офис",
-   "client": 5.73,
-   "server": 5.09
+   "client": 5.67,
+   "server": 5
   },
   {
    "q": "офис",
-   "client": 5.71,
-   "server": 5.06
-  },
-  {
-   "q": "365",
-   "client": 18.3,
-   "server": 17.65
-  },
-  {
-   "q": "365",
-   "client": 6.01,
-   "server": 5.41
-  },
-  {
-   "q": "365",
-   "client": 9.43,
-   "server": 8.41
-  },
-  {
-   "q": "365",
    "client": 5.58,
-   "server": 4.95
+   "server": 4.89
   },
   {
    "q": "365",
-   "client": 5.57,
-   "server": 4.99
+   "client": 8.01,
+   "server": 7.06
+  },
+  {
+   "q": "365",
+   "client": 7.93,
+   "server": 6.89
+  },
+  {
+   "q": "365",
+   "client": 9.34,
+   "server": 8.59
+  },
+  {
+   "q": "365",
+   "client": 5.82,
+   "server": 5.08
+  },
+  {
+   "q": "365",
+   "client": 7.22,
+   "server": 6.34
   },
   {
    "q": "rfcg",
-   "client": 6.95,
-   "server": 6.29
+   "client": 10.95,
+   "server": 9.55
   },
   {
    "q": "rfcg",
-   "client": 6.63,
-   "server": 6.01
+   "client": 11.34,
+   "server": 10.24
   },
   {
    "q": "rfcg",
-   "client": 6.64,
-   "server": 6.01
+   "client": 8.76,
+   "server": 8.01
   },
   {
    "q": "rfcg",
-   "client": 24.39,
-   "server": 22.09
+   "client": 8.99,
+   "server": 8.22
   },
   {
    "q": "rfcg",
-   "client": 7.48,
-   "server": 6.79
+   "client": 7.22,
+   "server": 6.67
   },
   {
    "q": "fcnhf",
-   "client": 19.93,
-   "server": 19.01
+   "client": 17.78,
+   "server": 17.15
   },
   {
    "q": "fcnhf",
-   "client": 7.24,
-   "server": 6.49
+   "client": 7.34,
+   "server": 6.72
   },
   {
    "q": "fcnhf",
-   "client": 6.85,
-   "server": 6.19
+   "client": 6.61,
+   "server": 6.03
   },
   {
    "q": "fcnhf",
-   "client": 6.9,
-   "server": 6.28
+   "client": 9.86,
+   "server": 7.55
   },
   {
    "q": "fcnhf",
-   "client": 6.98,
-   "server": 6.28
+   "client": 6.47,
+   "server": 5.85
   },
   {
    "q": "касперкий ",
-   "client": 102.49,
-   "server": 100.65
+   "client": 55.99,
+   "server": 55.37
   },
   {
    "q": "касперкий ",
-   "client": 41.34,
-   "server": 40.69
+   "client": 47.14,
+   "server": 46.52
   },
   {
    "q": "касперкий ",
-   "client": 42.0,
-   "server": 41.31
+   "client": 46.39,
+   "server": 45.5
   },
   {
    "q": "касперкий ",
-   "client": 41.06,
-   "server": 40.36
+   "client": 55.41,
+   "server": 54.29
   },
   {
    "q": "касперкий ",
-   "client": 40.53,
-   "server": 39.86
+   "client": 49.0,
+   "server": 48.4
   }
  ]
 }

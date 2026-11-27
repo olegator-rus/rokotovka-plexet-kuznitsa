@@ -143,6 +143,12 @@ func newSuggestDict(rows []domain.Suggestion, lx *searchLexicon, version int, ca
 
 // match — подсказки, у которых text начинает строку или слово, по убыванию веса (не больше limit).
 func (d *suggestDict) match(text string, limit int) []dictHit {
+	return d.matchW(text, limit, false)
+}
+
+// matchW — match; anyWord — совпадение с начала любого слова весит как с начала строки (дополнение словаря:
+// «вин» → «windows» — в «Microsoft Windows 11 Pro» покупатель набирал начало слова Windows, а не вендора).
+func (d *suggestDict) matchW(text string, limit int, anyWord bool) []dictHit {
 	if d == nil || text == "" {
 		return nil
 	}
@@ -152,7 +158,7 @@ func (d *suggestDict) match(text string, limit int) []dictHit {
 		k := d.keys[i]
 		e := d.entries[k.entry]
 		m := 0.7
-		if k.pos == 0 {
+		if k.pos == 0 || anyWord {
 			m = 1
 		}
 		m *= 0.8 + 0.2*math.Min(1, ql/float64(utf8.RuneCountInString(e.norm)))
@@ -285,18 +291,21 @@ func (s *Services) reloadSuggestDict(lx *searchLexicon, catalog string, cur *sug
 
 // SuggestBuildInfo — итог сборки для CLI и записи в журнал.
 type SuggestBuildInfo struct {
-	Version       int       `json:"version"`
-	Rows          int       `json:"rows"`
-	FromQueries   int       `json:"from_queries"`
-	FromTemplates int       `json:"from_templates"`
-	DroppedNoHits int       `json:"dropped_no_hits"`
-	DroppedPII    int       `json:"dropped_pii"`
-	DroppedNoise  int       `json:"dropped_noise"`
-	DroppedRare   int       `json:"dropped_rare"`
-	Duplicates    int       `json:"duplicates"`
-	EarlyBefore   time.Time `json:"early_before"`
-	EarlyEvents   int       `json:"early_searches"`
-	Ms            float64   `json:"ms"`
+	Version       int `json:"version"`
+	Rows          int `json:"rows"`
+	FromQueries   int `json:"from_queries"`
+	FromTemplates int `json:"from_templates"`
+	// FromDictionary — подсказок из словаря понимания; FromJournal — из журнала текущего каталога в базе (фид).
+	FromDictionary int       `json:"from_dictionary"`
+	FromJournal    int       `json:"from_journal"`
+	DroppedNoHits  int       `json:"dropped_no_hits"`
+	DroppedPII     int       `json:"dropped_pii"`
+	DroppedNoise   int       `json:"dropped_noise"`
+	DroppedRare    int       `json:"dropped_rare"`
+	Duplicates     int       `json:"duplicates"`
+	EarlyBefore    time.Time `json:"early_before"`
+	EarlyEvents    int       `json:"early_searches"`
+	Ms             float64   `json:"ms"`
 }
 
 // logQuery — запрос журнала раннего периода.
@@ -317,12 +326,19 @@ func (s *Services) BuildSuggestions(ctx context.Context) ([]domain.Suggestion, S
 	lx := st.lex
 	rules := s.rulesFor(ctx, domain.ConfigLive, lx, nil)
 	queries, cutoff, p0 := s.earlyQueries(ctx, lx, rules, &info)
+	if len(queries) == 0 {
+		// Фид заказчика: файла журнала нет — успешные запросы журнала текущего каталога из базы (живые и модельный
+		// поток, LogScope как у агента).
+		queries, p0 = s.journalQueries(ctx, lx, rules, &info)
+	}
 	info.EarlyBefore = cutoff
 
 	type cand struct {
 		text, norm, source, kind, categoryID string
 		lq                                   *logQuery
 		pop                                  float64
+		dict                                 bool
+		dictFreq                             float64
 	}
 	var cands []cand
 	seen := map[string]bool{}
@@ -341,6 +357,29 @@ func (s *Services) BuildSuggestions(ctx context.Context) ([]domain.Suggestion, S
 	for _, q := range queries {
 		add(cand{text: q.text, source: domain.SuggestSourceQuery, kind: suggestQuery, lq: q})
 	}
+	// Формы из словаря: так пишут покупатели («винда», «астра линукс», «касперский»). На одну каноническую форму —
+	// одна форма ввода (не «винда, винду, винды»): совпадающая с канонической, иначе с пробелом, иначе короче; плюс
+	// сама каноническая форма-термин («кибер бэкап», «microsoft 365»). Жаргон — ниже написания и ребрендинга.
+	for _, dc := range dictionaryForms(s.lexicon(), lx.baseAliases) {
+		add(cand{text: dc.text, source: domain.SuggestSourceDictionary, kind: suggestQuery, dict: true, dictFreq: dc.freq})
+	}
+	// Шаблоны каталога: короткая форма названия; вес — то, что можно купить, по ширине линейки (на фиде популярности
+	// нет: у всех 0,5).
+	buy, maxBuy := map[string]int{}, 1
+	for _, f := range lx.familyOrder {
+		for _, pid := range lx.families[f] {
+			if docBuyPrice(lx.docs[pid]) != nil {
+				buy[f]++
+			}
+		}
+		maxBuy = max(maxBuy, buy[f])
+	}
+	breadth := func(n int) float64 {
+		if n == 0 {
+			return 0.05
+		}
+		return 0.2 + 0.6*math.Log1p(float64(n))/math.Log1p(float64(maxBuy))
+	}
 	for _, f := range lx.familyOrder {
 		pop, editions := 0.0, map[string]bool{}
 		for _, pid := range lx.families[f] {
@@ -350,17 +389,35 @@ func (s *Services) BuildSuggestions(ctx context.Context) ([]domain.Suggestion, S
 				editions[foldText(d.LicenseEdition)] = true
 			}
 		}
-		add(cand{text: lx.familyName[f], source: domain.SuggestSourceTemplate, kind: suggestQuery, pop: pop})
+		if lx.docs[lx.families[f][0]].OfferURL != "" {
+			pop = breadth(buy[f]) // фид: популярность у всех одинакова — ширина линейки в наличии
+		}
+		name := suggestDisplay(lx.familyName[f])
+		add(cand{text: name, source: domain.SuggestSourceTemplate, kind: suggestQuery, pop: pop})
 		if len(editions) > 1 {
 			for _, ed := range sortedKeys(editions) {
-				if !strings.Contains(foldText(lx.familyName[f]), ed) {
-					add(cand{text: lx.familyName[f] + " " + ed, source: domain.SuggestSourceTemplate, kind: suggestQuery, pop: pop / 2})
+				if !strings.Contains(foldText(name), ed) {
+					add(cand{text: name + " " + ed, source: domain.SuggestSourceTemplate, kind: suggestQuery, pop: pop / 2})
 				}
 			}
 		}
 	}
+	vendorFams := map[string]int{}
+	for f, n := range buy {
+		if n > 0 {
+			vendorFams[lx.familyVendor[f]]++
+		}
+	}
+	maxVF := 1
+	for _, n := range vendorFams {
+		maxVF = max(maxVF, n)
+	}
 	for _, id := range sortedKeys(lx.vendorName) {
-		add(cand{text: lx.vendorName[id], source: domain.SuggestSourceTemplate, kind: suggestQuery, pop: 0.5})
+		pop := 0.5
+		if len(buy) > 0 && maxVF > 1 {
+			pop = 0.2 + 0.6*math.Log1p(float64(vendorFams[id]))/math.Log1p(float64(maxVF))
+		}
+		add(cand{text: suggestDisplay(lx.vendorName[id]), source: domain.SuggestSourceTemplate, kind: suggestQuery, pop: pop})
 	}
 	for _, id := range sortedKeys(lx.categoryName) {
 		add(cand{text: lx.categoryName[id], source: domain.SuggestSourceTemplate, kind: suggestCategory, categoryID: id, pop: 0.3})
@@ -424,6 +481,10 @@ func (s *Services) BuildSuggestions(ctx context.Context) ([]domain.Suggestion, S
 			fresh = math.Exp(-math.Ln2 * math.Max(0, age) / suggestFreshDays)
 			row.Searches, row.Successes = c.lq.searches, c.lq.succ
 			info.FromQueries++
+		} else if c.dict {
+			// Форма словаря: так пишут покупатели — выше шаблона каталога, ниже частых успешных запросов.
+			freq, succ, fresh = c.dictFreq, p0, 0.5
+			info.FromDictionary++
 		} else {
 			// Шаблон каталога: частота — половина популярности семейства, успешность — средняя по журналу,
 			// свежесть — половина: шаблон не обгоняет запросы, которые реально ищут.
@@ -618,7 +679,8 @@ func suggestText(q string, lx *searchLexicon, rules *searchRules) (string, bool)
 	}
 	nr := normalizeFull(text, lx, rules, false)
 	for _, c := range nr.changes {
-		if c.Kind == changeLayout {
+		// Раскладка и опечатка исправляются: «dr.web enterprisse», «опрационная система» подсказкой не становятся.
+		if c.Kind == changeLayout || c.Kind == changeTypo {
 			return foldText(nr.corrected), true
 		}
 	}
@@ -693,4 +755,178 @@ func sortedKeys[V any](m map[string]V) []string {
 	}
 	sort.Strings(ks)
 	return ks
+}
+
+// journalQueries — успешные запросы журнала текущего каталога в базе (фид: файла журнала нет): живые и модельный
+// поток в границах LogScope агента; успех — клик по выдаче; разовые (меньше suggestMinFreq поисков) отбрасываются,
+// как и мусор и персональные данные. p0 — средняя успешность.
+func (s *Services) journalQueries(ctx context.Context, lx *searchLexicon, rules *searchRules, info *SuggestBuildInfo) ([]*logQuery, float64) {
+	if !s.repos.Enabled() {
+		return nil, 0.5
+	}
+	stats, err := s.repos.QueryStatsScoped(ctx, time.Time{}, s.agentLogScope(ctx))
+	if err != nil {
+		zap.L().Warn("подсказки: журнал в базе не прочитан — только словарь и каталог", zap.Error(err))
+		return nil, 0.5
+	}
+	byText := map[string]*logQuery{}
+	var order []string
+	total, succ := 0, 0
+	now := s.now()
+	for _, st := range stats {
+		total += st.Searches
+		succ += st.Clicks
+		if st.NonEmpty == 0 || st.Clicks == 0 {
+			continue
+		}
+		text, ok := suggestText(st.Query, lx, rules)
+		if !ok {
+			continue
+		}
+		q := byText[text]
+		if q == nil {
+			q = &logQuery{text: text, last: now}
+			byText[text] = q
+			order = append(order, text)
+		}
+		q.searches += st.Searches
+		q.succ += st.Clicks
+		info.EarlyEvents += st.Searches
+	}
+	p0 := 0.5
+	if total > 0 {
+		p0 = float64(succ) / float64(total)
+	}
+	var res []*logQuery
+	for _, t := range order {
+		q := byText[t]
+		switch {
+		case piiRe.MatchString(t) && len(lx.codes().exact(normalizeMPN(t))) == 0:
+			info.DroppedPII++
+		case !readableQuery(t) || !hasLetters(t) || looksLikeMarkup(t) || len(strings.Fields(t)) > suggestMaxWords:
+			info.DroppedNoise++
+		case q.searches < suggestMinFreq:
+			info.DroppedRare++
+		default:
+			res = append(res, q)
+			info.FromJournal++
+		}
+	}
+	return res, p0
+}
+
+// suggestLeadWords — служебные слова в начале названия семейства, которые покупатель не набирает.
+var suggestLeadWords = []string{"операционная система ", "программный комплекс ", "программа ", "пк "}
+
+// suggestDisplay — текст подсказки из названия: без кавычек «» и "", без «Программа», «Операционная система» в
+// начале, пробелы схлопнуты: «Программа КриптоПро CSP 5.0» → «КриптоПро CSP 5.0», «"Лаборатория Касперского"» →
+// «Лаборатория Касперского».
+func suggestDisplay(name string) string {
+	// Пояснение в скобках в конце («Microsoft Windows 11 Pro (Профессиональная)») покупатель не набирает.
+	if i := strings.LastIndex(name, " ("); i > 0 && strings.HasSuffix(strings.TrimSpace(name), ")") && i > len(name)/3 {
+		name = name[:i]
+	}
+	r := strings.NewReplacer("«", "", "»", "", "\"", "", "“", "", "”", "", "„", "")
+	t := strings.Join(strings.Fields(r.Replace(name)), " ")
+	low := strings.ToLower(t)
+	for _, w := range suggestLeadWords {
+		if strings.HasPrefix(low, w) && len(t) > len(w)+2 {
+			t = t[len(w):]
+			low = low[len(w):]
+		}
+	}
+	return strings.TrimSpace(t)
+}
+
+// dictForm — подсказка из словаря и её частота-заменитель (написание 0,6, жаргон 0,3).
+type dictForm struct {
+	text string
+	freq float64
+}
+
+// dictionaryForms — формы ввода из словаря понимания (lexicon.csv) и импортные транслитерации вендоров
+// («касперский»): по одной на каноническую форму, плюс каноническая форма-термин. Порядок детерминирован.
+func dictionaryForms(lex []domain.LexiconEntry, base []domain.Alias) []dictForm {
+	type group struct {
+		canon  string
+		forms  []string
+		plain  []string // не жаргон: «касперский» раньше «касперыч»
+		jargon bool
+		term   bool
+	}
+	groups := map[string]*group{}
+	var order []string
+	addForm := func(canon, alias string, jargon, term bool) {
+		canon, alias = strings.Join(strings.Fields(foldText(canon)), " "), strings.TrimSpace(alias)
+		if canon == "" || alias == "" {
+			return
+		}
+		g := groups[canon]
+		if g == nil {
+			g = &group{canon: canon, jargon: true}
+			groups[canon] = g
+			order = append(order, canon)
+		}
+		g.forms = append(g.forms, alias)
+		if !jargon {
+			g.plain = append(g.plain, alias)
+		}
+		g.jargon = g.jargon && jargon
+		g.term = g.term || term
+	}
+	for _, e := range lex {
+		if e.Kind == domain.LexiconDrop || e.Kind == domain.LexiconSuccessor {
+			continue
+		}
+		addForm(e.Canonical, e.Alias, e.Kind == domain.LexiconJargon, e.Target == domain.AliasTargetTerm)
+	}
+	for _, a := range base {
+		// Импортные алиасы — только транслитерации вендоров кириллицей («касперский»), не слаги.
+		if a.Target == domain.AliasTargetVendor && a.Kind == "transliteration" && hasCyrillic(a.Alias) {
+			addForm(a.Canonical, a.Alias, false, false)
+		}
+	}
+	var res []dictForm
+	for _, c := range order {
+		g := groups[c]
+		freq := 0.6
+		if g.jargon {
+			freq = 0.3
+		}
+		best := ""
+		forms := g.forms
+		if len(g.plain) > 0 {
+			forms = g.plain
+		}
+		for _, f := range forms {
+			ff := foldText(f)
+			switch {
+			case best == "":
+				best = f
+			case ff == c && foldText(best) != c:
+				best = f
+			case foldText(best) == c:
+			case strings.Contains(ff, " ") != strings.Contains(foldText(best), " "):
+				if strings.Contains(ff, " ") {
+					best = f
+				}
+			case len(ff) < len(foldText(best)) || len(ff) == len(foldText(best)) && ff < foldText(best):
+				best = f
+			}
+		}
+		res = append(res, dictForm{text: best, freq: freq})
+		if g.term && foldText(best) != c {
+			res = append(res, dictForm{text: c, freq: 0.6})
+		}
+	}
+	return res
+}
+
+func hasCyrillic(s string) bool {
+	for _, r := range s {
+		if r >= 'а' && r <= 'я' || r >= 'А' && r <= 'Я' || r == 'ё' || r == 'Ё' {
+			return true
+		}
+	}
+	return false
 }
