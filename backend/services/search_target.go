@@ -366,6 +366,9 @@ func selectTarget(in targetInput) targetDecision {
 		if brand != "" {
 			return vendorTarget(rc, dec, brand, in.fams, "у вендора нет одного явного семейства")
 		}
+		if !rc.relatesTo(in.fams[0].id, in.words) {
+			return dec // совпадение слабое: ни одно слово запроса не из названия, вендора или категории — цели нет
+		}
 		return familyTarget(rc, dec, in.fams[0], "первое по релевантности")
 	}
 	// 5. Равенство семейств одного вендора: вендор или вендор + категория второго уровня.
@@ -765,4 +768,31 @@ func (rc rankCtx) widestFamily(ids []string, byID map[string]*familyHit) string 
 		return ""
 	}
 	return best
+}
+
+// relatesTo — хоть одно слово запроса есть в названии семейства, имени вендора или названии его категории (с
+// разделом): иначе «первое по релевантности» — случайное совпадение по описанию, и целью оно не становится.
+func (rc rankCtx) relatesTo(fid string, words []string) bool {
+	names := wordsOf(rc.lx.familyName[fid])
+	names = append(names, rc.vendorWords(fid)...)
+	cat := rc.lx.familyCat[fid]
+	names = append(names, wordsOf(rc.lx.categoryName[cat])...)
+	if root := rc.lx.categoryRoot[cat]; root != "" && root != cat {
+		names = append(names, wordsOf(rc.lx.categoryName[root])...)
+	}
+	for _, w := range words {
+		if shopCommandWords[w] {
+			continue
+		}
+		if wordMatch(w, names) {
+			return true
+		}
+		for _, n := range names {
+			// Составное слово: «видеоконференции» — «Конференц-связь».
+			if utf8.RuneCountInString(n) >= 6 && strings.Contains(w, n) || utf8.RuneCountInString(w) >= 6 && strings.Contains(n, w) {
+				return true
+			}
+		}
+	}
+	return false
 }

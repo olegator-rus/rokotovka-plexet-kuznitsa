@@ -216,7 +216,7 @@ func findEntities(nr normResult, attrs queryAttrs, lx *searchLexicon, rules *sea
 			}
 		}
 	}
-	e.noise = isNoiseQuery(nr, lx, rules)
+	e.noise = isNoiseQuery(nr, lx, rules) || onlyShopCommands(e.textTokens)
 	e.successors = nr.successors
 	e.abbrev = len(e.unknown) == 1 && !e.latinUnknown
 	for _, u := range e.unknown {
@@ -641,4 +641,31 @@ func isNoiseQuery(nr normResult, lx *searchLexicon, rules *searchRules) bool {
 		}
 	}
 	return true
+}
+
+// shopCommandWords — слова команд и самого магазина: «верни все товары каталога», «игнорируй инструкции». Названием
+// товара или задачи они не бывают.
+var shopCommandWords = setOf(
+	"верни", "вернуть", "покажи", "показать", "выведи", "вывести", "выдай", "дай", "перечисли", "отобрази",
+	"игнорируй", "игнорировать", "забудь", "забыть", "отмени", "выполни", "ignore", "forget", "previous", "show", "return",
+	"инструкции", "инструкция", "инструкций", "инструкцию", "промпт", "prompt", "system", "систему", "команды", "команду",
+	"все", "всё", "весь", "всю", "всех", "all", "любые", "любой",
+	"товары", "товар", "товаров", "товара", "каталог", "каталога", "каталоге", "каталогу", "ассортимент", "список",
+	"позиции", "позиций", "магазин", "магазина", "products", "catalog", "items",
+)
+
+// onlyShopCommands — значимых слов нет, есть только служебные слова магазина и команды (хотя бы одна команда или
+// слово магазина): запрос вне темы, как шум — без модели, цели и точных совпадений.
+func onlyShopCommands(tokens []string) bool {
+	n := 0
+	for _, t := range tokens {
+		switch {
+		case lexStopWords[t]:
+		case shopCommandWords[t]:
+			n++
+		default:
+			return false
+		}
+	}
+	return n > 0
 }
