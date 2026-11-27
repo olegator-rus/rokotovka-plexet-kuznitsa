@@ -27,10 +27,17 @@ services:
       DATABASE_URL: postgres://${POSTGRES_USER:-kuznica}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-kuznica}?sslmode=disable
       PUBLIC_ORIGIN: https://${DOMAIN:?set DOMAIN in .env}
       TRUSTED_PROXIES: ${TRUSTED_PROXIES:?set TRUSTED_PROXIES in .env}
-      # Поиск и модели: пусто — шаг выключен (сервисы opensearch/embedder стенда — волна «Поставка»).
-      OPENSEARCH_URL: ${OPENSEARCH_URL:-}
-      EMBEDDER_URL: ${EMBEDDER_URL:-}
-      RERANKER_URL: ${RERANKER_URL:-}
+      # Каталог: фид заказчика через generic-источник; данные смонтированы из репозитория (../data → /data).
+      DATA_SOURCE: ${DATA_SOURCE:-generic}
+      DATA_MAPPING: ${DATA_MAPPING:-/data/softline/mapping.yaml}
+      # Поиск и модели — сервисы этого же compose; пустое значение выключает шаг.
+      OPENSEARCH_URL: ${OPENSEARCH_URL-http://opensearch:9200}
+      EMBEDDER_URL: ${EMBEDDER_URL-http://ml:8089}
+      RERANKER_URL: ${RERANKER_URL-http://ml:8089}
+      CONSULTANT_REPLY_MODEL: ${CONSULTANT_REPLY_MODEL:-}
+      CONSULTANT_LINK_PAYMENT: ${CONSULTANT_LINK_PAYMENT:-}
+      CONSULTANT_LINK_DELIVERY: ${CONSULTANT_LINK_DELIVERY:-}
+      CONSULTANT_LINK_CONTACTS: ${CONSULTANT_LINK_CONTACTS:-}
       SEARCH_RERANK_WEIGHT: ${SEARCH_RERANK_WEIGHT:-}
       LLM_PROVIDER: ${LLM_PROVIDER:-}
       LLM_BASE_URL: ${LLM_BASE_URL:-}
@@ -82,14 +89,59 @@ services:
       AGENT_RUN_MAX_DURATION: ${AGENT_RUN_MAX_DURATION:-}
       AGENT_QUERY_MAX_DURATION: ${AGENT_QUERY_MAX_DURATION:-}
       TZ: Europe/Moscow
+      GOMEMLIMIT: 3GiB
+    volumes:
+      - ../data:/data:ro
     depends_on:
       db:
+        condition: service_healthy
+      opensearch:
         condition: service_healthy
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://localhost:8080/health"]
       interval: 30s
       timeout: 5s
       retries: 3
+
+  # Поисковый индекс стенда. Наружу порт не публикуется: доступен только сервисам compose.
+  opensearch:
+    image: opensearchproject/opensearch:3.9.0
+    restart: unless-stopped
+    environment:
+      discovery.type: single-node
+      # Плагин безопасности выключен: сервис живёт только во внутренней сети compose, порт наружу не открыт.
+      DISABLE_SECURITY_PLUGIN: "true"
+      DISABLE_INSTALL_DEMO_CONFIG: "true"
+      DISABLE_PERFORMANCE_ANALYZER_AGENT_CLI: "true"
+      OPENSEARCH_JAVA_OPTS: -Xms1g -Xmx1g
+      cluster.routing.allocation.disk.threshold_enabled: "false"
+    volumes:
+      - osdata:/usr/share/opensearch/data
+    mem_limit: 2g
+    ulimits:
+      nofile: { soft: 65536, hard: 65536 }
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:9200/_cluster/health?wait_for_status=yellow&timeout=5s >/dev/null"]
+      interval: 10s
+      timeout: 10s
+      retries: 30
+
+  # Эмбеддер и реранкер на CPU (deploy/Dockerfile.ml). Первый старт качает веса в том hf_cache.
+  ml:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile.ml
+    image: kuznica-ml
+    restart: unless-stopped
+    volumes:
+      - hf_cache:/models
+    mem_limit: 7g
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:8089/health', timeout=3).status == 200 else 1)"]
+      interval: 15s
+      timeout: 5s
+      retries: 120
+      start_period: 60s
 
   # Генератор mock-трафика (контур автономии): обычный клиент витрины, ходит в api по сети compose, пишет source=traffic.
   # Не стартует по умолчанию: docker compose --profile traffic up -d traffic.
@@ -141,5 +193,7 @@ services:
 
 volumes:
   pgdata:
+  osdata:
+  hf_cache:
   caddy_data:
   caddy_config:
