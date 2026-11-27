@@ -1,6 +1,9 @@
 package services
 
-import "strings"
+import (
+	"maps"
+	"strings"
+)
 
 // Аналоги по классу: справочник связей (substitute) не знает замен названного продукта («аналог фотошопа» — у Adobe
 // Photoshop связей нет) — аналогами становятся семейства того же класса: категория названного продукта и категории
@@ -12,8 +15,11 @@ import "strings"
 // его название (все слова названия, кроме имени вендора). «замена windows» → «Retrospect for Windows», «аналог касперского» (только вендор) — класс
 // по такому референсу не строится: честное «аналогов нет» лучше чужой категории.
 func confidentReference(lx *searchLexicon, ent queryEntities) bool {
-	if len(ent.families) == 0 || len(ent.reference) == 0 {
+	if len(ent.reference) == 0 {
 		return false
+	}
+	if ent.referenceByVendor {
+		return true // «аналог anydesk», «замена microsoft office»: линейка названного вендора в его основном классе
 	}
 	in := map[string]bool{}
 	for _, t := range ent.entityTokens {
@@ -22,22 +28,31 @@ func confidentReference(lx *searchLexicon, ent queryEntities) bool {
 		}
 	}
 	for _, r := range ent.reference {
+		if c := ent.category; c != "" && lx.categoryRoot[c] != "" && lx.categoryRoot[lx.familyCat[r]] != lx.categoryRoot[c] {
+			return false // «замена windows»: запрос об ОС, а референс угадан из резервного копирования
+		}
 		vendor := map[string]bool{}
 		for _, w := range wordsOf(lx.vendorName[lx.familyVendor[r]] + " " + lx.familyVendor[r]) {
 			vendor[w] = true
 		}
-		n := 0
+		n, missing, vendorNamed := 0, false, false
 		for _, w := range wordsOf(lx.familyName[r]) {
-			if vendor[w] || lexStopWords[w] {
+			if vendor[w] {
+				vendorNamed = vendorNamed || in[w]
 				continue
 			}
-			if !in[w] {
-				return false // в названии референса есть слово, которого в запросе нет
+			if lexStopWords[w] {
+				continue
 			}
+			missing = missing || !in[w]
 			n++
 		}
-		if n == 0 {
-			return false
+		switch {
+		case n == 0 && vendorNamed: // «AnyDesk», «TeamViewer»: название продукта — имя вендора
+		case n > 0 && !missing:
+		case lx.familyCoverage(r, ent.entityTokens) >= namedCoverageMin: // «kaspersky endpoint security» → «… для бизнеса Расширенный»
+		default:
+			return false // «замена windows» → «Retrospect for Windows»: продукт угадан по одному общему слову
 		}
 	}
 	return true
@@ -53,20 +68,24 @@ func classAnalogs(lx *searchLexicon, refs, named, tokens []string) []string {
 			in[w] = true
 		}
 	}
+	cats = mainClass(lx, refs)
 	for _, r := range refs {
 		vendors[lx.familyVendor[r]] = true
-		if c := lx.familyCat[r]; c != "" {
-			cats[c] = true
-		}
 		for w := range lx.familyWords[r] {
 			if in[w] {
 				words[w] = true
 			}
 		}
 	}
-	for _, f := range named {
-		if vendors[lx.familyVendor[f]] && lx.familyCat[f] != "" {
-			cats[lx.familyCat[f]] = true
+	roots := map[string]bool{}
+	for c := range cats {
+		roots[lx.categoryRoot[c]] = true
+	}
+	if len(refs) <= 3 {
+		for _, f := range named {
+			if vendors[lx.familyVendor[f]] && lx.familyCat[f] != "" && roots[lx.categoryRoot[lx.familyCat[f]]] {
+				cats[lx.familyCat[f]] = true
+			}
 		}
 	}
 	var out []string
@@ -105,6 +124,8 @@ const (
 	classAnalogRel = 0.05
 	// classRerankTop — сколько аналогов по классу видит реранкер (у «Графических редакторов» — десятки семейств).
 	classRerankTop = 10
+	// classWideMax — класс шире этого — аналоги только из найденного поиском.
+	classWideMax = 80
 )
 
 // classAnalogQuery — запрос к реранкеру для аналогов по классу: «аналог Adobe Photoshop. Графические редакторы» —
@@ -127,4 +148,119 @@ func classAnalogQuery(lx *searchLexicon, refs []string) string {
 		q += ". " + strings.Join(cats, ", ")
 	}
 	return q
+}
+
+// vendorClassFamilies — семейства вендора v в его основном классе: в категории запроса (по корню), если она названа
+// («аналог microsoft office» — офисные пакеты, а не гарнитуры), иначе в категории второго уровня, где у вендора больше
+// всего семейств («аналог anydesk» — решения удалённого доступа).
+func (lx *searchLexicon) vendorClassFamilies(v, category string) []string {
+	var all []string
+	count := map[string]int{}
+	for _, f := range lx.familyOrder {
+		if lx.familyVendor[f] == v {
+			all = append(all, f)
+			count[lx.familyCat[f]]++
+		}
+	}
+	keep := func(f string) bool { return false }
+	switch {
+	case category != "" && lx.categoryRoot[category] != "":
+		root := lx.categoryRoot[category]
+		keep = func(f string) bool { return lx.categoryRoot[lx.familyCat[f]] == root }
+	default:
+		best, n := "", 0
+		for c, k := range count {
+			if k > n || k == n && c < best {
+				best, n = c, k
+			}
+		}
+		keep = func(f string) bool { return lx.familyCat[f] == best }
+	}
+	var out []string
+	for _, f := range all {
+		if keep(f) {
+			out = append(out, f)
+		}
+	}
+	if len(out) == 0 {
+		return all
+	}
+	return out
+}
+
+// importSubstituteSiblings — соседние категории «(Импортозамещение)» под тем же разделом: у AnyDesk («Другие решения
+// удаленного доступа») класс замены — и «Российские решения удаленного доступа (Импортозамещение)».
+func (lx *searchLexicon) importSubstituteSiblings(cat string) []string {
+	parent := lx.categoryParent[cat]
+	if parent == "" {
+		return nil
+	}
+	var out []string
+	for id, name := range lx.categoryName {
+		if id != cat && lx.categoryParent[id] == parent && strings.Contains(strings.ToLower(name), "импортозамещ") &&
+			shareClassWord(lx.categoryName[cat], name) {
+			out = append(out, id)
+		}
+	}
+	return out
+}
+
+// mainClass — категории аналогов: у одного-трёх референсов — их категории; у линейки (больше трёх) — категория, где
+// референсов больше всего. Плюс соседние «(Импортозамещение)».
+func mainClass(lx *searchLexicon, refs []string) map[string]bool {
+	cats := map[string]bool{}
+	count := map[string]int{}
+	for _, r := range refs {
+		if c := lx.familyCat[r]; c != "" {
+			count[c]++
+		}
+	}
+	if len(refs) <= 3 {
+		for c := range count {
+			cats[c] = true
+		}
+	} else {
+		best, n := "", 0
+		for c, k := range count {
+			if k > n || k == n && c < best {
+				best, n = c, k
+			}
+		}
+		if best != "" {
+			cats[best] = true
+		}
+	}
+	for c := range maps.Clone(cats) {
+		for _, s := range lx.importSubstituteSiblings(c) {
+			cats[s] = true
+		}
+	}
+	return cats
+}
+
+// classGenericWords — слова названий категорий, которые класс не различают.
+var classGenericWords = setOf("решения", "решений", "программы", "программное", "программ", "обеспечение", "системы",
+	"другие", "другое", "российские", "российское", "российская", "российский", "импортозамещение", "средства")
+
+// shareClassWord — у двух названий категорий общее значимое слово (по первым пяти буквам): «Программы для
+// виртуализации» и «Российская виртуализация (Импортозамещение)» — да; и «Системы управления базами данных» — нет.
+func shareClassWord(a, b string) bool {
+	stems := map[string]bool{}
+	stem := func(w string) string {
+		if r := []rune(w); len(r) > 5 {
+			return string(r[:5])
+		}
+		return w
+	}
+	for _, w := range wordsOf(a) {
+		if len([]rune(w)) >= 4 && !classGenericWords[w] && !lexStopWords[w] {
+			stems[stem(w)] = true
+		}
+	}
+	for _, w := range wordsOf(b) {
+		if len([]rune(w)) >= 4 && !classGenericWords[w] && !lexStopWords[w] && stems[stem(w)] {
+			return true
+		}
+	}
+	return false
 }

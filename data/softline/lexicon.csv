@@ -37,16 +37,16 @@ red os,ред ос,spelling,vendor,redsoft,"research 03, строка 22 (RED OS
 м365,microsoft 365,spelling,term,,"research 03, строка 41; [Ф] Microsoft 365 Family, Personal",
 abbyy lingvo,lingvo,rebrand,term,,"research 03, строка 4; [Ф] семейства «Lingvo by Content AI …»",
 лингво,lingvo,rebrand,term,,"research 03, строка 4; [Ф] семейства «Lingvo by Content AI …»",
-eset,pro32,successor,vendor,pro32,"ComNews, 19.06.2023: PRO32 — бывший эксклюзивный дистрибьютор ESET в России, после ухода ESET выпустил свою линейку; research 03, строка 2","ESET в России не поставляется. На этом рынке — PRO32: российская линейка бывшего дистрибьютора ESET (ComNews, 19.06.2023)"
-есет,pro32,successor,vendor,pro32,"ComNews, 19.06.2023; research 03, строка 2","ESET в России не поставляется. На этом рынке — PRO32: российская линейка бывшего дистрибьютора ESET (ComNews, 19.06.2023)"
-eset nod32,pro32,successor,vendor,pro32,"ComNews, 19.06.2023; research 03, строка 2","ESET NOD32 в России не поставляется. На этом рынке — PRO32: российская линейка бывшего дистрибьютора ESET (ComNews, 19.06.2023)"
-nod32,pro32,successor,vendor,pro32,"ComNews, 19.06.2023; research 03, строка 2","ESET NOD32 в России не поставляется. На этом рынке — PRO32: российская линейка бывшего дистрибьютора ESET (ComNews, 19.06.2023)"
-нод32,pro32,successor,vendor,pro32,"ComNews, 19.06.2023; research 03, строка 2","ESET NOD32 в России не поставляется. На этом рынке — PRO32: российская линейка бывшего дистрибьютора ESET (ComNews, 19.06.2023)"
-abbyy,content ai,successor,vendor,contentai,"[Ф] имя вендора «Content AI (ООО «Контент ИИ», ранее ABBYY Россия)»; CNews: ContentReader PDF — замена ABBYY FineReader PDF; research 03, строка 3","ABBYY FineReader ушёл с российского рынка в 2022 году. На этом рынке — Content AI (ранее ABBYY Россия): ContentReader PDF, Lingvo"
-абби,content ai,successor,vendor,contentai,"[Ф] имя вендора Content AI; research 03, строка 3","ABBYY FineReader ушёл с российского рынка в 2022 году. На этом рынке — Content AI (ранее ABBYY Россия): ContentReader PDF, Lingvo"
-finereader,content ai,successor,vendor,contentai,"CNews: ContentReader PDF выпущен как замена ABBYY FineReader PDF; research 03, строка 3","ABBYY FineReader ушёл с российского рынка в 2022 году. На этом рынке — Content AI: ContentReader PDF"
-файнридер,content ai,successor,vendor,contentai,"CNews: ContentReader PDF — замена ABBYY FineReader PDF; research 03, строка 3","ABBYY FineReader ушёл с российского рынка в 2022 году. На этом рынке — Content AI: ContentReader PDF"
-abbyy finereader,content ai,successor,vendor,contentai,"CNews: ContentReader PDF — замена ABBYY FineReader PDF; research 03, строка 3","ABBYY FineReader ушёл с российского рынка в 2022 году. На этом рынке — Content AI: ContentReader PDF"
+eset,pro32,successor,vendor,pro32,"ComNews, 19.06.2023: PRO32 — бывший эксклюзивный дистрибьютор ESET в России, после ухода ESET выпустил свою линейку; research 03, строка 2","ESET в России не поставляется. На этом рынке — PRO32: российская линейка бывшего дистрибьютора ESET"
+есет,pro32,successor,vendor,pro32,"ComNews, 19.06.2023; research 03, строка 2","ESET в России не поставляется. На этом рынке — PRO32: российская линейка бывшего дистрибьютора ESET"
+eset nod32,pro32,successor,vendor,pro32,"ComNews, 19.06.2023; research 03, строка 2","ESET NOD32 в России не поставляется. На этом рынке — PRO32: российская линейка бывшего дистрибьютора ESET"
+nod32,pro32,successor,vendor,pro32,"ComNews, 19.06.2023; research 03, строка 2","ESET NOD32 в России не поставляется. На этом рынке — PRO32: российская линейка бывшего дистрибьютора ESET"
+нод32,pro32,successor,vendor,pro32,"ComNews, 19.06.2023; research 03, строка 2","ESET NOD32 в России не поставляется. На этом рынке — PRO32: российская линейка бывшего дистрибьютора ESET"
+abbyy,content ai,successor,vendor,contentai,"[Ф] имя вендора «Content AI (ООО «Контент ИИ», ранее ABBYY Россия)»; CNews: ContentReader PDF — замена ABBYY FineReader PDF; research 03, строка 3","ABBYY FineReader ушёл с российского рынка. На этом рынке — Content AI (ранее ABBYY Россия): ContentReader PDF, Lingvo"
+абби,content ai,successor,vendor,contentai,"[Ф] имя вендора Content AI; research 03, строка 3","ABBYY FineReader ушёл с российского рынка. На этом рынке — Content AI (ранее ABBYY Россия): ContentReader PDF, Lingvo"
+finereader,content ai,successor,vendor,contentai,"CNews: ContentReader PDF выпущен как замена ABBYY FineReader PDF; research 03, строка 3","ABBYY FineReader ушёл с российского рынка. На этом рынке — Content AI: ContentReader PDF"
+файнридер,content ai,successor,vendor,contentai,"CNews: ContentReader PDF — замена ABBYY FineReader PDF; research 03, строка 3","ABBYY FineReader ушёл с российского рынка. На этом рынке — Content AI: ContentReader PDF"
+abbyy finereader,content ai,successor,vendor,contentai,"CNews: ContentReader PDF — замена ABBYY FineReader PDF; research 03, строка 3","ABBYY FineReader ушёл с российского рынка. На этом рынке — Content AI: ContentReader PDF"
 acronis,кибер бэкап,successor,vendor,cyberprotect,"общее знание (бывш. «Акронис-Инфозащита»), источником не подтверждено — research 03, строка 33","Acronis в России не поставляется. На этом рынке — Киберпротект: Кибер Бэкап (связь по общему знанию, источником не подтверждена)"
 акронис,кибер бэкап,successor,vendor,cyberprotect,"общее знание, источником не подтверждено — research 03, строка 33","Acronis в России не поставляется. На этом рынке — Киберпротект: Кибер Бэкап (связь по общему знанию, источником не подтверждена)"
 сертификат,,drop,term,,"[Ф] «сертификат» в фиде — сертификат техподдержки и раздел «Цифровые сертификаты»; подстановка «сертифицирован» из mock уводила запрос",
@@ -110,3 +110,44 @@ any desk,anydesk,spelling,term,,"раздельное написание; resear
 рабочих станций,рабочая станция,jargon,term,,"форма «рабочие станции»; [Ф] те же позиции",
 тонкий клиент,десктоп,successor,category,70187,"[Ф] категория «Тонкие клиенты» в фиде пуста; ближайший класс — «Десктопы»","Тонких клиентов в каталоге сейчас нет — показаны настольные компьютеры"
 тонкие клиенты,десктоп,successor,category,70187,"[Ф] категория «Тонкие клиенты» в фиде пуста; ближайший класс — «Десктопы»","Тонких клиентов в каталоге сейчас нет — показаны настольные компьютеры"
+вебка,вебкамера,jargon,category,89623,"разговорное «веб-камера»; [Ф] категория «Вебкамеры»; без записи исправление опечаток давало «века»",
+вебку,вебкамера,jargon,category,89623,"разговорное «веб-камера»; [Ф] категория «Вебкамеры»; без записи исправление опечаток давало «века»",
+вебки,вебкамера,jargon,category,89623,"разговорное «веб-камера»; [Ф] категория «Вебкамеры»; без записи исправление опечаток давало «века»",
+вебкой,вебкамера,jargon,category,89623,"разговорное «веб-камера»; [Ф] категория «Вебкамеры»; без записи исправление опечаток давало «века»",
+вебок,вебкамера,jargon,category,89623,"разговорное «веб-камера»; [Ф] категория «Вебкамеры»; без записи исправление опечаток давало «века»",
+алд про,ald pro,spelling,term,,"кириллицей ALD Pro; [Ф] семейство «ALD Pro» (Группа Астра); без записи «алд про на 50 пользователей» уходило в Adobe Dimension Pro",
+алд,ald pro,spelling,term,,"кириллицей ALD Pro; [Ф] семейство «ALD Pro»",
+ворд,office word,jargon,term,,"разговорное Microsoft Word; [Ф] семейство «Microsoft Office Word 2021»; без записи — надстройки к Word",
+ворда,office word,jargon,term,,"форма «ворд»; [Ф] то же семейство",
+ворде,office word,jargon,term,,"форма «ворд»; [Ф] то же семейство",
+эксель,office excel,jargon,term,,"разговорное Microsoft Excel; [Ф] семейство «Microsoft Office Excel 2021»; без записи — надстройки к Excel",
+экселя,office excel,jargon,term,,"форма «эксель»; [Ф] то же семейство",
+excel,office excel,jargon,term,,"одно слово Excel — сам продукт; [Ф] семейство «Microsoft Office Excel 2021», а не надстройки",
+outlook,office outlook,jargon,term,,"одно слово Outlook — сам продукт; [Ф] семейство «Microsoft Office Outlook 2021»",
+аутлук,office outlook,jargon,term,,"кириллицей Outlook; [Ф] семейство «Microsoft Office Outlook 2021»",
+мой офис,мойофис,spelling,term,,"раздельное написание МойОфис; [Ф] семейства «МойОфис …» (вендор МойОфис); без записи «офис» уходил в Microsoft Office",
+винрар,winrar,spelling,term,,"кириллицей WinRAR; [Ф] семейство «Архиватор WinRAR 7»",
+рар,winrar,jargon,term,,"разговорное WinRAR; [Ф] семейство «Архиватор WinRAR 7»; без записи — RAR Repair",
+постгрес,postgres pro,jargon,term,,"разговорное PostgreSQL; [Ф] семейства «Postgres Pro Standard», «Postgres Pro Enterprise»",
+постгресс,postgres pro,jargon,term,,"то же; [Ф] те же семейства",
+автокад,autocad,spelling,term,,"кириллицей AutoCAD; [Ф] семейство «Autodesk AutoCAD»",
+акад,autocad,jargon,term,,"разговорное AutoCAD; [Ф] семейство «Autodesk AutoCAD»",
+фаервол,межсетевой экран,jargon,category,233731,"firewall; [Ф] категория «Межсетевые экраны»",
+файервол,межсетевой экран,jargon,category,233731,"firewall; [Ф] категория «Межсетевые экраны»",
+файрвол,межсетевой экран,jargon,category,233731,"firewall; [Ф] категория «Межсетевые экраны»",
+впн,vpn,spelling,term,,"кириллицей VPN; [Ф] семейства с VPN в названии",
+моник,монитор,jargon,category,80843,"разговорное «монитор»; [Ф] категория «Мониторы»",
+моники,монитор,jargon,category,80843,"форма «моник»; [Ф] категория «Мониторы»",
+вирусня,антивирус,jargon,category,650|3775,"разговорное; [Ф] категории «Антивирусы для организаций», «Антивирусы для дома»",
+пдф редактор,pdf editor,spelling,term,,"кириллицей PDF; [Ф] семейства PDF-редакторов (Master PDF Editor, ContentReader PDF)",
+редактор пдф,pdf editor,spelling,term,,"то же",
+пдф,pdf,spelling,term,,"кириллицей PDF; [Ф] семейства с PDF в названии",
+kiber bekap,кибер бэкап,spelling,term,,"латиницей «Кибер Бэкап»; [Ф] семейства «Кибер Бэкап …»",
+kiber backup,кибер бэкап,spelling,term,,"латиницей; [Ф] те же семейства",
+maks patrol,maxpatrol,spelling,term,,"латиницей MaxPatrol; [Ф] семейства «MaxPatrol …»",
+max patrol,maxpatrol,spelling,term,,"раздельно MaxPatrol; [Ф] те же семейства",
+max patrl,maxpatrol,spelling,term,,"опечатка MaxPatrol (без записи — SWiSH Max); [Ф] те же семейства",
+eni desk,anydesk,spelling,term,,"латиницей «эни деск»; [Ф] семейство AnyDesk",
+эни деск,anydesk,spelling,term,,"раздельно «энидеск»; [Ф] семейство AnyDesk",
+mts lynk,мтс линк,spelling,vendor,webinar,"опечатка MTS Link (без записи — байпас Powercom MTS); [Ф] вендор МТС Линк",
+astra lunix,astra linux,spelling,term,,"опечатка Astra Linux; [Ф] семейства Astra Linux",

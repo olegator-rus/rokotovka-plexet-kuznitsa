@@ -392,7 +392,7 @@ func fixLayoutWith(tokens []string, lx *searchLexicon, rules *searchRules, res *
 			continue
 		}
 		candidates++
-		if !knownWord(t, lx, rules) && knownWord(to, lx, rules) {
+		if (!knownWord(t, lx, rules) || layoutLetterPunct(t)) && !layoutPunct(t, to) && knownWord(to, lx, rules) {
 			conv[i] = to
 			switched++
 		}
@@ -402,7 +402,7 @@ func fixLayoutWith(tokens []string, lx *searchLexicon, rules *searchRules, res *
 			if conv[i] != "" || knownWord(t, lx, rules) {
 				continue
 			}
-			if to, ok := switchLayout(t); ok && !hasDigit(t) {
+			if to, ok := switchLayout(t); ok && !hasDigit(t) && !layoutPunct(t, to) {
 				conv[i] = to
 			}
 		}
@@ -417,6 +417,32 @@ func fixLayoutWith(tokens []string, lx *searchLexicon, rules *searchRules, res *
 		tokens[i] = to
 	}
 	return tokens
+}
+
+// layoutLetterPunct — в латинском слове знак, который в русской раскладке — буква («dt,» — «веб»): known по
+// wordsOf («dt») такое слово не делает латинским.
+func layoutLetterPunct(t string) bool {
+	core := strings.Trim(t, ",.;'[]")
+	if core == "" || strings.IndexFunc(core, func(r rune) bool { return (r < 'a' || r > 'z') && !strings.ContainsRune(",.;'[]", r) }) >= 0 {
+		return false
+	}
+	return strings.ContainsAny(t, ",;'[]") || strings.HasSuffix(t, ".")
+}
+
+// layoutPunct — перевод раскладки превратил букву в знак: «бэкаб» → «,"rf,», «веб» → «d",». Клавиши б, ю, ж, э, х, ъ
+// в латинской раскладке — знаки препинания; такое слово не латинское, а опечатка в кириллице (knownWord по
+// wordsOf без знаков приняло бы «rf»).
+func layoutPunct(from, to string) bool {
+	f, t := []rune(from), []rune(to)
+	if len(f) != len(t) {
+		return true
+	}
+	for i := range t {
+		if unicode.IsLetter(f[i]) && !unicode.IsLetter(t[i]) && !unicode.IsDigit(t[i]) {
+			return true
+		}
+	}
+	return false
 }
 
 func hasDigit(t string) bool {

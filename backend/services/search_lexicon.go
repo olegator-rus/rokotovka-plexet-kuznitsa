@@ -37,6 +37,8 @@ type searchLexicon struct {
 	categoryName  map[string]string
 	// categoryRoot — категория → корневая категория.
 	categoryRoot map[string]string
+	// categoryParent — категория → родительская ("" у корня).
+	categoryParent map[string]string
 	// substitutes — семейство → его аналоги из relations (substitute), в обе стороны.
 	substitutes map[string][]string
 	// substituteOf — то же только в направлении связи: продукт → его замена (AutoCAD → КОМПАС-3D).
@@ -136,8 +138,8 @@ func newSearchLexicon(s *domain.CatalogSnapshot) *searchLexicon {
 		families: map[string][]string{}, familyName: map[string]string{}, familyVendor: map[string]string{},
 		familyCat: map[string]string{}, familyWords: map[string]map[string]bool{}, idf: map[string]float64{},
 		vendorName: map[string]string{}, vendorPhrases: map[string]string{}, categoryName: map[string]string{},
-		categoryRoot: map[string]string{},
-		substitutes:  map[string][]string{}, substituteOf: map[string][]string{}, complements: map[string][]familyLink{}, renewals: map[string][]string{}, baseAliases: s.Aliases,
+		categoryRoot: map[string]string{}, categoryParent: map[string]string{},
+		substitutes: map[string][]string{}, substituteOf: map[string][]string{}, complements: map[string][]familyLink{}, renewals: map[string][]string{}, baseAliases: s.Aliases,
 	}
 	addCore := func(text string) {
 		for _, w := range wordsOf(text) {
@@ -158,6 +160,9 @@ func newSearchLexicon(s *domain.CatalogSnapshot) *searchLexicon {
 	for _, c := range s.Categories {
 		cats[c.ID] = c
 		lx.categoryName[c.ID] = c.Name
+		if c.ParentID != nil {
+			lx.categoryParent[c.ID] = *c.ParentID
+		}
 		addCore(c.Name)
 		catWords = append(catWords, wordsOf(c.Name)...)
 	}

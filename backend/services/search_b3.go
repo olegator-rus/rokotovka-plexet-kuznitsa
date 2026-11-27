@@ -400,7 +400,20 @@ func (s *Services) searchB3(ctx context.Context, requestID string, req in.Search
 			if rc.attrs.metric != "" {
 				rc.attrs.metricPref, rc.attrs.metric = rc.attrs.metric, ""
 			}
-			for _, f := range classAnalogs(lx, ent.reference, ent.families, ent.entityTokens) {
+			cands := classAnalogs(lx, ent.reference, ent.families, ent.entityTokens)
+			if len(cands) > classWideMax {
+				// Широкий класс («Интернет и Сеть» у СКАНЕР-ВС — сотни семейств): только найденное поиском.
+				var found []string
+				for _, f := range cands {
+					if byFamily[f] > 0 {
+						found = append(found, f)
+					}
+				}
+				if len(found) >= ladderMin {
+					cands = found
+				}
+			}
+			for _, f := range cands {
 				addFamily(f, max(byFamily[f], classAnalogRel), domain.GroupAnalog)
 			}
 		}

@@ -1,6 +1,7 @@
 package services
 
 import (
+	"slices"
 	"strings"
 
 	"kuznica/api/domain"
@@ -79,6 +80,11 @@ func (rc rankCtx) headLess(a, b indexDoc) (less, ok bool) {
 	if ba, bb := buyable(a), buyable(b); ba != bb {
 		return ba, true
 	}
+	// Сборка под отдельную платформу («на базе п/а Эльбрус», «для Байкал-М», ARM) — головой, только если
+	// платформу назвали: «астра линукс» — это x86-64, а не редакция для Эльбруса.
+	if pa, pb := rc.otherPlatform(a.Title), rc.otherPlatform(b.Title); pa != pb {
+		return pb, true
+	}
 	// Носитель дистрибутива («Certified media Pack») — не лицензия: головой семейства, только если другого нет.
 	if ma, mb := mediaName(a.Title), mediaName(b.Title); ma != mb {
 		return mb, true
@@ -108,4 +114,38 @@ func (lx *searchLexicon) kindOf(d indexDoc) string {
 		}
 	}
 	return d.LicenseKind
+}
+
+// platformStems — начала слов названия позиции, по которым это сборка под отдельную аппаратную платформу.
+var platformStems = []string{"эльбрус", "elbrus", "байкал", "baikal", "aarch64", "комдив", "мцст"}
+
+// platformWords — короткие названия платформ: только целым словом («arm», а не «armor»).
+var platformWords = setOf("arm", "arm64", "armv8", "risc-v", "riscv", "мцст")
+
+// otherPlatform — позиция собрана под платформу, которой в запросе нет.
+func (rc rankCtx) otherPlatform(title string) bool {
+	for _, w := range wordsOf(title) {
+		if platformWords[w] {
+			for _, t := range rc.ent.textTokens {
+				if slices.Contains(wordsOf(t), w) {
+					return false
+				}
+			}
+			return true
+		}
+		for _, st := range platformStems {
+			if !strings.HasPrefix(w, st) {
+				continue
+			}
+			for _, t := range rc.ent.textTokens {
+				for _, q := range wordsOf(t) {
+					if strings.HasPrefix(q, st) || strings.HasPrefix(st, q) && len([]rune(q)) >= 4 {
+						return false
+					}
+				}
+			}
+			return true
+		}
+	}
+	return false
 }

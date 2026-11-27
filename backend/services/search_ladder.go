@@ -353,6 +353,19 @@ func alternatives(rc rankCtx, items []out.SearchItem, shown map[string]bool) []o
 // затем из их разделов, затем из всего каталога (по одному на категорию). Порядок — популярность, затем порядок
 // каталога; число офферов семейства популярностью не считается.
 func fallback(rc rankCtx, items []out.SearchItem, shown map[string]bool, need int) []out.SearchItem {
+	if rc.attrs.analog && len(rc.ent.reference) > 0 {
+		// Просили замену: сам продукт и его вендор в «Популярном» не появляются («аналог microsoft office» —
+		// не Microsoft 365).
+		refVendors := map[string]bool{}
+		for _, r := range rc.ent.reference {
+			refVendors[rc.lx.familyVendor[r]] = true
+		}
+		for _, f := range rc.lx.familyOrder {
+			if refVendors[rc.lx.familyVendor[f]] {
+				shown[f] = true
+			}
+		}
+	}
 	cats, roots := map[string]bool{}, map[string]bool{}
 	for _, it := range items {
 		if d, ok := rc.lx.docs[it.ProductID]; ok {

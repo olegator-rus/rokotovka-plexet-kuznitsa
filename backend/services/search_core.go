@@ -118,7 +118,10 @@ type queryEntities struct {
 	// остальных семейств того же вендора (rank.go tierOf).
 	named     []string
 	reference []string
-	category  string
+	// referenceByVendor — референс аналога — линейка названного вендора («аналог anydesk», «замена microsoft office»),
+	// а не одно семейство: класс берётся по основной категории вендора.
+	referenceByVendor bool
+	category          string
 	// categoryByWords — категория найдена по словам названия категории или назначения («чертежи»), а не
 	// алиасом: маршрут она не меняет (иначе запрос назначения уходит с маршрута C без реранкера).
 	categoryByWords bool
@@ -274,14 +277,15 @@ func findEntities(nr normResult, attrs queryAttrs, lx *searchLexicon, rules *sea
 	}
 	if attrs.analog {
 		e.reference = lx.bestCovered(e.families, entityTokens)
+		if len(e.reference) > 0 && len(e.vendors) > 0 && lx.familyCoverage(e.reference[0], entityTokens) < namedCoverageMin {
+			// «аналог касперского»: продукт не назван, совпало только имя вендора — референс — его основной класс.
+			e.reference = nil
+		}
 		if len(e.reference) == 0 {
 			for _, v := range e.vendors {
-				for _, f := range lx.familyOrder {
-					if lx.familyVendor[f] == v {
-						e.reference = append(e.reference, f)
-					}
-				}
+				e.reference = append(e.reference, lx.vendorClassFamilies(v, e.category)...)
 			}
+			e.referenceByVendor = len(e.reference) > 0
 		}
 	}
 	e.markHowTo(nr.tokens, attrs)
@@ -492,7 +496,9 @@ func rulesGuess(attrs queryAttrs, ent queryEntities) domain.Intent {
 
 // mergeParsed — разбор маршрута D поверх правил: модель дополняет, явно извлечённое правилами остаётся.
 func mergeParsed(in domain.Intent, attrs *queryAttrs, ent *queryEntities, lx *searchLexicon) {
-	if in.Kind == domain.IntentFindAlternative {
+	// «сравнить kes стандартный и расширенный»: модель видит две редакции и отвечает «найти замену» — без слова
+	// замены в запросе просьба сравнить остаётся сравнением.
+	if in.Kind == domain.IntentFindAlternative && (attrs.analog || !queryCompares(ent.textTokens)) {
 		attrs.analog = true
 	}
 	if in.Kind == domain.IntentRenewal {

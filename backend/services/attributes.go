@@ -256,6 +256,9 @@ func quantityLabel(q int, metric string) string {
 	return fmt.Sprintf("%d %s", q, plural(q, [3]string{"лицензия", "лицензии", "лицензий"}))
 }
 
+// maxAnalogChips — сколько чипов «Аналог …» показывать.
+const maxAnalogChips = 3
+
 // chips — чипы «Мы поняли запрос так» и атрибуты для трассы. strict — условие учтено строго.
 func (a queryAttrs) chips(ent queryEntities, lx *searchLexicon) ([]out.Chip, []domain.FoundAttribute) {
 	chips := []out.Chip{}
@@ -265,7 +268,11 @@ func (a queryAttrs) chips(ent queryEntities, lx *searchLexicon) ([]out.Chip, []d
 		found = append(found, domain.FoundAttribute{Field: field, Value: value, Strict: strict, Source: domain.ParseRules})
 	}
 	if a.analog {
-		for _, f := range ent.reference {
+		// Линейка вендора («аналог microsoft office») — не 150 чипов: три первых семейства.
+		for i, f := range ent.reference {
+			if i == maxAnalogChips {
+				break
+			}
 			add(fieldAnalogOf, f, "Аналог "+lx.familyName[f], true)
 		}
 	}

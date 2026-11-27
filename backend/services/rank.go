@@ -509,16 +509,21 @@ func (rc rankCtx) dropQuantityMisfits(fams []*familyHit, rejected *[]domain.Reje
 	strictOK := func(d indexDoc) bool {
 		return quantityOK(d, a.quantity) && (a.metric == "" || d.LicenseMetric == nil || *d.LicenseMetric == a.metric || isPerUnit(d))
 	}
+	// Названный продукт не уходит в отказы по количеству («алд про на 50 пользователей»: у ALD Pro в фиде числа мест
+	// нет или стоит 1 без метрики) — иначе первым становится чужое «… Pro» поштучно. Условие показывается неучтённым.
+	keep := func(fh *familyHit) bool {
+		return strictOK(fh.head) || contains(rc.ent.named, fh.id)
+	}
 	some := false
 	for _, fh := range fams {
-		some = some || strictOK(fh.head)
+		some = some || keep(fh)
 	}
 	if !some {
 		return fams
 	}
 	out := fams[:0]
 	for _, fh := range fams {
-		if strictOK(fh.head) {
+		if keep(fh) {
 			out = append(out, fh)
 			continue
 		}

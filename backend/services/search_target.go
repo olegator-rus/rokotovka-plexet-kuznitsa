@@ -1,6 +1,7 @@
 package services
 
 import (
+	"regexp"
 	"slices"
 	"strings"
 	"unicode"
@@ -258,7 +259,7 @@ func (rc rankCtx) categoryQuery(words []string, cat string) bool {
 // каждая из них. Первое по выдаче семейство этого вендора с таким словом — цель: «PRO32 … Advanced» на первом месте
 // выдачи ответом на сравнение редакций Kaspersky не становится. nil — запрос не о различиях или таких слов меньше двух.
 func (rc rankCtx) editionCompare(words []string, fams []*familyHit) *familyHit {
-	if len(fams) < 2 || !asksCompare(strings.Join(rc.ent.textTokens, " ")) {
+	if len(fams) < 2 || !queryCompares(rc.ent.textTokens) {
 		return nil
 	}
 	type hit struct {
@@ -303,6 +304,14 @@ func (rc rankCtx) editionCompare(words []string, fams []*familyHit) *familyHit {
 		}
 	}
 	return nil
+}
+
+// reCompare — слова просьбы сравнить («чем … отличается», «разница», «сравнить», «что лучше»).
+var reCompare = regexp.MustCompile(`(^|\s)(чем\s.*отлича|отлича|разниц|сравн|что\s+лучше)`)
+
+// queryCompares — запрос просит сравнить продукты или редакции, а не найти замену.
+func queryCompares(tokens []string) bool {
+	return reCompare.MatchString(strings.Join(tokens, " "))
 }
 
 // analogClass — категория названного продукта (первого референса), иначе категория запроса; "" — нет.

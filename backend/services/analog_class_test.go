@@ -150,3 +150,64 @@ func TestClassAnalogQuery(t *testing.T) {
 		t.Fatalf("запрос реранкера: %q", got)
 	}
 }
+
+// Класс аналогов вендора и соседние «(Импортозамещение)»: «аналог anydesk» — российские решения удалённого доступа,
+// «аналог vmware» — российская виртуализация, но не СУБД из того же раздела.
+func remoteSnapshot() *domain.CatalogSnapshot {
+	b := domain.LicenseKindBase
+	s := p6snapshot([]p6offer{
+		{id: "ad", fam: "f-ad", famName: "AnyDesk", vendor: "kaspersky", cat: "rem", title: "AnyDesk Solo", kind: b, price: 37000},
+		{id: "ad2", fam: "f-ad2", famName: "AnyDesk Ultimate", vendor: "kaspersky", cat: "rem", title: "AnyDesk Ultimate", kind: b, price: 90000},
+		{id: "ad3", fam: "f-ad3", famName: "AnyDesk Gaming", vendor: "kaspersky", cat: "comm", title: "AnyDesk Gaming", kind: b, price: 1000},
+		{id: "ru", fam: "f-ru", famName: "RuDesktop", vendor: "astralinux", cat: "remru", title: "RuDesktop облачная", kind: b, price: 14000},
+		{id: "vm", fam: "f-vm", famName: "VMmanager", vendor: "inferit", cat: "virtru", title: "VMmanager 6", kind: b, price: 250000},
+		{id: "db", fam: "f-db", famName: "Ред База Данных", vendor: "depo", cat: "dbru", title: "Ред База Данных", kind: b, price: 115000},
+	})
+	srv := "srvroot"
+	s.Categories = append(s.Categories,
+		domain.Category{ID: "rem", Name: "Другие решения удаленного доступа", ParentID: &srv},
+		domain.Category{ID: "remru", Name: "Российские решения удаленного доступа (Импортозамещение)", ParentID: &srv},
+		domain.Category{ID: srv, Name: "Серверное ПО"},
+		domain.Category{ID: "virt", Name: "Программы для виртуализации", ParentID: &srv},
+		domain.Category{ID: "virtru", Name: "Российская виртуализация (Импортозамещение)", ParentID: &srv},
+		domain.Category{ID: "dbru", Name: "Системы управления базами данных (Импортозамещение)", ParentID: &srv},
+	)
+	return s
+}
+
+func TestVendorClassAndImportSiblings(t *testing.T) {
+	lx := newSearchLexicon(remoteSnapshot())
+	if got := lx.vendorClassFamilies("kaspersky", ""); !slices.Equal(got, []string{"f-ad", "f-ad2"}) {
+		t.Errorf("основной класс вендора: %v", got)
+	}
+	if got := lx.importSubstituteSiblings("rem"); !slices.Equal(got, []string{"remru"}) {
+		t.Errorf("соседи «удалённого доступа»: %v", got)
+	}
+	if got := lx.importSubstituteSiblings("virt"); !slices.Equal(got, []string{"virtru"}) {
+		t.Errorf("соседи виртуализации (без СУБД): %v", got)
+	}
+	got := classAnalogs(lx, []string{"f-ad", "f-ad2"}, nil, []string{"anydesk"})
+	if !slices.Equal(got, []string{"f-ru"}) {
+		t.Errorf("аналоги AnyDesk: %v", got)
+	}
+	ent := queryEntities{reference: []string{"f-ad"}, entityTokens: []string{"anydesk"}}
+	if !confidentReference(lx, ent) {
+		t.Error("«AnyDesk» назван — название продукта совпадает с его словом")
+	}
+	ent.category = "av"
+	if confidentReference(lx, ent) {
+		t.Error("референс из другого раздела, чем категория запроса, — не уверенный")
+	}
+}
+
+// «Популярное в наличии» под просьбой о замене не показывает сам продукт и его вендора.
+func TestFallbackExcludesReferenceVendor(t *testing.T) {
+	lx := newSearchLexicon(remoteSnapshot())
+	rc := p6rc(lx)
+	rc.attrs.analog, rc.ent.reference = true, []string{"f-ad"}
+	for _, it := range fallback(rc, nil, map[string]bool{}, 4) {
+		if lx.familyVendor[it.FamilyID] == "kaspersky" {
+			t.Errorf("в «Популярном» вендор исходного продукта: %s", it.Title)
+		}
+	}
+}
