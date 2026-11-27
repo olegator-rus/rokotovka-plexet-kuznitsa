@@ -1,53 +1,90 @@
 # Матрица требований
 
-Требование трека «Аналитик данных» (задача «Умный поиск на сайте») → функция → сценарий защиты S1–S6 → чем проверено → статус. Подробности по требованиям заказчика —
-[REQUIREMENTS.md](REQUIREMENTS.md), методика и числа — [EVALUATION.md](EVALUATION.md). Числа — mock-данные.
+Требования ТЗ трека «Аналитик данных», задача «Умный поиск на сайте»: десять пунктов, нумерация — по разбору ТЗ.
+ Ниже — три уточнения заказчика с кикоффа и
+режим подбора, который заказчик назвал гипотезой. Каталог везде — фид магазина (136 040 офферов).
 
-Статусы: **работает** — есть в коде и проверено тестом или прогоном; **частично** — работает с оговоркой из
-колонки «проверка»; **в работе** — задача контура доводки идёт сейчас (номер волны); **нет** — не сделано.
-«Другие действия агента» из ТЗ организаторов ещё не известны.
+Для каждого требования указаны код (файл и функция), автотест и доказательство: экран, отчёт оценки с числами и
+команда воспроизведения. Все файлы, функции и тесты сверены с кодом. Go-тесты из таблиц (`./services` и
+`./externalApi/catalogsource`) прогнаны и прошли. Сквозные тесты и скрипты оценки при сверке не запускались:
+их итоги взяты из сохранённых отчётов.
 
-## Требования к поиску и агенту
+Статусы:
+- **полное** — есть код, автотест и воспроизводимое доказательство: отчёт с числами или проверка данных тестом;
+- **без отчёта** — код и тесты есть, работу видно на экране и можно перепроверить командой, но сохранённого отчёта
+  с числом качества нет;
+- **частично** — часть требования данными заказчика не закрывается (причина в строке).
 
-| # | Требование | Функция | Сценарий | Проверка | Статус |
+## Как запускать проверки
+
+| Что | Команда | Что нужно |
+| --- | --- | --- |
+| Go-тесты | `cd backend && go test ./services -count=1 -run '<имя теста>'` | ничего, кроме Go |
+| Тесты загрузчиков данных фида | `cd backend && go test ./externalApi/catalogsource -count=1 -run '<имя>'` | файлы `data/softline/*.csv` |
+| Тесты фронта | `cd frontend && pnpm test` | Node 22, pnpm |
+| Сквозные тесты | `cd e2e && pnpm exec playwright test tests/<файл>.spec.ts --project=flows` | API на фиде на :8088, эмбеддер на :8089, Vite (см. README) |
+| Оценка «по цели» | `cd backend && DATA_SOURCE=generic DATA_MAPPING=../data/softline/mapping.yaml go run . eval --set etalon,tz,neighbors,understanding --configs live` (холодный прогон и сравнение с базовыми вариантами: `--cold --configs BM25,B1,B2,live`; отчёт: `--report <каталог>`) | Postgres, OpenSearch, импортированный фид, эмбеддер |
+| Оценка подбора | `cd backend && DATA_SOURCE=generic DATA_MAPPING=../data/softline/mapping.yaml go run . guide-eval --runs 3 --report <файл>` | то же и ключ модели |
+| Скрипты оценки через HTTP | `API=http://127.0.0.1:8088 python3 scripts/eval/<скрипт>.py` | работающий API на фиде |
+
+Наборы «по цели» лежат в репозитории (`data/softline/eval/`). Отчёты прогонов — в
+`data/softline/eval/results/`; те же числа показывает экран «Доказательства → На данных заказчика» (`/proofs?tab=feed`): он читает прогоны
+`go run . eval` из базы.
+
+### На каких наборах получены числа
+
+| Набор | Размер | Что это | Оговорка |
+| --- | --- | --- | --- |
+| `etalon` | 10 | эталоны заказчика: запрос → целевой URL | открытый, команда его видела |
+| `tz` | 7 | примеры из ТЗ: «сервер», «антивирь», «офис», «винда», «астра линукс», «мдаемон», «Astra Linux» | цели — наша гипотеза (категория, семейство или вендор) |
+| `neighbors` | 114 | «соседи» эталонов: девять вендоров, разные формулировки (контур эталонов) | набор настройки |
+| `understanding` | 64 | контрольный набор понимания: жаргон, написание, транслит, раскладка, опечатки, коды, категории | набор настройки, проверяются первые N карточек |
+| пары склонений | 35 пар | именительный падеж ↔ словоформа, по 3–4 на вендора и формы ТЗ | набор настройки |
+| | 9 | продление Kaspersky на 100 узлов, Windows Server «по запросу», сравнение цены за место | набор настройки |
+| диалоги подбора | 48 × 3 прогона | 36 по вендорам эталонов и 12 отрицательных | набор настройки |
+| закрытая часть | 83 | новые формулировки, команда настройки их не видела | прогоняется один раз при заморозке функций; итог — в `data/softline/eval/results/REPORT.md` и на экране |
+
+Сто процентов на наборах настройки не означают обобщения. Независимую оценку даёт закрытая часть.
+
+## Требования ТЗ
+
+| № | Требование | Где в коде | Тест | Доказательство | Статус |
 | --- | --- | --- | --- | --- | --- |
-| 1 | Понимать смысл: синонимы, опечатки, сленг, аббревиатуры | Нормализация (раскладка, опечатки, алиасы), разбор намерения на маршруте D, чипы «Мы поняли запрос так» | S2, S3 | test, B3: опечатки NDCG@10 0,991, раскладка 1,000, сленг 0,991; алиасы из прогона витрины («др веб», «ворд», «винда», «1c») — в словаре; набор витрины 31 из 31 (`make eval SET=showcase`) | работает |
-| 2 | Релевантное без точного совпадения | Гибрид BM25 + векторы + RRF, порог релевантности, честное «нет в каталоге» | S3 | Пустые B0 83,1 % → B3 7,4 %; NDCG@10 0,166 → 0,892; ложное спасение B2 100 % → B3 16,7 % | работает |
-| 3 | Учитывать контекст: категорию, сегмент, историю клиента | Переключатель клиента, слагаемое `context`, продление купленного, тип организации | S2 | Продления на test NDCG@10 0,863 (B3) против 0,516 (B1); тип покупки, организации и редакция из запроса — правилами | работает |
-| 4 | Ранжировать по релевантности, популярности, марже | Бизнес-слой `0,80·rel + 0,10·pop + 0,05·margin + 0,05·context`, рычаг маржи с защитами | S1 (точный не двигается) | Рычаг на tune: ни одно положение не сменило 1-е место точного запроса; маржа в данных синтетическая; отдельный вклад бизнес-слоя в метрики не измерялся | частично |
-| 5 | Подсказки: автодополнение, опечатки, связанные запросы | Панель поиска: подсказки, бейджи, товары на ввод без LLM | S1 | Панель: товары Success@5 92,4 %, MRR@5 0,810; `/suggest` p95 6,6 мс в одном потоке (нагрузочный замер) | работает |
-| 6 | Анализ неудачных поисков: что ищут, чего нет | Агент SearchOps: 7 причин с владельцами, задачи владельцам, пробный прогон | S4 | Живые запуски агента; запуск на одном запросе, смена гипотезы, режим «только чтение» — тесты `TestP5QueryRun`, `TestP5ReadOnly`, `TestAgentLoopHypothesisRevision` | работает |
-| 7 | Логировать действия и показывать аналитику | Журналы поиска, трасс, событий, вызовов модели; «Запросы без ответа» | S4, S5 | `search_events`, `search_traces`, `behavior_events`, `llm_usage`; трасса каждого запроса | работает |
+| 1 | Понимать смысл: «сервер» — оборудование, а не ПО со словом «сервер» в названии | `backend/services/search_understanding.go`: `findCategoryIntent`, `nounStem`, `headScore`, `intentRefinements`. `search_target.go`: `selectTarget`, `categoryTarget`. Сложные запросы: маршрут D, `intent_context.go` `promptFor` (срез справочника в промпт `backend/prompts/intent.md`), сверка ответа модели с каталогом | `TestCategoryIntent`, `TestServerWordIsHardwareWithoutSoftware`, `TestCategoryQualifierAloneIsNotCategory`, `TestP6TargetCategoryForGenericWord`, `TestIntentValidateOutsideSlice`; скрипт `scripts/eval/understanding_eval.py` | Экран: `/search?q=сервер`: цель «категория», карточки из «Rack-серверов», уточнение «Серверное ПО» чипом. Отчёт `data/softline/eval/results/REPORT.md`: набор `understanding`, полный продукт — 64/64, BM25 без улучшений — 31/64; набор `tz` — Success@1 7/7 против 2/7 у BM25. `data/softline/eval/results/understanding-p63.json`: категории 7/7, пары «сервер» / «ПО для сервера» 3/3 | полное |
+| 2 | Жаргон: «антивирь», «офис», «винда» | Словарь `data/softline/lexicon.csv` (тип `jargon`). `search_understanding.go`: `applyLexicon`, `LoadLexicon`. `search_normalize.go`: `applyAliases`, `placeWord` («офис» после «в», «для» — место, а не офисный пакет). Загрузчик `externalApi/catalogsource/lexicon.go` | `TestApplyLexicon`, `TestOfficeAsPlace`, `TestSuccessorAndAliasReplacement`; `TestReadLexicon`, `TestSoftlineLexiconFile` (catalogsource) | Экран: `/search?q=антивирь`, `/search?q=винда`. `understanding-p63.json`: жаргон 6/6. Набор `tz` (в нём все три слова ТЗ): Success@1 7/7, ≥4 семейств 7/7 (`REPORT.md`) | полное |
+| 3 | Опечатки и транслит: «астра линукс», «мдаемон» | `search_normalize.go`: `normalizeQuery`, `fixTypo`, `switchLayout`, `fixHomoglyphs`, `splitGlued`. `search_understanding.go`: `typoByContext`, `joinSplitNames`. Словарь `lexicon.csv` (тип `spelling`) | `TestNormalizeQuery`, `TestNumbersCodesAndJoins`, `TestP7TargetVersionWordsAndConcat` | Экран: `/search?q=мдаемон`. `understanding-p63.json`: написание 12/12, опечатки 2/2, раскладка 2/2. `data/softline/eval/results/neighbors-after.md` (114 соседей): транслит 15/15, написание 23/23, опечатка 4/4, раскладка 3/3 строго по цели; до правок было 9/15, 11/23, 3/4, 2/3 | полное |
+| 4 | Словарь с опорой на проверенные источники | У каждой записи `lexicon.csv` есть тип связи (`jargon`, `spelling`, `rebrand`, `successor`, `drop`) и графа `basis`: строка таблицы исследования, страница вендора, ТЗ, проверка по фиду. Ребрендинги из слагов фида — `data/softline/vendor_aliases.csv` (тоже с основанием). Чтение — `externalApi/catalogsource/lexicon.go` `ReadLexicon`: запись без основания — ошибка загрузки | `TestReadLexiconRejects` (запись без основания отклоняется), `TestSoftlineLexiconFile`; `TestSuccessorAndAliasReplacement` (преемник — аналог с пояснением, а не подстановка) | Сам файл `data/softline/lexicon.csv`, графа `basis`. Если основание пустое, API не загрузит словарь. Работа словаря — строки 2 и 3 | полное. Основания разного веса: от ссылки на вендора до «ТЗ». Преемник без подтверждения источником помечен в `note` |
+| 5 | Рекомендации на основе каталога и сайтов вендоров | `backend/services/upsell_feed.go`: `licenseKindCands` (тип лицензии того же семейства из фида), `compatCands` (документ совместимости), `applyPromos`. `upsell_classes.go`: `assembleByClass`. Данные: `data/softline/compat_docs.csv` (документ вендора, номер, ссылка, уровень A/C), `upsell_links.csv`. В ответе — `companions[].evidence {level, kind, title, url, doc_number}` | `TestUpsellCompatDocLevels`, `TestUpsellLicenseKindChecksEdition`, `TestUpsellLicenseKindVersionAndPlatform`, `TestUpsellAnchorNeedsNamedTarget`; `TestReadCompatDocs`, `TestReadCompatDocsRejectsUnfounded` (catalogsource); e2e `p6-scenarios.spec.ts` — «S2 · 1440 / 360: «астра линукс» — цель, акция, «Дополните решение» с основанием A/B» | Экран: `/search?q=астра линукс`, блок «Дополните решение». У карточки подпись основания: «документ вендора» со ссылкой, «из каталога: тип лицензии» или «по логике класса». Точность блока на фиде не размечалась, отчёта с числом нет | без отчёта |
+| 6 | По «Astra Linux»: блок сопутствующего, акция, альтернатива | Сопутствующее — строка 5 и `upsell_classes.go` (класс «ОС» → техподдержка, антивирус, СКЗИ, бэкап). Акция — `upsell_feed.go` `promosFor`, `applyPromos`, данные `data/softline/promos.csv` (акции раздела магазина, срок проверяется, в интерфейс не выводится). Альтернатива — `search_ladder.go` `alternatives` и `search_alternatives.go` `purposeAlternatives`: «Можно купить сейчас», когда найденное только по запросу | `TestUpsellByClassAstra`, `TestUpsellPromos`, `TestP6LadderAlternativeWhenOnlyOnRequest`, `TestP63AlternativesSameClassAndPurpose`; e2e `p6-scenarios.spec.ts`: тест S2 на 1440 и 360 px | Экран: `/search?q=астра линукс`: цель — семейство Astra Linux Special Edition, бейдж скидки, строка «Акция: …», блок «Дополните решение». Эталон «astra linux» — Success@1 в наборе `etalon` 10/10 (`REPORT.md`). Astra в наличии, поэтому альтернатива показана на запросе, где найденное только по запросу: `/search?q=windows server`. `data/softline/eval/results/p63-after.json`: 9/9, до правок 4/9 | полное. Качество подбора сопутствующего на фиде не размечалось |
+| 7 | Показать более выгодную цену или акцию | Цена и скидка карточки — `search_ladder.go` `cardOf`, `itemPrice` (бейдж «Скидка N%» по `oldprice` фида); `upsell_classes.go` `discountBadge`. Акции — `upsell_feed.go` `applyPromos`. Сравнение цены за место между редакциями одной линейки при одинаковых условиях — `search_comparison.go` `priceComparison`. Поля фида — `externalApi/catalogsource/generic_feed.go` `feedFields` | `TestP6CardPriceAndDiscount`, `TestUpsellDiscountFromVariants`, `TestUpsellClassPromoLiftsAndExpires`, `TestP63PriceComparisonOnePairSameConditions`; `TestGenericFeedFields`, `TestReadPromos` (catalogsource); e2e `p6-scenarios.spec.ts` — «S3 · 1440 / 360: продление на 100 пк — строка сравнения и итог «за узел × 100»», «Dr.Web: акция «Акция: −50% …» со ссылкой «условия» отдельно от бейджа скидки» | Экран: `/search?q=продлить касперский на 100 пк на 2 года` — строка «При этих условиях … на N% дешевле … за узел». `data/softline/FEED_STATS.md`: позиций с `oldprice > price > 0` — 32, все в наличии. `p63-after.json`: 9/9 (сравнение цены входит в набор) | частично: цен конкурентов в данных нет. «Выгоднее» здесь — скидка из фида, акция магазина и сравнение редакций за место |
+| 8 | Подсказки с товарами при вводе (бонус) | `backend/services/suggest_panel.go`: `SuggestPanel`, `rankPanelVendors`. `suggest_prefix.go`: `aliasCompletion` (дополнение по словарю: «касп» → Kaspersky). `suggest_products.go`: `completionFamilies`, `orderCompletion`, `vendorWeight`. `upsell_classes.go`: `suggestTogether` («Вместе с этим»). Метод `GET /api/suggest` | `TestAliasCompletion`, `TestOrderCompletionPrefersClassedLine`, `TestRankPanelVendors`, `TestSuggestPanelModesAndFlags`; e2e `p6-scenarios.spec.ts` — «панель «аст» · 1440 / 360: «Вместе с этим» под первым товаром…», «панель «rfcg»: раскладка исправлена…»; `scripts/eval/suggest_prefix_eval.py` (десять префиксов эталонов, раскладка и опечатка; код выхода 1 при промахе) | Экран: `/search`, ввод «касп», «аст», «rfcg». Скрипт печатает результат, отчёт в файл не сохраняется | без отчёта |
+| 9 | **В ответе минимум 4 товара** | Лестница `backend/services/search_ladder.go`: `answerStage`, `alternatives`, `fallback`, `pickFamilies`, `finishCards`. Голова семейства — `search_head.go` `wantedKinds`, `kindRank`. У каждой карточки поле `match_type`: `exact` → `variant` → `related` → `alternative` → `fallback`. Жёсткие условия не ослабляются. Настройка `SEARCH_FALLBACK_BLOCK` (`backend/config/features.go`) | `TestP6LadderFallbackKeepsHardConditions`, `TestP6HonestNoBecomesLadderStep`, `TestP6LadderNoFallbackForServiceWhenOff`, `TestP6FamilyHeadIsBaseCommercialBuyable`, `TestJudgeTargetExtrasAndHard` | `REPORT.md`: ответы полного продукта с ≥4 разными семействами — 131/131, с ≥4 SKU — 131/131 (наборы `etalon`, `tz`, `neighbors`). У BM25 без улучшений на соседях ≥4 семейств — 52/114. Экран: любой запрос, `/proofs?tab=feed` — строка «≥4» | полное. Нижняя ступень «Популярное в наличии» упорядочена без данных о продажах |
+| 10 | Нет аналитики запросов, данные не улучшают каталог | Отчёт SearchOps — `backend/services/agent_report.go`: `SearchOpsReport`, `classifyReportRow`; `GET /api/agent/report`; экран `frontend/src/components/searchops/MarketerReport.vue`. Тестовый поток запросов — `data/softline/searchops_flow.jsonl` (собирает `scripts/data/searchops_flow.py`), прогон настоящими поисками — `services/traffic_flow.go` (`LoadFlow`, `FlowChoose`, `FlowReform`) и `backend/traffic_flow_cli.go`. Задача каталогу «найдено, но только по запросу» — `services/agent_actions.go` (диагноз `ON_REQUEST_ONLY`); владельцы причин — `causes.go` `CauseOf`, `OwnerOf`. Журнал только текущего каталога — `repositories/agent_stats_sql.go` `LogScope` | `TestClassifyReportRow`, `TestOnRequestOnly`, `TestAgentOnRequestOnlyTicket`, `TestRegressionStatusFeed`, `TestAgentLogScope`, `TestLoadFlowAndSessions`, `TestFlowChoose`, `TestFlowReform`, `TestGapKeysAndModelCannotSetKBMissing`; фронт `frontend/tests/report.test.ts`; e2e `p6-searchops.spec.ts` — «контракт: первый экран, четыре раздела…», «живой отчёт: …» | Экран: `/searchops`, первая вкладка «Отчёт» (вход сотрудника): спрос без предложения, товар есть, но не найден, слова вне каталога, сервисные вопросы. Каждую строку можно раскрыть в ленту шагов настоящего запуска агента. Правку агента утверждает человек. Регрессия — на наборах фида, допускается 0 ухудшений. `REPORT.md`: стоимость запуска агента — замер по завершённым запускам. Воспроизведение: `cd backend && go run . traffic --flow ../data/softline/searchops_flow.jsonl --duration 12m --panel 0`, затем запуск разбора на экране «Запуски» | без отчёта: логов поиска у заказчика нет. Поток модельный, его частоты заданы нами. Качество разбора агента не размечено |
 
-## Контур доводки: доказательства и внедрение
+## Уточнения заказчика с кикоффа (контур эталонов)
 
-| Требование | Функция | Сценарий | Проверка | Статус |
+| № | Требование | Где в коде | Тест | Доказательство | Статус |
+| --- | --- | --- | --- | --- | --- |
+| К1 | Склонения: «астры линукс», «кибер бэкапа», «лаборатории касперского», «серверов» | `backend/services/search_understanding.go`: `stemWord`, `stemPhrase`, `addStemKey`, `vendorOfStem` (основа слова для алиасов словаря, фраз вендора и известных слов); `search_target.go` `wordMatch` (сравнение слов при выборе цели) | `TestStemWordDeclension`, `TestStemAliasesAndVendorPhrases`, `TestStemAliasConflictIsDropped`, `TestP7WordMatchDeclension`; скрипт `scripts/eval/declension_eval.py` | `data/softline/eval/results/declension-after.json`: одинаковая цель у 35 из 35 пар. `neighbors-after.md`: склонения 9/9 строго, до правок 6/9. Экран: `/search?q=кибер бэкапа` | полное |
+| К2 | Допродажа по классам продуктов: «покупает офис — нужен антивирус», «обрастает инфраструктурой — нужен бэкап» | `backend/services/upsell_classes.go`: `buildClasses`, `classify`, `classOf`, `assembleByClass`, `classCands`. Данные: `data/softline/upsell_classes.csv` (класс по категории фида), `data/softline/upsell_links.csv` (класс → класс → причина, источник у каждой строки). Порог «тот же вендор» — `UPSELL_SAME_VENDOR_MAX_RATIO` | `TestUpsellByClassAstra`, `TestUpsellByClassOfficeNamesAnchor`, `TestUpsellClassTieBreakByDocOrder`, `TestUpsellSameVendorPriceRatio`; `TestUpsellClassFilesParse`, `TestReadUpsellLinksRejectsUnknown` (catalogsource); e2e `p6-scenarios.spec.ts` — «кибер бэкап»: вид class_logic — «по логике класса: <причина>»… | Экран: `/search?q=кибер бэкап`: подпись «по логике класса: …», без ссылки (связь — логика заказчика, а не факт каталога). Отчёта с числом нет | без отчёта |
+| К3 | Подсказки при вводе как канал допродажи | `upsell_classes.go` `suggestTogether` → поле `together` ответа `GET /api/suggest`; `suggest_prefix.go` `aliasCompletion`; `suggest_products.go` `orderCompletion` (основной продукт вендора раньше узкого) | `TestOrderCompletionPrefersClassedLine`, `TestAliasCompletion`; e2e `p6-scenarios.spec.ts` — «панель «аст» · 1440 / 360: «Вместе с этим» под первым товаром, нажатие — как на товар» | Экран: `/search`, ввод «аст» или «касп»: под первым товаром строка «Вместе с этим». Скрипт `suggest_prefix_eval.py` — см. строку 8 | без отчёта |
+
+## Сверх ТЗ
+
+| Что | Где в коде | Тест | Доказательство | Статус |
 | --- | --- | --- | --- | --- |
-| Каждый компонент измерен; лишний — кандидат на удаление | Таблица вклада: B0 → B1 → B2 → B3 без реранкера → B3; полный путь без векторов, без LLM, без моделей; блокирующие проверки | S5 | `make eval SET=contribution`, `GET /api/evaluations/contribution`; test, tune, regression — [EVALUATION.md](EVALUATION.md#вклад-компонентов-пакет-4) | работает |
-| Работа без LLM и без векторов одной настройкой | `POST /api/admin/offline-mode`, кнопка «Без моделей» на экране вклада, плашка в `meta.vectors` | S5 | Строка B3-M: 0 ошибок на 148, NDCG@10 0,815; `TestOfflineModeOneSetting` | работает |
-| Отказ модели, эмбеддера, реранкера не роняет поиск | Пропуск шага с причиной в трассе, срок клиента модели | S5 | `TestFailoverAllModelsDown`, `TestFailoverRerankerDown` (`backend/services/eval_contribution_failover_test.go`) | работает |
-| Стоимость запроса и месяца | Журнал вызовов, маршруты, сценарии месяца, CSV | S5 | [COSTS.md](COSTS.md); верхняя граница LLM без кэша на test — 48,52 ₽ на 1 000 запросов | работает; шаблон организатора не получен |
-| Нагрузка `/search`, `/suggest` | — | S5 | p50 / p95 / p99 — [EVALUATION.md](EVALUATION.md#нагрузка-search-и-suggest) (локально, не стенд) | частично: стенд не мерили |
-| Подключение без замены корзины и карточки | HTTP API, события, теневой режим | S6 | [INTEGRATION.md](INTEGRATION.md) | договор есть; интеграции с магазином нет |
-| План пилота | Теневой режим → доля трафика по аккаунтам → решение | S6 | [PILOT.md](PILOT.md) | есть |
-| Граница с Mindbox и спецификатором | — | S6 | [MINDBOX_BOUNDARY.md](MINDBOX_BOUNDARY.md) | есть |
-| Движение данных и провайдер | Разбор как данные, без id клиента; свой сервис моделей | S5 | [DATA_FLOW.md](DATA_FLOW.md); `TestInjectionAndNoClientIDs`; телефон, почта, ИНН/КПП/ОГРН, карта, СНИЛС, паспорт маскируются в клиенте модели (`TestChatMasksPIIInRequestBody`, `TestSearchRouteDMasksPII`); имена и адреса — нет | работает (кроме имён и адресов) |
+| Режим подбора в поиске: «Помочь выбрать» → вопрос чипами → сравнение с источниками → лицензия с ценой → спецификация (гипотеза заказчика с кикоффа) | `backend/services/guide*.go`: `guide_route.go`, `guide_tools.go`, `guide_license.go` `validateLicense`, `guide_gaps.go` `GuideGaps`; `handlers/guide.go`; промпт `backend/prompts/guide.md`; база знаний `data/softline/kb/` (факты со ссылкой и дословным фрагментом, правила лицензий); фронт `frontend/src/components/guide/` | `TestGuideD1WithoutModel`, `TestGuideD2CryptoProServer`, `TestValidateLicense`, `TestGuideChecks`, `TestGuideUnverifiedFactsHidden`, `TestGuideModelOffOrFailing`, `TestGuideEvalNumbersAndPrice`; фронт `frontend/tests/guide.test.ts`; e2e `p8-guide.spec.ts` | `data/softline/eval/results/REPORT-after.md`, 48 диалогов × 3 прогона: решено 48/48 (144/144 по прогонам); поиск без подбора — 11/48. Выдуманных идентификаторов 0 из 461, неверных цен 0 из 291, нарушений правил лицензий 0 из 198, утверждений без факта 0 из 110. Экран: `/search?q=антивирус для офиса` → «Помочь выбрать» | полное |
+| Стоимость запроса | `backend/services/eval_target_cost.go`: `FeedSummary`, `feedCost`, `applyFeedCost` (формула `C = p × (1 − h) × c_llm + (инфраструктура + агент + сопровождение) / N`); учёт вызовов модели — таблица `llm_usage` | `TestApplyFeedCost`; фронт `frontend/tests/feedSummary.test.ts`, `costMonth.test.ts`; e2e `p7-proofs-feed.spec.ts` | Экран: `/proofs?tab=feed` (блок стоимости) и `/proofs?tab=cost`. Отчёт: раздел «Стоимость запроса» в `data/softline/eval/results/REPORT.md` (параметры с пометкой «замер» или «допущение») | полное |
 
-## Контур доводки: закупка и агент
+## Итог
 
-| Требование | Функция | Сценарий | Проверка | Статус |
-| --- | --- | --- | --- | --- |
-| Продление до КП с параметрами | Тип покупки, вариант по количеству и сроку, КП с исходным запросом | S2 | «продлить касперский на 100 пк на 2 года» → KES «Продление · 2 года · Стандартный» 4 290 ₽ × 100, вопрос о редакции, КП с параметрами; e2e `p4-procurement.spec.ts` | работает |
-| Аналог отдельно от оригинала, реестр в трёх состояниях | «Вы искали», аналоги того же класса, статус реестра | S3 | Набор витрины: верный класс ответа 23/31 → 31/31 | работает; номера реестра в mock синтетические |
-| Сервисный запрос → справка | Индекс справки (6 статей), ответ без товаров | S3 | Набор витрины: справка 4 из 4 | работает |
-| Агент на новом запросе за 90 с | Запуск по кнопке «Разобрать», план, смена гипотезы, прогон, утверждение, откат | S4 | «автокадик лт»: запуск 28,3 с, весь путь запуск → утверждение → поиск нашёл → откат — 30,9 с при гейте 90 с; живой кадр S4 «запрос жюри» — 56 с | работает |
-| Точный артикул — ровно то, что ввели | Точный запрос первым, маржа не двигает | S1 | Точные на 1-м месте 100 % на test, tune и regression (B3, после хвостов контура доводки; было 97,7 % и 90,9 %) — EVALUATION | работает |
+Требований — 13: десять пунктов ТЗ и три уточнения с кикоффа.
 
-## Контур автономии: автономность агента и вход по ролям
+- **Полное доказательство — 7:** 1 (смысл, «сервер»), 2 (жаргон), 3 (опечатки и транслит), 4 (словарь с
+  основаниями), 6 (сценарий «Astra Linux»), 9 (минимум 4 товара), К1 (склонения).
+- **Без сохранённого отчёта — 5:** 5 и К2 (рекомендации и классы: точность блока на фиде не размечалась), 8 и К3
+  (подсказки: скрипт проверяет и падает при промахе, но отчёт в файл не пишет), 10 (SearchOps: логов заказчика
+  нет, поток модельный, качество разбора не размечено). Код и тесты у всех пяти есть.
+- **Частично — 1:** 7 (цен конкурентов в данных нет; показаны скидка фида, акции магазина и сравнение редакций).
 
-| Требование | Функция | Сценарий | Проверка | Статус |
-| --- | --- | --- | --- | --- |
-| Агент запускается сам | Триггеры: ночь по расписанию, всплеск пустых выдач и переформулировок, смена каталога или связей; план от модели, бюджет запуска | S4 (кадр 1) | Живые запуски на отдельной базе: смена каталога `01a212ba`, всплеск `01a212c1`, ночные `01a212c7`, `01a212c9`; тесты `TestP5SpikeThresholds`, `TestP5ScheduleAt`, `TestP5BudgetStopsRun` | работает; на демо-базе история появится после включения расписания на стенде |
-| Агент помнит решения людей | Память трёх слоёв: решения, «не предлагать» с условием возврата, эпизоды | S4 (кадр 2) | `01a212c9`: «скетчап» пропущен — «отклонено ранее, условия возврата не наступили»; `TestP5SuppressReturnCondition` | работает |
-| Агент проверяет эффект своих правок и предлагает откат | Ночная проверка до 5 принятых правок; «навредило» → предложение отката | S4 (кадр 2) | `01a212c7`: «касперыч» — помогло; откат — `TestP5HarmedPatchProposesRollback` | работает; живого «навредило» не было |
-| Решение принимает владелец причины | Вход по ролям, права на сервере, 403 «Это решение принимает …» | S4 | `services/access_test.go`, `frontend/tests/auth.test.ts`, e2e `roles.spec.ts` | работает |
+Сверх ТЗ с полным доказательством: режим подбора и стоимость запроса.
