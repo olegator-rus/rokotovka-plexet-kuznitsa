@@ -33,10 +33,10 @@ async function stubAssistant(page: Page): Promise<Record<string, unknown>[]> {
     const body = (r.request() as Request).postDataJSON() as Record<string, unknown>;
     calls.push(body);
     const t = `${body.query ?? ""} ${body.message ?? ""}`.toLowerCase();
-    const reply = t.includes("расширенный")
-      ? REPLIES.s2a
-      : t.includes("будет 50")
-        ? REPLIES.s2b
+    const reply = t.includes("будет 50")
+      ? REPLIES.s2b
+      : t.includes("расширенный")
+        ? REPLIES.s2a
         : t.includes("криптопро")
           ? REPLIES.s3
           : t.includes("оплат")
@@ -153,7 +153,7 @@ test.describe("П10: помощник по выбору", () => {
 
     await say(page, "компьютеров будет 50, и шифрование нужно");
     if (!LIVE) expect(calls.at(-1)).toMatchObject({
-      query: "",
+      query: "чем расширенный касперский отличается от стандартного, нам на 30 компьютеров",
       message: "компьютеров будет 50, и шифрование нужно",
       state: { selection_id: expect.any(String) },
     });

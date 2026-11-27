@@ -146,6 +146,9 @@ func (t *guideTurn) chatMessage(res *out.GuideResponse) {
 	if len(c.Text) > chatMaxSentences {
 		c.Text = c.Text[:chatMaxSentences]
 	}
+	if c.Text == nil {
+		c.Text = []string{}
+	}
 	if c.Question == nil {
 		c.Suggestions = t.chatSuggestions(res, c)
 	}
@@ -298,8 +301,21 @@ func (t *guideTurn) chatCard(res *out.GuideResponse, o *out.GuideOffer) out.Guid
 		cd.Details = append(cd.Details, d.Details...)
 	}
 	if p := t.cat.products[o.OfferID]; p != nil {
-		if v := t.cat.view(p, t.kb); v.variant != "" && !strings.Contains(cd.Title, variantLabel(v.variant)) {
+		v := t.cat.view(p, t.kb)
+		if v.variant != "" && !strings.Contains(cd.Title, variantLabel(v.variant)) {
 			cd.Title += " — «" + variantLabel(v.variant) + "»"
+		}
+		if t.st.Requirements.Operation == domain.LicenseKindMigration && o.Role == out.OfferMatch {
+			if v.kind == domain.LicenseKindMigration {
+				if base := t.newLicenseTotal(v, o.Quantity); base > 0 {
+					cd.Note = "Новая лицензия — " + rubRU(base) + " ₽"
+				}
+			} else if cd.Reason == "" {
+				cd.Reason = "Лицензии для перехода в каталоге нет"
+			}
+		}
+		if t.promo && v.scope == "" {
+			cd.Subtitle = "Новая лицензия · " + v.termLabel() // количество в акциях не задано
 		}
 	}
 	switch {
@@ -349,7 +365,7 @@ func (t *guideTurn) chatCard(res *out.GuideResponse, o *out.GuideOffer) out.Guid
 
 // chatBadges — одна пометка на подходящую карточку при проверяемом основании (CHAT.md §5); «Рекомендуем» нет.
 func (t *guideTurn) chatBadges(res *out.GuideResponse, cards []out.GuideChatCard) {
-	if len(cards) == 0 {
+	if len(cards) == 0 || t.promo {
 		return
 	}
 	kind := t.screenKind()
@@ -569,6 +585,9 @@ func nextCount(n int) int {
 func (t *guideTurn) chatSuggestions(res *out.GuideResponse, c *out.GuideChat) []out.GuideChatSuggestion {
 	r := t.st.Requirements
 	var sg []out.GuideChatSuggestion
+	if t.promo {
+		return []out.GuideChatSuggestion{}
+	}
 	add := func(s out.GuideChatSuggestion) {
 		if len(sg) < 3 {
 			sg = append(sg, s)
@@ -584,12 +603,16 @@ func (t *guideTurn) chatSuggestions(res *out.GuideResponse, c *out.GuideChat) []
 	}
 	// Функция, которая разводит варианты (не требуемая): «Нужно шифрование».
 	if q := res.Clarification; q != nil && q.Key == "feature" && !q.Required {
-		for _, ch := range q.Chips {
-			if ch.Value != "" {
-				label := guideUpperFirst(ch.Label)
-				add(out.GuideChatSuggestion{Label: label, Message: strings.ToLower(ch.Label), Chip: &out.GuideChip{Key: ch.Key, Value: ch.Value}})
-				break
+		pick := -1
+		for i, ch := range q.Chips {
+			if ch.Value != "" && (pick < 0 || ch.Value == "encryption") {
+				pick = i // шифрование — самое частое требование; иначе первая функция
 			}
+		}
+		if pick >= 0 {
+			ch := q.Chips[pick]
+			label := guideUpperFirst(strings.Replace(ch.Label, "нужно: ", "нужно ", 1))
+			add(out.GuideChatSuggestion{Label: label, Message: strings.ToLower(label), Chip: &out.GuideChip{Key: ch.Key, Value: ch.Value}})
 		}
 	} else if c.Comparison != nil && len(r.RequiredFeatures) == 0 {
 		for _, row := range c.Comparison.Rows {
@@ -652,6 +675,14 @@ func (t *guideTurn) chatText(res *out.GuideResponse, c *out.GuideChat) []string 
 			s = append(s, fmt.Sprintf("На %s действует другая ценовая ступень.", objectCountText(orDefault(kind, "workstation"), n)))
 		}
 	}
+	if r.Operation == domain.LicenseKindMigration && chatHasMigration(c) {
+		kind, n := mainObject(r)
+		s = append(s, "Для перехода с другого антивируса есть отдельные лицензии — они дешевле новых.")
+		if n > 0 {
+			s = append(s, fmt.Sprintf("Варианты на %s на год.", objectCountText(orDefault(kind, "workstation"), n)))
+		}
+		return s
+	}
 	for _, x := range chatSentences(res.Lead) {
 		if !strings.HasSuffix(x, ".") && !strings.HasSuffix(x, "!") && !strings.HasSuffix(x, "?") {
 			x += "."
@@ -665,6 +696,8 @@ func (t *guideTurn) chatText(res *out.GuideResponse, c *out.GuideChat) []string 
 	opDefault := t.st.Origin["operation"] != originUser
 	termDefault := t.st.Origin["term_months"] != originUser && r.TermMonths == 12
 	switch {
+	case t.promo:
+		return s
 	case t.before.shown:
 		// условия уже названы в прошлом ответе и видны в строке «Учитываю»
 	case res.Type == out.GuideComparison && n > 0 && r.TermMonths == 12:
@@ -764,4 +797,109 @@ func (t *guideTurn) neighbourEditions(res *out.GuideResponse, data *guideData) {
 		t.altFams[fid] = true
 		res.Offers = append(res.Offers, t.offerOut(ok[0], data.qty, data.kind, out.OfferAlternative, note))
 	}
+}
+
+// --- акции по запросу («покажи акции», сценарий 7) ---
+
+// reChatPromo — просьба показать акции.
+var reChatPromo = regexp.MustCompile(`(^|\s)(акци[а-яё]*|распродаж[а-яё]*|скидки есть|со скидкой)(\s|$|[.?!])`)
+
+// promoTurn — позиции ПО с акционной ценой из каталога (old_price_rub > price_rub > 0): по одной на семейство,
+// названный вендор — только его; порядок — больше снижение. Без модели и без выдуманных процентов.
+func (t *guideTurn) promoTurn(text string) *out.GuideResponse {
+	if !reChatPromo.MatchString(guideNorm(text)) {
+		return nil
+	}
+	vendors := guideVendorsIn(text)
+	type cand struct {
+		v     guideOfferView
+		ratio float64
+	}
+	best := map[string]cand{}
+	for fid, ps := range t.cat.byFamily {
+		if len(vendors) > 0 && !containsStr(vendors, t.cat.famVend[fid]) {
+			continue
+		}
+		for _, p := range ps {
+			if p.Kind == "hardware" || p.PriceRub == nil || p.OldPriceRub == nil || *p.PriceRub <= 0 || *p.OldPriceRub <= *p.PriceRub {
+				continue
+			}
+			v := t.cat.view(p, t.kb)
+			if v.kind != domain.LicenseKindBase && v.kind != "" {
+				continue
+			}
+			r := *p.PriceRub / *p.OldPriceRub
+			if c, ok := best[fid]; !ok || r < c.ratio || r == c.ratio && p.ID < c.v.p.ID {
+				best[fid] = cand{v, r}
+			}
+		}
+	}
+	list := make([]cand, 0, len(best))
+	for _, c := range best {
+		list = append(list, c)
+	}
+	slices.SortFunc(list, func(a, b cand) int {
+		switch {
+		case a.ratio < b.ratio:
+			return -1
+		case a.ratio > b.ratio:
+			return 1
+		}
+		return strings.Compare(a.v.p.ID, b.v.p.ID)
+	})
+	t.meta.Fallback = guideFbNoNeed
+	t.step("Акции каталога", toolSearchCatalog, fmt.Sprintf("семейств с акцией: %d", len(list)), t.started)
+	res := &out.GuideResponse{Type: out.GuideSelection, Claims: []out.GuideClaim{}, Offers: []out.GuideOffer{},
+		Changes: t.changes, Next: []string{"add_to_spec", "change_conditions", "request_quote"}}
+	if len(list) == 0 {
+		res.Type, res.Notice = out.GuideNoData, "Сейчас в каталоге нет акционных цен"
+		return res
+	}
+	t.promo = true
+	var names []string
+	for _, c := range list {
+		if len(res.Offers) >= chatShowCards {
+			break
+		}
+		res.Offers = append(res.Offers, t.offerOut(c.v, 1, "", out.OfferMatch, ""))
+		if n := suggestDisplay(t.cat.famName[c.v.p.FamilyID]); len(names) < 2 && !containsStr(names, n) {
+			names = append(names, n)
+		}
+	}
+	res.Lead = "Сейчас в каталоге акционные цены, например, на " + joinRU(names) + "."
+	t.st.CandidateFamilyIDs = []string{}
+	return res
+}
+
+// newLicenseTotal — полная стоимость новой лицензии того же семейства на те же количество и срок (для строки
+// «Новая лицензия — 76 000 ₽» у лицензии перехода); 0 — сравнимой цены в каталоге нет.
+func (t *guideTurn) newLicenseTotal(mig guideOfferView, qty int) float64 {
+	r := t.st.Requirements
+	r.Operation = "new"
+	best := 0.0
+	for _, p := range t.cat.byFamily[mig.p.FamilyID] {
+		v := t.cat.view(p, t.kb)
+		if v.kind != domain.LicenseKindBase || !v.priced() || v.term != mig.term || !v.inTier(max(qty, 1)) {
+			continue
+		}
+		if len(validateLicense(v, r, t.kb, termAny)) > 0 {
+			continue
+		}
+		if tot := offerTotal(v, max(qty, 1)); best == 0 || tot < best {
+			best = tot
+		}
+	}
+	return best
+}
+
+// chatHasMigration — среди карточек есть лицензия перехода с ценой новой для сравнения.
+func chatHasMigration(c *out.GuideChat) bool {
+	for _, g := range c.Groups {
+		for _, cd := range g.Cards {
+			if strings.HasPrefix(cd.Note, "Новая лицензия — ") {
+				return true
+			}
+		}
+	}
+	return false
 }

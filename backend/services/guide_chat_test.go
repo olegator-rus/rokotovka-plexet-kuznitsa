@@ -154,6 +154,14 @@ func TestGuideChatNewTopic(t *testing.T) {
 	}
 }
 
+func TestGuideChatQuestionTextNotNull(t *testing.T) {
+	s := guideTestServices(t, kbVerified, nil, llmModeOff)
+	c := guideTurnReq(t, s, in.GuideRequest{Query: "защита для компьютеров в офисе"}).Chat
+	if c.Text == nil || c.Question == nil || len(c.Question.Chips) < 2 || len(c.Question.Chips) > 4 {
+		t.Fatalf("вопрос: текст — массив, 2–4 кнопки: %+v", c)
+	}
+}
+
 func TestChatSentences(t *testing.T) {
 	got := chatSentences("Подходит «KES». Состав функций различается. Ещё одна фраза.")
 	if len(got) != 3 || got[0] != "Подходит «KES»." {
@@ -161,5 +169,21 @@ func TestChatSentences(t *testing.T) {
 	}
 	if missingFeatureLine("Не подходит: нет шифрования данных") != "Шифрования данных в этой редакции нет" {
 		t.Fatal(missingFeatureLine("Не подходит: нет шифрования данных"))
+	}
+}
+
+func TestGuideChatMigrationAndPromoWords(t *testing.T) {
+	d := extractConditions("у нас сейчас eset, хотим сменить на 40 компьютеров")
+	if d.operation != "migration" || d.task != "endpoint_protection" {
+		t.Fatalf("переход с ESET: %+v", d)
+	}
+	if d := extractConditions("сменить сервер на 40 компьютеров"); d.operation == "migration" {
+		t.Fatalf("смена без антивируса — не переход: %+v", d)
+	}
+	for q, want := range map[string]bool{"покажи акции": true, "какие есть акции?": true, "акционные цены": true,
+		"кибер бэкап": false, "академическая лицензия": false} {
+		if got := reChatPromo.MatchString(guideNorm(q)); got != want {
+			t.Errorf("%q: %v, ждали %v", q, got, want)
+		}
 	}
 }

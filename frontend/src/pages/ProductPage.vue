@@ -285,7 +285,7 @@ function companionPrice(c: { price_rub: number | null; price_mode: string }) {
               data-testid="product-guide-start"
               @click="openGuide()"
             >
-              <ListChecks :size="16" aria-hidden="true" /> Помочь выбрать лицензию
+              <ListChecks :size="16" aria-hidden="true" /> Спросить про лицензии
             </button>
             <ul class="pp__guide-chips" aria-label="Вопросы о лицензии">
               <li v-for="g in GUIDE_QUESTIONS" :key="g.label">

@@ -61,6 +61,11 @@ func validateLicense(v guideOfferView, r domain.GuideRequirements, kb *guideKB, 
 	code := func(id, msg string) { bad = append(bad, guideViolation{RuleID: id, Message: msg, Status: "code"}) }
 
 	switch r.Operation {
+	case domain.LicenseKindMigration:
+		// Переход: лицензия для перехода, а где её нет — новая (подбор не блокируется, CHAT.md сценарий 5).
+		if v.kind != domain.LicenseKindMigration && v.kind != domain.LicenseKindBase && v.kind != "" {
+			code(ruleCodeOperation, "Для перехода нужна лицензия перехода или новая")
+		}
 	case "renewal":
 		if v.kind != domain.LicenseKindRenewal {
 			code(ruleCodeOperation, "Это не продление")

@@ -808,7 +808,8 @@ watch(
     if (!entry) return
     const q = state.value.q
     assistant.openPanel('product', '', q)
-    if (entry !== '1') void assistant.send(entry)
+    // Вопрос с кнопки страницы продукта — с названием продукта, иначе серверу не понять предмет.
+    if (entry !== '1') void assistant.send(q ? `${q}: ${entry}` : entry)
     const rest = { ...route.query }
     delete rest.guide
     void router.replace({ path: '/search', query: rest })

@@ -136,16 +136,17 @@ export function starterPrompts(context: string): StarterPrompt[] {
 
 /**
  * Тело хода. Первая реплика разговора (или первая после «Сбросить») — запрос без состояния; дальше — реплика с
- * состоянием подбора; кнопка вопроса или подсказка с чипом — чип с состоянием.
+ * состоянием подбора и исходным запросом (как в наборе оценки); кнопка вопроса или подсказка с чипом — чип.
  */
 export function turnBody(
   input: { text?: string; chip?: GuideChipAnswer },
   state: unknown,
+  startQuery = '',
 ): Omit<GuideRequest, 'session_id'> {
   const text = (input.text ?? '').trim()
-  if (input.chip && state) return { query: '', chip: input.chip, state }
+  if (input.chip && state) return { query: startQuery, chip: input.chip, state }
   if (!state) return { query: text }
-  return { query: '', message: text, state }
+  return { query: startQuery, message: text, state }
 }
 
 // ── Строка после добавления ──

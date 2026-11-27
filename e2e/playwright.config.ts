@@ -23,6 +23,8 @@ export default defineConfig({
     baseURL: BASE_URL,
     // Вход: сценарии идут под демо-аккаунтом руководителя (global-setup); гость — storageState пустой.
     storageState: AUTH_STATE,
+    // Поиск и события тестов не пишутся в журнал живого поиска (handlers/search.go: TestRunHeader).
+    extraHTTPHeaders: { 'X-Test-Run': 'e2e' },
     locale: 'ru-RU',
     timezoneId: 'Europe/Moscow',
     colorScheme: 'dark',

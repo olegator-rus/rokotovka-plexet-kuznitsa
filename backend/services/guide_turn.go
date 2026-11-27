@@ -72,6 +72,7 @@ type guideTurn struct {
 	src        string
 	matchTotal int
 	outKind    string
+	promo      bool // ход «покажи акции»
 }
 
 func (t *guideTurn) ms(since time.Time) float64 {
@@ -345,6 +346,11 @@ func (t *guideTurn) run(ctx context.Context, req in.GuideRequest) *out.GuideResp
 	}
 	t.step("Условия", "", fmt.Sprintf("условий: %d", len(conditionsOf(*st))), t0)
 	t.src = src
+	if src != "" {
+		if res := t.promoTurn(src); res != nil {
+			return res
+		}
+	}
 	// Оборудование («подобрать комп», «ноутбук») подбор не ведёт: он только для лицензий на ПО. Пока задача, вендор и
 	// кандидаты не названы — отказ одной фразой, без инструментов; обычная выдача остаётся на экране.
 	if src != "" && st.Requirements.Task == "" && st.Requirements.Vendor == "" && len(st.CandidateFamilyIDs) == 0 &&

@@ -52,7 +52,13 @@ export function useAssistant() {
   const adding = ref<Set<string>>(new Set())
   const failedAdd = ref<Set<string>>(new Set())
   /** Запрос, с которого начат текущий подбор (для заявки КП). */
-  let startQuery = ''
+  let startQuery = (() => {
+    for (let i = saved.entries.length - 1; i >= 0; i--) {
+      const e = saved.entries[i]
+      if (e && e.kind === 'assistant') return e.query
+    }
+    return ''
+  })()
   let nextId = entries.value.reduce((m, e) => Math.max(m, e.id), 0) + 1
   let ctrl: AbortController | null = null
   let waitTimer: ReturnType<typeof setTimeout> | null = null
@@ -115,8 +121,8 @@ export function useAssistant() {
     waitText.value = WAIT_FIRST
     if (waitTimer) clearTimeout(waitTimer)
     waitTimer = setTimeout(() => (waitText.value = WAIT_SECOND), 1500)
-    const body = turnBody(input, serverState.value)
     if (!serverState.value) startQuery = input.text ?? ''
+    const body = turnBody(input, serverState.value, startQuery)
     try {
       if (!app.sessionId) await app.loadMeta()
       if (ctrl !== c) return
@@ -126,6 +132,9 @@ export function useAssistant() {
       )
       if (ctrl !== c) return
       stopWait()
+      // Сервер начал новый подбор (реплика о другом вендоре) — исходный запрос теперь эта реплика.
+      const prevSel = selectionId(serverState.value)
+      if (prevSel && selectionId(resp.state) !== prevSel && input.text) startQuery = input.text
       serverState.value = resp.state ?? null
       if (resp.chat) {
         const entry: Omit<AssistantEntry, 'id'> = {

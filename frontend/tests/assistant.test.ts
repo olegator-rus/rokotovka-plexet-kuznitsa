@@ -39,7 +39,11 @@ test('ход: первая реплика — запрос без состоян
     query: 'самый дешёвый криптопро',
   })
   const st = { selection_id: 's1' }
-  assert.deepEqual(turnBody({ text: 'на 50' }, st), { query: '', message: 'на 50', state: st })
+  assert.deepEqual(turnBody({ text: 'на 50' }, st, 'kes на 30'), {
+    query: 'kes на 30',
+    message: 'на 50',
+    state: st,
+  })
   assert.deepEqual(turnBody({ chip: { key: 'variant', value: 'Орел' } }, st), {
     query: '',
     chip: { key: 'variant', value: 'Орел' },

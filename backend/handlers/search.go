@@ -18,12 +18,27 @@ func (h *Handler) Search(c *fiber.Ctx) error {
 	// Клиент витрины: у покупателя — из сессии, у гостя — guest, у сотрудника — выбранный.
 	req.ClientID = h.storefrontClient(c, req.ClientID)
 	// Адрес покупателя — для суточной квоты разборов LLM (c.IP(): за Caddy — X-Real-IP от доверенного прокси).
-	resp, err := h.services.Search(services.WithClientIP(c.UserContext(), c.IP()), TraceID(c), req)
+	ctx := services.WithClientIP(c.UserContext(), c.IP())
+	if testRun(c) {
+		// Сквозные тесты: ответ как у витрины, но в журнал живого поиска не пишется.
+		resp, err := h.services.SearchWith(ctx, TraceID(c), req, services.SearchOptions{NoLog: true, Storefront: true})
+		if err != nil {
+			return err
+		}
+		return c.JSON(resp)
+	}
+	resp, err := h.services.Search(ctx, TraceID(c), req)
 	if err != nil {
 		return err
 	}
 	return c.JSON(resp)
 }
+
+// TestRunHeader — заголовок прогона сквозных тестов (Playwright, e2e/playwright.config.ts): поиск и события такого
+// запроса не пишутся в журнал живого поиска — тестовые запросы не попадают в аналитику и во вход агента.
+const TestRunHeader = "X-Test-Run"
+
+func testRun(c *fiber.Ctx) bool { return c.Get(TestRunHeader) == "e2e" }
 
 // Meta — GET /api/meta: режим LLM, версии каталога и правил, конфигурации, клиенты.
 func (h *Handler) Meta(c *fiber.Ctx) error {
@@ -46,6 +61,9 @@ func (h *Handler) Events(c *fiber.Ctx) error {
 	}
 	req.SessionID = h.requestSession(c, req.SessionID)
 	req.ClientID = h.storefrontClient(c, req.ClientID)
+	if testRun(c) {
+		return c.SendStatus(fiber.StatusNoContent) // событие сквозного теста в журнал не пишется
+	}
 	if err := h.services.RecordEvent(c.UserContext(), req); err != nil {
 		return err
 	}

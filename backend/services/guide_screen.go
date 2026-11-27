@@ -322,6 +322,8 @@ func (t *guideTurn) offerSubtitle(v guideOfferView, kind string, qty, pay int) s
 		op = "Продление"
 	case "upgrade":
 		op = "Обновление"
+	case domain.LicenseKindMigration:
+		op = "Переход"
 	}
 	obj := objectCountText(kind, qty)
 	if v.unit == "pack" && v.pack > 0 {

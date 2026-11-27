@@ -45,8 +45,8 @@ export const THEORY_PARTS: readonly TheoryPart[] = [
   },
   {
     key: 'guide',
-    title: 'Режим подбора',
-    sections: [{ id: 'guide', title: 'Как подбор помогает выбрать лицензию' }],
+    title: 'Помощник по выбору',
+    sections: [{ id: 'guide', title: 'Как помощник помогает выбрать лицензию' }],
   },
   {
     key: 'agent',

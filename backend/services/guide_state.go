@@ -352,7 +352,7 @@ func chipDelta(st domain.GuideState, c *guideChipIn) (guideDelta, bool) {
 			kind = "workstation"
 		}
 		d.objects = []domain.GuideObject{{Kind: kind, Count: n}}
-	case key == "operation" && (val == "new" || val == "renewal"):
+	case key == "operation" && (val == "new" || val == "renewal" || val == domain.LicenseKindMigration):
 		d.operation = val
 	case key == "term_months":
 		n, err := strconv.Atoi(val)
@@ -482,6 +482,9 @@ func objectLabel(kind string) string {
 func operationLabel(op string) string {
 	if op == "renewal" {
 		return "продление"
+	}
+	if op == domain.LicenseKindMigration {
+		return "переход с другого продукта"
 	}
 	return "новая лицензия"
 }

@@ -254,8 +254,18 @@ func extractConditions(q string) guideDelta {
 	if strings.Contains(q, "антивир") || strings.Contains(q, "защит") && !reGeneralIS.MatchString(q) {
 		d.task = "endpoint_protection" // «подбери антивирь», «защита для компьютеров»
 	}
+	// Переход с другого антивируса (контур помощника, сценарий 5): «у нас eset, хотим сменить», «перейти с другого антивируса».
+	if reMigrateFrom.MatchString(q) && (reOtherAV.MatchString(q) || strings.Contains(q, "антивир")) {
+		d.operation, d.task = domain.LicenseKindMigration, "endpoint_protection"
+	}
 	return d
 }
+
+// reMigrateFrom — просьба сменить продукт; reOtherAV — антивирус, которого нет в каталоге или другого вендора.
+var (
+	reMigrateFrom = regexp.MustCompile(`(смен[а-яё]*|перей[тд][а-яё]*|переход[а-яё]*|миграц[а-яё]*|заменить|уйти с)`)
+	reOtherAV     = regexp.MustCompile(`(eset|nod ?32|есет|avast|аваст|symantec|norton|mcafee|trend ?micro|sophos|bitdefender|другого антивир)`)
+)
 
 // featureNeeded — функция названа как требование, а не в вопросе «чем отличается».
 func featureNeeded(q, stem string) bool {
