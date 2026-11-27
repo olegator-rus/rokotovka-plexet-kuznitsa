@@ -1,5 +1,5 @@
 // QA-обход покупателя: находки по витрине, поиску, странице товара и подбору — проверки на живом API.
-// Подбор D3 — на заглушке /api/guide (как p8-guide): общая кнопка «В спецификацию» кладёт обе строки подбора.
+// Подбор (контур помощника) — в p10-assistant.spec.ts: каждая карточка помощника со своим действием.
 import type { Page } from "@playwright/test";
 import {
   GUEST,
@@ -113,85 +113,5 @@ test.describe("QA покупателя: страница товара", () => {
     await expect(page.locator("main")).toContainText(
       "для: образовательное учреждение",
     );
-  });
-});
-
-test.describe("QA покупателя: подбор D3", () => {
-  test.use({ storageState: GUEST });
-
-  test("общая кнопка «В спецификацию» кладёт обе строки: рабочие станции и серверы", async ({
-    page,
-  }) => {
-    const offer = (
-      id: string,
-      line: string,
-      unit: string,
-      price: number,
-      qty: number,
-    ) => ({
-      offer_id: id,
-      title: `Astra Linux Special Edition 1.8, «Воронеж», ${line}`,
-      sku: `SKU-${id}`,
-      tier: "",
-      unit,
-      quantity: qty,
-      role: "match",
-      note: `строка «${line}»`,
-      price_per_unit: price,
-      total: price * qty,
-      price_state: "fixed",
-      offer_url: `https://store.softline.ru/astralinux/-${id}/`,
-    });
-    const reply = {
-      type: "selection",
-      lead: "Рабочие станции и серверы — отдельные строки.",
-      claims: [],
-      comparison: null,
-      offers: [
-        offer("ws", "рабочие станции", "за рабочее место", 11400, 30),
-        offer("sr", "серверы", "за сервер", 27000, 3),
-      ],
-      clarification: null,
-      conditions: [],
-      changes: [],
-      next: ["add_to_spec", "request_quote"],
-      trace: [],
-      state: { selection_id: "e2e-d3", turn: 1 },
-    };
-    const missing = JSON.stringify({
-      error: { code: "NOT_FOUND", message: "нет" },
-    });
-    await page.route("**/api/guide/route", (r) =>
-      r.fulfill({
-        status: 404,
-        contentType: "application/json",
-        body: missing,
-      }),
-    );
-    await page.route("**/api/guide/spec", (r) =>
-      r.fulfill({
-        status: 404,
-        contentType: "application/json",
-        body: missing,
-      }),
-    );
-    await page.route("**/api/guide", (r) =>
-      r.fulfill({
-        status: 200,
-        contentType: "application/json",
-        body: JSON.stringify(reply),
-      }),
-    );
-    await openSearch(page);
-    await search(page, "astra linux на 30 компьютеров и два сервера");
-    const start = page.getByTestId("guide-start");
-    if (await start.count()) await start.click();
-    const panel = page.getByTestId("guide-panel");
-    await expect(panel.getByTestId("guide-line")).toHaveCount(2);
-    await panel.getByTestId("guide-spec").click();
-    await expect(
-      page.getByRole("button", { name: /^Спецификация, позиций: 2/ }),
-    ).toBeVisible();
-    await expect(panel.getByTestId("guide-spec")).toHaveText("В спецификации");
   });
 });

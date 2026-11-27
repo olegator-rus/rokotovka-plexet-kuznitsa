@@ -303,7 +303,81 @@ export interface GuideResponse {
   docs?: { title: string; url: string } | null
   /** Экран контура экрана; null — у out_of_scope, fallback и вопроса без вариантов. */
   screen?: GuideScreen | null
+  /** Сообщение помощника блоками (контур помощника). */
+  chat?: GuideChat | null
   meta?: GuideMeta
+}
+
+// ── Помощник по выбору (контур помощника): всё готово на сервере, фронт показывает ──
+
+export type ChatStatus =
+  | 'answer'
+  | 'question'
+  | 'no_offers'
+  | 'no_data'
+  | 'out_of_scope'
+  | 'discount'
+  | 'llm_failed'
+  | 'failed'
+
+export interface ChatCard {
+  offer_id: string
+  family_id: string
+  badge: GuideReason | null
+  title: string
+  subtitle: string
+  price_text: string
+  total: number | null
+  calc: string
+  reason: string
+  unsuitable: boolean
+  price_state: string
+  promo: boolean
+  old_price_text: string
+  note: string
+  action: 'add_to_spec' | 'request_quote' | 'open_store' | string
+  offer_url: string
+  quantity: number
+  details: { label: string; value: string }[]
+}
+
+export interface ChatGroup {
+  key: 'match' | 'other' | 'rejected' | string
+  title: string
+  cards: ChatCard[]
+}
+
+export interface ChatTable {
+  title: string
+  columns: { offer_id: string; family_id: string; title: string }[]
+  rows: { key: string; label: string; kind: string; cells: GuideScreenCell[] }[]
+  source: GuideScreenSource | null
+}
+
+export interface ChatSuggestion {
+  label: string
+  message: string
+  chip?: { label?: string; key: string; value: string }
+}
+
+export interface GuideChat {
+  status: ChatStatus | string
+  text: string[]
+  warning: string
+  comparison: ChatTable | null
+  groups: ChatGroup[]
+  more: { label: string; query: string; count: number } | null
+  sources: GuideScreenSource[]
+  complements: { title: string; reason: string; message: string }[]
+  question: {
+    key: string
+    text: string
+    chips: { label: string; key: string; value: string }[]
+  } | null
+  suggestions: ChatSuggestion[]
+  conditions: { label: string; items: string[] }
+  links: { kind: string; label: string; url: string }[]
+  has_promo: boolean
 }
 
 /** Телеметрия хода (SPEC §13); на экране не показывается. */

@@ -2,7 +2,7 @@
 // Экран «Поиск». Адрес — единственный источник состояния запроса
 // (lib/searchState.ts): строка, конфигурация, клиент, уточнения и открытая трасса. Любое изменение
 // адреса, кроме трассы, — новый POST /api/search; прошлый запрос отменяется.
-import { computed, nextTick, onBeforeUnmount, reactive, ref, shallowRef, watch } from 'vue'
+import { computed, nextTick, onUnmounted, ref, shallowRef, watch } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useRoute, useRouter } from 'vue-router'
 import { DialogContent, DialogOverlay, DialogPortal, DialogRoot, DialogTitle } from 'reka-ui'
@@ -95,20 +95,13 @@ import { usableFacet, withFilter } from '@/lib/facets'
 import { helpAnswerShown, helpHintShown, specPurchase, supplyShown } from '@/lib/procurement'
 import { type SpecLine, lineFromCompanion, lineFromItem, quantityForItem } from '@/lib/spec'
 import type { SlotChoice } from '@/lib/solution'
-import type { GuideOffer } from '@/api/typesGuide'
-import GuideHint from '@/components/guide/GuideHint.vue'
-import GuidePanel from '@/components/guide/GuidePanel.vue'
-import { useGuide } from '@/composables/useGuide'
-import {
-  type GuideMode,
-  guideMode,
-  lineFromOffer,
-  offerRole,
-  routeMode,
-  specOffers,
-} from '@/lib/guide'
-import { postGuideRoute } from '@/api/guide'
-import { taskText } from '@/lib/guideView'
+import type { ChatCard } from '@/api/typesGuide'
+import AssistantEntryButton from '@/components/assistant/AssistantEntry.vue'
+import AssistantInvite from '@/components/assistant/AssistantInvite.vue'
+import AssistantPanel from '@/components/assistant/AssistantPanel.vue'
+import { useAssistant } from '@/composables/useAssistant'
+import { guideMode, lineFromOffer } from '@/lib/guide'
+import type { AssistantEntry } from '@/lib/assistant'
 
 const route = useRoute()
 const router = useRouter()
@@ -661,8 +654,7 @@ function submit(raw: string) {
 }
 
 /** Панель поиска (контур выдачи): Enter, подсказка, категория, производитель, товар — с условиями бейджей. */
-async function onPanelSubmit(p: PanelSubmit) {
-  if (await guideTakesInput(p.q)) return
+function onPanelSubmit(p: PanelSubmit) {
   pendingIntent = p.intentId
   const next = { ...withQuery(state.value, p.q), filters: p.filters }
   if (
@@ -778,202 +770,104 @@ function onComplement(type: 'add_to_cart' | 'price_request', c: Complement, inde
     )
 }
 
-// ── Контур подбора–9: режим подбора в поиске (SPEC §1, UI.md). Рабочая область справа от выдачи на широком экране, блок над
-// выдачей на узком; выдача и спецификация живут отдельно. ──
-const guide = reactive(useGuide())
-/** Подбор справа от выдачи: ширина, где рядом умещаются 480–560 px области и рабочая выдача. */
-const guideWide = useMediaQuery('(min-width: 1100px)')
-const guideDocked = computed(() => guide.open && guideWide.value)
-/** Фильтры выдачи при открытом подборе свёрнуты в кнопку там, где колонке не хватает ширины. */
+// ── Контур помощника: помощник по выбору (CHAT.md). Панель справа 440 px рядом с выдачей; уже 1024 px — на весь экран.
+// Открывается ТОЛЬКО нажатием покупателя: кнопка у строки поиска, строка-приглашение над выдачей, вход со страницы
+// продукта (тоже нажатие). Ни запрос, ни загрузка страницы, ни «ничего не найдено» панель не открывают. ──
+const assistant = useAssistant()
+const assistantWide = useMediaQuery(DESKTOP_QUERY)
+const assistantDocked = computed(() => assistant.open.value && assistantWide.value)
+const assistantFull = computed(() => assistant.open.value && !assistantWide.value)
+/** Фильтры выдачи при открытой панели свёрнуты в кнопку там, где колонке не хватает ширины. */
 const facetsOpen = ref(false)
-/**
- * Режим строки для показанной выдачи (SPEC §1). Порядок: признак в ответе поиска → POST /api/guide/route (правила
- * ядра, без модели; `open_now` — раскрыть сразу) → правило фронта по цели и запросу (lib/guide.ts). Выдача не ждёт
- * решения: строка-приглашение появляется, когда режим известен.
- */
-const routed = shallowRef<{ q: string; mode: GuideMode; offer: string } | null>(null)
-const mode = computed<GuideMode>(() =>
-  status.value === 'ready' && response.value && routed.value?.q === response.value.query
-    ? routed.value.mode
-    : 'search',
-)
-/** Свёрнутый подбор по этому же запросу: строка-приглашение возвращает к нему с сохранёнными условиями. */
-const guideResume = computed(() =>
-  !guide.open && guide.response && guide.query === response.value?.query
-    ? taskText(guide.response) || 'Подбор по запросу'
-    : '',
-)
-const guideHintShown = computed(
-  () =>
-    !guide.open &&
-    !helpShown.value &&
-    !blocks.value.nothing &&
-    (mode.value === 'offer' || Boolean(guideResume.value)),
-)
-/** Вход со страницы семейства: /search?q=…&guide=1 или &guide=<вопрос-чип>. */
+/** Общий запрос (категория, задача, число мест без продукта, вопрос) — строка-приглашение над выдачей. */
+const inviteShown = computed(() => {
+  const resp = response.value
+  if (!resp || status.value !== 'ready' || assistant.open.value) return false
+  if (helpShown.value || blocks.value.nothing) return false
+  return guideMode(resp.query, resp) !== 'search'
+})
+/** Вход со страницы продукта: /search?q=…&guide=1 или &guide=<вопрос> — человек нажал кнопку на странице. */
 const guideEntry = computed(() => {
   const g = route.query.guide
   return typeof g === 'string' && g ? g : null
 })
-let routeCtrl: AbortController | null = null
 
-async function askRoute(q: string, ms = 1500) {
-  routeCtrl?.abort()
-  const c = new AbortController()
-  routeCtrl = c
-  const t = setTimeout(() => c.abort(), ms)
-  try {
-    return await postGuideRoute(q, { signal: c.signal, ignoreUnauthorized: true })
-  } finally {
-    clearTimeout(t)
-  }
+function openAssistant() {
+  trackQuiet('click', { payload: { action: 'assistant_open', place: 'search_line' } })
+  assistant.openPanel('button', text.value.trim() || (response.value?.query ?? ''))
 }
 
-async function decideMode(resp: SearchResponse): Promise<{ mode: GuideMode; offer: string }> {
-  const local = guideMode(resp.query, resp)
-  if (resp.guide?.mode) return { mode: local, offer: '' }
-  try {
-    const r = await askRoute(resp.query)
-    return { mode: routeMode(r) ?? local, offer: r.offer ?? '' }
-  } catch {
-    // Ядро без /api/guide/route или не ответило — правило фронта.
-    return { mode: local, offer: '' }
-  }
+function onInvite() {
+  trackQuiet('click', { payload: { action: 'assistant_open', place: 'invite' } })
+  assistant.openPanel('invite', response.value?.query ?? state.value.q)
 }
 
-/**
- * Ввод покупателя — в той же строке поиска (UI §3). Пока подбор открыт, реплика без нового товара и без новой
- * задачи («компьютеров будет 50, и шифрование нужно») уточняет подбор: выдача слева не меняется, строка поиска
- * возвращается к запросу выдачи. Новая задача («самый дешёвый криптопро для сервера»), название или артикул — новый
- * поиск. Решает ядро (/api/guide/route); не ответило — обычный поиск.
- */
-async function guideTakesInput(raw: string): Promise<boolean> {
-  const q = raw.trim()
-  if (!q || !guide.open || guide.collapsed || !guide.response) return false
-  if (q === guide.query || q === state.value.q) return false
-  try {
-    const r = await askRoute(q, 1200)
-    if (r.open_now || r.mode !== 'search_offer') return false
-  } catch {
-    return false
-  }
-  guide.say(q)
-  text.value = state.value.q
-  trackQuiet('click', { payload: { action: 'guide_say', place: 'search_line' } })
-  return true
-}
-
-watch(response, async (resp) => {
-  if (!resp || !onSearchRoute()) return
-  const q = resp.query
-  facetsOpen.value = false
-  const entry = guideEntry.value
-  if (entry) {
-    routed.value = { q, mode: 'offer', offer: '' }
-    guide.start(q, entry === '1' ? undefined : entry)
+watch(
+  guideEntry,
+  (entry) => {
+    if (!entry) return
+    const q = state.value.q
+    assistant.openPanel('product', '', q)
+    if (entry !== '1') void assistant.send(entry)
     const rest = { ...route.query }
     delete rest.guide
     void router.replace({ path: '/search', query: rest })
-    return
-  }
-  const decided = await decideMode(resp)
-  if (response.value !== resp) return
-  routed.value = { q, ...decided }
-  if (decided.mode === 'guide') {
-    // Явная просьба в строке поиска — подбор раскрывается сразу; новый запрос — новый подбор со своим состоянием
-    // (смена темы, SPEC §2), тот же — прежний подбор с сохранёнными условиями.
-    guide.start(q)
-    return
-  }
-  // Новый запрос другим текстом — подбор скрывается и не мешает выдаче.
-  if (guide.open && guide.query !== q) guide.hide()
-})
-watch(
-  () => state.value.q,
-  (q) => {
-    if (!q) guide.reset()
   },
+  { immediate: true },
 )
-
-function onGuideStart() {
-  trackQuiet('click', { payload: { action: 'guide_start' } })
-  guide.start(response.value?.query ?? state.value.q)
-}
-
-/** «Изменить» задачу без списка направлений — уточнить её в строке поиска. */
-function onGuideRefine() {
-  box.value?.focus()
-}
-
-/** Рабочая область справа: высота — от её верха до низа окна, итоговая строка всегда видна. */
-const guideAside = ref<HTMLElement | null>(null)
+watch(response, () => {
+  facetsOpen.value = false
+})
+/** Панель справа: высота — от её верха до низа окна, поле ввода всегда видно (страница могла не прокрутиться). */
+const assistantAside = ref<HTMLElement | null>(null)
 let fitFrame = 0
-function fitGuideAside() {
+function fitAssistantAside() {
   cancelAnimationFrame(fitFrame)
   fitFrame = requestAnimationFrame(() => {
-    const el = guideAside.value
+    const el = assistantAside.value
     if (!el) return
     const top = Math.max(0, el.getBoundingClientRect().top)
     el.style.height = `${Math.max(320, window.innerHeight - top)}px`
   })
 }
-watch(guideAside, (el) => {
-  window.removeEventListener('scroll', fitGuideAside)
-  window.removeEventListener('resize', fitGuideAside)
+watch(assistantAside, (el) => {
+  window.removeEventListener('scroll', fitAssistantAside)
+  window.removeEventListener('resize', fitAssistantAside)
   if (!el) return
-  window.addEventListener('scroll', fitGuideAside, { passive: true })
-  window.addEventListener('resize', fitGuideAside)
-  fitGuideAside()
+  window.addEventListener('scroll', fitAssistantAside, { passive: true })
+  window.addEventListener('resize', fitAssistantAside)
+  fitAssistantAside()
 })
-onBeforeUnmount(() => {
-  window.removeEventListener('scroll', fitGuideAside)
-  window.removeEventListener('resize', fitGuideAside)
+watch(status, () => fitAssistantAside())
+// На весь экран (телефон): прокручивается только лента помощника, страница под ним стоит.
+watch(assistantFull, (on) => {
+  if (typeof document !== 'undefined') document.documentElement.style.overflow = on ? 'hidden' : ''
+})
+onUnmounted(() => {
+  if (typeof document !== 'undefined') document.documentElement.style.overflow = ''
+  window.removeEventListener('scroll', fitAssistantAside)
+  window.removeEventListener('resize', fitAssistantAside)
   cancelAnimationFrame(fitFrame)
 })
 
-/** Офферы, которые сейчас уходят в черновик: повторный клик строку не дублирует. */
-const guideAdding = new Set<string>()
-
-/** Строка подбора в спецификацию: цена перечитана сервером (POST /api/guide/spec), иначе — из ответа хода. */
-async function addGuideOffer(o: GuideOffer): Promise<boolean> {
-  if (offerRole(o) === 'rejected') return false
-  if (spec.has(o.offer_id) || guideAdding.has(o.offer_id)) return false
-  guideAdding.add(o.offer_id)
-  try {
-    const fresh = await guide.toSpec(o)
-    if (spec.has(o.offer_id)) return false
-    spec.add(lineFromOffer(fresh, guide.response?.conditions ?? [], guide.query))
-    return true
-  } finally {
-    guideAdding.delete(o.offer_id)
-  }
+/** «Показать все N в поиске» — выдача слева перестраивается; на телефоне панель закрывается. */
+function onAssistantShowAll(q: string) {
+  if (!assistantWide.value) assistant.close()
+  text.value = q
+  submit(q)
 }
 
-/** «В спецификацию»: подтверждение — в итоговой строке подбора, условия не сбрасываются. */
-async function onGuideSpec(o: GuideOffer) {
-  if (spec.has(o.offer_id)) {
-    guide.added = o.offer_id
-    return
+/** «Запросить цену»: позиция с условиями — в спецификацию, открывается панель запроса КП. */
+async function onAssistantQuote(entry: AssistantEntry, card: ChatCard) {
+  if (!spec.has(card.offer_id)) {
+    const o = entry.offers.find((x) => x.offer_id === card.offer_id)
+    if (o) spec.add(lineFromOffer({ ...o, quantity: card.quantity }, entry.conditions, entry.query))
   }
-  if (!(await addGuideOffer(o))) return
-  guide.added = o.offer_id
-  trackQuiet('click', { productId: o.offer_id, payload: { action: 'spec', place: 'guide' } })
-}
-
-/** «Запросить КП» в подборе: позиция с условиями — в спецификацию, панель КП открывается. */
-async function onGuideQuote(o: GuideOffer | null) {
-  const list = o ? [o] : specOffers(guide.response?.offers)
-  for (const x of list) await addGuideOffer(x)
   trackQuiet('click', {
-    productId: list[0]?.offer_id,
-    payload: { action: 'quote', place: 'guide' },
+    productId: card.offer_id,
+    payload: { action: 'quote', place: 'assistant' },
   })
   spec.open = true
-}
-
-function onGuideContinue() {
-  guide.hide()
-  box.value?.focus()
 }
 
 function sendManagerRequest() {
@@ -1031,12 +925,20 @@ async function onSupply() {
         <p v-if="status === 'idle'" class="search-hero__title">
           Лицензии и оборудование для бизнеса
         </p>
-        <SearchPanel
-          ref="box"
-          v-model="text"
-          :client-id="state.client ?? GUEST_CLIENT_ID"
-          @submit="onPanelSubmit"
-        />
+        <div class="search-hero__row">
+          <SearchPanel
+            ref="box"
+            v-model="text"
+            class="search-hero__panel"
+            :client-id="state.client ?? GUEST_CLIENT_ID"
+            @submit="onPanelSubmit"
+          />
+          <AssistantEntryButton
+            :unread="assistant.unread.value"
+            :active="assistant.open.value"
+            @open="openAssistant"
+          />
+        </div>
         <LlmModeNote />
       </div>
     </div>
@@ -1046,7 +948,7 @@ async function onSupply() {
         'search-page__cols',
         {
           'search-page__cols--trace': state.trace && isDesktop,
-          'search-page__cols--guide': guideDocked,
+          'search-page__cols--guide': assistantDocked,
         },
       ]"
     >
@@ -1054,28 +956,6 @@ async function onSupply() {
         <Teleport defer to="#footer-tools">
           <UiSwitch label="Трасса" :model-value="state.trace" @update:model-value="setTrace" />
         </Teleport>
-
-        <GuidePanel
-          v-if="guide.open && !guideWide"
-          v-model:collapsed="guide.collapsed"
-          compact
-          :status="guide.status"
-          :response="guide.response"
-          :error="guide.error"
-          :added="guide.added"
-          :said="guide.said"
-          :in-spec="inSpec"
-          @hide="guide.hide()"
-          @answer="guide.answer"
-          @say="guide.say"
-          @edit="(key: string, value: string | null) => guide.editCondition({ key, value })"
-          @retry="guide.retry()"
-          @spec="onGuideSpec"
-          @quote="onGuideQuote"
-          @continue="onGuideContinue"
-          @open-spec="spec.open = true"
-          @refine="onGuideRefine"
-        />
 
         <ResultSkeleton v-if="status === 'loading'" />
 
@@ -1098,7 +978,7 @@ async function onSupply() {
             {{ formatFound(response.total, response.trace?.total_ms) }} · {{ response.config }}
           </p>
 
-          <GuideHint v-if="guideHintShown" :resume="guideResume" @start="onGuideStart" />
+          <AssistantInvite v-if="inviteShown" @start="onInvite" />
 
           <TargetCard
             v-if="target && !helpShown"
@@ -1254,15 +1134,15 @@ async function onSupply() {
               'search-page__body',
               {
                 'search-page__body--facets': resultsOn ? showResultFacets : showFacets,
-                'search-page__body--fold': guideDocked,
-                'search-page__body--fold-open': guideDocked && facetsOpen,
+                'search-page__body--fold': assistantDocked,
+                'search-page__body--fold-open': assistantDocked && facetsOpen,
                 'search-page__body--busy': refreshing,
               },
             ]"
             :aria-busy="refreshing || undefined"
           >
             <button
-              v-if="guideDocked && (resultsOn ? showResultFacets : showFacets)"
+              v-if="assistantDocked && (resultsOn ? showResultFacets : showFacets)"
               type="button"
               class="btn btn--secondary btn--sm search-page__filters-btn"
               :aria-expanded="facetsOpen"
@@ -1674,31 +1554,31 @@ async function onSupply() {
       </div>
 
       <aside
-        v-if="guideDocked"
-        ref="guideAside"
+        v-if="assistantDocked"
+        ref="assistantAside"
         class="search-page__guide"
-        aria-label="Подбор лицензии"
+        aria-label="Помощник по выбору"
       >
-        <GuidePanel
-          class="search-page__guide-panel"
-          :status="guide.status"
-          :response="guide.response"
-          :error="guide.error"
-          :added="guide.added"
-          :said="guide.said"
+        <AssistantPanel
+          :session="assistant"
+          :spec-count="spec.count"
           :in-spec="inSpec"
-          @hide="guide.hide()"
-          @answer="guide.answer"
-          @say="guide.say"
-          @edit="(key: string, value: string | null) => guide.editCondition({ key, value })"
-          @retry="guide.retry()"
-          @spec="onGuideSpec"
-          @quote="onGuideQuote"
-          @continue="onGuideContinue"
+          :full="false"
           @open-spec="spec.open = true"
-          @refine="onGuideRefine"
+          @show-all="onAssistantShowAll"
+          @quote="onAssistantQuote"
         />
       </aside>
+      <AssistantPanel
+        v-if="assistantFull"
+        :session="assistant"
+        :spec-count="spec.count"
+        :in-spec="inSpec"
+        full
+        @open-spec="spec.open = true"
+        @show-all="onAssistantShowAll"
+        @quote="onAssistantQuote"
+      />
 
       <aside v-if="state.trace && isDesktop" class="search-page__trace" aria-label="Трасса запроса">
         <TracePanel
@@ -1790,7 +1670,7 @@ async function onSupply() {
 .search-page__cols--guide .search-page__main {
   max-width: none;
 }
-/* Подбор справа от выдачи (UI §1, §5): 480–560 px, отступ 24 px, своя прокрутка, итоговая строка прилипает к низу. */
+/* Помощник справа от выдачи (CHAT.md §2): 440 px (минимум 400), вся высота под шапкой, своя прокрутка ленты. */
 .search-page__guide {
   position: sticky;
   top: var(--header-actual, var(--header-h));
@@ -1798,14 +1678,25 @@ async function onSupply() {
   flex: none;
   box-sizing: border-box;
   display: flex;
-  width: clamp(30rem, 36vw, 35rem);
+  flex-direction: column;
+  width: clamp(25rem, 34vw, 27.5rem);
   height: calc(100dvh - var(--header-actual, var(--header-h)));
-  margin-left: var(--space-6);
   border-left: var(--border-w) solid var(--border);
   background: var(--surface);
 }
-.search-page__guide-panel {
+.search-hero__row {
+  display: flex;
+  align-items: stretch;
+  gap: var(--space-2);
+}
+.search-hero__panel {
   flex: 1;
+  min-width: 0;
+}
+@media (max-width: 639px) {
+  .search-hero__row {
+    flex-direction: column;
+  }
 }
 /* Кнопка «Фильтры» — только там, где при открытом подборе колонке не хватает ширины на панель фильтров. */
 .search-page__filters-btn {
