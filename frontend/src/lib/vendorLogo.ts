@@ -1,6 +1,8 @@
 // Значки производителей: файлы лежат в public/vendors/<id>.png (self-host), здесь — имя производителя из
 // каталога → id файла. Производителя нет в списке (например, в данных организаторов) — значка нет,
 // показывается общая иконка. Товарные знаки принадлежат их владельцам (LICENSES.md).
+import { FEED_LOGO_IDS } from './vendorLogoFeed.ts'
+
 const IDS: Record<string, string> = {
   Microsoft: 'microsoft',
   'Группа Астра': 'astra',
@@ -67,7 +69,13 @@ const IDS: Record<string, string> = {
   'HP Inc.': 'hp',
 }
 
-const BY_NAME = new Map(Object.entries(IDS).map(([name, id]) => [name.toLowerCase(), id]))
+// Значки производителей фида (vendorLogoFeed.ts) — дополнение; ручной список выше важнее.
+const BY_NAME = new Map(
+  [...Object.entries(FEED_LOGO_IDS), ...Object.entries(IDS)].map(([name, id]) => [
+    name.toLowerCase(),
+    id,
+  ]),
+)
 
 export function vendorLogo(vendor: string | null | undefined): string | null {
   const id = BY_NAME.get((vendor ?? '').trim().toLowerCase())

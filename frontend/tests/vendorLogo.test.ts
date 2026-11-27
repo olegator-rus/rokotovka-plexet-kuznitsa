@@ -21,3 +21,14 @@ test('незнакомый производитель и пустое имя —
   assert.equal(vendorLogo(''), null)
   assert.equal(vendorLogo(null), null)
 })
+
+test('значки производителей фида: у каждой строки словаря есть файл', async () => {
+  const { FEED_LOGO_IDS } = await import('../src/lib/vendorLogoFeed.ts')
+  assert.ok(Object.keys(FEED_LOGO_IDS).length > 100)
+  for (const name of Object.keys(FEED_LOGO_IDS)) {
+    const src = vendorLogo(name)
+    assert.ok(src && existsSync(new URL(`../public${src}`, import.meta.url)), `нет файла: ${name}`)
+  }
+  assert.equal(vendorLogo('НПО «Эшелон»'), '/vendors/npo-echelon.png')
+  assert.equal(vendorLogo('МТС Линк'), '/vendors/webinar.png')
+})
