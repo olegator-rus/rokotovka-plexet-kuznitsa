@@ -211,7 +211,13 @@ func applyDelta(st *domain.GuideState, d guideDelta, origin string) []out.GuideC
 			if len(r.Objects) > 1 {
 				effect = "пересчитана строка «" + map[bool]string{true: "серверы", false: "рабочие станции"}[o.Kind == "server"] + "», остальные без изменений"
 			}
-			ch = append(ch, out.GuideChange{Condition: countLabel(o.Kind, o.Count), Effect: effect})
+			cond := countLabel(o.Kind, o.Count)
+			if r.Task == "webinar" && o.Kind == "user" {
+				// Вебинар: участники, а не пользователи; тариф выбирается по вместимости, ступени нет.
+				cond = fmt.Sprintf("%d %s", o.Count, guidePlural(o.Count, "участник", "участника", "участников"))
+				effect = fmt.Sprintf("было %d — тарифы подобраны заново", prev)
+			}
+			ch = append(ch, out.GuideChange{Condition: cond, Effect: effect})
 		}
 	}
 	if d.objKind != "" && objectCount(*r, d.objKind) == 0 && !hasObject(*r, d.objKind) {
@@ -502,6 +508,16 @@ func vendorLabel(v string) string {
 		return "Astra Linux"
 	case "drweb", "doctor-web":
 		return "Dr.Web"
+	case "webinar":
+		return "МТС Линк" // слаг вендора на витрине не показывается
+	case "cyberprotect":
+		return "Киберпротект"
+	case "anydesk":
+		return "AnyDesk"
+	case "pro32":
+		return "PRO32"
+	case "microsoft":
+		return "Microsoft"
 	}
 	return v
 }

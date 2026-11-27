@@ -42,6 +42,9 @@ type catalogState struct {
 
 // newCatalogState — состояние из снимка.
 func newCatalogState(s *domain.CatalogSnapshot, rulesVersion int) *catalogState {
+	for i := range s.Products {
+		sanitizeQuantity(&s.Products[i])
+	}
 	clients := append([]domain.Client(nil), s.Clients...)
 	// Гость — первым (переключатель клиента открывается на нём), остальные — по id: порядок не зависит
 	// от того, прочитан каталог из файлов или из базы.

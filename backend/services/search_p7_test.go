@@ -203,3 +203,61 @@ func TestShopCommandsAreNoise(t *testing.T) {
 		t.Error("слова названия связывают запрос с семейством")
 	}
 }
+
+// «касперский на 10 мест»: запрос — только имя вендора, «платформа» одной линейки (ASAP — обучающий курс) не
+// становится целью; цель — вендор.
+func TestTargetBrandOnlyIgnoresPlatformFamily(t *testing.T) {
+	b := domain.LicenseKindBase
+	lx := newSearchLexicon(p6snapshot([]p6offer{
+		{id: "p1", fam: "f-asap", famName: "Kaspersky Automated Security Awareness Platform", vendor: "kaspersky", cat: "av", title: "Kaspersky ASAP", kind: b, price: 5445},
+		{id: "p2", fam: "f-kes", famName: "Kaspersky Endpoint Security для бизнеса", vendor: "kaspersky", cat: "av", title: "Kaspersky Endpoint Security для бизнеса Стандартный", kind: b, price: 2813},
+		{id: "p3", fam: "f-ksos", famName: "Kaspersky Small Office Security", vendor: "kaspersky", cat: "av", title: "Kaspersky Small Office Security", kind: b, price: 991},
+	}))
+	rc := p6rc(lx, "kaspersky")
+	fams := p6fams(t, rc, domain.GroupMatch, "f-asap", "f-kes", "f-ksos")
+	dec := p6target(t, rc, "kaspersky", "", fams)
+	if dec.target == nil || dec.target.Type == "family" && dec.families["f-asap"] {
+		t.Fatalf("kaspersky → не ASAP, получено %+v", dec.target)
+	}
+}
+
+// Номер в реестре и номер версии — не количество мест («Количество 515», «0 серверов» на карточке КриптоПро).
+func TestLicenseQuantityNotFromRegistryOrVersion(t *testing.T) {
+	lic, _, _ := licenseFromText("КриптоПро CSP версии 4.0 (Номер ЕРРП: 515), Лицензия на право использования на одном рабочем месте")
+	if lic.Quantity != nil && *lic.Quantity == 515 {
+		t.Fatal("номер ЕРРП 515 разобран как количество")
+	}
+	lic, _, _ = licenseFromText("КриптоПро CSP 5.0: серверная лицензия СКЗИ")
+	if lic.Quantity != nil {
+		t.Fatalf("«5.0 серверная» → количество %d", *lic.Quantity)
+	}
+	q, z := 4332, 0
+	p := domain.Product{Title: "КриптоПро CSP TLS (Номер ЕРРП: 4332), Лицензия", License: domain.License{Quantity: &q}}
+	sanitizeQuantity(&p)
+	p2 := domain.Product{Title: "КриптоПро CSP 5.0: серверная лицензия", License: domain.License{Quantity: &z}}
+	sanitizeQuantity(&p2)
+	if p.License.Quantity != nil || p2.License.Quantity != nil {
+		t.Fatal("sanitizeQuantity оставил номер реестра или ноль")
+	}
+}
+
+// «для государственных организаций» — тип покупателя, а не «Количество: на организацию».
+func TestLicenseMetricOrgTypeIsNotOrgLicense(t *testing.T) {
+	title := "Microsoft Windows Server Standard 2019 (бессрочная лицензия для государственных организаций), ALNG 16License D Each"
+	lic, _, _ := licenseFromText(title)
+	if lic.Metric != nil && *lic.Metric == domain.MetricOrg {
+		t.Fatal("«для государственных организаций» разобрано как лицензия на организацию")
+	}
+	m := domain.MetricOrg
+	p := domain.Product{Title: title, License: domain.License{Metric: &m}}
+	sanitizeQuantity(&p)
+	if p.License.Metric != nil {
+		t.Fatal("sanitizeQuantity оставил метрику «на организацию»")
+	}
+	m2 := domain.MetricOrg
+	p2 := domain.Product{Title: "Лицензия на организацию, безлимит", License: domain.License{Metric: &m2}}
+	sanitizeQuantity(&p2)
+	if p2.License.Metric == nil {
+		t.Fatal("настоящая лицензия на организацию снята")
+	}
+}

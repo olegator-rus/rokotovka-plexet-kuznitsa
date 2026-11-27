@@ -28,6 +28,7 @@ import {
   sourceName,
   perUnit,
   priceWithUnit,
+  specOffers,
   splitOffers,
   unitText,
   visibleColumns,
@@ -427,4 +428,42 @@ test('unitText, offerRole, splitOffers и условие count:workstation', () 
     lineFromOffer(offer({ unit: 'за компьютер' }), [], 'q').license_line,
     'арт. KL4867RAQFS · ступень 50–99 · за компьютер',
   )
+})
+
+test('specOffers: строки подбора D3 — все, иначе первый подходящий', () => {
+  const o = (id: string, note = '', role = 'match') =>
+    ({
+      offer_id: id,
+      title: id,
+      sku: '',
+      tier: '',
+      unit: '',
+      price_per_unit: 1,
+      total: 1,
+      price_state: 'fixed',
+      offer_url: '',
+      note,
+      role,
+    }) as GuideOffer
+  const ws = o('ws', 'строка «рабочие станции»')
+  const sr = o('sr', 'строка «серверы»')
+  assert.deepEqual(
+    specOffers([ws, sr]).map((x) => x.offer_id),
+    ['ws', 'sr'],
+  )
+  // Три уровня одной строки («не знаю») — не строки подбора: первый.
+  const lv = ['orel', 'vor', 'smol'].map((id) => o(id, `«${id}», строка «рабочие станции»`))
+  assert.deepEqual(
+    specOffers(lv).map((x) => x.offer_id),
+    ['orel'],
+  )
+  assert.deepEqual(
+    specOffers([o('a'), o('b')]).map((x) => x.offer_id),
+    ['a'],
+  )
+  assert.deepEqual(
+    specOffers([o('r', '', 'rejected'), o('alt', '', 'alternative')]).map((x) => x.offer_id),
+    ['alt'],
+  )
+  assert.deepEqual(specOffers(null), [])
 })

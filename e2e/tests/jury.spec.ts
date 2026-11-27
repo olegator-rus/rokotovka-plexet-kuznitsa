@@ -78,9 +78,20 @@ test.describe('Жюри', () => {
 })
 
 test.describe('SearchOps', () => {
-  test('F9: главный запуск открывается из истории — гипотезы зачёркнуты с причиной', async ({
+  test('F9: главный запуск на фиде открывается из истории — лента: память, инструменты, диагноз, гипотеза с прогоном, предложение', async ({
     page,
   }) => {
+    // На фиде главный запуск — разбор «я360»: одна гипотеза, она прошла прогон. Запусков с отклонёнными гипотезами
+    // на фиде нет (прежний mock-запуск «акад» удалён), поэтому зачёркивание проверяется условно: если отклонённые
+    // гипотезы есть, они зачёркнуты (<s>, не <del>) и с причиной.
+    const res = await page.request.get(`/api/agent/runs/${MAIN_RUN_ID}`)
+    expect(res.status(), 'главный запуск есть в базе').toBe(200)
+    const { run } = (await res.json()) as {
+      run: { cost_rub: number; query: string | null; status: string }
+    }
+    expect(run.query).toBe('я360')
+    expect(run.status).toBe('done')
+
     await page.goto('/searchops?tab=runs')
     await expect(page.getByRole('heading', { level: 1, name: 'SearchOps' })).toBeVisible()
     // Пока идёт чужой запуск, кнопка называется «Открыть идущий запуск».
@@ -96,30 +107,34 @@ test.describe('SearchOps', () => {
 
     await expect(page).toHaveURL(new RegExp(`/searchops/runs/${MAIN_RUN_ID}`))
     await expect(
-      page.getByRole('heading', { level: 1, name: 'Разбор неудачных запросов' }),
+      page.getByRole('heading', { level: 1, name: 'Разбор запроса «я360»' }),
     ).toBeVisible()
     await expect(page.getByText(MAIN_RUN_ID)).toBeVisible()
     await expect(page.getByRole('button', { name: 'Остановить' })).toHaveCount(0)
 
     const feed = page.getByRole('list', { name: 'Шаги агента' })
     await expect(feed).toBeVisible()
-    // Сегмент кластера ищем по содержимому: заголовок сегмента может показывать id, а не подпись.
-    const akad = feed
+    const cluster = feed
       .getByRole('listitem')
-      .filter({ has: page.getByRole('heading', { name: /^Кластер / }) })
-      .filter({ hasText: 'алиас «акад» → «AutoCAD»' })
+      .filter({ has: page.getByRole('heading', { name: /^Кластер «я360»/ }) })
+      .filter({ hasText: 'Гипотеза 1' })
       .first()
-    await expect(akad).toBeVisible()
-    await expect(akad).toContainText('Гипотеза 3 прошла прогон')
-    // Отклонённые гипотезы остаются в ленте зачёркнутыми, с причиной (по логу — 9 из 11).
-    const reasons = feed.getByText('Гипотеза отклонена:')
-    await expect(reasons.first()).toBeVisible()
-    expect(await reasons.count()).toBeGreaterThanOrEqual(5)
-    await expect(akad.getByText('Гипотеза отклонена:').first()).toBeVisible()
-    expect(await feed.getByRole('deletion').count()).toBe(0) // зачёркивание — <s>, не <del>
-    expect(await akad.locator('s').count()).toBeGreaterThanOrEqual(2)
+    await expect(cluster).toBeVisible()
+    await expect(cluster).toContainText('Память: прошлых решений по кластеру нет')
+    await expect(cluster).toContainText('Трасса поиска: «я360»')
+    await expect(cluster).toContainText('ALIAS_GAP')
+    await expect(cluster).toContainText('Гипотеза 1: алиас «я360» → «Яндекс 360 для бизнеса»')
+    await expect(cluster).toContainText(/Гипотеза 1 прошла прогон: находилось 0 из 1, стало 1 из 1; регрессия — хуже 0 из \d+/)
+    await expect(cluster).toContainText('Предложение в очередь')
 
-    await expect(page.getByText(/Стоимость запуска:/).first()).toContainText('30,00')
+    // Отклонённые гипотезы (если есть) — зачёркнуты, с причиной; <del> не используется.
+    expect(await feed.getByRole('deletion').count()).toBe(0)
+    const rejected = await feed.getByText('Гипотеза отклонена:').count()
+    if (rejected > 0) expect(await feed.locator('s').count()).toBeGreaterThanOrEqual(rejected)
+
+    // Стоимость на экране — та же, что в /api/agent/runs/{id}.
+    const rub = (Math.round(run.cost_rub * 100) / 100).toFixed(2).replace('.', ',')
+    await expect(page.getByText(/Стоимость запуска:/).first()).toContainText(rub)
   })
 
   test('F10: карточка «Правка поиска» — причина и владелец крупно, запросы, разница правил, прогон; диалог без утверждения', async ({

@@ -176,7 +176,9 @@ func (s *Services) searchB3(ctx context.Context, requestID string, req in.Search
 	vendorOnlyText := false // только вендор и условия покупки («касперский на 10 пк»): BM25 семейства вендора не различает
 	if len(words) == 0 {
 		words, vendorWords = vendorWords, nil
-		vendorOnlyText = len(words) > 0 && (attrs.quantity > 0 || attrs.renewal || attrs.duration > 0)
+		// Одно имя вендора («касперский») — тоже: иначе двадцать мест слияния занимают офферы одного домашнего
+		// семейства, и у вендора с десятками продуктов в выдаче три семейства.
+		vendorOnlyText = len(words) > 0
 	}
 	if attrs.renewal {
 		vendorWords = append(vendorWords, "продление") // продление — фильтр; слово только усиливает
@@ -286,6 +288,8 @@ func (s *Services) searchB3(ctx context.Context, requestID string, req in.Search
 	t = time.Now()
 	rc := s.rankContext(st, lx, req.ClientID, attrs, ent)
 	rc.hw = hw
+	rc.versions = queryVersions(req.Query)
+	rc.vendorOnly = vendorOnlyText
 	rc.upgradeTargets = upgradeTargetSet(s.commerceFor(ctx))
 	rc.wantKinds = wantedKinds(nr.tokens, attrs)   // голова семейства — базовая лицензия, если о другом не просили (search_head.go)
 	cq := s.companionQuantity(ctx, lx, attrs, ent) // «на 50 пользователей» к серверу — количество CAL (search_companion_qty.go)
@@ -533,6 +537,9 @@ func (s *Services) searchB3(ctx context.Context, requestID string, req in.Search
 	switch {
 	case ent.noise:
 		resp.Empty = &out.Empty{Message: fmt.Sprintf("По запросу «%s» товаров нет — назовите программу или задачу", req.Query), ShowManager: true}
+	case ent.nonProduct && gibberish(ent, queryWords(nr.tokens, attrs.consumed)):
+		// Бессмыслица («asdfgh») — не вопрос к менеджеру: цели нет, ниже «Популярное в наличии».
+		resp.Empty = &out.Empty{Message: fmt.Sprintf("По запросу «%s» ничего не нашли — проверьте написание или назовите программу", req.Query), ShowManager: true}
 	case ent.nonProduct:
 		resp.Empty = &out.Empty{Message: fmt.Sprintf("По запросу «%s» товаров нет — с этим вопросом поможет менеджер", req.Query), ShowManager: true}
 	case absent || len(fams) == 0 && !attrs.analog || !exact && len(fams) > 0 && !attrs.analog:

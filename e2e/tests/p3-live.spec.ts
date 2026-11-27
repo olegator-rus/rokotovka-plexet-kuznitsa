@@ -47,22 +47,42 @@ for (const vp of [
         page.waitForResponse((r) => r.url().includes('/api/suggest?') && r.url().includes('q=kasp')),
         typeQuery(page, 'kasp'),
       ])
-      const sug = (await resp.json()) as { refinements: { label: string }[] }
+      const sug = (await resp.json()) as {
+        suggestions: { text: string }[]
+        refinements: { label: string; query: string }[]
+        vendors: { name: string }[]
+        products: { family_name: string; vendor: string }[]
+      }
       const list = listbox(page)
-      // Фид: подсказки — линейки Kaspersky из шаблонов каталога, бейджи — уточнения сервера (вид, срок, количество);
-      // набор уточнений зависит от правил подсказок — первый бейдж сервера виден на экране.
-      await expect(list.getByRole('option', { name: 'Kaspersky Standard', exact: true })).toBeVisible()
+      // Фид: подсказки — запросы из журнала и словаря и семейства с ценой (коммит 1e8daea), производитель — своей
+      // секцией, бейджи — уточнения сервера (вид, срок, количество). Проверяется суть, а не конкретная строка: всё
+      // про Kaspersky, бейджи не дублируют подсказки.
+      expect(sug.suggestions.length).toBeGreaterThan(0)
+      for (const s of sug.suggestions) expect(s.text.toLowerCase()).toMatch(/^kasp/)
+      await expect(list.getByRole('option', { name: sug.suggestions[0]!.text, exact: true })).toBeVisible()
+      expect(sug.vendors.map((v) => v.name)).toContain('Лаборатория Касперского')
+      await expect(list.getByRole('option', { name: 'Лаборатория Касперского', exact: true })).toBeVisible()
+      // Семейства в панели — Kaspersky.
+      expect(sug.products.length).toBeGreaterThan(0)
+      for (const p of sug.products) expect(p.family_name).toMatch(/kaspersky/i)
+      const families = list.locator('[id^="panel-opt-product-"]')
+      await expect(families.first()).toBeVisible()
+      for (const t of await families.allTextContents()) expect(t).toMatch(/Kaspersky/)
+
       expect(sug.refinements.length).toBeGreaterThan(0)
       const firstRef = sug.refinements[0]!.label
       await expect(badges(page).getByRole('button', { name: `Уточнить: ${firstRef}` })).toBeVisible()
       const labels = await badgeLabels(page)
       expect(labels).toEqual(expect.arrayContaining([firstRef]))
-      const suggestions = (await list.getByRole('option').allTextContents()).map((t) => t.trim().toLowerCase())
-      for (const l of labels) {
-        expect(
-          suggestions.some((s) => s === `kaspersky ${l.toLowerCase()}`),
-          `бейдж «${l}» дублирует подсказку`,
-        ).toBe(false)
+      expect(new Set(labels).size, 'бейджи без повторов').toBe(labels.length)
+      // Бейдж не повторяет подсказку: запрос уточнения («<подсказка> <бейдж>») не стоит строкой в подсказках.
+      const suggestions = (await list.locator('[id^="panel-opt-suggestion-"]').allTextContents()).map((t) =>
+        t.trim().toLowerCase(),
+      )
+      for (const r of sug.refinements) {
+        if (!labels.includes(r.label)) continue
+        expect(suggestions.includes(r.query.toLowerCase()), `бейдж «${r.label}» дублирует подсказку`).toBe(false)
+        expect(suggestions.includes(r.label.toLowerCase()), `бейдж «${r.label}» дублирует подсказку`).toBe(false)
       }
       await noOverflow(page)
       await shot(page, `live-kasp-${vp.tag}`)

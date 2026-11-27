@@ -548,6 +548,13 @@ func applyAliases(tokens []string, rules *searchRules, res *normResult, lx *sear
 				continue // «в офисе», «для офиса», «защита … офис»: место или назначение, а не офисный пакет
 			}
 			to := aliasReplacement(key, a, lx)
+			// Замена сама — ключ алиаса («drweb» → «доктор веб» → «dr.web»): ещё один шаг, иначе слова замены
+			// разбираются по отдельности («веб» — вебкамеры). Только один шаг: циклов нет.
+			if a2, ok2 := rules.aliases[to]; ok2 && to != key {
+				if to2 := aliasReplacement(to, a2, lx); to2 != to && to2 != key {
+					to, a = to2, a2
+				}
+			}
 			if e, ok := rules.successors[key]; ok {
 				res.successors = append(res.successors, successorHit{from: key, note: e.Note})
 			}

@@ -2,6 +2,7 @@ package services
 
 import (
 	"fmt"
+	"regexp"
 	"sort"
 
 	"kuznica/api/domain"
@@ -96,6 +97,11 @@ type rankCtx struct {
 	// wantKinds — виды позиции, названные в запросе (техподдержка, модуль, курс…): они наравне с базовой
 	// лицензией при выборе головы семейства (search_head.go).
 	wantKinds map[string]bool
+	// versions — номера версий из запроса («5.0» в «крипто про csp 5.0»): при прочих равных головой семейства
+	// встаёт позиция этой версии, а не соседней («КриптоПро CSP версии 4.0»).
+	versions []string
+	// vendorOnly — запрос — одно имя вендора («касперский»): порядок — основная линейка вендора (markVendorCore).
+	vendorOnly bool
 }
 
 // textTopN — сколько первых мест BM25 считаются совпадением по названию (не отсекаются категорией).
@@ -289,6 +295,9 @@ func (rc rankCtx) buildFamily(fid string, rel float64, rejected *[]domain.Reject
 		}
 		if less, decided := rc.headLess(ok[i].d, ok[j].d); decided {
 			return less
+		}
+		if vi, vj := rc.namesVersion(ok[i].d.Title), rc.namesVersion(ok[j].d.Title); vi != vj {
+			return vi
 		}
 		if ri, rj := rc.productRel[ok[i].d.ProductID], rc.productRel[ok[j].d.ProductID]; ri != rj {
 			return ri > rj
@@ -675,6 +684,25 @@ func quantityOK(d indexDoc, n int) bool {
 		return true // ступень цены за единицу фида: «от 100 до 149 узлов» закрывает 120
 	case q > 0 && d.LicenseMetric != nil && *d.LicenseMetric == domain.MetricCore && n%q == 0:
 		return true
+	}
+	return false
+}
+
+// queryVersions — номера версий в запросе: число с точкой («5.0», «1.8»).
+func queryVersions(q string) []string {
+	return queryVersionRe.FindAllString(q, -1)
+}
+
+var queryVersionRe = regexp.MustCompile(`\d+\.\d+`)
+
+// namesVersion — в названии позиции есть номер версии из запроса (целиком, не часть другого числа).
+func (rc rankCtx) namesVersion(title string) bool {
+	for _, v := range rc.versions {
+		for _, m := range queryVersionRe.FindAllString(title, -1) {
+			if m == v {
+				return true
+			}
+		}
 	}
 	return false
 }

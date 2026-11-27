@@ -30,7 +30,7 @@ func specialisedName(name string) bool {
 func (rc rankCtx) markVendorCore(fams []*familyHit) {
 	a := rc.attrs
 	if len(rc.ent.vendors) != 1 || len(rc.ent.named) > 0 || rc.ent.parsedFamily != "" ||
-		a.quantity == 0 && !a.renewal && a.duration == 0 {
+		a.quantity == 0 && !a.renewal && a.duration == 0 && !rc.vendorOnly {
 		return
 	}
 	count := map[string]int{}
@@ -50,8 +50,9 @@ func (rc rankCtx) markVendorCore(fams []*familyHit) {
 	}
 	var core []*familyHit
 	for _, fh := range fams {
-		if fh.group != domain.GroupExact || rc.lx.familyCat[fh.id] != best {
-			continue
+		if fh.group != domain.GroupExact || rc.lx.familyCat[fh.id] != best || rc.serviceFamily(fh.id) ||
+			mediaName(rc.lx.familyName[fh.id]) {
+			continue // носитель дистрибутива и услуги — не основная линейка
 		}
 		fh.core = 1
 		if !specialisedName(rc.lx.familyName[fh.id]) {
@@ -69,4 +70,15 @@ func (rc rankCtx) markVendorCore(fams []*familyHit) {
 			}
 		}
 	}
+}
+
+// mediaName — семейство — носитель дистрибутива («Certified media Pack», «Медиапакет Dr.Web»), а не лицензия.
+func mediaName(name string) bool {
+	ws := wordsOf(name)
+	for i, w := range ws {
+		if w == "медиапакет" || w == "media" && i+1 < len(ws) && ws[i+1] == "pack" {
+			return true
+		}
+	}
+	return false
 }

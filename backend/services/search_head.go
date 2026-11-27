@@ -79,6 +79,10 @@ func (rc rankCtx) headLess(a, b indexDoc) (less, ok bool) {
 	if ba, bb := buyable(a), buyable(b); ba != bb {
 		return ba, true
 	}
+	// Носитель дистрибутива («Certified media Pack») — не лицензия: головой семейства, только если другого нет.
+	if ma, mb := mediaName(a.Title), mediaName(b.Title); ma != mb {
+		return mb, true
+	}
 	return false, false
 }
 

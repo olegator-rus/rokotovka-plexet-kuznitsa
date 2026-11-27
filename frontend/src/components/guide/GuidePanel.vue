@@ -29,6 +29,7 @@ import {
   priceWithUnit,
   splitOffers,
   originLabel,
+  specOffers,
 } from '@/lib/guide'
 import GuideOfferCard from './GuideOfferCard.vue'
 import GuideTable from './GuideTable.vue'
@@ -68,6 +69,14 @@ const tableFirst = computed(() => r.value?.type === 'comparison')
 const steps = computed(() => r.value?.trace ?? [])
 const changes = computed(() => r.value?.changes ?? [])
 const primary = computed(() => offers.value[0] ?? null)
+/** Общая кнопка: все строки подбора (рабочие станции и серверы) или первый оффер. */
+const toSpec = computed(() => specOffers(r.value?.offers))
+const allInSpec = computed(
+  () => toSpec.value.length > 0 && toSpec.value.every((o) => props.inSpec(o.offer_id)),
+)
+function addAll() {
+  for (const o of toSpec.value) emit('spec', o)
+}
 
 const text = ref('')
 const input = ref<HTMLInputElement | null>(null)
@@ -327,9 +336,9 @@ const fitCount = computed(() => {
           class="btn btn--primary btn--sm"
           :disabled="primary.price_state === 'unavailable'"
           data-testid="guide-spec"
-          @click="emit('spec', primary)"
+          @click="addAll"
         >
-          {{ inSpec(primary.offer_id) ? 'В спецификации' : 'В спецификацию' }}
+          {{ allInSpec ? 'В спецификации' : 'В спецификацию' }}
         </button>
         <button
           type="button"

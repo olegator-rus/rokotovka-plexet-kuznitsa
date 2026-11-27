@@ -27,6 +27,7 @@ import {
   productHref,
   specText,
 } from '@/lib/product'
+import { perPlaceLabel } from '@/lib/offerNotes'
 import { useAppStore } from '@/stores/app'
 
 const route = useRoute()
@@ -45,6 +46,17 @@ const notFound = computed(
   () => product.status.value === 'error' && product.error.value?.status === 404,
 )
 const isSoftware = computed(() => p.value !== null && p.value.kind !== 'hardware')
+// у позиции со ступенью количества цена — за одно место («3 070,80 ₽ за узел»), как на карточке выдачи.
+const perPlace = computed(() => {
+  const v = p.value
+  if (
+    !v ||
+    !isPurchasable(v) ||
+    !(typeof v.license.tier_min === 'number' && v.license.tier_min > 0)
+  )
+    return ''
+  return perPlaceLabel(v.license.metric)
+})
 const license = computed(() =>
   p.value && isSoftware.value ? licenseRows(p.value.license, p.value.license_line) : [],
 )
@@ -244,6 +256,9 @@ function companionPrice(c: { price_rub: number | null; price_mode: string }) {
           >
             {{ priceLabel(p) }}
           </p>
+          <p v-if="perPlace" class="t-sm pp__price-for" data-testid="product-per-place">
+            {{ perPlace }}
+          </p>
           <p v-if="p.license_line" class="t-sm t-muted pp__price-for">{{ p.license_line }}</p>
           <div class="pp__actions">
             <template v-if="isPurchasable(p)">
@@ -280,6 +295,16 @@ function companionPrice(c: { price_rub: number | null; price_mode: string }) {
               </li>
             </ul>
           </div>
+          <a
+            v-if="p.offer_url"
+            :href="p.offer_url"
+            target="_blank"
+            rel="noopener"
+            class="pp__site t-sm"
+            data-testid="product-site"
+          >
+            На сайте <ExternalLink :size="14" aria-hidden="true" />
+          </a>
           <p class="t-xs t-muted pp__demo" data-testid="product-demo-note">
             Демо-стенд. В магазине здесь открывается карточка товара магазина — поиск передаёт ей
             переход и действия событиями.
@@ -743,5 +768,15 @@ a.pp__variant:hover {
     position: sticky;
     top: calc(var(--header-actual, var(--header-h)) + var(--space-4));
   }
+}
+.pp__site {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  align-self: flex-start;
+  margin-top: var(--space-3);
+  color: var(--text);
+  text-decoration: underline;
+  text-underline-offset: 3px;
 }
 </style>

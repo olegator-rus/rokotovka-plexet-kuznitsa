@@ -22,7 +22,9 @@ type ProductPage struct {
 	PriceRub       *float64        `json:"price_rub"`
 	PriceOnRequest bool            `json:"price_on_request"`
 	PriceMode      string          `json:"price_mode"`
-	Origin         string          `json:"origin"` // ru | foreign
+	// OfferURL — карточка позиции в магазине («На сайте ↗»); пусто — адрес не собран.
+	OfferURL string `json:"offer_url"`
+	Origin   string `json:"origin"` // ru | foreign
 	// Reestr — статус в реестре российского ПО; null у оборудования.
 	Reestr        *Reestr               `json:"reestr"`
 	Attributes    []ProductAttr         `json:"attributes"`

@@ -106,6 +106,7 @@ import {
   lineFromOffer,
   offerRole,
   routeMode,
+  specOffers,
 } from '@/lib/guide'
 import { postGuideRoute } from '@/api/guide'
 
@@ -888,8 +889,10 @@ async function onGuideSpec(o: GuideOffer) {
 
 /** «Запросить КП» в подборе: подобранная позиция с условиями — в спецификацию, панель КП открывается. */
 async function onGuideQuote() {
-  const o = (guide.response?.offers ?? []).find((x) => offerRole(x) !== 'rejected')
-  if (o) await addGuideOffer(o)
+  // Все строки подбора (рабочие станции и серверы) или первый подходящий оффер.
+  const list = specOffers(guide.response?.offers)
+  const o = list[0]
+  for (const x of list) await addGuideOffer(x)
   trackQuiet('click', { productId: o?.offer_id, payload: { action: 'quote', place: 'guide' } })
   spec.open = true
 }

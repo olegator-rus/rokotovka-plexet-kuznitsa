@@ -53,7 +53,7 @@ func licenseLine(d indexDoc) string {
 	switch {
 	case metric == domain.MetricOrg:
 		parts = append(parts, "на организацию")
-	case d.LicenseQuantity != nil && metricForms[metric][0] != "":
+	case d.LicenseQuantity != nil && *d.LicenseQuantity > 0 && metricForms[metric][0] != "": // «0 серверов» не пишем
 		parts = append(parts, fmt.Sprintf("%d %s", *d.LicenseQuantity, plural(*d.LicenseQuantity, metricForms[metric])))
 	}
 	if d.LicenseDuration != nil && *d.LicenseDuration > 0 {

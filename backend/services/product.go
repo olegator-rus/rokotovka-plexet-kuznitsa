@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"sort"
 	"strconv"
+	"strings"
 
 	"kuznica/api/domain"
 	"kuznica/api/out"
@@ -78,11 +79,11 @@ func (s *Services) Product(ctx context.Context, id string) (*out.ProductPage, er
 		FamilyID: p.FamilyID, FamilyName: p.FamilyName, Title: p.Title,
 		Vendor:      out.ProductVendor{ID: p.VendorID, Name: d.Vendor, Origin: p.Origin},
 		Category:    out.ProductCategory{ID: p.CategoryID, Name: d.Category},
-		Description: p.Description, LicenseLine: licenseLine(d),
+		Description: p.Description, LicenseLine: withOrgLine(d),
 		License: out.ProductLicense{Type: p.License.Type, Metric: p.License.Metric, Quantity: p.License.Quantity,
 			DurationMonths: p.License.DurationMonths, Edition: p.License.Edition, Kind: p.License.Kind,
 			OrgType: p.License.OrgType, TierMin: p.License.TierMin, TierMax: p.License.TierMax},
-		PriceRub: p.PriceRub, PriceOnRequest: p.PriceOnRequest, PriceMode: docPriceMode(d), Origin: p.Origin,
+		PriceRub: p.PriceRub, PriceOnRequest: p.PriceOnRequest, PriceMode: docPriceMode(d), OfferURL: d.OfferURL, Origin: p.Origin,
 		Attributes: productPageAttrs(cc, p), Specs: productSpecs(cc, p),
 		Variants: productVariants(lx, p), Compatibility: productCompat(cc, p),
 		Companions: out.ProductPageCompanions{Required: []out.Companion{}, Items: []out.Companion{}},
@@ -211,7 +212,7 @@ func productVariants(lx *searchLexicon, p *domain.Product) []out.ProductVariant 
 			continue
 		}
 		d := lx.docs[pid]
-		res = append(res, out.ProductVariant{ProductID: pid, Title: d.Title, LicenseLine: licenseLine(d),
+		res = append(res, out.ProductVariant{ProductID: pid, Title: d.Title, LicenseLine: withOrgLine(d),
 			PriceRub: d.PriceRub, PriceOnRequest: d.PriceOnRequest, PriceMode: docPriceMode(d)})
 	}
 	priced := func(v out.ProductVariant) bool { return v.PriceRub != nil && !v.PriceOnRequest }
@@ -282,4 +283,14 @@ func productAnalogs(cc *commerceCatalog, lx *searchLexicon, p *domain.Product) [
 			Note: rel.Note})
 	}
 	return res
+}
+
+// withOrgLine — строка лицензии с типом организации, если вариант не для всех («для: образование»): на странице товара
+// иначе стоят рядом два «Продление · 100 устройств · 2 года» с разной ценой (коммерческий и академический).
+func withOrgLine(d indexDoc) string {
+	line := licenseLine(d)
+	if o := feedOrg[d.LicenseOrgType]; o != "" && orgLabels[o] != "" {
+		line += " · для: " + strings.ToLower(orgLabels[o])
+	}
+	return line
 }

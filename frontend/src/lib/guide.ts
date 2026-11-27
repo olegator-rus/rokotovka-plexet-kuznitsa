@@ -363,6 +363,23 @@ export function splitOffers(offers: readonly GuideOffer[] | null | undefined) {
   return out
 }
 
+/** Строка подбора, к которой относится оффер («строка «серверы»»); "" — подбор в одну строку. */
+function lineOf(o: Pick<GuideOffer, 'note'>): string {
+  return /строка «[^»]+»/.exec(o.note ?? '')?.[0] ?? ''
+}
+
+/**
+ * Что кладёт в спецификацию общая кнопка подбора: если подходящие офферы — разные строки одного подбора (D3:
+ * рабочие станции и серверы), то все они; иначе первый подходящий или альтернатива.
+ */
+export function specOffers(offers: readonly GuideOffer[] | null | undefined): GuideOffer[] {
+  const { match, alternative } = splitOffers(offers)
+  const lines = new Set(match.map(lineOf))
+  if (match.length > 1 && !lines.has('') && lines.size === match.length) return [...match]
+  const first = match[0] ?? alternative[0]
+  return first ? [first] : []
+}
+
 /** Строка спецификации из подобранного оффера: та же спецификация и тот же КП, что у выдачи. */
 export function lineFromOffer(
   o: GuideOffer,

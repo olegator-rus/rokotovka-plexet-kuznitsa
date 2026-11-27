@@ -53,7 +53,9 @@ const DESTRUCTIVE: { method: string; path: RegExp }[] = [
   { method: 'POST', path: /^\/api\/relations\/rollback$/ },
 ]
 
-export const MAIN_RUN_ID = '01a20fe2-7723-78d1-97d0-7ce612e23ce7'
+/** Главный запуск на фиде заказчика: разбор запроса «я360» — алиас → «Яндекс 360 для бизнеса», гипотеза прошла прогон,
+ * предложение в очереди. Прежний mock-запуск («акад», зачёркнутые гипотезы) удалён из базы при чистке mock-эпохи. */
+export const MAIN_RUN_ID = '01a217d0-7b25-79a0-b774-a89628a7b771'
 
 type Fixtures = {
   allowDestructive: boolean

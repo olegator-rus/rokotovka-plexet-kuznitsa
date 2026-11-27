@@ -29,6 +29,46 @@ var licenseNoise = setOf("лицензия", "лицензии", "лицензи
 	"электронный", "электронной", "ключ", "esd", "box", "коробочная", "коробка", "версия", "поставка", "подписка",
 	"подписку", "бессрочная", "бессрочно", "бессрочной", "продление", "продления")
 
+// registryWords — слово перед номером записи в реестре («Номер ЕРРП: 515», «реестр № 231»).
+var registryWords = setOf("еррп", "реестр", "реестре", "рег")
+
+// registryNumber — номер записи в реестре из названия позиции; 0 — не указан.
+func registryNumber(title string) int {
+	tokens := titleTokens(title)
+	for i := 0; i+1 < len(tokens); i++ {
+		if registryWords[tokens[i]] && isNumber(tokens[i+1]) {
+			return atoiSafe(tokens[i+1])
+		}
+	}
+	return 0
+}
+
+// sanitizeQuantity — количество мест, разобранное при прежнем импорте из номера реестра или версии («5.0 серверная»
+// → 0 серверов), снимается: на карточке и в фильтрах его нет.
+func sanitizeQuantity(p *domain.Product) {
+	q := p.License.Quantity
+	if q != nil && (*q <= 0 || *q == registryNumber(p.Title)) {
+		p.License.Quantity = nil
+	}
+	// «для государственных организаций» — тип покупателя, а не лицензия на организацию.
+	if m := p.License.Metric; m != nil && *m == domain.MetricOrg {
+		tokens := titleTokens(p.Title)
+		org := false
+		for i, t := range tokens {
+			if strings.HasPrefix(t, "организаци") && (i == 0 || !orgTypeWords[tokens[i-1]]) || t == "безлимит" || t == "unlimited" {
+				org = true
+			}
+		}
+		if !org && strings.Contains(strings.ToLower(p.Title), "организаци") {
+			p.License.Metric = nil
+		}
+	}
+}
+
+// orgTypeWords — слово перед «организаций», по которому это тип покупателя («для государственных организаций»).
+var orgTypeWords = setOf("государственных", "коммерческих", "некоммерческих", "образовательных", "бюджетных",
+	"медицинских", "государственной", "коммерческой", "некоммерческой", "образовательной")
+
 // yearLike — число похоже на год выпуска или версию («Windows Server Datacenter 2022 (лицензия …)»): в названии
 // позиции это не количество мест.
 func yearLike(n int) bool { return n >= 1990 && n <= 2039 }
@@ -42,6 +82,11 @@ func titleTokens(s string) []string {
 // licenseFromText — условия лицензии из названия или описания; consumed — слова, ушедшие в лицензию.
 func licenseFromText(text string) (domain.License, map[int]bool, []string) {
 	tokens := titleTokens(text)
+	for i := 0; i+1 < len(tokens); i++ {
+		if registryWords[tokens[i]] && isNumber(tokens[i+1]) {
+			tokens[i+1] = "№" // «Номер ЕРРП: 515» — номер в реестре, а не 515 мест
+		}
+	}
 	a := extractAttrs(tokens)
 	var lic domain.License
 	consumed := a.consumed
@@ -62,12 +107,12 @@ func licenseFromText(text string) (domain.License, map[int]bool, []string) {
 	for i, t := range tokens {
 		switch {
 		// «1 сервер» без «на» правила запроса не берут (там это «для сервера»), в названии позиции — количество.
-		case lic.Quantity == nil && isNumber(t) && strings.HasPrefix(at(i+1), "сервер"):
+		case lic.Quantity == nil && isNumber(t) && atoiSafe(t) > 0 && strings.HasPrefix(at(i+1), "сервер"):
 			q := atoiSafe(t)
 			m := domain.MetricServer
 			lic.Quantity, lic.Metric = &q, &m
 			consumed[i], consumed[i+1] = true, true
-		case lic.Metric == nil && (strings.HasPrefix(t, "организаци") || t == "безлимит" || t == "unlimited"):
+		case lic.Metric == nil && (strings.HasPrefix(t, "организаци") && !orgTypeWords[at(i-1)] || t == "безлимит" || t == "unlimited"):
 			m := domain.MetricOrg
 			lic.Metric = &m
 			consumed[i] = true

@@ -21,6 +21,9 @@ export interface ProductLicense {
   /** null — бессрочная. */
   duration_months: number | null
   edition: string
+  /** ступень количества — price_rub за одно место. */
+  tier_min?: number | null
+  tier_max?: number | null
 }
 
 /** Атрибут с подписью сервера; значение — строкой. */
@@ -88,6 +91,8 @@ export interface ProductPage {
   price_rub: number | null
   price_on_request: boolean
   price_mode: string
+  /** Карточка позиции в магазине («На сайте ↗»); пусто — адрес не собран. */
+  offer_url?: string
   origin: string
   /** null у оборудования. */
   reestr: Reestr | null

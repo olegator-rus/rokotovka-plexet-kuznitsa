@@ -102,7 +102,15 @@ export function useGuide() {
    * Строка в черновик подбора на сервере: цена перечитывается из каталога, ключ операции не даёт задвоить строку.
    * Сервер недоступен или не ответил за 3 с — оффер как есть (цена из ответа хода, тоже из каталога).
    */
-  async function toSpec(o: GuideOffer): Promise<GuideOffer> {
+  // Черновик версионный: две строки подряд (рабочие станции и серверы) идут по очереди, иначе вторая получает 409.
+  let specQueue: Promise<unknown> = Promise.resolve()
+  function toSpec(o: GuideOffer): Promise<GuideOffer> {
+    const next = specQueue.then(() => toSpecNow(o))
+    specQueue = next.catch(() => undefined)
+    return next
+  }
+
+  async function toSpecNow(o: GuideOffer): Promise<GuideOffer> {
     const r = response.value
     const sel = selectionId(r?.state)
     if (!sel) return o

@@ -349,7 +349,9 @@ func selectTarget(in targetInput) targetDecision {
 		single = covering[0]
 	case len(covering) > 1:
 		single = rc.generalFamily(covering)
-		if single == "" {
+		// Запрос — только имя вендора («касперский на 10 мест»): «платформа» одной линейки не основа всех его
+		// продуктов (Kaspersky Automated Security Awareness Platform — курс, а не Kaspersky).
+		if single == "" && !dec.brandOnly {
 			single = rc.baseOfLine(covering)
 		}
 	}
