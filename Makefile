@@ -80,7 +80,7 @@ e2e: ## сквозные тесты Playwright F1–F10 + быстрый про�
 	@test -d e2e/node_modules || (cd e2e && pnpm install)
 	cd e2e && VIDEO_PACE=0 pnpm exec playwright test --project=flows --project=video
 
-e2e-video: ## запись сценария видео 1920×1080 в artifacts/video/run (VIDEO_ACCEPT=1 — принятие на подменах)
+e2e-video: ## запись сценария видео 1920×1080 (VIDEO_ACCEPT=1 — принятие на подменах)
 	@test -d e2e/node_modules || (cd e2e && pnpm install)
 	cd e2e && VIDEO_PACE=1 pnpm exec playwright test --project=video
 

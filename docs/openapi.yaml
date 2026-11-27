@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: PLEXeT SearchOps API
-  version: "2026-05-27"
+  version: "1.0.0"
   summary: Умный поиск для B2B-магазина ПО и агент SearchOps
   description: |
     HTTP API бэкенда PLEXeT SearchOps. Всё, что видит витрина, доступно через этот API: в пилоте магазин
@@ -21,17 +21,21 @@ info:
       <BACKOFFICE_TOKEN>` (роль `system`); Basic с паролем = токен принимается по-прежнему. Решение чужой зоны — 403
       `PERMISSION_DENIED` «Это решение принимает <роль>». Открыты без входа (`security: []` у операции): GET
       `/api/health`, `/api/meta`, `/api/suggest`, `/api/suggest/recommendations`, `/api/evaluations`,
-      `/api/evaluations/commerce`, `/api/costs/summary`, `/api/companions`, `/api/products/{id}`, `/api/auth/*`, `/api/quotes/mine` (проверяет обработчик) и POST
-      `/api/search`, `/api/events`, `/api/quotes`. При `AUTH_REQUIRED=off` (только development) без токена — `system`.
+      `/api/evaluations/commerce`, `/api/evaluations/contribution`, `/api/evaluations/feed`, `/api/costs/summary`,
+      `/api/companions`, `/api/help`, `/api/products/{id}`, `/api/tz/operations/{id}`, `/api/tz/{hash}`, `/api/auth/*`,
+      `/api/quotes/mine` (проверяет обработчик), POST `/api/search`, `/api/events`, `/api/quotes`, `/api/guide`,
+      `/api/guide/route`, `/api/guide/spec`, `/api/consultant`, `/api/tz` и DELETE `/api/tz/operations/{id}`. При `AUTH_REQUIRED=off` (только development) без токена — `system`.
     - Квота модели на адрес: разбор запроса моделью (маршрут D) не дороже `LLM_PER_IP_DAILY_RUB` ₽ в сутки с
       одного адреса; сверх неё и сверх дневного бюджета разбор идёт по правилам (`fallback_reason` в трассировке:
       `ip_quota`, `budget_exceeded`), поиск не падает.
     - Лимит частоты — `RATE_LIMIT_PER_MIN` запросов в минуту с одного адреса (по умолчанию 600; `/api/health`
       и поток SSE не считаются). Сверх лимита — 429 и заголовки `X-Ratelimit-*`.
-    - Срок обработки запроса — 25 с (кроме импорта каталога и потока SSE).
+    - Срок обработки запроса — 25 с (кроме импорта каталога и потока SSE). Тело запроса — до 1 МиБ, у
+      `POST /api/tz` — до 20 МиБ.
     - Доли — числа 0..1; деньги — рубли; непосчитанное — `null`, а не ноль.
-    - Тексты запросов покупателей не пишутся в журнал сервера; в модель уходят только текст запроса и
-      обезличенный сегмент покупателя (без идентификаторов клиента и сессии).
+    - Тексты запросов покупателей не пишутся в журнал сервера. В модель при разборе запроса уходят только текст
+      запроса и обезличенный сегмент покупателя, в ходе консультанта — реплики разговора и факты каталога, при
+      разборе ТЗ — текст документа после маскирования. Идентификаторы клиента и сессии в модель не уходят.
 servers:
   - url: http://127.0.0.1:8088
     description: локальная разработка (make dev)
@@ -41,6 +45,8 @@ security:
   - backofficeBasic: []
 tags:
   - name: Поиск
+  - name: Подбор
+  - name: Поиск по ТЗ
   - name: Аналитика
   - name: Экономика
   - name: Оценка
@@ -72,7 +78,7 @@ paths:
       summary: Справочная информация для витрины
       description: |
         Режим LLM и плашка режима, версия каталога и правил, конфигурации поиска, покупатели для переключателя,
-        флаги контуров коммерции–3 (`features`) и кто смотрит сайт (`viewer`).
+        флаги модулей (`features`) и кто смотрит сайт (`viewer`).
       operationId: meta
       security: []
       responses:
@@ -237,7 +243,7 @@ paths:
   /api/admin/vectors-mode:
     post:
       tags: [Служебное]
-      summary: Включить или выключить векторы и реранкер без перезапуска (контур доводки)
+      summary: Включить или выключить векторы и реранкер без перезапуска
       description: |
         `off` — шаги dense и rerank пропускаются с причиной `vectors_off`. За `ADMIN_ENABLED` и входом в бэк-офис.
       operationId: setVectorsMode
@@ -257,7 +263,7 @@ paths:
   /api/admin/offline-mode:
     post:
       tags: [Служебное]
-      summary: Одна настройка «без моделей» — LLM и векторы вместе (контур доводки)
+      summary: Одна настройка «без моделей» — LLM и векторы вместе
       description: |
         `on` — LLM off и векторы off; `off` — векторы on, LLM on, если модель настроена. За `ADMIN_ENABLED` и входом.
       operationId: setOfflineMode
@@ -314,7 +320,7 @@ paths:
         - { name: session_id, in: query, schema: { type: string, maxLength: 128 } }
         - { name: limit, in: query, schema: { type: integer, minimum: 1, maximum: 6 }, description: "товаров в панели; по умолчанию 6" }
       description: |
-        Прежние `groups` (не больше 8 строк) и секции панели контура выдачи: `mode`, `normalized`,
+        Прежние `groups` (не больше 8 строк) и секции панели: `mode`, `normalized`,
         `corrected`, `refinements` (≤6), `suggestions` (≤5), `categories` (≤2), `vendors` (≤2), `products` (≤6 семейств),
         `total_hint`, `meta` (время секций, `partial`, `products_cached`, `llm_calls`/`embed_calls`/`rerank_calls` = 0,
         версии). На нажатие — 0 LLM, 0 векторизаций, реранкер выключен. Трассировка панели — `GET /api/traces/{X-Request-Id}`.
@@ -408,7 +414,7 @@ paths:
                     type: array
                     maxItems: 2
                     description: >-
-                      «Вместе с этим» (контур эталонов): одно-два дополнения из таблицы классов допродажи
+                      «Вместе с этим»: одно-два дополнения из таблицы классов допродажи
                       (data/softline/upsell_links.csv) для первого семейства `products`; [] — класса нет или дополнений
                       с ценой нет. Только с ценой, одно семейство на вендора, без типа лицензии того же семейства.
                     items: { $ref: "#/components/schemas/PanelTogether" }
@@ -452,7 +458,7 @@ paths:
       summary: Блок рекомендаций панели поиска
       description: |
         Лестница оснований: spec → exact (точный SKU; или артикул в q) → viewed (FEATURE_PANEL_VIEWED, по умолчанию выкл.)
-        → category (популярное в категории). Для первых трёх — проверенные связи контура коммерции, совместимость не unknown.
+        → category (популярное в категории). Для первых трёх — проверенные связи справочника, совместимость не unknown.
         Оснований нет или FEATURE_PANEL_RECS=off — `null`.
       operationId: suggestRecommendations
       security: []
@@ -470,7 +476,7 @@ paths:
   /api/help:
     get:
       tags: [Поиск]
-      summary: Статьи справки (витрина, без входа; контур доводки)
+      summary: Статьи справки (витрина, без входа)
       operationId: help
       security: []
       responses:
@@ -485,8 +491,8 @@ paths:
   /api/guide/route:
     post:
       tags: [Подбор]
-      summary: Состояние строки поиска — search | search_offer | guide (контур подбора)
-      description: Правила SPEC §1, модель не вызывается. Витрина, без входа.
+      summary: Состояние строки поиска — search | search_offer | guide
+      description: Работает на правилах, модель не вызывается. Витрина, без входа.
       operationId: guideRoute
       security: []
       requestBody:
@@ -508,7 +514,7 @@ paths:
   /api/guide:
     post:
       tags: [Подбор]
-      summary: Ход режима подбора (контур подбора)
+      summary: Ход режима подбора
       description: |
         Модель выбирает идентификаторы и пишет связующую фразу; таблицу, карточки, цены и правила лицензий строит код.
         Сбой модели, бюджет и предел хода — не ошибка: ответ кодом (meta.fallback) или type=fallback. Витрина, без входа.
@@ -587,6 +593,189 @@ paths:
                         count: { type: integer }
                         families: { type: array, items: { type: object, properties: { family_id: { type: string }, title: { type: string } } } }
         "401": { $ref: "#/components/responses/Error" }
+  /api/consultant:
+    post:
+      tags: [Подбор]
+      summary: Ход ИИ-консультанта потоком событий
+      description: |
+        Режим подбора по умолчанию на витрине. Запрос проверяется до начала потока: ошибка проверки приходит обычным
+        конвертом `Error` со статусом 422. Дальше ответ идёт потоком `application/x-ndjson`: одна строка JSON на событие
+        (`ConsultantEvent`), сервер сбрасывает буфер после каждого события.
+
+        Порядок событий одного хода: `status` (шаг `searching`, `calculating` или `checking`), затем для каждого
+        сообщения `message.start` → `message.delta` (текст) → `message.attachment` (вложения, по одному на событие) →
+        `message.complete` (у последнего сообщения — `quickReplies`). При сбое модели или отклонении ответа проверками
+        перед запасным ответом приходит `message.error` с причиной `model_unavailable`, `reply_rejected` или
+        `turn_failed`; поток при этом завершается штатно, HTTP-статус остаётся 200.
+
+        Цены, названия, артикулы, ссылки и суммы во вложениях подставляет код из каталога. Цены — целые копейки
+        (`...Minor`); нет цены — поля нет. За ход не больше двух вызовов модели, срок хода — 25 с. Разговор по
+        `conversation_id` хранится в памяти процесса два часа, в модель уходит не больше восьми последних реплик.
+        `spec` — текущее содержимое спецификации на стороне витрины. Витрина, без входа.
+      operationId: consultant
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ConsultantRequest" }
+      responses:
+        "200":
+          description: Поток событий хода, по строке JSON на событие
+          content:
+            application/x-ndjson:
+              schema: { $ref: "#/components/schemas/ConsultantEvent" }
+              example: |
+                {"type":"status","step":"searching"}
+                {"type":"message.start","id":"m1"}
+                {"type":"message.delta","id":"m1","text":"Подобрал продление на 100 узлов."}
+                {"type":"message.attachment","id":"m1","attachment":{"type":"product_card","product":{"offerId":"offer-1","title":"…","priceStatus":"known","unitPriceMinor":307080}}}
+                {"type":"message.complete","id":"m1","quickReplies":["Добавить в спецификацию"]}
+        "400": { $ref: "#/components/responses/Error" }
+        "403": { $ref: "#/components/responses/Error" }
+        "422": { $ref: "#/components/responses/Error" }
+        "429": { $ref: "#/components/responses/Error" }
+        "503": { $ref: "#/components/responses/Error" }
+  /api/tz:
+    post:
+      tags: [Поиск по ТЗ]
+      summary: Загрузить техническое задание и начать разбор
+      description: |
+        Тело — `multipart/form-data` с одним файлом: DOCX, PDF с текстом или скан, до 20 МиБ. Разбор идёт в фоне: ответ
+        приходит сразу и несёт `operation_id`, ход разбора опрашивается методом `GET /api/tz/operations/{id}`.
+
+        Отказ на проверке до разбора (формат, размер, пустой файл) — не ошибка HTTP: ответ 200 с `status: error` и
+        причиной в `reason`. Запрос без файла или с несколькими файлами — 422. С одного адреса одновременно идёт не больше двух разборов, иначе 429. Содержимое файла в
+        журнал не пишется. Перед отправкой в модель из текста убираются телефоны, почта, ИНН и другие номера, а также
+        ФИО. Витрина, без входа.
+      operationId: tzUpload
+      security: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                file: { type: string, format: binary, description: "один файл; имя поля любое" }
+      responses:
+        "200":
+          description: Операция разбора
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/TZUpload" }
+        "403": { $ref: "#/components/responses/Error" }
+        "413": { $ref: "#/components/responses/Error" }
+        "422": { $ref: "#/components/responses/Error" }
+        "429": { $ref: "#/components/responses/Error" }
+  /api/tz/operations/{id}:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string }, description: "operation_id из ответа POST /api/tz" }
+    get:
+      tags: [Поиск по ТЗ]
+      summary: Статус и этап разбора ТЗ
+      description: |
+        Интерфейс опрашивает метод раз в секунду. `processing` — идёт разбор, этап в `stage`; `completed` — разбор готов,
+        позиции лежат под `hash`; `error` — разбор не удался, причина в `reason`. Операции хранятся в памяти процесса 15
+        минут. Срок одного разбора — 4 минуты. Витрина, без входа.
+      operationId: tzOperation
+      security: []
+      responses:
+        "200":
+          description: Состояние операции
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/TZOperation" }
+        "404": { $ref: "#/components/responses/Error" }
+    delete:
+      tags: [Поиск по ТЗ]
+      summary: Отменить разбор ТЗ
+      description: Разбор останавливается, операция забывается. Витрина, без входа.
+      operationId: tzCancel
+      security: []
+      responses:
+        "204": { description: Разбор отменён }
+        "403": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+  /api/tz/{hash}:
+    parameters:
+      - { name: hash, in: path, required: true, schema: { type: string, pattern: "^[0-9a-f]{64}$" }, description: "sha256 содержимого файла" }
+    get:
+      tags: [Поиск по ТЗ]
+      summary: Позиции разобранного ТЗ
+      description: |
+        Позиции документа без товаров: товары по каждой позиции витрина получает обычным `POST /api/search` с
+        `search_query` и `filters` позиции. Разбор хранится неделю под хешем содержимого файла: только позиции с
+        цитатами, без файла и полного текста. Повторная загрузка того же файла и открытие ссылки модель не вызывают.
+        Неизвестный или истёкший хеш — 404. Витрина, без входа.
+      operationId: tzResult
+      security: []
+      responses:
+        "200":
+          description: Разбор документа
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/TZResult" }
+        "404": { $ref: "#/components/responses/Error" }
+  /api/quotes:
+    post:
+      tags: [Поиск]
+      summary: Спецификация и запрос КП
+      description: |
+        До 50 позиций, количество 1…100000. Позиция должна быть в каталоге; повтор пары «позиция и origin» — 422.
+        Цены берёт сервер: `total_rub` есть, только если известны цены всех позиций, иначе `null` и число позиций по
+        запросу в `on_request`. Без базы — 503. Витрина, без входа.
+      operationId: quoteCreate
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [items]
+              properties:
+                session_id: { type: string, maxLength: 128 }
+                client_id: { type: string, description: "покупателю подставляется клиент из сессии входа" }
+                comment: { type: string }
+                items:
+                  type: array
+                  maxItems: 50
+                  items:
+                    type: object
+                    required: [product_id, quantity]
+                    properties:
+                      product_id: { type: string }
+                      quantity: { type: integer, minimum: 1, maximum: 100000 }
+                      origin: { type: string, enum: [search, companion, guide, tz], description: "откуда позиция попала в спецификацию" }
+                      companion_class: { type: string }
+                      purchase: { $ref: "#/components/schemas/QuotePurchase" }
+      responses:
+        "201":
+          description: Запрос КП принят
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/QuoteCreated" }
+        "400": { $ref: "#/components/responses/Error" }
+        "403": { $ref: "#/components/responses/Error" }
+        "422": { $ref: "#/components/responses/Error" }
+        "503": { $ref: "#/components/responses/Error" }
+    get:
+      tags: [Поиск]
+      summary: Последние запросы КП (бэк-офис)
+      operationId: quotes
+      responses:
+        "200":
+          description: Запросы КП
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items: { type: array, items: { $ref: "#/components/schemas/Quote" } }
+        "401": { $ref: "#/components/responses/Error" }
+        "403": { $ref: "#/components/responses/Error" }
   /api/companions:
     get:
       tags: [Поиск]
@@ -658,7 +847,7 @@ paths:
                     companion_impression, companion_click, companion_add, companion_dismiss, spec_remove,
                     quote_request, facet_apply, margin_simulate, margin_apply, relation_decision]
                   description: >-
-                    Контур коммерции — обязательные поля: companion_impression — payload.anchor, payload.items;
+                    Обязательные поля: companion_impression — payload.anchor, payload.items;
                     companion_click — product_id, payload.class; companion_add — product_id, payload.class, payload.quantity;
                     companion_dismiss — product_id, payload.condition; spec_remove — product_id, payload.origin;
                     quote_request — payload.positions, payload.on_request;
@@ -670,7 +859,7 @@ paths:
                 product_id: { type: string }
                 position: { type: [integer, "null"] }
                 payload: { type: object }
-                source: { type: string, enum: [live, traffic], description: "Контур автономии: traffic — генератор mock-трафика стенда (go run . traffic); пусто — live" }
+                source: { type: string, enum: [live, traffic], description: "traffic — генератор тестового трафика стенда (go run . traffic); пусто — live" }
       responses:
         "204": { description: Записано }
         "422": { $ref: "#/components/responses/Error" }
@@ -703,7 +892,7 @@ paths:
     post:
       tags: [Служебное]
       summary: Импорт каталога в OpenSearch и PostgreSQL
-      description: Источник — `DATA_DIR`. Пересобирает индекс и справочники; срока обработки нет.
+      description: Источник — настроенный источник каталога (`DATA_SOURCE`, `DATA_DIR`, `DATA_MAPPING`). Пересобирает индекс и справочники; срока обработки нет.
       operationId: importCatalog
       responses:
         "200":
@@ -717,8 +906,8 @@ paths:
       tags: [Аналитика]
       summary: Плитки, воронка и проблемные запросы с причиной и владельцем
       description: >
-        Контур доводки: у проблемного запроса — `cause`, `cause_label`, `owner`, `owner_label` (причина из семи и её владелец
-        по диагнозу агента; пусто — диагноза нет). Ролевые блоки (`role`, `effect`, `commerce`) удалены в контуре доводки.
+        у проблемного запроса — `cause`, `cause_label`, `owner`, `owner_label` (причина из семи и её владелец
+        по диагнозу агента; пусто — диагноза нет). Ролевых блоков (`role`, `effect`, `commerce`) в ответе нет.
       operationId: analytics
       parameters:
         - { name: days, in: query, schema: { type: integer, minimum: 1, maximum: 365, default: 30 } }
@@ -753,8 +942,8 @@ paths:
               example:
                 days: 30
                 rules_version: 2
-                catalog_version: mock-1
-                checked_at: "2026-05-27T04:50:00Z"
+                catalog_version: softline-feed
+                checked_at: "2000-01-01T00:00:00Z"
                 items:
                   - { query: продлить антивирус, total: 11, not_in_catalog: false, cached: false }
         "401": { $ref: "#/components/responses/Error" }
@@ -834,7 +1023,7 @@ paths:
         (разрез AGENT_HOLDOUT_FROM), частота запроса — число его поисков за неделю. Набор собран из журнала
         покупателей, поэтому без входа в бэк-офис `query_id` и `text` в `regressions`/`improvements` пустые —
         остаются метрики и число изменений.
-        Наборы «по цели» на фиде (контур эталонов): `etalon`, `tz`, `neighbors`, `understanding`, `feed_tune`,
+        Наборы «по цели» на фиде: `etalon`, `tz`, `neighbors`, `understanding`, `feed_tune`,
         `feed_regression`, `closed`; их метрики — в `metrics.target`, конфигурации — BM25, B1, B2, live. Тексты
         закрытого набора без входа в бэк-офис не отдаются.
       operationId: evaluations
@@ -850,7 +1039,7 @@ paths:
   /api/evaluations/feed:
     get:
       tags: [Оценка]
-      summary: Сводка «На данных заказчика» ()
+      summary: Сводка «На данных заказчика»
       description: |
         Из последних прогонов наборов «по цели» (`go run . eval --set etalon,tz,neighbors`, закрытый — `--set closed
         --file …`) и llm_usage: эталоны заказчика у полной конфигурации (поиск на витрине, `etalon`), Success@1 по целевой странице
@@ -898,7 +1087,7 @@ paths:
       parameters:
         - name: trigger
           in: query
-          description: Фильтр по триггеру (контур автономии); иное — 422
+          description: Фильтр по триггеру; иное — 422
           schema: { type: string, enum: [manual, schedule, spike, catalog_change] }
       responses:
         "200":
@@ -913,7 +1102,7 @@ paths:
       tags: [Агент]
       summary: Запустить агента SearchOps
       description: |
-        Контур автономии: не больше `AGENT_MAX_PARALLEL` (2) запусков и один каждого вида; иначе 409. Требует
+        не больше `AGENT_MAX_PARALLEL` (2) запусков и один каждого вида; иначе 409. Требует
         режим LLM `on` и непревышенный дневной бюджет. `{"query": "…"}` — «Разобрать» на одном запросе (≤ 200 символов,
         только mode search): группа неудачных запросов из одного запроса, память показывается, но не пропускает; точное совпадение уже
         первым — `stop_reason: already_solved` без вызова модели. Автоматические триггеры (schedule, spike,
@@ -928,12 +1117,12 @@ paths:
                 days: { type: integer, minimum: 1, maximum: 365, default: 30 }
                 max_clusters: { type: integer, minimum: 1, maximum: 12, default: 5 }
                 trigger: { type: string, enum: [manual, schedule], default: manual }
-                query: { type: string, maxLength: 200, description: "Контур автономии: запуск на одном запросе («Разобрать»)" }
+                query: { type: string, maxLength: 200, description: "запуск на одном запросе («Разобрать»)" }
                 mode:
                   type: string
                   enum: [search, commerce]
                   default: search
-                  description: commerce — справочник связей контура коммерции (BROKEN_RELATION, MISSING_REQUIRED); совместные покупки и маржа удалены в контуре доводки
+                  description: commerce — проверка справочника связей (BROKEN_RELATION, MISSING_REQUIRED)
       responses:
         "202":
           description: Запуск начат
@@ -996,7 +1185,7 @@ paths:
       tags: [Агент]
       summary: Память агента
       description: |
-        Без `layer` — решения человека по предложениям (прежняя форма). Контур автономии: `layer=decisions` —
+        Без `layer` — решения человека по предложениям (прежняя форма). `layer=decisions` —
         решения с ролью того, кто решил; `layer=suppress` — «не предлагать» с условием возврата (создаётся отказом
         человека); `layer=episodes` — итоги разборов и проверок эффекта.
       operationId: agentMemory
@@ -1064,7 +1253,7 @@ paths:
   /api/agent/memory/suppress/{id}/remove:
     post:
       tags: [Агент]
-      summary: Снять запись «не предлагать» (контур автономии)
+      summary: Снять запись «не предлагать»
       description: Владелец причины, руководитель e-com или служебный доступ; причина обязательна; повтор — 409.
       operationId: agentSuppressRemove
       parameters: [{ $ref: "#/components/parameters/ID" }]
@@ -1086,7 +1275,7 @@ paths:
   /api/agent/settings:
     get:
       tags: [Агент]
-      summary: Режим агента, расписание, пороги триггеров, пул, бюджет (контур автономии)
+      summary: Режим агента, расписание, пороги триггеров, пул, бюджет
       operationId: agentSettings
       responses:
         "200":
@@ -1115,9 +1304,9 @@ paths:
   /api/agent/report:
     get:
       tags: [Агент]
-      summary: Отчёт SearchOps для маркетолога — первый экран (контур фида)
+      summary: Отчёт SearchOps для маркетолога — первый экран
       description: >-
-        Неудачные запросы журнала текущего каталога (тестовый трафик и живые поиски; mock-журнал не входит) по четырём
+        Неудачные запросы журнала текущего каталога (тестовый трафик и живые поиски; журнал учебного каталога не входит) по четырём
         разделам — no_offer, not_found, unknown_words, service — и pending (причина не доказана). Раздел — по
         доказательству: вывод агента, ответ действующего поиска, переформулировка покупателей. Частоты модельные;
         рублей и дат нет. Строка с agent.run_id и agent.cluster_id раскрывается в ленту шагов запуска.
@@ -1139,8 +1328,8 @@ paths:
       operationId: proposals
       parameters:
         - { name: status, in: query, schema: { type: string, enum: [pending, accepted, rejected, rolled_back, stale] } }
-        - { name: role, in: query, description: "Владелец причины (контур доводки)", schema: { type: string, enum: [ecom, product, content, head] } }
-        - { name: cause, in: query, description: "Причина (контур доводки)", schema: { $ref: "#/components/schemas/Cause" } }
+        - { name: role, in: query, description: "Владелец причины", schema: { type: string, enum: [ecom, product, content, head] } }
+        - { name: cause, in: query, description: "Причина", schema: { $ref: "#/components/schemas/Cause" } }
       responses:
         "200":
           description: Предложения
@@ -1273,7 +1462,7 @@ paths:
   /api/relations:
     get:
       tags: [Предложения и правила]
-      summary: Действующий справочник связей (контур коммерции)
+      summary: Действующий справочник связей
       operationId: relations
       parameters:
         - { name: family, in: query, schema: { type: string }, description: связи, где семейство — источник или цель }
@@ -1362,7 +1551,7 @@ paths:
   /api/evaluations/contribution:
     get:
       tags: [Оценка]
-      summary: Вклад компонентов — последний прогон таблицы (контур доводки)
+      summary: Вклад компонентов — последний прогон таблицы
       operationId: contributionEvaluation
       security: []
       parameters:
@@ -1427,7 +1616,7 @@ paths:
       tags: [Маржа]
       summary: Действующая политика маржи (вес рычага), положения, защиты, история версий
       description: >
-        Версии — config_versions kind=margin; версия 0 — исходная (вес контура поиска = 0.05, в базе её нет).
+        Версии — config_versions kind=margin; версия 0 — исходная (вес 0.05, в базе её нет).
         stop_weight — упор рычага по последней симуляции на tune (null — симуляции не было).
       operationId: getMarginPolicy
       responses:
@@ -1442,7 +1631,7 @@ paths:
                   weight: { type: number }
                   categories: { type: object, additionalProperties: { type: number }, description: "Веса по категориям поверх weight" }
                   category_names: { type: object, additionalProperties: { type: string } }
-                  base_weight: { type: number, description: "0.05 — выдача контура поиска" }
+                  base_weight: { type: number, description: "0.05 — исходная выдача" }
                   positions: { type: array, items: { type: number }, description: "0, 0.03, 0.05, 0.08, 0.12, 0.15" }
                   guards:
                     type: object
@@ -1465,7 +1654,7 @@ paths:
                         version: { type: integer }
                         weight: { type: number }
                         categories: { type: object, additionalProperties: { type: number } }
-                        source: { type: string, enum: [default, human, rollback, agent], description: "agent — версии до контура доводки (MARGIN_OPPORTUNITY удалён)" }
+                        source: { type: string, enum: [default, human, rollback, agent], description: "agent — только у старых версий: агент вес маржи больше не предлагает" }
                         author: { type: string }
                         comment: { type: string }
                         created_at: { type: [string, "null"], format: date-time }
@@ -1477,7 +1666,7 @@ paths:
         без базы — 503. Первая проверка упора может прогнать базовую выдачу tune (до ~20 с).
         `categories` — веса по категориям поверх общего (nil — прежние, {} — снять); упор изменённой
         категории проверяется симуляцией с `category`. Предложения агента по марже (`proposal_id`,
-        MARGIN_OPPORTUNITY) удалены в контуре доводки: рычаг двигает только человек.
+        MARGIN_OPPORTUNITY) удалены: рычаг двигает только человек.
       operationId: applyMarginPolicy
       requestBody:
         required: true
@@ -1662,6 +1851,263 @@ components:
               embedder: { type: string, enum: [ok, down, off] }
               time: { type: string, format: date-time }
   schemas:
+    ConsultantRequest:
+      type: object
+      required: [conversation_id, text]
+      properties:
+        session_id: { type: string, maxLength: 128, description: "подписанный номер сессии из GET /api/meta" }
+        conversation_id: { type: string, maxLength: 128, description: "идентификатор разговора, его выбирает витрина" }
+        text: { type: string, maxLength: 500, description: "реплика покупателя" }
+        page:
+          type: [object, "null"]
+          description: Страница, с которой пишет покупатель
+          properties:
+            type: { type: string, maxLength: 16, description: "home | search | family | product | spec | other" }
+            family_id: { type: [string, "null"] }
+            offer_id: { type: [string, "null"] }
+            query: { type: [string, "null"] }
+        spec:
+          type: array
+          maxItems: 50
+          description: Текущее содержимое спецификации на стороне витрины
+          items:
+            type: object
+            required: [offer_id, qty]
+            properties:
+              offer_id: { type: string, maxLength: 128 }
+              qty: { type: integer, minimum: 0, maximum: 100000 }
+    ConsultantEvent:
+      type: object
+      description: Одно событие потока POST /api/consultant, одна строка NDJSON
+      required: [type]
+      properties:
+        type: { type: string, enum: [status, message.start, message.delta, message.attachment, message.complete, message.error] }
+        step: { type: string, enum: [searching, checking, calculating], description: "у события status" }
+        id: { type: string, description: "идентификатор сообщения" }
+        text: { type: string, description: "у message.delta" }
+        attachment:
+          description: У message.attachment. Вид вложения задаёт поле type
+          oneOf:
+            - { $ref: "#/components/schemas/ConsultantProductCard" }
+            - { $ref: "#/components/schemas/ConsultantProductList" }
+            - { $ref: "#/components/schemas/ConsultantComparison" }
+            - { $ref: "#/components/schemas/ConsultantSpecEvent" }
+            - { $ref: "#/components/schemas/ConsultantSpecSummary" }
+            - { $ref: "#/components/schemas/ConsultantLink" }
+            - { $ref: "#/components/schemas/ConsultantSource" }
+            - { $ref: "#/components/schemas/ConsultantEstimate" }
+        quickReplies: { type: array, items: { type: string }, description: "у message.complete: быстрые ответы" }
+        reason: { type: string, enum: [model_unavailable, reply_rejected, turn_failed], description: "у message.error" }
+    ConsultantProductReference:
+      type: object
+      description: Позиция во вложении консультанта. Все значения подставляет код из каталога
+      properties:
+        offerId: { type: string }
+        sku: { type: string }
+        title: { type: string }
+        vendor: { type: string }
+        licenseType: { type: string }
+        quantity: { type: integer }
+        duration: { type: string }
+        unitPriceMinor: { type: integer, description: "цена за единицу, копейки; нет цены — поля нет" }
+        totalPriceMinor: { type: integer, description: "сумма, копейки" }
+        oldUnitPriceMinor: { type: integer, description: "прежняя цена за единицу, копейки" }
+        priceStatus: { type: string, enum: [known, on_request, unknown] }
+        compatibility: { type: string, enum: [compatible, incompatible, unverified] }
+        reason: { type: string }
+        sourceIds: { type: array, items: { type: string } }
+        productUrl: { type: string }
+        imageUrl: { type: string }
+        offer: { type: object, additionalProperties: true, description: "позиция в формате режима подбора (как в GuideResponse)" }
+    ConsultantProductCard:
+      type: object
+      properties:
+        type: { type: string, const: product_card }
+        product: { $ref: "#/components/schemas/ConsultantProductReference" }
+    ConsultantProductList:
+      type: object
+      properties:
+        type: { type: string, const: product_list }
+        title: { type: string }
+        groups:
+          type: array
+          items:
+            type: object
+            properties:
+              kind: { type: string, enum: [fit, more, unfit] }
+              title: { type: string }
+              items: { type: array, items: { $ref: "#/components/schemas/ConsultantProductReference" } }
+    ConsultantComparison:
+      type: object
+      properties:
+        type: { type: string, const: comparison }
+        columns: { type: array, items: { $ref: "#/components/schemas/ConsultantProductReference" } }
+        rows:
+          type: array
+          items:
+            type: object
+            properties:
+              label: { type: string }
+              values: { type: array, items: { type: string }, description: "«✓», «—» или короткий текст" }
+    ConsultantSpecEvent:
+      type: object
+      description: Изменение спецификации; витрина применяет его к своей спецификации
+      properties:
+        type: { type: string, const: spec_event }
+        action: { type: string, enum: [added, removed, updated] }
+        offerId: { type: string }
+        title: { type: string }
+        quantity: { type: integer }
+        totalPriceMinor: { type: integer }
+        offer: { type: object, additionalProperties: true }
+    ConsultantSpecSummary:
+      type: object
+      properties:
+        type: { type: string, const: spec_summary }
+        items:
+          type: array
+          items:
+            type: object
+            properties:
+              offerId: { type: string }
+              title: { type: string }
+              quantity: { type: integer }
+              totalPriceMinor: { type: integer }
+        totalMinor: { type: integer }
+        count: { type: integer }
+    ConsultantLink:
+      type: object
+      description: Ссылка на раздел справки по сервисной теме
+      properties:
+        type: { type: string, const: link }
+        topic: { type: string }
+        title: { type: string }
+        url: { type: string }
+    ConsultantSource:
+      type: object
+      description: Источник факта базы знаний
+      properties:
+        type: { type: string, const: source }
+        title: { type: string }
+        url: { type: string }
+        quote: { type: string, description: "дословный фрагмент источника" }
+    ConsultantEstimate:
+      type: object
+      description: Смета комплекта. Полной суммы нет, пока есть непосчитанные строки
+      properties:
+        type: { type: string, const: estimate }
+        lines:
+          type: array
+          items:
+            type: object
+            properties:
+              label: { type: string }
+              totalPriceMinor: { type: integer }
+              status: { type: string, enum: [known, not_calculated] }
+        knownTotalMinor: { type: integer }
+        note: { type: string }
+    TZUpload:
+      type: object
+      required: [operation_id]
+      properties:
+        operation_id: { type: string }
+        status: { type: string, enum: [error], description: "только при отказе на проверке до разбора" }
+        reason: { type: string, enum: [format, size, damaged], description: "причина отказа на проверке" }
+    TZOperation:
+      type: object
+      required: [status]
+      properties:
+        status: { type: string, enum: [processing, completed, error] }
+        stage: { type: string, enum: [reading, ocr], description: "у processing: чтение текста или распознавание скана" }
+        hash: { type: string, description: "у completed: ключ для GET /api/tz/{hash}" }
+        reason:
+          type: string
+          enum: [format, size, damaged, password, ocr, no_positions, general]
+          description: "у error: формат, размер, повреждённый файл, файл с паролем, скан не распознан, позиций не найдено, прочее"
+    TZResult:
+      type: object
+      properties:
+        hash: { type: string }
+        file_name: { type: string }
+        extracted_count: { type: integer, description: "сколько позиций найдено в документе" }
+        processed_count: { type: integer, description: "сколько позиций разобрано; не больше 50" }
+        positions: { type: array, items: { $ref: "#/components/schemas/TZPosition" } }
+    TZPosition:
+      type: object
+      properties:
+        id: { type: string }
+        number: { type: integer, description: "номер позиции в документе" }
+        title: { type: string }
+        short_title: { type: string }
+        kind: { type: string, enum: [product, service] }
+        named: { type: boolean, description: "в позиции назван конкретный продукт" }
+        attributes:
+          type: array
+          description: Условия позиции для показа
+          items:
+            type: object
+            properties:
+              key: { type: string }
+              label: { type: string }
+              value: { type: string }
+        purchase:
+          description: Параметры закупки; уходят в позицию запроса КП
+          oneOf:
+            - { $ref: "#/components/schemas/QuotePurchase" }
+            - { type: "null" }
+        search_query: { type: string, description: "запрос для POST /api/search по этой позиции" }
+        filters:
+          type: array
+          description: Фильтры в формате POST /api/search
+          items:
+            type: object
+            properties:
+              key: { type: string }
+              op: { type: string }
+              value: { type: string }
+        source_quote: { type: string, description: "дословная цитата требований из документа; код проверяет, что она есть в тексте" }
+        unverified_requirements: { type: array, items: { type: string }, description: "требования, которые нельзя проверить по каталогу (строка «Не проверено»)" }
+    QuotePurchase:
+      type: object
+      description: Исходный запрос и параметры закупки, с которыми позиция попала в спецификацию
+      properties:
+        query: { type: string }
+        deal: { type: string, description: "тип покупки" }
+        quantity: { type: [integer, "null"] }
+        metric: { type: string }
+        duration_months: { type: [integer, "null"] }
+        org_type: { type: string }
+        edition: { type: string }
+    QuoteCreated:
+      type: object
+      properties:
+        id: { type: string }
+        status: { type: string }
+        positions: { type: integer }
+        total_rub: { type: [number, "null"], description: "только если известны цены всех позиций" }
+        on_request: { type: integer, description: "позиций с ценой по запросу" }
+    Quote:
+      allOf:
+        - { $ref: "#/components/schemas/QuoteCreated" }
+        - type: object
+          properties:
+            created_at: { type: string, format: date-time }
+            session_id: { type: [string, "null"] }
+            client_id: { type: [string, "null"] }
+            comment: { type: string }
+            items:
+              type: array
+              items:
+                type: object
+                properties:
+                  product_id: { type: string }
+                  title: { type: string }
+                  quantity: { type: integer }
+                  origin: { type: string }
+                  companion_class: { type: string }
+                  price_rub: { type: [number, "null"] }
+                  price_mode: { type: string }
+                  purchase: { $ref: "#/components/schemas/QuotePurchase" }
     GuideRequest:
       type: object
       properties:
@@ -1907,7 +2353,7 @@ components:
     Cause:
       type: string
       description: |
-        Семь причин неудачного поиска (контур доводки) и владелец: not_understood «Поиск не понял запрос» и
+        Семь причин неудачного поиска и владелец: not_understood «Поиск не понял запрос» и
         ranked_low «Нужный товар стоит низко или задублирован» — ecom (администратор поиска); content_gap «В карточке
         не хватает данных» — content (каталог); not_in_catalog «Товара нет в каталоге» и relation_rule «Ошибка в связи
         или лицензионном правиле» — product (категорийный и лицензионный менеджер); non_product «Запрос не о товаре» —
@@ -1916,13 +2362,13 @@ components:
     Diagnosis:
       type: string
       description: >
-        Подпричина (код агента); причина и владелец — `cause`, `owner` (контур доводки). MISSING_RELATION,
-        BUNDLE_OPPORTUNITY, MARGIN_OPPORTUNITY удалены в контуре доводки и встречаются только у stale-предложений
+        Подпричина (код агента); причина и владелец — `cause`, `owner`. MISSING_RELATION,
+        BUNDLE_OPPORTUNITY, MARGIN_OPPORTUNITY удалены и встречаются только у stale-предложений
         (`stale_reason: removed_p4`).
       enum: [ALIAS_GAP, TYPO, ASSORTMENT_GAP, SUBSTITUTE_AVAILABLE, CONTENT_GAP, RANKING_FAILURE, CONSTRAINT_CONFLICT, NON_PRODUCT, NOISE, UNKNOWN, BROKEN_RELATION, MISSING_REQUIRED, MISSING_RELATION, BUNDLE_OPPORTUNITY, MARGIN_OPPORTUNITY]
     VectorsState:
       type: object
-      description: Режим векторов (эмбеддер и реранкер), контур доводки
+      description: Режим векторов (эмбеддер и реранкер)
       properties:
         mode: { type: string, enum: [on, off] }
         online: { type: boolean }
@@ -1972,14 +2418,14 @@ components:
             сессию.
         features:
           type: object
-          description: Флаги контура коммерции (FEATURE_*)
+          description: Флаги модулей (FEATURE_*)
           properties:
             hardware: { type: boolean }
             companions: { type: boolean }
             margin_policy: { type: boolean }
             solutions: { type: boolean, description: "«Старшая редакция» (FEATURE_SOLUTIONS)" }
-            results_v3: { type: boolean, description: "страница результатов контура выдачи (FEATURE_RESULTS_V3)" }
-            panel: { type: boolean, description: "панель поиска контура выдачи (FEATURE_PANEL)" }
+            results_v3: { type: boolean, description: "страница результатов с семействами (FEATURE_RESULTS_V3)" }
+            panel: { type: boolean, description: "панель подсказок (FEATURE_PANEL)" }
             panel_products: { type: boolean }
             panel_margin: { type: boolean }
             panel_recs: { type: boolean }
@@ -2007,18 +2453,18 @@ components:
               value: { type: string }
         clarify: { type: object, additionalProperties: { type: string } }
         limit: { type: integer, minimum: 1, maximum: 50, default: 20 }
-        source: { type: string, enum: [live, compare, traffic], description: "compare — в журнал, но не в аналитику и стоимость; traffic — генератор mock-трафика стенда (контур автономии): для агента живой журнал, в аналитике отдельный источник" }
+        source: { type: string, enum: [live, compare, traffic], description: "compare — в журнал, но не в аналитику и стоимость; traffic — генератор тестового трафика стенда: для агента живой журнал, в аналитике отдельный источник" }
         sort:
           type: string
           enum: [recommended, relevance, price_asc, price_desc, delivery]
-          description: "Контур выдачи (§11.5). Пусто — recommended; relevance — без маржи и итогового ранжирования; «по запросу» при сортировке по цене — в конце"
+          description: "Пусто — recommended; relevance — без маржи и итогового ранжирования; «по запросу» при сортировке по цене — в конце"
         group: { type: string, enum: [family, none], description: "Свёртка по семействам; на точном артикуле выключена" }
-        intent_id: { type: string, maxLength: 64, description: "Поисковое намерение (§11.1), только в журнал" }
+        intent_id: { type: string, maxLength: 64, description: "Поисковое намерение, только в журнал" }
         filters:
           type: array
           maxItems: 20
           description: |
-            Фасеты контура коммерции (характеристики оборудования) и ключи страницы результатов контура выдачи (§11.5):
+            Фасеты характеристик оборудования и ключи страницы результатов:
             `category`, `vendor`, `license_type`, `license_metric`, `license_quantity`, `duration_months`, `in_reestr`,
             `price_rub`, `has_price` (with_price|on_request), `delivery` (electronic|oem|physical). `category`/`vendor`
             с op eq (переход из панели) дописывают после найденного семейства категории по популярности
@@ -2057,10 +2503,10 @@ components:
             condition: { type: string }
         required: { type: array, items: { $ref: "#/components/schemas/Companion" }, description: Условно обязательное к позиции }
         variants: { type: array, items: { $ref: "#/components/schemas/SearchItem" } }
-        price_from_rub: { type: [number, "null"], description: "Контур выдачи: минимум по вариантам с ценой" }
+        price_from_rub: { type: [number, "null"], description: "минимум по вариантам с ценой" }
         attrs:
           type: object
-          description: Контур выдачи, строка атрибутов карточки-семейства
+          description: строка атрибутов карточки-семейства
           properties:
             edition: { type: string }
             license_type: { type: string }
@@ -2071,33 +2517,33 @@ components:
             in_reestr: { type: boolean }
         reestr:
           type: [object, "null"]
-          description: "Контур доводки: статус в реестре российского ПО в трёх состояниях; у ПО"
+          description: "статус в реестре российского ПО в трёх состояниях; у ПО"
           properties:
             status: { type: string, enum: [confirmed, not_matching, unknown] }
             number: { type: string }
             label: { type: string }
             checked_at: { type: string }
-        analog_note: { type: string, description: "Контур доводки: у аналога отсутствующего товара — «Не «…», а другой продукт: …»" }
-        offer_url: { type: string, description: "Контур фида: страница позиции на сайте магазина (фид); в mock нет" }
-        family_url: { type: string, description: "Контур фида: страница семейства на сайте (собрана по хлебным крошкам); пусто — не собрана" }
-        vendor_url: { type: string, description: "Контур фида: страница вендора на сайте" }
-        available: { type: boolean, description: "Контур фида: в наличии по фиду; нет поля — источник наличие не сообщает" }
-        old_price_rub: { type: number, description: "Контур фида: прежняя цена из фида; скидка — при old_price_rub > price_rub > 0" }
-        license_kind: { type: string, enum: [base, renewal, upgrade, migration, support, module, course, other], description: "Контур фида: вид позиции по типу лицензии" }
+        analog_note: { type: string, description: "у аналога отсутствующего товара — «Не «…», а другой продукт: …»" }
+        offer_url: { type: string, description: "страница позиции на сайте магазина (фид); в учебном каталоге нет" }
+        family_url: { type: string, description: "страница семейства на сайте (собрана по хлебным крошкам); пусто — не собрана" }
+        vendor_url: { type: string, description: "страница вендора на сайте" }
+        available: { type: boolean, description: "в наличии по фиду; нет поля — источник наличие не сообщает" }
+        old_price_rub: { type: number, description: "прежняя цена из фида; скидка — при old_price_rub > price_rub > 0" }
+        license_kind: { type: string, enum: [base, renewal, upgrade, migration, support, module, course, other], description: "вид позиции по типу лицензии" }
         tier_min: { type: integer, description: "ступень цены за единицу «от N»: price_rub — за одно место, итог = price_rub × число мест; нет поля — ступени нет (цена за пакет)" }
         tier_max: { type: [integer, "null"], description: "верхняя граница ступени; нет поля при tier_min — «от N и больше»" }
         match_type:
           type: string
           enum: [exact, variant, related, alternative, fallback]
           description: |
-            Контур фида тип совпадения для добора выдачи до четырёх семейств — точное совпадение, другой вариант
+            тип совпадения для добора выдачи до четырёх семейств — точное совпадение, другой вариант
             лицензии того же семейства (точный артикул), похожее, «Можно купить сейчас» (точное только по запросу),
             «Популярное в наличии» (шаги 1–4 дали меньше четырёх семейств; в метрики релевантности не входит).
             Есть у каждой карточки, у вложенных variants нет.
-        price_state: { type: string, enum: [priced, on_request], description: "Контур фида: priced — есть price_from, иначе «Цена по запросу»" }
-        price_from: { type: number, description: "Контур фида: цена «от» — минимум среди позиций семейства в наличии с ценой > 0, проходящих условия запроса (matches_query); нет поля — по запросу" }
-        badges: { type: array, items: { type: string }, description: "Контур фида: подписи карточки — «Скидка N%» по old_price_rub у головы с действующей ценой" }
-        explain: { type: string, description: "Контур фида: почему карточка здесь — «совпадение с названием семейства», «точный артикул», подпись альтернативы и т. п." }
+        price_state: { type: string, enum: [priced, on_request], description: "priced — есть price_from, иначе «Цена по запросу»" }
+        price_from: { type: number, description: "цена «от» — минимум среди позиций семейства в наличии с ценой > 0, проходящих условия запроса (matches_query); нет поля — по запросу" }
+        badges: { type: array, items: { type: string }, description: "подписи карточки — «Скидка N%» по old_price_rub у головы с действующей ценой" }
+        explain: { type: string, description: "почему карточка здесь — «совпадение с названием семейства», «точный артикул», подпись альтернативы и т. п." }
     Upgrade:
       description: «Старшая редакция» (связь upgrade, 1–2 строки upgrade_adds) — Companion с классом upgrade
       allOf:
@@ -2132,7 +2578,7 @@ components:
         evidence:
           type: object
           description: >-
-            Контур фида–7, фид: основание карточки. A — документ вендора о совместимости (compat_document, ссылка в url),
+            основание карточки. A — документ вендора о совместимости (compat_document, ссылка в url),
             B — каталог (license_kind — тип лицензии в семействе; sku_platform — название позиции называет платформу)
             или логика класса (class_logic — строка таблицы «класс запроса → класс дополнения» заказчика, ссылки нет;
             подпись на фронте «по логике класса: <reason>»), C — проверьте совместимость. Даты нет.
@@ -2156,7 +2602,7 @@ components:
         url: { type: string }
     PanelTogether:
       type: object
-      description: Дополнение в строке подсказок «Вместе с этим» (контур эталонов)
+      description: Дополнение в строке подсказок «Вместе с этим»
       required: [anchor_family_id, family_id, family_name, product_id, title, vendor, price_rub, reason, level, kind, label]
       properties:
         anchor_family_id: { type: string, description: "к какому семейству подсказки (первое в products)" }
@@ -2209,8 +2655,8 @@ components:
             quantity: { type: [integer, "null"] }
             duration_months: { type: [integer, "null"], description: "null — срок не задан (бессрочная — при type=perpetual)" }
             edition: { type: string }
-            kind: { type: string, enum: [base, renewal, upgrade, migration, support, module, course, other], description: "вид позиции по типу лицензии фида; в mock нет" }
-            org_type: { type: string, description: "commercial | academic | government | nonprofit | home; в mock нет" }
+            kind: { type: string, enum: [base, renewal, upgrade, migration, support, module, course, other], description: "вид позиции по типу лицензии фида; в учебном каталоге нет" }
+            org_type: { type: string, description: "commercial | academic | government | nonprofit | home; в учебном каталоге нет" }
             tier_min: { type: integer, description: "ступень цены за единицу «от N»" }
             tier_max: { type: [integer, "null"], description: "верхняя граница ступени" }
             org_label: { type: string, description: "для кого вариант («Образовательное учреждение»); пусто — без ограничения" }
@@ -2226,7 +2672,7 @@ components:
         origin: { type: string, enum: [ru, foreign, ""] }
         reestr:
           type: [object, "null"]
-          description: "статус в реестре российского ПО (§12.6); null у оборудования"
+          description: "статус в реестре российского ПО; null у оборудования"
           properties:
             status: { type: string, enum: [confirmed, not_matching, unknown] }
             number: { type: string }
@@ -2347,7 +2793,7 @@ components:
           properties:
             message: { type: string }
             show_manager: { type: boolean }
-            supply: { type: boolean, description: "Контур доводки: «Товара «…» нет в каталоге» — кнопка «Запросить поставку»" }
+            supply: { type: boolean, description: "«Товара «…» нет в каталоге» — кнопка «Запросить поставку»" }
         related_queries: { type: array, items: { type: string } }
         complements:
           type: array
@@ -2356,7 +2802,7 @@ components:
         companions:
           type: [object, "null"]
           description: >-
-            «Дополните решение» (контур коммерции; на фиде — контуры фида–7: тип лицензии, документ совместимости, таблица классов,
+            «Дополните решение» (на фиде: тип лицензии, документ совместимости, таблица классов,
             не больше четырёх карточек); null — блока нет
           properties:
             title: { type: string, description: "заголовок блока, настройка UPSELL_BLOCK_TITLE; по умолчанию «Дополните решение»" }
@@ -2369,11 +2815,11 @@ components:
             items: { type: array, items: { $ref: "#/components/schemas/Companion" } }
         upgrade:
           oneOf: [{ $ref: "#/components/schemas/Upgrade" }, { type: "null" }]
-          description: «Старшая редакция» к первой позиции; null — связи upgrade нет
+          description: «Старшая редакция» к первой позиции ; null — связи upgrade нет
         counts:
           type: object
           description: |
-            Контур выдачи (FEATURE_RESULTS_V3): «N продуктов · M вариантов» после фильтров, до limit. С контура фида
+            FEATURE_RESULTS_V3: «N продуктов · M вариантов» после фильтров, до limit. На фиде
             поле есть всегда (без флага families/variants — по карточкам ответа) и дополнено числом разных SKU в карточках
             и их вариантах и числом карточек по match_type.
           properties:
@@ -2383,11 +2829,11 @@ components:
             by_match_type: { type: object, additionalProperties: { type: integer } }
         refinements:
           type: array
-          description: Контур выдачи, чипы-уточнения «+» над выдачей — тот же источник, что бейджи панели (без продолжений подсказок)
+          description: чипы-уточнения «+» над выдачей — тот же источник, что бейджи панели (без продолжений подсказок)
           items: { $ref: "#/components/schemas/Refinement" }
         sort:
           type: object
-          description: Контур выдачи, применённая сортировка
+          description: применённая сортировка
           properties:
             value: { type: string }
             note: { type: string, examples: ["Рекомендуемые: по соответствию, затем популярность и выгода"] }
@@ -2395,8 +2841,8 @@ components:
         facets:
           type: array
           description: |
-            Фасеты характеристик выдачи (контур коммерции) и, при FEATURE_RESULTS_V3, лицензионные фасеты со счётчиками
-            семейств (§11.5): только присутствующие в результатах, названные в запросе — наверх; [] — нет
+            Фасеты характеристик выдачи и, при FEATURE_RESULTS_V3, лицензионные фасеты со счётчиками
+            семейств: только присутствующие в результатах, названные в запросе — наверх; [] — нет
           items:
             type: object
             properties:
@@ -2417,7 +2863,7 @@ components:
         purchase:
           type: [object, "null"]
           description: |
-            Контур доводки: параметры закупки из запроса — если назван тип покупки, количество, срок,
+            параметры закупки из запроса — если назван тип покупки, количество, срок,
             организация или редакция; тогда `price_from_rub` семейства — минимум по вариантам с `matches_query`.
             При названном типе покупки и вариантах в двух и больше редакциях — `clarify.attribute = edition`.
           properties:
@@ -2432,10 +2878,10 @@ components:
             edition: { type: string }
         help:
           oneOf: [{ $ref: "#/components/schemas/HelpAnswer" }, { type: "null" }]
-          description: "Контур доводки: answer — вопрос, а не покупка (items пусто); hint — статья рядом с товаром (продление)"
+          description: "answer — вопрос, а не покупка (items пусто); hint — статья рядом с товаром (продление)"
         analog_original:
           type: [object, "null"]
-          description: "Контур доводки: запрос замены — исходный продукт («Вы искали: …»), отдельно от аналогов"
+          description: "запрос замены — исходный продукт («Вы искали: …»), отдельно от аналогов"
           properties:
             family_id: { type: string }
             family_name: { type: string }
@@ -2448,11 +2894,11 @@ components:
         reestr_unconfirmed:
           type: array
           items: { $ref: "#/components/schemas/SearchItem" }
-          description: "Контур доводки: при явном требовании реестра неподтверждённые убраны из items сюда"
+          description: "при явном требовании реестра неподтверждённые убраны из items сюда"
         target:
           type: [object, "null"]
           description: |
-            Контур фида целевая страница — первый кликабельный элемент. null — цели нет
+            целевая страница — первый кликабельный элемент. null — цели нет
             (бессмыслица, пустая выдача, B0–B2). sku — точный артикул или семейство без собранной страницы (промах
             покрытия — trace.steps[answer].coverage_miss); vendor_category — `<vendorUrl>?filter[category][]=<id категории
             второго уровня>`; category — url пустой (страниц категорий в фиде нет); service — url справки или пусто.
@@ -2463,7 +2909,7 @@ components:
             reason: { type: string }
         clarifications:
           type: array
-          description: "Контур фида: уточняющие чипы (формат Refinement, field=vendor) при равенстве семейств разных вендоров или общем слове-категории; [] — нет"
+          description: "уточняющие чипы (формат Refinement, field=vendor) при равенстве семейств разных вендоров или общем слове-категории; [] — нет"
           items: { $ref: "#/components/schemas/Refinement" }
         comparison:
           type: object
@@ -2571,7 +3017,7 @@ components:
               proposal_status: { type: [string, "null"], enum: [pending, accepted, rejected, rolled_back, stale, null] }
               proposal_diagnosis: { oneOf: [{ $ref: "#/components/schemas/Diagnosis" }, { type: "null" }] }
               agent: { $ref: "#/components/schemas/AgentVerdict" }
-              cause: { type: string, description: "Контур доводки: причина из семи по диагнозу агента; пусто — диагноза нет" }
+              cause: { type: string, description: "причина из семи по диагнозу агента; пусто — диагноза нет" }
               cause_label: { type: string }
               owner: { type: string, enum: [ecom, product, content, head, ""], description: Владелец причины }
               owner_label: { type: string }
@@ -2833,7 +3279,7 @@ components:
         id: { type: string, format: uuid }
         status: { type: string, enum: [running, done, stopped, failed] }
         trigger: { type: string, enum: [manual, schedule, spike, catalog_change] }
-        query: { type: [string, "null"], description: "Контур автономии: запуск «Разобрать» на одном запросе" }
+        query: { type: [string, "null"], description: "запуск «Разобрать» на одном запросе" }
         read_only: { type: boolean, description: "Режим «только чтение» на момент старта" }
         input: { type: object, additionalProperties: true, description: "Вход триггера: {at, slot, days, why} | {spike: {...}, why} | {fingerprint, from, to, why} | {query}" }
         plan:
@@ -2908,7 +3354,7 @@ components:
         episode: { type: [object, "null"], additionalProperties: true }
     AgentSettings:
       type: object
-      description: Контур автономии; line — режим, расписание и пороги одной строкой для шапки «Запусков»
+      description: line — режим, расписание и пороги одной строкой для шапки «Запусков»
       properties:
         read_only: { type: boolean }
         mode_label: { type: string }
@@ -2939,7 +3385,7 @@ components:
         regression:
           type: object
           description: >-
-            Контур фида: наборы, на которых агент проверяет правку. На фиде — наборы «по цели» (feed_regression,
+            наборы, на которых агент проверяет правку. На фиде — наборы «по цели» (feed_regression,
             feed_tune); нет наборов — ready=false, message «Наборы регрессии на фиде не заданы», правка не допускается.
           properties:
             sets: { type: array, items: { type: string } }
@@ -2952,7 +3398,7 @@ components:
             message: { type: string }
     SearchOpsReport:
       type: object
-      description: Контур фида — backend/out/agent_report.go
+      description: Отчёт SearchOps — backend/out/agent_report.go
       properties:
         catalog_version: { type: string }
         rules_version: { type: integer }
@@ -3026,7 +3472,7 @@ components:
         run_id: { type: string }
         seq: { type: integer }
         ts: { type: string, format: date-time }
-        kind: { type: string, enum: [tool_call, thought, check, memory, diagnosis, hypothesis, proposal, error, plan, memory_read, memory_skip, effect_check, budget], description: "plan, memory_read, memory_skip, effect_check, budget — контур автономии; memory новыми запусками не пишется" }
+        kind: { type: string, enum: [tool_call, thought, check, memory, diagnosis, hypothesis, proposal, error, plan, memory_read, memory_skip, effect_check, budget], description: "plan, memory_read, memory_skip, effect_check, budget — шаги автономного запуска; memory новыми запусками не пишется" }
         cluster_id: { type: [string, "null"] }
         tool: { type: [string, "null"] }
         title: { type: string }
@@ -3073,16 +3519,16 @@ components:
         diagnosis_text: { type: string }
         cause: { $ref: "#/components/schemas/Cause" }
         cause_label: { type: string }
-        owner: { type: string, enum: [ecom, product, content, head], description: "Владелец причины: он принимает решение (контур доводки)" }
+        owner: { type: string, enum: [ecom, product, content, head], description: "Владелец причины: он принимает решение" }
         owner_label: { type: string }
-        role: { type: string, enum: [ecom, product, content, head], description: "= owner (контур доводки)" }
+        role: { type: string, enum: [ecom, product, content, head], description: "= owner" }
         evidence_level: { type: string }
         technical_status: { type: string, enum: [verified, unverified, failed, ""] }
         economic_status: { type: string, enum: [unknown, estimated, measured, ""] }
         action:
           type: string
           enum: [rules_patch, ticket, relation_patch, rollback, margin_policy, bundle]
-          description: "relation_patch — правка справочника связей; rollback — откат, предложенный агентом после проверки эффекта (контур автономии); margin_policy и bundle удалены в контуре доводки — только у stale-предложений"
+          description: "relation_patch — правка справочника связей; rollback — откат, предложенный агентом после проверки эффекта; margin_policy и bundle удалены — только у stale-предложений"
         patch: { oneOf: [{ $ref: "#/components/schemas/RulePatch" }, { type: "null" }] }
         evaluation: { type: [object, "null"], additionalProperties: true, description: "Прогон: целевая группа до/после, регрессия, причины" }
         evidence: { type: [object, "null"], additionalProperties: true }
@@ -3103,16 +3549,16 @@ components:
             Только у status = stale: catalog_changed — импорт другого каталога (правка проверялась на прежнем
             словаре); pre_holdout — запуск агента до разреза журнала видел отложенную неделю и тексты test
             (`go run . proposals stale --run <id> --reason "<текст>"`, текст — в decided_comment); removed_p4 — тип
-            предложения удалён в контуре доводки (миграция при старте, decided_comment «удалено в контуре доводки»).
+            предложения удалён (миграция при старте).
         config_version: { type: [integer, "null"] }
         effect: { type: [object, "null"], additionalProperties: true }
         check_query: { type: string }
-        trigger: { type: string, description: "Контур автономии: триггер запуска, который предложил" }
+        trigger: { type: string, description: "триггер запуска, который предложил" }
         run_started_at: { type: [string, "null"], format: date-time }
-        task_to_owner: { type: boolean, description: "Контур автономии: задача владельцу вместо правки поиска (action ticket)" }
+        task_to_owner: { type: boolean, description: "задача владельцу вместо правки поиска (action ticket)" }
         rollback_of:
           type: [object, "null"]
-          description: "Контур автономии: у предложения отката — что откатывается"
+          description: "у предложения отката — что откатывается"
           properties:
             proposal_id: { type: string }
             config_version: { type: integer }
