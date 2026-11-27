@@ -94,7 +94,21 @@ test.describe("П10: помощник по выбору", () => {
     await page.goto("/search?q=антивирус");
     await page.waitForTimeout(800);
     await expect(panel(page)).toHaveCount(0);
+    for (const path of ["/product/197958", "/help", "/proofs?tab=theory"]) {
+      await page.goto(path);
+      await page.waitForTimeout(600);
+      await expect(panel(page), path).toHaveCount(0);
+    }
     expect(guideCalls, "без нажатия к помощнику не ходим").toBe(0);
+  });
+
+  test("страница продукта: «Спросить про лицензии» открывает помощника с темой продукта", async ({ page }) => {
+    await stubAssistant(page);
+    await page.goto("/product/197958");
+    await page.getByRole("button", { name: "Спросить про лицензии" }).click();
+    await expect(panel(page)).toBeVisible();
+    await expect(panel(page)).toContainText("О продукте:");
+    await expect(page.getByTestId("assistant-starters")).toContainText("Подобрать для сервера");
   });
 
   test("сценарий 2: кнопка → сравнение на 30 → 50 и шифрование → в спецификацию", async ({

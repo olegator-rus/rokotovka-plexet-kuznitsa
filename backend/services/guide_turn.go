@@ -403,6 +403,15 @@ func (t *guideTurn) run(ctx context.Context, req in.GuideRequest) *out.GuideResp
 		if len(fams) < 2 && len(allowed) > 0 {
 			fams = t.cat.editionFamilies(t.kb, src, r.Vendor, st.CandidateFamilyIDs, nil)
 		}
+		if len(fams) < 2 {
+			// «KES Стандартный: чем отличаются редакции?» (вход со страницы продукта) — названная редакция и соседняя
+			// по линейке базы знаний.
+			if named := t.nameMatchIfProduct(src, r.Vendor); len(named) > 0 {
+				if lf := t.cat.lineFamilies(t.kb, named[:1]); len(lf) >= 2 {
+					fams = lf[:2]
+				}
+			}
+		}
 		if len(fams) >= 2 {
 			st.Intent = "comparison"
 		} else {

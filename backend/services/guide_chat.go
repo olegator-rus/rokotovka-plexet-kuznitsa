@@ -460,6 +460,15 @@ func (t *guideTurn) chatTable(res *out.GuideResponse) *out.GuideChatTable {
 		}
 	}
 	total := out.GuideChatRow{Key: "total", Label: "Итого", Kind: "commercial", Cells: []out.GuideScreenCell{}}
+	anyTotal := false
+	for _, o := range res.Offers {
+		if o.Total != nil && (o.OfferID == cols[0].OfferID || o.OfferID == cols[1].OfferID) {
+			anyTotal = true
+		}
+	}
+	if !anyTotal {
+		return tbl // количество не названо — итога нет, не выдумываем (CHAT.md §4)
+	}
 	for _, col := range cols {
 		cell := out.GuideScreenCell{Mark: out.MarkUnknown, Text: "Нет сведений"}
 		for _, o := range res.Offers {
@@ -630,6 +639,10 @@ func (t *guideTurn) chatSuggestions(res *out.GuideResponse, c *out.GuideChat) []
 	kind, n := mainObject(r)
 	if kind == "server" && r.Use == "" && t.hasTLSCard(res) {
 		add(out.GuideChatSuggestion{Label: "Сервер для TLS", Message: "сервер для TLS", Chip: &out.GuideChip{Key: "use", Value: "tls_server"}})
+	}
+	if n == 0 && (kind == "" || kind == "workstation") {
+		add(out.GuideChatSuggestion{Label: "На 10 компьютеров", Message: "на 10 компьютеров"})
+		add(out.GuideChatSuggestion{Label: "На 30 компьютеров", Message: "на 30 компьютеров"})
 	}
 	if kind == "server" && n <= 1 {
 		add(out.GuideChatSuggestion{Label: "На 3 сервера", Message: "на 3 сервера"})
