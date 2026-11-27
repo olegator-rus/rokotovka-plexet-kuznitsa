@@ -74,7 +74,13 @@ const { analyse, busy } = useAnalyseQuery()
         <ol v-if="steps.length" class="rfeed__steps" aria-label="Шаги агента по запросу">
           <AgentStepRow v-for="v in steps" :key="v.step.id || v.step.seq" :view="v" />
         </ol>
-        <p v-else class="t-sm t-muted">Шагов по этому кластеру в запуске нет.</p>
+        <p v-else class="t-sm t-muted">
+          {{
+            row.agent?.label
+              ? `${row.agent.label}${row.agent.note ? ` — ${row.agent.note}` : ''}. `
+              : ''
+          }}Шагов по этому кластеру в запуске нет.
+        </p>
       </template>
     </template>
     <p v-else-if="row.agent && row.agent.code !== 'unseen'" class="t-sm t-muted">

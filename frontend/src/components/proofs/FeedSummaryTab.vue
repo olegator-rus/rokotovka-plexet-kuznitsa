@@ -181,6 +181,10 @@ function explainRow(r: FeedRow) {
       { label: 'Success@1', value: shareOrNull(m.success1) ?? '—' },
       { label: 'В первых четырёх', value: shareOrNull(m.top4) ?? '—' },
       { label: 'MRR@10', value: num(m.mrr10) ? formatDecimal(m.mrr10, 3) : '—' },
+      {
+        label: 'Все условия строки',
+        value: m.pass !== null ? outOf(m.pass_n, m.answers) : '—',
+      },
       { label: '≥4 семейств', value: shareOrNull(m.families4) ?? '—' },
       { label: '≥4 SKU', value: shareOrNull(m.skus4) ?? '—' },
       {
@@ -367,6 +371,7 @@ function explainRow(r: FeedRow) {
                   <th scope="col" class="num">Success@1</th>
                   <th scope="col" class="num">В первых 4</th>
                   <th scope="col" class="num">MRR@10</th>
+                  <th scope="col" class="num">Все условия</th>
                   <th scope="col" class="num">≥4 семейств</th>
                   <th scope="col" class="num">p50 / p95</th>
                   <th scope="col" class="num">₽ LLM на запрос</th>
@@ -393,6 +398,9 @@ function explainRow(r: FeedRow) {
                   <td class="num">
                     {{ num(r.metrics.mrr10) ? formatDecimal(r.metrics.mrr10, 3) : '—' }}
                   </td>
+                  <td class="num">
+                    {{ r.metrics.pass !== null ? outOf(r.metrics.pass_n, r.metrics.answers) : '—' }}
+                  </td>
                   <td class="num">{{ shareOrNull(r.metrics.families4) ?? '—' }}</td>
                   <td class="num">{{ formatMs(r.p50_ms) }} / {{ formatMs(r.p95_ms) }}</td>
                   <td class="num">
@@ -405,7 +413,10 @@ function explainRow(r: FeedRow) {
           <p class="t-xs t-muted">
             BM25 — текстовый поиск по запросу как набран; BM25 + нормализатор — плюс раскладка,
             опечатки, транслит и словари; гибрид — плюс векторы и слияние RRF; полный продукт —
-            понимание запроса, цель ответа, лестница «4 товара» и модель на трудных запросах.
+            понимание запроса, цель ответа, лестница «4 товара» и модель на трудных запросах. «Все
+            условия» — цель совпала и выполнены остальные условия строки (нет исключённых семейств,
+            есть альтернативы, верный маршрут); набор понимания проверяется по первым карточкам, а
+            не по цели, поэтому Success@1 у него не считается.
           </p>
         </section>
       </template>

@@ -285,8 +285,8 @@ func (s *Services) feedCost(ctx context.Context, latest func(set, cfg, mode stri
 			perCall = float64(j.InputTokens) / float64(j.LLMCalls)
 		}
 		fc.Notes = append(fc.Notes, fmt.Sprintf("c_llm — %s ₽ за поиск с вызовом модели по llm_usage поисков на этом каталоге: "+
-			"%d вызовов, токенов на входе %s, на выходе %s (около %s входных на вызов — в системном промпте разбора справочник "+
-			"категорий и вендоров каталога). В прогоне, где модель вызывалась, c_llm — его собственный.",
+			"%d вызовов, токенов на входе %s, на выходе %s (около %s входных на вызов — в системном промпте разбора срез "+
+			"справочника категорий и вендоров по словам запроса; в журнале есть и вызовы до среза, с полным справочником). В прогоне, где модель вызывалась, c_llm — его собственный.",
 			feedNum(*j.CLLM, 4), j.LLMCalls, fmtThousands(int(j.InputTokens)), fmtThousands(int(j.OutputTokens)),
 			fmtThousands(int(math.Round(perCall)))))
 	}

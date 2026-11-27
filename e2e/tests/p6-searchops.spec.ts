@@ -3,7 +3,7 @@
 // модельные, рублей и дат нет; строка раскрывается в ленту шагов агента. Контракт — подменённым ответом (не зависит
 // от журнала), живой отчёт — на текущей базе. Демо-состояние не меняется.
 // E2E_SOPS_SHOTS=<каталог> — снимки первого экрана 360 и 1440 в этот каталог.
-import type { Page } from '@playwright/test'
+import type { Locator, Page } from '@playwright/test'
 import { expect, test } from './fixtures'
 
 const SHOTS = process.env.E2E_SOPS_SHOTS ?? ''
@@ -379,16 +379,26 @@ test.describe('Контур фида: отчёт SearchOps для маркето
     await expect(sec.getByRole('heading', { level: 3 })).toBeVisible({
       timeout: 30_000,
     })
-    const rows = sec
-      .getByRole('button', { expanded: false })
-      .filter({ hasText: /ждёт|принят|утвержд|агент/ })
-    test.skip((await rows.count()) === 0, 'в разделе нет строк, которые агент уже разобрал')
-    const row = rows.first()
-    await row.click()
-    const steps = sec.getByRole('list', { name: 'Шаги агента по запросу' })
-    await expect(steps).toBeVisible()
+    // «агент не разбирал» ленты не имеет (в раскрытии — «Разобрать»). У строки, которую агент видел, лента шагов есть,
+    // только если в запуске есть шаги по её кластеру; иначе раскрытие честно пишет «Шагов … нет».
+    const items = sec.getByRole('list').first().locator(':scope > li')
+    let feed: Locator | null = null
+    for (let i = 0; i < (await items.count()) && !feed; i++) {
+      const item = items.nth(i)
+      const head = item.getByRole('button').first()
+      if (/агент не разбирал|не разобрано/.test((await head.textContent()) ?? '')) continue
+      await head.click()
+      const steps = item.getByRole('list', { name: 'Шаги агента по запросу' })
+      await expect(
+        steps.or(item.getByText('Шагов по этому кластеру в запуске нет')).first(),
+      ).toBeVisible()
+      if (await steps.isVisible()) feed = item
+      else await head.click()
+    }
+    test.skip(!feed, 'в разделе нет строк с шагами агента в запуске')
+    const steps = feed!.getByRole('list', { name: 'Шаги агента по запросу' })
     await expect(steps).toContainText('Читаю память')
-    await expect(sec.getByRole('link', { name: 'Весь запуск' })).toBeVisible()
+    await expect(feed!.getByRole('link', { name: 'Весь запуск' })).toBeVisible()
     if (SHOTS) {
       await sec.screenshot({ path: `${SHOTS}/report-1440-row-feed.png` })
     }

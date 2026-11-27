@@ -67,6 +67,19 @@ const monthParam = (key: string) => monthly.value?.params.find((p) => p.key === 
 const monthLlmPerRequest = computed(
   () => monthly.value?.scenarios[0]?.llm_per_request_rub ?? summary.value?.avg_cost_rub ?? null,
 )
+/** Допущения «Месяца» с сервера — те же сервер и число запусков агента, что в расчёте «На данных заказчика». */
+const monthDefaults = computed(() => {
+  const v = (key: string) => monthParam(key)?.default
+  const [server20k, server200k, runs20k, runs200k] = [
+    v('server_rub_20k'),
+    v('server_rub_200k'),
+    v('agent_runs_month'),
+    v('agent_runs_month_200k'),
+  ]
+  return server20k != null && server200k != null && runs20k != null && runs200k != null
+    ? { server20k, server200k, runs20k, runs200k }
+    : null
+})
 const monthAgentRun = computed(() => {
   const p = monthParam('agent_run_cost_rub')
   return p && p.source === 'measured' ? p.value : runCost.value.rub
@@ -151,9 +164,9 @@ const tiles = computed(() => {
   return [
     {
       key: 'avg',
-      label: 'Средняя стоимость запроса',
+      label: 'LLM на один запрос',
       value: num(s.avg_cost_rub) ? formatCost(s.avg_cost_rub) : null,
-      sub: 'фактическое среднее, без сервера',
+      sub: 'фактическое среднее; с сервером и агентом — в «Месяце»',
       missing: 'запросов ещё не было',
       journal: true,
       explain: () =>
@@ -214,7 +227,7 @@ const tiles = computed(() => {
             ...(num(s.agent_runs)
               ? [
                   {
-                    label: `Все запуски в журнале (${formatInt(s.agent_runs)}), с прерванными`,
+                    label: `Все запуски в журнале вызовов модели (${formatInt(s.agent_runs)}): с прерванными и прежними, которых нет в списке запусков`,
                     value: num(s.agent_run_avg_cost_rub)
                       ? `${formatCost(s.agent_run_avg_cost_rub)} в среднем`
                       : '—',
@@ -367,6 +380,7 @@ function explainRoute(r: CostRouteRow, field: 'share' | 'avg_ms' | 'avg_cost_rub
           :agent-run-rub="monthAgentRun"
           :agent-run-note="monthAgentNote"
           :pricing-version="pricingVersion"
+          :defaults="monthDefaults"
           @explain="explain"
         />
 

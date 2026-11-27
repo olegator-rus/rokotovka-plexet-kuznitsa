@@ -19,21 +19,24 @@ const props = defineProps<{
   /** Откуда стоимость запуска: «среднее 2 полных запусков» и т. п. */
   agentRunNote?: string
   pricingVersion: string
+  /** Допущения сервера (monthly.params): те же сервер и число запусков, что в «На данных заказчика». */
+  defaults?: { server20k: number; server200k: number; runs20k: number; runs200k: number } | null
 }>()
 const emit = defineEmits<{ explain: [e: Explanation] }>()
 
-// Допущения по умолчанию — docs/COSTS.md: сервер 4 vCPU / 16 ГБ ≈ 7 500 ₽ при 20 тыс. запросов и
-// 8 vCPU / 32 ГБ ≈ 15 000 ₽ при 200 тыс.; запусков агента — раз в день (30) и 4 раза в день (120).
-// serverOk / runsOk — последнее верное значение поля: мусор в поле итог не пересчитывает.
+// Допущения по умолчанию приходят с сервера (monthly.params) — те же, что в расчёте «На данных заказчика»:
+// сервер 4 vCPU / 16 ГБ / 50 ГБ SSD + IP ≈ 8 218 ₽ при 20 тыс. и 8 vCPU / 32 ГБ ≈ 15 000 ₽ при 200 тыс.;
+// запусков агента 40 (ежедневно и по триггерам) и 120 (4 раза в день). Ниже — запасные значения на случай
+// сервера без monthly. serverOk / runsOk — последнее верное значение поля: мусор в поле итог не пересчитывает.
 const scenarios = reactive([
   {
     requests: 20_000,
-    server: '7 500',
-    runs: '30',
-    serverOk: 7500,
-    runsOk: 30,
-    serverNote: '4 vCPU / 16 ГБ',
-    runsNote: 'раз в день',
+    server: '8 218',
+    runs: '40',
+    serverOk: 8218,
+    runsOk: 40,
+    serverNote: '4 vCPU / 16 ГБ / 50 ГБ SSD + IP',
+    runsNote: 'ежедневно и по триггерам',
   },
   {
     requests: 200_000,
@@ -45,6 +48,28 @@ const scenarios = reactive([
     runsNote: '4 раза в день',
   },
 ])
+
+// Пришли допущения сервера — подставляем, пока человек поле не правил.
+const touched = [false, false]
+watch(
+  () => props.defaults,
+  (d) => {
+    if (!d) return
+    const pairs: [number, number][] = [
+      [d.server20k, d.runs20k],
+      [d.server200k, d.runs200k],
+    ]
+    pairs.forEach(([server, runs], i) => {
+      const s = scenarios[i]
+      if (!s || touched[i]) return
+      s.server = formatInt(server)
+      s.runs = formatInt(runs)
+      s.serverOk = server
+      s.runsOk = runs
+    })
+  },
+  { immediate: true },
+)
 
 const parsed = computed(() =>
   scenarios.map((s) => ({
@@ -128,6 +153,10 @@ function explainTotal(i: number) {
       <h2 id="month-title" class="t-h2">Месяц</h2>
       <span class="t-xs t-muted">поля с пометкой «допущение» можно править</span>
     </div>
+    <p class="t-xs t-muted month__note">
+      Полная стоимость запроса: сервер, онлайн-LLM и агент. Вкладка «На данных заказчика» берёт те
+      же сервер и агента, но 15 000 запросов в месяц, поэтому на запрос там выходит больше.
+    </p>
     <div class="data-scroll">
       <table class="data-table">
         <thead>
@@ -155,6 +184,7 @@ function explainTotal(i: number) {
                     :aria-describedby="
                       errorOf(parsed[i]?.server) ? `month-server-err-${i}` : undefined
                     "
+                    @input="touched[i] = true"
                   />
                   <span aria-hidden="true">₽</span>
                 </span>
@@ -210,6 +240,7 @@ function explainTotal(i: number) {
                     :aria-label="`Запусков агента в месяц при ${formatInt(scenarios[i].requests)} запросов, допущение`"
                     :aria-invalid="errorOf(parsed[i]?.runs) ? 'true' : undefined"
                     :aria-describedby="errorOf(parsed[i]?.runs) ? `month-runs-err-${i}` : undefined"
+                    @input="touched[i] = true"
                   />
                   <span class="t-xs t-muted" aria-hidden="true">запусков</span>
                 </span>
@@ -260,6 +291,9 @@ function explainTotal(i: number) {
   display: flex;
   flex-direction: column;
   gap: var(--space-2);
+}
+.month__note {
+  margin: 0;
 }
 .month__head {
   display: flex;

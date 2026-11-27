@@ -64,7 +64,7 @@ test.describe('гость', () => {
     ).toBeVisible()
     // «Стоимость» гостю — открытая сводка (GET /api/costs/summary): плитки и маршруты, без журнала и без «нужен вход».
     await page.getByRole('tab', { name: 'Стоимость' }).click()
-    await expect(page.getByText('Средняя стоимость запроса').first()).toBeVisible()
+    await expect(page.getByText('LLM на один запрос').first()).toBeVisible()
     await expect(page.getByText(/нужен вход/i)).toHaveCount(0)
     expect(closed, 'витрина запросила закрытые пути').toEqual([])
 
