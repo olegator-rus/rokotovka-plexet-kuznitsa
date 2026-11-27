@@ -406,7 +406,7 @@ export function ticketLines(p: Pick<Proposal, 'diagnosis' | 'evidence'>): string
     // Замену агент не подтвердил, но поиск может уже показывать близкие позиции — не писать «не нашёл».
     if (shownNow.length) {
       out.push(
-        `Решить, брать ли товар в ассортимент. Точного товара нет; сейчас поиск показывает близкие позиции: ${shownText} — агент не подтвердил их как замену`,
+        `Решить, брать ли товар в ассортимент. Точного товара нет; во время разбора поиск показывал близкие позиции: ${shownText} — агент не подтвердил их как замену`,
       )
       shownSaid = true
     } else out.push('Решить, брать ли товар в ассортимент: замены в каталоге агент не нашёл')
@@ -416,14 +416,15 @@ export function ticketLines(p: Pick<Proposal, 'diagnosis' | 'evidence'>): string
     if (empty === cur.length)
       out.push(
         cur.length === 1
-          ? 'Сейчас поиск отвечает «нет в каталоге» на запрос кластера'
-          : `Сейчас поиск отвечает «нет в каталоге» на все ${formatInt(cur.length)} ${qWord(cur.length)} кластера`,
+          ? 'Во время разбора поиск отвечал «нет в каталоге» на запрос кластера'
+          : `Во время разбора поиск отвечал «нет в каталоге» на все ${formatInt(cur.length)} ${qWord(cur.length)} кластера`,
       )
     else if (empty > 0)
       out.push(
-        `Сейчас поиск отвечает «нет в каталоге» на ${formatInt(empty)} из ${formatInt(cur.length)} ${plural(cur.length, ['запроса', 'запросов', 'запросов'])}`,
+        `Во время разбора поиск отвечал «нет в каталоге» на ${formatInt(empty)} из ${formatInt(cur.length)} ${plural(cur.length, ['запроса', 'запросов', 'запросов'])}`,
       )
-    else if (!shownSaid && shownNow.length) out.push(`Сейчас поиск показывает: ${shownText}`)
+    else if (!shownSaid && shownNow.length)
+      out.push(`Во время разбора поиск показывал: ${shownText}`)
   }
   const ref = [...(ev?.reformulations ?? [])].sort((a, b) => b.count - a.count)[0]
   if (ref)
