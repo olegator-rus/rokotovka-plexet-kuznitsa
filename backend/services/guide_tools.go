@@ -125,7 +125,10 @@ var guideEditionStems = []struct{ ask, name string }{
 // editionFamilies — семейства редакций, названных в вопросе «чем отличается A от B»: из линейки базы знаний, а
 // без неё — среди семейств вендора с общим началом названия (KES Стандартный и KES Расширенный, а не «Kaspersky
 // Стандартный для Linux»). Пусто — редакции не названы или не найдены.
-func (c *guideCatalog) editionFamilies(kb *guideKB, text, vendor string, candidates []string) []string {
+//
+// allowed — направление задачи без вендора («защита для компьютеров … чем расширенный отличается от стандартного»):
+// только семейства направления, чтобы редакции резервного копирования не сравнивались вместо антивируса.
+func (c *guideCatalog) editionFamilies(kb *guideKB, text, vendor string, candidates, allowed []string) []string {
 	q := guideNorm(text)
 	var asked []string
 	for _, e := range guideEditionStems {
@@ -142,6 +145,9 @@ func (c *guideCatalog) editionFamilies(kb *guideKB, text, vendor string, candida
 	pool := map[string][]string{}
 	for fid, name := range c.famName {
 		if vendor != "" && c.famVend[fid] != vendor {
+			continue
+		}
+		if len(allowed) > 0 && !containsStr(allowed, fid) {
 			continue
 		}
 		n := guideNorm(name)

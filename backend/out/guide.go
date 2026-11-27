@@ -41,6 +41,8 @@ type GuideResponse struct {
 	Recommendation *GuideRecommendation `json:"recommendation"`
 	// Docs — ссылка на документацию вендора у ответа «нет сведений» (SPEC §9); null — нет.
 	Docs *GuideDocs `json:"docs"`
+	// Screen — готовые поля экрана подбора (контур экрана); null — экрана результата нет.
+	Screen *GuideScreen `json:"screen"`
 }
 
 // GuideDocs — страница вендора или семейства.
@@ -59,6 +61,8 @@ type GuideClaim struct {
 
 // GuideSource — источник факта: страница вендора и фрагмент. Дат нет.
 type GuideSource struct {
+	// Label — подпись ссылки: «Документация вендора» или «Правила лицензирования {вендор}» (контур экрана).
+	Label    string `json:"label,omitempty"`
 	Title    string `json:"title"`
 	URL      string `json:"url"`
 	Fragment string `json:"fragment"`
@@ -133,6 +137,193 @@ type GuideOffer struct {
 	// RuleID — нарушенное правило у rejected; RuleSource — его источник.
 	RuleID     string `json:"rule_id,omitempty"`
 	RuleSource string `json:"rule_source,omitempty"`
+
+	// Поля экрана контура экрана: готовые тексты и числа, фронт не считает.
+	Display      *GuideOfferDisplay `json:"display,omitempty"`
+	SaleUnit     string             `json:"sale_unit,omitempty"`
+	SaleUnitKind string             `json:"sale_unit_kind,omitempty"` // per_object | package | license
+	// UnitPrice — цена одной единицы продажи из каталога (за компьютер на ступени, за пакет, за сервер).
+	UnitPrice *float64 `json:"unit_price"`
+	// PayQuantity — сколько единиц продажи к оплате (компьютеров или пакетов).
+	PayQuantity int             `json:"pay_quantity"`
+	PriceLine   string          `json:"price_line"`
+	PriceText   string          `json:"price_text"`
+	Package     *GuideOfferPack `json:"package"`
+	Reason      *GuideReason    `json:"reason"`
+}
+
+// GuideOfferDisplay — заголовок и подзаголовок лицензии (UI 6.1) и раскрытие «Сведения о лицензии».
+type GuideOfferDisplay struct {
+	Title    string        `json:"title"`
+	Subtitle string        `json:"subtitle"`
+	Details  []GuideDetail `json:"details"`
+}
+
+// GuideDetail — строка раскрытия.
+type GuideDetail struct {
+	Label string `json:"label"`
+	Value string `json:"value"`
+}
+
+// GuideOfferPack — пакет на N мест под задачу: сколько пакетов, мест всего и в запасе.
+type GuideOfferPack struct {
+	Size  int    `json:"size"`
+	Packs int    `json:"packs"`
+	Seats int    `json:"seats"`
+	Spare int    `json:"spare"`
+	Text  string `json:"text"`
+}
+
+// GuideReason — код причины и готовый текст («Не подходит для серверной ОС»).
+type GuideReason struct {
+	Code string `json:"code"`
+	Text string `json:"text"`
+}
+
+// Основания рекомендации (UI 6.2).
+const (
+	BasisOnlyValid       = "only_valid"
+	BasisRequiredFeature = "required_feature"
+	BasisLowestTotal     = "lowest_total"
+	BasisVendorNamed     = "vendor_named"
+	BasisNone            = "none"
+)
+
+// GuideScreen — экран подбора контура экрана: всё, что фронт показывает, кроме полей карточек offers[].
+type GuideScreen struct {
+	Title           string            `json:"title"`
+	Task            string            `json:"task"`
+	Result          *GuideResult      `json:"result"`
+	SelectedOfferID string            `json:"selected_offer_id"`
+	Options         []string          `json:"options"`
+	Comparison      *GuideScreenTable `json:"comparison"`
+	TaskCost        *GuideTaskCost    `json:"task_cost"`
+	Changed         *GuideChanged     `json:"changed"`
+	Others          []GuideOther      `json:"others"`
+	Summary         *GuideSummary     `json:"summary"`
+}
+
+// GuideResult — блок результата: основание, заголовок по основанию, позиция и одна фраза причины.
+type GuideResult struct {
+	Basis   string             `json:"basis"`
+	Heading string             `json:"heading"`
+	OfferID string             `json:"offer_id"`
+	Reason  string             `json:"reason"`
+	Source  *GuideScreenSource `json:"source"`
+}
+
+// GuideScreenSource — текстовая ссылка на источник с дословным фрагментом. Дат нет.
+type GuideScreenSource struct {
+	Label    string `json:"label"`
+	Fragment string `json:"fragment"`
+	URL      string `json:"url"`
+}
+
+// GuideScreenTable — сравнение на 4–6 строк (UI 6.3).
+type GuideScreenTable struct {
+	Title        string             `json:"title"`
+	Columns      []GuideScreenCol   `json:"columns"`
+	Rows         []GuideScreenRow   `json:"rows"`
+	MoreRows     []GuideScreenRow   `json:"more_rows"`
+	HiddenNoData int                `json:"hidden_no_data"`
+	HiddenLabel  string             `json:"hidden_label"`
+	VendorsNote  string             `json:"vendors_note"`
+	Difference   string             `json:"difference"`
+	Source       *GuideScreenSource `json:"source"`
+}
+
+// GuideScreenCol — колонка сравнения.
+type GuideScreenCol struct {
+	OfferID  string `json:"offer_id"`
+	FamilyID string `json:"family_id"`
+	Title    string `json:"title"`
+}
+
+// GuideScreenRow — строка сравнения: priority по UI 6.3, asked — функция из условий покупателя.
+type GuideScreenRow struct {
+	Key      string            `json:"key"`
+	Label    string            `json:"label"`
+	Priority int               `json:"priority"`
+	Asked    bool              `json:"asked"`
+	Kind     string            `json:"kind"` // feature | commercial
+	Cells    []GuideScreenCell `json:"cells"`
+}
+
+// Значки ячейки экрана.
+const (
+	MarkYes         = "yes"
+	MarkNo          = "no"
+	MarkUnknown     = "unknown"
+	MarkConditional = "conditional"
+	MarkValue       = "value"
+)
+
+// GuideScreenCell — ячейка: mark и готовый текст («Есть», «Нет», «Нет сведений», «С условиями», «2 715,30 ₽»).
+type GuideScreenCell struct {
+	Mark   string `json:"mark"`
+	Text   string `json:"text"`
+	FactID string `json:"fact_id,omitempty"`
+}
+
+// GuideTaskCost — полная стоимость одной задачи у нескольких вендоров (сценарий 4).
+type GuideTaskCost struct {
+	Title    string             `json:"title"`
+	Columns  []string           `json:"columns"`
+	Rows     []GuideTaskCostRow `json:"rows"`
+	Note     string             `json:"note"`
+	Cheapest string             `json:"cheapest"`
+}
+
+// GuideTaskCostRow — строка: как продаётся и сколько стоит вся задача.
+type GuideTaskCostRow struct {
+	OfferID   string   `json:"offer_id"`
+	Title     string   `json:"title"`
+	HowSold   string   `json:"how_sold"`
+	Total     *float64 `json:"total"`
+	TotalText string   `json:"total_text"`
+	Note      string   `json:"note"`
+}
+
+// GuideChanged — «Что изменилось» и смена ступени цены.
+type GuideChanged struct {
+	Text        string            `json:"text"`
+	Items       []string          `json:"items"`
+	PriceChange *GuidePriceChange `json:"price_change"`
+}
+
+// GuidePriceChange — прежняя и новая ступень цены выбранного семейства.
+type GuidePriceChange struct {
+	OfferID string         `json:"offer_id"`
+	Label   string         `json:"label"`
+	From    GuidePriceTier `json:"from"`
+	To      GuidePriceTier `json:"to"`
+}
+
+// GuidePriceTier — ступень и цена за единицу.
+type GuidePriceTier struct {
+	Tier      string  `json:"tier"`
+	UnitPrice float64 `json:"unit_price"`
+	Text      string  `json:"text"`
+}
+
+// GuideOther — строка «При изменении условий»: неподходящая или альтернатива с причиной.
+type GuideOther struct {
+	OfferID   string       `json:"offer_id"`
+	Title     string       `json:"title"`
+	Subtitle  string       `json:"subtitle"`
+	PriceText string       `json:"price_text"`
+	Reason    *GuideReason `json:"reason"`
+}
+
+// GuideSummary — закреплённая итоговая строка: сумма один раз, расчёт, одна кнопка.
+type GuideSummary struct {
+	OfferID   string   `json:"offer_id"`
+	Label     string   `json:"label"`
+	Total     *float64 `json:"total"`
+	TotalText string   `json:"total_text"`
+	Formula   string   `json:"formula"`
+	Action    string   `json:"action"` // add_to_spec | request_quote | choose
+	Hint      string   `json:"hint"`
 }
 
 // GuideClarify — один вопрос с чипами и полем для текста.
@@ -221,6 +412,9 @@ type GuideRoute struct {
 	Mode   string `json:"mode"` // search | search_offer | guide
 	Reason string `json:"reason"`
 	Offer  string `json:"offer"`
+	// OpenNow — раскрыть подбор сразу (UI §2); OpenReason — ask | compare | use_limit | "".
+	OpenNow    bool   `json:"open_now"`
+	OpenReason string `json:"open_reason"`
 }
 
 // GuideGapReport — GET /api/guide/gaps: «Вопросы, на которые подбор не ответил» для отчёта SearchOps.

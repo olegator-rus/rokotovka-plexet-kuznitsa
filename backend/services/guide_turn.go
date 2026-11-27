@@ -64,6 +64,9 @@ type guideTurn struct {
 	cross      bool // сравнение между вендорами
 	// extraNums — тексты, числа из которых фраза хода может называть (пределы тарифов вне фида).
 	extraNums []string
+	// data — офферы и факты хода (после gather); before — требования до хода (экран контура экрана, «Что изменилось»).
+	data   *guideData
+	before screenSnapshot
 }
 
 func (t *guideTurn) ms(since time.Time) float64 {
@@ -132,6 +135,10 @@ func (s *Services) Guide(ctx context.Context, requestID string, req in.GuideRequ
 	defer mu.Unlock()
 	t := &guideTurn{g: g, cat: cat, kb: kb, st: &sess.state, started: time.Now()}
 	t.meta.TurnID = requestID
+	t.before = snapshotRequirements(sess.state)
+	if req.Chip != nil && req.Chip.Key == "start_over" {
+		t.before.turn = 0
+	}
 	res := t.safeRun(ctx, req)
 	res.Trace, res.Gaps = t.trace, nonNilStrings(t.gaps)
 	res.Meta = t.meta
@@ -142,6 +149,7 @@ func (s *Services) Guide(ctx context.Context, requestID string, req in.GuideRequ
 	if res.Changes == nil {
 		res.Changes = []out.GuideChange{}
 	}
+	t.screen(res)
 	g.sessions.put(sess)
 	g.saveTurn(ctx, req.SessionID, t, res)
 	return res, nil
@@ -344,7 +352,14 @@ func (t *guideTurn) run(ctx context.Context, req in.GuideRequest) *out.GuideResp
 		}
 	}
 	if compare && len(fams) == 0 {
-		fams = t.cat.editionFamilies(t.kb, src, r.Vendor, st.CandidateFamilyIDs)
+		var allowed []string
+		if r.Vendor == "" && len(st.CandidateFamilyIDs) == 0 {
+			allowed = t.kb.subclass(directionOf(r.Task))
+		}
+		fams = t.cat.editionFamilies(t.kb, src, r.Vendor, st.CandidateFamilyIDs, allowed)
+		if len(fams) < 2 && len(allowed) > 0 {
+			fams = t.cat.editionFamilies(t.kb, src, r.Vendor, st.CandidateFamilyIDs, nil)
+		}
 		if len(fams) >= 2 {
 			st.Intent = "comparison"
 		} else {
@@ -440,6 +455,7 @@ func (t *guideTurn) run(ctx context.Context, req in.GuideRequest) *out.GuideResp
 		return t.fallback(guideFbTurn)
 	}
 	data := t.gather(fams)
+	t.data = data
 	t.meta.MsFirst = t.ms(t.started)
 	var res *out.GuideResponse
 	if compare && len(fams) >= 2 {
@@ -448,6 +464,7 @@ func (t *guideTurn) run(ctx context.Context, req in.GuideRequest) *out.GuideResp
 		res = t.selection(data)
 		t.onRequestBlock(res, data, text)
 		t.renewalQuestion(res, data)
+		t.tlsAlternative(res, data)
 	}
 	t.namedTierChanges(res)
 	t.perpetualTerm(res)

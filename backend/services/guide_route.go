@@ -73,7 +73,18 @@ func guideNorm(s string) string {
 func (s *Services) RouteGuide(query string) out.GuideRoute {
 	mode, reason := routeQuery(query)
 	r := out.GuideRoute{Mode: mode, Reason: reason}
-	if mode != routeSearch {
+	switch {
+	case mode == routeGuide && asksCompare(query):
+		r.OpenNow, r.OpenReason = true, "compare"
+	case mode == routeGuide:
+		r.OpenNow, r.OpenReason = true, "ask"
+	case mode != routeSearch || reason == "product_name":
+		// Ограничение применения у названного продукта («криптопро для сервера») — подбор сразу (UI §2).
+		if d := extractConditions(query); d.vendor != "" && (d.objKind == "server" || d.use != "") && len(d.objects) == 0 {
+			r.Mode, r.OpenNow, r.OpenReason = routeGuide, true, "use_limit"
+		}
+	}
+	if r.Mode != routeSearch {
 		r.Offer = GuideOfferText
 	}
 	return r

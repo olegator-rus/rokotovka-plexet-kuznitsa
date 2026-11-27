@@ -149,7 +149,7 @@ test('purchaseQuantity: штуки, пакеты, ядра, другая мет�
   })
   // Поштучная — само число.
   assert.equal(purchaseQuantity({ license_line: '', attrs: at('device', 1) }, 100, 'device'), 100)
-  // Пакет 10 ПК при 10 ПК — один.
+  // Контур помощника ПК при 10 ПК — один.
   assert.equal(purchaseQuantity({ license_line: '', attrs: at('device', 10) }, 10, 'device'), 1)
   // Ядра — не места: 1.
   assert.equal(
