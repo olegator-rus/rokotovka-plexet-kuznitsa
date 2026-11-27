@@ -13,6 +13,7 @@ interface FeedSummary {
   catalog: { source: string; offers: number }
   etalon: { matched: number; total: number } | null
   closed: { config: string }[]
+  closed_detail?: { total: number; live: number; top4: number; model_searches: number; kinds: { kind: string }[] } | null
   four: { families4_n: number; answers: number } | null
   cost: { warm: { per_request_rub: number } | null; cold: { per_request_rub: number } | null } | null
 }
@@ -57,6 +58,20 @@ test.describe('S6. Доказательства на данных заказчи
     const closed = panel.getByRole('button', { name: /^Отложенный набор/ })
     if (s.closed.length === 0) await expect(closed).toContainText('Прогон не запускался')
     else for (const label of ['BM25', 'Гибрид', 'Полная конфигурация']) await expect(closed).toContainText(label)
+
+    // Разбор отложенного набора по видам запросов: блок есть только с прогоном, числа — из ответа API.
+    const heldOut = panel.getByRole('region', { name: 'Отложенный набор: проверка на незнакомых запросах' })
+    const d = s.closed_detail
+    if (d) {
+      await expect(heldOut.getByText(`${d.live} из ${d.total}`, { exact: true })).toBeVisible()
+      await expect(heldOut.getByText(`${d.top4} из ${d.total}`, { exact: true })).toBeVisible()
+      await expect(heldOut.getByText(new RegExp(`на ${d.model_searches} запрос\\S+ из ${d.total},`))).toBeVisible()
+      const table = heldOut.getByRole('region', { name: 'Отложенный набор по видам запросов' })
+      await expect(table.getByRole('row')).toHaveCount(d.kinds.length + 2) // шапка, виды, «Всего»
+      await expect(table.getByRole('row', { name: /^Всего/ })).toContainText(String(d.top4))
+    } else {
+      await expect(heldOut).toHaveCount(0)
+    }
 
     if (s.four) await expect(panel.getByText(new RegExp(`${s.four.families4_n} из ${s.four.answers}`))).toBeVisible()
     const run = s.cost?.warm ?? s.cost?.cold

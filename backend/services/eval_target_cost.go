@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"math"
+	"sort"
 	"strconv"
 	"strings"
 
@@ -54,6 +55,16 @@ var (
 		{ID: domain.ConfigB4, Label: "Полный путь с правками агента", Note: "последняя принятая версия правил"},
 		{ID: domain.ConfigLive, Label: "Полная конфигурация (поиск на витрине)", Note: "понимание запроса, целевая страница, добор выдачи до четырёх семейств, модель на трудных запросах"},
 	}
+)
+
+// Виды запросов закрытой части (TargetQuery.Distortion) в порядке экрана; агрегаты разбора: feedClosedSpelling —
+// искажённое написание, feedClosedNoProduct — виды без товарной цели (вопрос покупателя и бессмыслица).
+var (
+	feedClosedKinds = []string{"склонение", "транслит", "опечатка", "раскладка", "атрибут", "ТЗ в словоформе", "сервер",
+		"по запросу → альтернатива", "сервисный", "мусорный"}
+	feedClosedSpelling = map[string]bool{"склонение": true, "транслит": true, "опечатка": true, "раскладка": true,
+		"ТЗ в словоформе": true}
+	feedClosedNoProduct = map[string]bool{"сервисный": true, "мусорный": true}
 )
 
 // feedRun — строка evaluations с разобранными метриками.
@@ -127,6 +138,8 @@ func (s *Services) FeedSummary(ctx context.Context) (*out.FeedSummary, error) {
 			res.Closed = append(res.Closed, feedScore(*r))
 		}
 	}
+	res.ClosedDetail = feedClosedDetail(latest(domain.TargetSetClosed, domain.ConfigBM25, ""),
+		latest(domain.TargetSetClosed, domain.ConfigLive, ""))
 	four := &out.FeedFour{Config: domain.ConfigLive, Sets: []string{}}
 	for _, set := range feedFourSets {
 		if r := latest(set, domain.ConfigLive, ""); r != nil {
@@ -177,6 +190,56 @@ func feedScore(r feedRun) out.FeedScore {
 	t := r.m.Target
 	return out.FeedScore{Set: r.row.Set, Config: r.row.Config, Matched: t.Success1N, Total: t.Judged, Success1: t.Success1,
 		Top4: t.Top4, RunTail: runTail(r.row.RunID)}
+}
+
+// feedClosedDetail — разбор закрытой части по видам запросов из тех же строк прогона, что и плитка закрытой части:
+// BM25 против полного продукта. Строки — виды из разбивки полного продукта (известные по порядку экрана, прочие по
+// алфавиту); вида нет в разбивке BM25 — у BM25 по нему ни одной цели первым ответом. Нет прогона BM25 или полного
+// продукта — nil: сравнивать не с чем.
+func feedClosedDetail(bm25, live *feedRun) *out.FeedClosedDetail {
+	if bm25 == nil || live == nil || bm25.m.Target == nil || live.m.Target == nil {
+		return nil
+	}
+	b, l := bm25.m.Target, live.m.Target
+	d := &out.FeedClosedDetail{Kinds: []out.FeedClosedKind{}, P50Ms: live.m.Latency.P50}
+	d.Total, d.BM25, d.Live, d.Top4 = l.Judged, b.Success1N, l.Success1N, l.Top4N
+	if l.Cost != nil {
+		d.ModelSearches = l.Cost.ModelSearches
+	}
+	cells, base := l.Breakdown["distortion"], b.Breakdown["distortion"]
+	known := make(map[string]bool, len(feedClosedKinds))
+	order := make([]string, 0, len(cells))
+	for _, k := range feedClosedKinds {
+		known[k] = true
+		if _, ok := cells[k]; ok {
+			order = append(order, k)
+		}
+	}
+	var rest []string
+	for k := range cells {
+		if !known[k] {
+			rest = append(rest, k)
+		}
+	}
+	sort.Strings(rest)
+	for _, k := range append(order, rest...) {
+		c := cells[k]
+		row := out.FeedClosedKind{Kind: k}
+		row.Total, row.BM25, row.Live, row.Top4 = c.N, base[k].Success1, c.Success1, c.Top4
+		d.Kinds = append(d.Kinds, row)
+		if feedClosedSpelling[k] {
+			d.Spelling.Total += row.Total
+			d.Spelling.BM25 += row.BM25
+			d.Spelling.Live += row.Live
+			d.Spelling.Top4 += row.Top4
+		}
+		if !feedClosedNoProduct[k] {
+			d.Product.Total += row.Total
+			d.Product.BM25 += row.BM25
+			d.Product.Live += row.Live
+		}
+	}
+	return d
 }
 
 func feedRow(r feedRun) out.FeedRow {

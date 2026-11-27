@@ -1,6 +1,7 @@
 <script setup lang="ts">
 // «Доказательства» → «На данных заказчика» (контур эталонов): один экран — эталоны заказчика, закрытая часть
-// набора (Success@1 у BM25, гибрида и полного продукта), доля ответов с ≥4 товарами, стоимость запроса при 15 тыс.
+// набора (Success@1 у BM25, гибрида и полного продукта; ниже плиток — её разбор по видам запросов, closed_detail:
+// подписи видов и примеры — словарь lib/feedSummary.ts), доля ответов с ≥4 товарами, стоимость запроса при 15 тыс.
 // в месяц с долями инфраструктуры и LLM, каталог. Все числа — из GET /api/evaluations/feed: прогоны `go run . eval`
 // на фиде и трассы; фронт ничего не пересчитывает и чисел не вписывает. Дат на экране нет.
 import { computed, onMounted, ref } from 'vue'
@@ -13,6 +14,11 @@ import StatTile from '@/components/common/StatTile.vue'
 import { useResource } from '@/composables/useResource'
 import {
   closedCells,
+  closedExamples,
+  closedFacts,
+  closedHeldOut,
+  closedKind,
+  closedModelShare,
   closedPending,
   configLabel,
   hasFeedRuns,
@@ -56,6 +62,8 @@ const catalogLine = computed(() => {
 const etalon = computed(() => data.value?.etalon ?? null)
 const closed = computed(() => closedCells(data.value ?? null))
 const pending = computed(() => closedPending(data.value ?? null))
+const detail = computed(() => data.value?.closed_detail ?? null)
+const facts = computed(() => (detail.value ? closedFacts(detail.value) : []))
 const four = computed(() => data.value?.four ?? null)
 const cost = computed(() => data.value?.cost ?? null)
 const head = computed(() => headlineCost(data.value ?? null))
@@ -295,6 +303,75 @@ function explainRow(r: FeedRow) {
           />
         </div>
 
+        <section v-if="detail" class="feed__block" aria-labelledby="feed-closed">
+          <h3 id="feed-closed" class="t-h2">Отложенный набор: проверка на незнакомых запросах</h3>
+          <p>
+            Эталоны и наборы настройки команда видела, поэтому высокий результат на них не
+            доказывает, что поиск справится с новыми запросами. Для этого
+            {{ closedHeldOut(detail.total) }} заранее. Их не открывали ни участники, настраивавшие
+            поиск, ни агент SearchOps. Прогон был один, после заморозки поиска, с выключенным кэшем.
+          </p>
+          <p>
+            Набор намеренно труднее обычного трафика: названия в чужой раскладке, транслит,
+            опечатки, словоформы из ТЗ, серверы, продукты без цены, вопросы покупателя и мусор. Ни
+            одна формулировка не совпадает с запросами, на которых настраивался поиск. Считаем
+            строго: ответ засчитан, только если первая ссылка совпала с ожидаемой страницей. Нужный
+            товар на втором месте — промах.
+          </p>
+          <ul class="feed__tiles feed__facts">
+            <li v-for="f in facts" :key="f.text" class="feed__fact">
+              <span class="feed__fact-value t-num">{{ f.value }}</span>
+              <span class="feed__sub">{{ f.text }}</span>
+            </li>
+          </ul>
+          <div
+            class="data-scroll"
+            role="region"
+            aria-label="Отложенный набор по видам запросов"
+            tabindex="0"
+          >
+            <table class="data-table feed__kinds">
+              <thead>
+                <tr>
+                  <th scope="col">Вид запроса</th>
+                  <th scope="col">Примеры из набора</th>
+                  <th scope="col" class="num">Запросов</th>
+                  <th scope="col" class="num">Текстовый поиск</th>
+                  <th scope="col" class="num">Полная конфигурация</th>
+                  <th scope="col" class="num">В первых четырёх</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="k in detail.kinds" :key="k.kind">
+                  <th scope="row">{{ closedKind(k.kind).label }}</th>
+                  <td>{{ closedExamples(k.kind) }}</td>
+                  <td class="num">{{ formatInt(k.total) }}</td>
+                  <td class="num">{{ formatInt(k.bm25) }}</td>
+                  <td class="num">{{ formatInt(k.live) }}</td>
+                  <td class="num">{{ formatInt(k.top4) }}</td>
+                </tr>
+                <tr class="feed__group-start feed__total">
+                  <th scope="row">Всего</th>
+                  <td></td>
+                  <td class="num">{{ formatInt(detail.total) }}</td>
+                  <td class="num">{{ formatInt(detail.bm25) }}</td>
+                  <td class="num">{{ formatInt(detail.live) }}</td>
+                  <td class="num">{{ formatInt(detail.top4) }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <p>
+            Языковая модель понадобилась {{ closedModelShare(detail) }}, остальные поиск обработал
+            словарём, правилами и векторами.
+          </p>
+          <p>
+            На наборах настройки результат выше: там правила правились, пока не осталось промахов, а
+            эти запросы поиск увидел впервые. Мы показываем оба числа. Промахи не скрываем: после
+            прогона они переходят в наборы настройки.
+          </p>
+        </section>
+
         <section v-if="cost && costRuns.length" class="feed__block" aria-labelledby="feed-cost">
           <h3 id="feed-cost" class="t-h2">Стоимость запроса</h3>
           <p class="t-sm">
@@ -483,7 +560,8 @@ function explainRow(r: FeedRow) {
 }
 /* Главные числа — крупные карточки на сером. */
 .feed__tiles > :deep(.tile),
-.feed__tiles > .feed__closed {
+.feed__tiles > .feed__closed,
+.feed__tiles > .feed__fact {
   gap: var(--space-2);
   padding: var(--space-4) var(--space-5);
   border-color: transparent;
@@ -501,7 +579,8 @@ function explainRow(r: FeedRow) {
   line-height: inherit;
   font-weight: var(--fw-bold);
 }
-.feed__tiles :deep(.tile__value) {
+.feed__tiles :deep(.tile__value),
+.feed__fact-value {
   color: var(--accent);
   font-size: var(--fs-banner);
   line-height: 1.15;
@@ -570,6 +649,17 @@ function explainRow(r: FeedRow) {
   color: var(--text-2);
   font-size: var(--fs-sm);
   line-height: var(--lh-sm);
+}
+/* Факты об отложенном наборе — те же карточки, что главные числа, но не кнопки. */
+.feed__facts {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.feed__fact {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
 }
 /* Разделы: сверху красная черта, как у частей «Теоретических основ». */
 .feed__block {
@@ -656,6 +746,18 @@ function explainRow(r: FeedRow) {
 .feed__group-start th,
 .feed__group-start td {
   border-top: 2px solid var(--border-control);
+}
+/* Таблица видов запросов: колонки с текстом не сжимаются до слова в строке — на узком экране таблица
+   прокручивается внутри своего контейнера. */
+.feed__kinds th:first-child {
+  min-width: 9rem;
+}
+.feed__kinds th:nth-child(2),
+.feed__kinds td:nth-child(2) {
+  min-width: 12rem;
+}
+.feed__kinds .feed__total td {
+  font-weight: var(--fw-bold);
 }
 .feed__stale {
   color: var(--danger);

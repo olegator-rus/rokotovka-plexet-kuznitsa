@@ -1,8 +1,11 @@
 package services
 
 import (
+	"encoding/json"
 	"os"
 	"path/filepath"
+	"reflect"
+	"strings"
 	"testing"
 
 	"kuznica/api/domain"
@@ -200,6 +203,75 @@ func TestApplyFeedCost(t *testing.T) {
 	applyFeedCost(cr, nil, 8218, 0, 0, 15000)
 	if cr.LLMPerRequestRub != 0 || cr.LLMShare != 0 || cr.InfraShare != 1 {
 		t.Fatalf("без LLM: %+v", cr)
+	}
+}
+
+// Разбор закрытой части: строки по видам в порядке экрана, суммы считает сервер, без прогона — nil.
+func TestFeedClosedDetail(t *testing.T) {
+	run := func(judged, success1, top4, model int, p50 float64, cells map[string]out.TargetCell) *feedRun {
+		return &feedRun{m: out.EvalMetrics{Latency: out.EvalLatency{P50: p50}, Target: &out.TargetMetrics{Judged: judged,
+			Success1N: success1, Top4N: top4, Cost: &out.TargetCost{ModelSearches: model},
+			Breakdown: map[string]map[string]out.TargetCell{"distortion": cells, "vendor": {"kaspersky": {N: 99, Success1: 99, Top4: 99}}}}}}
+	}
+	// У BM25 нет строки «раскладка» (ни одного ответа этого вида), у полного продукта есть вид не из списка экрана.
+	bm25 := run(20, 7, 9, 0, 4, map[string]out.TargetCell{
+		"склонение": {N: 4, Success1: 3, Top4: 4}, "опечатка": {N: 3, Success1: 1, Top4: 1},
+		"сервер": {N: 5, Success1: 1, Top4: 2}, "мусорный": {N: 2, Success1: 2, Top4: 2}, "сервисный": {N: 1, Success1: 0, Top4: 0},
+		"яркий": {N: 2, Success1: 0, Top4: 0}})
+	live := run(20, 15, 18, 3, 120.5, map[string]out.TargetCell{
+		"мусорный": {N: 2, Success1: 1, Top4: 1}, "сервисный": {N: 1, Success1: 1, Top4: 1},
+		"яркий": {N: 2, Success1: 1, Top4: 2}, "сервер": {N: 5, Success1: 3, Top4: 5},
+		"раскладка": {N: 3, Success1: 2, Top4: 3}, "опечатка": {N: 3, Success1: 3, Top4: 3}, "склонение": {N: 4, Success1: 4, Top4: 4}})
+
+	for name, pair := range map[string][2]*feedRun{"прогонов нет": {nil, nil}, "нет BM25": {nil, live}, "нет полного продукта": {bm25, nil},
+		"строка без метрик по цели": {bm25, {}}} {
+		if d := feedClosedDetail(pair[0], pair[1]); d != nil {
+			t.Errorf("%s: ждали nil, получили %+v", name, d)
+		}
+	}
+
+	d := feedClosedDetail(bm25, live)
+	if d == nil {
+		t.Fatal("разбор не собран")
+	}
+	count := func(total, b, l, top4 int) out.FeedClosedCount {
+		return out.FeedClosedCount{FeedClosedPair: out.FeedClosedPair{Total: total, BM25: b, Live: l}, Top4: top4}
+	}
+	kind := func(k string, total, b, l, top4 int) out.FeedClosedKind {
+		return out.FeedClosedKind{Kind: k, FeedClosedCount: count(total, b, l, top4)}
+	}
+	want := &out.FeedClosedDetail{FeedClosedCount: count(20, 7, 15, 18), ModelSearches: 3, P50Ms: 120.5,
+		Kinds: []out.FeedClosedKind{kind("склонение", 4, 3, 4, 4), kind("опечатка", 3, 1, 3, 3), kind("раскладка", 3, 0, 2, 3),
+			kind("сервер", 5, 1, 3, 5), kind("сервисный", 1, 0, 1, 1), kind("мусорный", 2, 2, 1, 1), kind("яркий", 2, 0, 1, 2)},
+		// Написание: склонение + опечатка + раскладка. Товарная цель: всё, кроме сервисного и мусорного.
+		Spelling: count(10, 4, 9, 10),
+		Product:  out.FeedClosedPair{Total: 17, BM25: 5, Live: 13}}
+	if !reflect.DeepEqual(d, want) {
+		t.Fatalf("разбор:\n получили %+v\n ждали    %+v", d, want)
+	}
+
+	// Форма ответа: счёт набора — на верхнем уровне, у product нет top4, без прогона — null.
+	raw, err := json.Marshal(out.FeedSummary{ClosedDetail: d})
+	if err != nil {
+		t.Fatal(err)
+	}
+	var got struct {
+		ClosedDetail map[string]json.RawMessage `json:"closed_detail"`
+	}
+	if err := json.Unmarshal(raw, &got); err != nil {
+		t.Fatal(err)
+	}
+	for key, val := range map[string]string{"total": "20", "bm25": "7", "live": "15", "top4": "18", "model_searches": "3",
+		"p50_ms": "120.5", "spelling": `{"total":10,"bm25":4,"live":9,"top4":10}`, "product": `{"total":17,"bm25":5,"live":13}`} {
+		if string(got.ClosedDetail[key]) != val {
+			t.Errorf("closed_detail.%s = %s, ждали %s", key, got.ClosedDetail[key], val)
+		}
+	}
+	if !strings.HasPrefix(string(got.ClosedDetail["kinds"]), `[{"kind":"склонение","total":4,"bm25":3,"live":4,"top4":4},`) {
+		t.Errorf("closed_detail.kinds: %s", got.ClosedDetail["kinds"])
+	}
+	if raw, _ = json.Marshal(out.FeedSummary{}); !strings.Contains(string(raw), `"closed_detail":null`) {
+		t.Errorf("без прогона closed_detail — null: %s", raw)
 	}
 }
 

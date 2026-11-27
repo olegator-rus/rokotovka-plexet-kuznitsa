@@ -25,6 +25,35 @@ export interface FeedScore {
   run_tail: string
 }
 
+/** Счёт группы запросов отложенного набора: сколько их и у скольких цель первым ответом у BM25 и у live. */
+export interface FeedClosedPair {
+  total: number
+  bm25: number
+  live: number
+}
+
+/** …и у скольких запросов полной конфигурации нужная страница в первых четырёх. */
+export interface FeedClosedCount extends FeedClosedPair {
+  top4: number
+}
+
+/** Строка по виду запросов; kind — ключ вида как в наборе («склонение», «транслит», …). */
+export interface FeedClosedKind extends FeedClosedCount {
+  kind: string
+}
+
+/** Последний прогон отложенного набора по видам запросов; счёт всего набора — в полях самого объекта. */
+export interface FeedClosedDetail extends FeedClosedCount {
+  /** На скольких запросах полная конфигурация вызывала языковую модель. */
+  model_searches: number
+  p50_ms: number
+  kinds: FeedClosedKind[]
+  /** Искажённое написание: склонение, транслит, опечатка, раскладка, ТЗ в словоформе. */
+  spelling: FeedClosedCount
+  /** Запросы с товарной целью: все виды, кроме сервисных и мусорных. */
+  product: FeedClosedPair
+}
+
 export interface FeedFour {
   config: string
   sets: string[]
@@ -139,6 +168,8 @@ export interface FeedSummary {
   catalog: FeedCatalog
   etalon: FeedScore | null
   closed: FeedScore[]
+  /** null — прогона отложенного набора у BM25 или полной конфигурации нет. */
+  closed_detail?: FeedClosedDetail | null
   four: FeedFour | null
   cost: FeedCost | null
   table: FeedRow[]

@@ -1,9 +1,14 @@
 // Сводка «На данных заказчика» (src/lib/feedSummary.ts).
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import type { FeedSummary } from '../src/api/typesFeed.ts'
+import type { FeedClosedDetail, FeedSummary } from '../src/api/typesFeed.ts'
 import {
   closedCells,
+  closedExamples,
+  closedFacts,
+  closedHeldOut,
+  closedKind,
+  closedModelShare,
   closedPending,
   configLabel,
   hasFeedRuns,
@@ -65,6 +70,60 @@ test('закрытая часть: числа по своим конфигура
   assert.equal(cells[0]!.score?.matched, 30)
   assert.equal(cells[1]!.score, null)
   assert.equal(cells[2]!.score?.matched, 70)
+})
+
+test('отложенный набор: подписи видов и примеры — по ключу, неизвестный вид как есть', () => {
+  assert.deepEqual(closedKind('раскладка'), {
+    label: 'Чужая раскладка',
+    examples: ['fcnhf kbyerc', 'ьшскщыщае 365'],
+  })
+  assert.equal(
+    closedKind('по запросу → альтернатива').label,
+    'Продукт без цены, рядом альтернатива',
+  )
+  assert.equal(closedExamples('склонение'), '«астру линукс», «сканеру-вс»')
+  assert.equal(closedExamples('сервисный'), '«как оплатить заказ»')
+  assert.deepEqual(closedKind('новый вид'), { label: 'новый вид', examples: [] })
+  assert.equal(closedExamples('новый вид'), '')
+  assert.deepEqual(closedKind('constructor'), { label: 'constructor', examples: [] })
+})
+
+test('отложенный набор: факты и фразы — только из чисел сервера, слова согласованы с числом', () => {
+  const d: FeedClosedDetail = {
+    total: 1200,
+    bm25: 300,
+    live: 900,
+    top4: 1100,
+    model_searches: 21,
+    p50_ms: 120.5,
+    kinds: [],
+    spelling: { total: 40, bm25: 5, live: 31, top4: 38 },
+    product: { total: 61, bm25: 20, live: 50 },
+  }
+  assert.deepEqual(closedFacts(d), [
+    {
+      value: `900 из 1${NBSP}200`,
+      text: 'целевая страница первым ответом. У текстового поиска — 300',
+    },
+    { value: `1${NBSP}100 из 1${NBSP}200`, text: 'нужная страница в первых четырёх ответах' },
+    {
+      value: '38 из 40',
+      text: 'запросы с искажённым написанием: нужная страница в первых четырёх. Первым ответом — 31, у текстового поиска — 5',
+    },
+    {
+      value: '50 против 20',
+      text: 'из 61 запроса, где нужно найти страницу товара (без вопросов и мусора)',
+    },
+  ])
+  assert.equal(
+    closedFacts({ ...d, product: { total: 69, bm25: 2, live: 3 } })[3]!.text.slice(0, 14),
+    'из 69 запросов',
+  )
+  assert.equal(closedHeldOut(83), '83 запроса были отложены')
+  assert.equal(closedHeldOut(80), '80 запросов были отложены')
+  assert.equal(closedHeldOut(81), '81 запрос был отложен')
+  assert.equal(closedModelShare(d), `на 21 запросе из 1${NBSP}200`)
+  assert.equal(closedModelShare({ ...d, model_searches: 12, total: 83 }), 'на 12 запросах из 83')
 })
 
 test('подписи и доли', () => {

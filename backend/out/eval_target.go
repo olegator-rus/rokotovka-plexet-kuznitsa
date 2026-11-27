@@ -116,6 +116,9 @@ type FeedSummary struct {
 	Etalon *FeedScore `json:"etalon"`
 	// Closed — закрытая часть: Success@1 у BM25, гибрида и полного продукта; пустой — прогон не запускался.
 	Closed []FeedScore `json:"closed"`
+	// ClosedDetail — тот же прогон закрытой части по видам запросов: BM25 против полного продукта; null — прогона
+	// BM25 или полного продукта на закрытой части нет.
+	ClosedDetail *FeedClosedDetail `json:"closed_detail"`
 	// Four — доля ответов полного продукта с ≥4 разными семействами (и SKU) по последним прогонам наборов.
 	Four *FeedFour `json:"four"`
 	// Cost — стоимость запроса по формуле, холодный и тёплый прогон; null — прогонов полного продукта нет.
@@ -153,6 +156,42 @@ type FeedScore struct {
 	Success1 *float64 `json:"success1"`
 	Top4     *float64 `json:"top4"`
 	RunTail  string   `json:"run_tail"`
+}
+
+// FeedClosedDetail — последний прогон закрытой части по видам запросов (metrics.target и его разбивка
+// breakdown.distortion): текстовый поиск (BM25) против полного продукта (live). Все суммы считает сервер.
+type FeedClosedDetail struct {
+	// Счёт по всему набору: Total — запросов с проверкой по цели ответа (Judged полного продукта).
+	FeedClosedCount
+	// ModelSearches — на скольких запросах полный продукт вызывал языковую модель; P50Ms — медиана его ответа.
+	ModelSearches int     `json:"model_searches"`
+	P50Ms         float64 `json:"p50_ms"`
+	// Kinds — строки по видам запросов: сначала известные виды в порядке экрана, затем прочие по алфавиту.
+	Kinds []FeedClosedKind `json:"kinds"`
+	// Spelling — искажённое написание: склонение, транслит, опечатка, раскладка, ТЗ в словоформе.
+	Spelling FeedClosedCount `json:"spelling"`
+	// Product — запросы с товарной целью: все виды, кроме сервисных и мусорных.
+	Product FeedClosedPair `json:"product"`
+}
+
+// FeedClosedPair — счёт группы запросов: Total — сколько их, BM25 и Live — у скольких цель первым ответом
+// (Success@1) у текстового поиска и у полного продукта.
+type FeedClosedPair struct {
+	Total int `json:"total"`
+	BM25  int `json:"bm25"`
+	Live  int `json:"live"`
+}
+
+// FeedClosedCount — FeedClosedPair и Top4: у скольких запросов полного продукта ожидаемое в первых четырёх.
+type FeedClosedCount struct {
+	FeedClosedPair
+	Top4 int `json:"top4"`
+}
+
+// FeedClosedKind — счёт одного вида запросов; Kind — ключ вида как в наборе («склонение», «транслит», …).
+type FeedClosedKind struct {
+	Kind string `json:"kind"`
+	FeedClosedCount
 }
 
 // FeedFour — доля ответов с ≥4 товарами.
