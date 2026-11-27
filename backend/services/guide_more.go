@@ -442,6 +442,23 @@ func (t *guideTurn) limitsTurn(fid string) *out.GuideResponse {
 		}
 		tbl.Rows = append(tbl.Rows, row)
 	}
+	// Тариф назван в запросе («anydesk standard») — он первый кандидат.
+	named := ""
+	for _, vr := range variants {
+		if strings.Contains(guideNorm(t.query+" "+t.text), guideNorm(vr)) {
+			named = vr
+		}
+	}
+	if named != "" {
+		ordered := []string{named}
+		for _, vr := range variants {
+			if vr != named {
+				ordered = append(ordered, vr)
+			}
+		}
+		variants = ordered
+	}
+	addon := ""
 	for _, vr := range variants {
 		fits := true
 		for axis, kind := range limitAxes {
@@ -463,6 +480,21 @@ func (t *guideTurn) limitsTurn(fid string) *out.GuideResponse {
 			break
 		}
 	}
+	if chosen == "" {
+		// Подключений больше, чем в тарифе: тариф, где их можно докупить до нужного (concurrent_connections_max).
+		need := objectCount(r, "connection")
+		for _, vr := range variants {
+			for _, f := range t.kb.byFamily[fid] {
+				if f.Variant == vr && f.Axis == "concurrent_connections_max" && f.verified() && factLimit(f) >= need && need > 0 {
+					chosen, addon = vr, fmt.Sprintf("Тариф %s с дополнительными подключениями: до %d одновременно", vr, factLimit(f))
+					break
+				}
+			}
+			if chosen != "" {
+				break
+			}
+		}
+	}
 	t.step("Пределы тарифов", toolGetFacts, fmt.Sprintf("тарифов: %d", len(variants)), t1)
 	res.Comparison = tbl
 	res.Type = out.GuideComparison
@@ -472,7 +504,12 @@ func (t *guideTurn) limitsTurn(fid string) *out.GuideResponse {
 		res.Lead = "Сравнил пределы тарифов по данным вендора."
 	} else {
 		res.Type = out.GuideSelection
-		res.Offers = append(res.Offers, t.offerOut(base[chosen], 1, "", out.OfferMatch, "Тариф "+chosen))
+		note := "Тариф " + chosen
+		if addon != "" {
+			note = addon
+			t.st.QuoteNotes = appendUnique(t.st.QuoteNotes, fmt.Sprintf("AnyDesk %s: нужно %d одновременных подключений", chosen, objectCount(r, "connection")))
+		}
+		res.Offers = append(res.Offers, t.offerOut(base[chosen], 1, "", out.OfferMatch, note))
 		res.Lead = "Подходит тариф " + chosen + ": проверены управляемые устройства, одновременные подключения и сотрудники."
 		for _, f := range limits[chosen] {
 			if f.verified() {

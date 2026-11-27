@@ -497,3 +497,15 @@ func (kb *guideKB) ruleByID(id string) guideRule {
 	}
 	return guideRule{}
 }
+
+// factYesAnyVariant — проверенный факт «есть» по оси у любого варианта семейства; nil — нет.
+func (kb *guideKB) factYesAnyVariant(fid, axis string) *guideFact {
+	for _, f := range kb.byFamily[fid] {
+		if f.Axis == axis && f.verified() {
+			if k, _ := f.factValue(); k == "yes" {
+				return f
+			}
+		}
+	}
+	return nil
+}

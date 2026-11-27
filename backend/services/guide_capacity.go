@@ -122,11 +122,12 @@ func (t *guideTurn) capacityTurn(line string) *out.GuideResponse {
 	if strings.Contains(string(pick.Value), "depends_on_config") {
 		capText += ", зависит от конфигурации"
 	}
-	res.Lead = fmt.Sprintf("В каталоге нет тарифа на %d участников. У вендора это %s (%s) — только по запросу, добавьте в запрос КП.",
-		need, name, capText)
-	t.extraNums = append(t.extraNums, capText)
+	// Предел тарифа вне фида — не в фразу (чисел, которых нет в карточках и условиях, во фразе нет), а в запрос КП.
+	res.Lead = fmt.Sprintf("В каталоге нет тарифа на %d участников. У вендора это %s — только по запросу, добавьте в запрос КП.",
+		need, name)
+	res.Notice = name + ": " + capText
 	res.Docs = &out.GuideDocs{Title: factSource(pick).Title, URL: pick.SourceURL}
-	note := fmt.Sprintf("%s: нужно %d участников", name, need)
+	note := fmt.Sprintf("%s (%s): нужно %d участников", name, capText, need)
 	// Прежняя запись этой линейки (до смены числа участников) заменяется.
 	kept := st.QuoteNotes[:0:0]
 	for _, n := range st.QuoteNotes {

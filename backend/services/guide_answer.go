@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/url"
 	"regexp"
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -369,6 +370,13 @@ func (t *guideTurn) selection(data *guideData) *out.GuideResponse {
 		}
 	}
 	sortByTotal(matches)
+	// Есть позиции с ценой — «по запросу» не в подходящих (их видно в выдаче под блоком).
+	if len(matches) > 0 && matches[0].PriceState == out.PricePriced {
+		matches = slices.DeleteFunc(matches, func(o out.GuideOffer) bool { return o.PriceState != out.PricePriced })
+	}
+	if !r.Cheapest {
+		t.rankNamed(matches, data)
+	}
 	if r.Cheapest && len(matches) > 1 {
 		matches = matches[:1]
 	}
@@ -809,4 +817,20 @@ func guideLowerFirst(s string) string {
 		r[0] = []rune(strings.ToLower(string(r[0])))[0]
 	}
 	return string(r)
+}
+
+// rankNamed — названная редакция и редакция, у которой есть требуемая функция (по факту), — выше цены.
+func (t *guideTurn) rankNamed(matches []out.GuideOffer, data *guideData) {
+	words := guideProductTokens(t.query + " " + t.text)
+	r := t.st.Requirements
+	score := func(o out.GuideOffer) int {
+		s := 0
+		for _, axis := range r.RequiredFeatures {
+			if f := t.kb.factYesAnyVariant(o.FamilyID, axis); f != nil {
+				s += 100
+			}
+		}
+		return s + guideNameScore(t.cat.famName[o.FamilyID], words)
+	}
+	sort.SliceStable(matches, func(i, j int) bool { return score(matches[i]) > score(matches[j]) })
 }

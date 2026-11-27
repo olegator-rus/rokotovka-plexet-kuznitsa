@@ -27,7 +27,7 @@ const GuideOfferText = "Могу помочь выбрать редакцию и
 var (
 	reGuideAsk = regexp.MustCompile(`(чем\s+.*отлича|отличается|отличия|разниц|сравни|сравнить|что\s+(взять|выбрать|купить|лучше)|как(ой|ую|ое|ие)\s+(взять|выбрать)|подбери|подобрать|помоги\s+(выбрать|подобрать)|самы[йе]\s+дешев|подешевле|что\s+подойд|что\s+нужно\s+для)`)
 	reSKU      = regexp.MustCompile(`^[a-z]{1,4}[0-9][a-z0-9\-]{4,}$`)
-	reCount    = regexp.MustCompile(`(\d{1,6})\s*(-?х|-?ти|-?и)?\s*(пк|компьютер[а-яёa-z]*|рабоч[а-яёa-z]*\s+(мест[а-яёa-z]*|станц[а-яёa-z]*)|рабоч[а-яёa-z]*|мест[а-яёa-z]*|узл[а-яёa-z]*|устройств[а-яёa-z]*|машин[а-яёa-z]*|сервер[а-яёa-z]*|пользовател[а-яёa-z]*|сотрудник[а-яёa-z]*|человек|подключени[а-яёa-z]*|лицензи[а-яёa-z]*|шт[а-яёa-z]*)`)
+	reCount    = regexp.MustCompile(`(\d{1,6})\s*(-?х|-?ти|-?и)?\s*(пк|компьютер[а-яёa-z]*|рабоч[а-яёa-z]*\s+(мест[а-яёa-z]*|станц[а-яёa-z]*)|рабоч[а-яёa-z]*|мест[а-яёa-z]*|узл[а-яёa-z]*|устройств[а-яёa-z]*|машин[а-яёa-z]*|сервер[а-яёa-z]*|пользовател[а-яёa-z]*|сотрудник[а-яёa-z]*|человек|подключени[а-яёa-z]*|лицензи[а-яёa-z]*|шт[а-яёa-z]*|хост[а-яёa-z]*|ip)`)
 	reCountRev = regexp.MustCompile(`(пк|компьютер[а-яёa-z]*|мест[а-яёa-z]*|узл[а-яёa-z]*|сервер[а-яёa-z]*|пользовател[а-яёa-z]*)\s+(будет\s+)?(\d{1,6})`)
 	reBudet    = regexp.MustCompile(`будет\s+(\d{1,6})`)
 	// «вообще на 300.» — число без объекта в конце фразы: относится к главному объекту подбора.
@@ -37,7 +37,7 @@ var (
 	reTermYear     = regexp.MustCompile(`на\s+(\d{1,2}|один|одн[а-яёa-z]*|два|две|три)\s+(год|года|лет)`)
 	reTermMon      = regexp.MustCompile(`на\s+(\d{1,2})\s+мес`)
 	reGeneral      = regexp.MustCompile(`(защит|антивирус|безопасност|для\s+офиса|решени|резервн|бэкап|удал[её]нн[а-яёa-z]*\s+доступ|офисн[а-яёa-z]*\s+пакет|операционн|электронн[а-яёa-z]*\s+подпис|шифрован|видеоконференц|вебинар)`)
-	reOffTopic     = regexp.MustCompile(`(оплат|доставк|счет\b|счёт|счета|возврат|скидк|промокод|корм|погод|анекдот|инструкци|системн[а-яёa-z]*\s+промпт)`)
+	reOffTopic     = regexp.MustCompile(`(оплат|доставк|счет([^а-яё]|$)|счёт|счета|выставит|возврат|скидк|промокод|корм|погод|анекдот|инструкци|системн[а-яёa-z]*\s+промпт)`)
 )
 
 // numWords — числительные словами для условий.
@@ -53,6 +53,7 @@ var guideVendorStems = []struct{ stem, vendor string }{
 	{"dr.web", "drweb"}, {"drweb", "drweb"}, {"доктор веб", "drweb"}, {"доктор web", "drweb"},
 	{"кибер бэкап", "cyberprotect"}, {"кибербэкап", "cyberprotect"}, {"cyber backup", "cyberprotect"},
 	{"pro32", "pro32"}, {"anydesk", "anydesk"}, {"эни деск", "anydesk"},
+	{"microsoft", "microsoft"}, {"майкрософт", "microsoft"}, {"мтс линк", "webinar"},
 }
 
 // guideFeatureStems — начало слова → ось базы знаний (требуемая функция).
@@ -233,6 +234,8 @@ func objectKind(w string) string {
 		return "user"
 	case strings.HasPrefix(w, "подключени"):
 		return "connection"
+	case strings.HasPrefix(w, "хост") || w == "ip":
+		return "host"
 	case strings.HasPrefix(w, "пк") || strings.HasPrefix(w, "компьютер") || strings.HasPrefix(w, "рабоч") || strings.HasPrefix(w, "станц") ||
 		strings.HasPrefix(w, "мест") || strings.HasPrefix(w, "узл") || strings.HasPrefix(w, "устройств") ||
 		strings.HasPrefix(w, "машин") || strings.HasPrefix(w, "лицензи") || strings.HasPrefix(w, "шт"):

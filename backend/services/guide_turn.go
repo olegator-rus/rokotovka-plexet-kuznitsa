@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"math"
+	"regexp"
 	"slices"
 	"sort"
 	"strconv"
@@ -174,7 +175,7 @@ func sanitizeGuideState(in domain.GuideState, cat *guideCatalog) domain.GuideSta
 		st.Requirements.OrgType = r.OrgType
 	}
 	for _, o := range r.Objects {
-		if containsStr([]string{"workstation", "server", "user", "connection"}, o.Kind) && o.Count >= 0 && o.Count <= maxQuoteQuantity && len(st.Requirements.Objects) < 4 {
+		if containsStr([]string{"workstation", "server", "user", "connection", "host"}, o.Kind) && o.Count >= 0 && o.Count <= maxQuoteQuantity && len(st.Requirements.Objects) < 4 {
 			st.Requirements.Objects = append(st.Requirements.Objects, o)
 		}
 	}
@@ -294,6 +295,10 @@ func (t *guideTurn) run(ctx context.Context, req in.GuideRequest) *out.GuideResp
 			}
 			t.mixed = true
 		}
+		// «нужно хранение на лентах» — требуемая функция по подписям фактов базы знаний у кандидатов и их линейки.
+		if len(d.features) == 0 && reNeedFeature.MatchString(guideNorm(text)) && !asksCompare(text) {
+			d.features = t.featuresFromKB(text, t.cat.lineFamilies(t.kb, st.CandidateFamilyIDs))
+		}
 		t.changes = append(t.changes, applyDelta(st, d, originUser)...)
 		st.Pending = ""
 	}
@@ -313,8 +318,10 @@ func (t *guideTurn) run(ctx context.Context, req in.GuideRequest) *out.GuideResp
 	}
 	_, why := routeQuery(req.Query)
 	// Запрос называет продукт («windows server»), а не только вендора («kaspersky»): число мест не спрашиваем.
-	productNamed := req.Query != "" && why == "product_name" && extractConditions(req.Query).vendor == ""
-	if len(r.Objects) == 0 && !compare && !r.Cheapest && !productNamed && st.Questions < 2 && st.Skipped < 2 {
+	productNamed := req.Query != "" && why == "product_name" && guideNamesProduct(req.Query)
+	askCount := len(r.Objects) == 0 && !compare && !r.Cheapest && st.Questions < 2 && st.Skipped < 2
+	// Вендор назван — сначала семейства: у тарифов с пределами (AnyDesk) первый вопрос другой.
+	if askCount && r.Vendor == "" && !productNamed {
 		return t.askCount()
 	}
 
@@ -345,8 +352,18 @@ func (t *guideTurn) run(ctx context.Context, req in.GuideRequest) *out.GuideResp
 		fams = st.CandidateFamilyIDs
 	}
 	if len(fams) == 0 {
-		fams = t.g.searchCatalog(ctx, t.cat, strings.TrimSpace(req.Query+" "+text), r.Vendor)
-		fams = t.cat.focusFamilies(fams, strings.TrimSpace(req.Query+" "+text))
+		qtext := strings.TrimSpace(req.Query + " " + text)
+		// В поиск — без числа мест: «на 3 компьютера» тянет в выдачу оборудование.
+		stext := strings.TrimSpace(reGuideCountPhrase.ReplaceAllString(guideNorm(qtext), " "))
+		fams = t.g.searchCatalog(ctx, t.cat, stext, r.Vendor)
+		// Названный продукт должен быть среди кандидатов, даже если поиск его не поднял.
+		for _, f := range t.cat.nameMatch(stext, r.Vendor, 8) {
+			if !containsStr(fams, f) {
+				fams = append(fams, f)
+			}
+		}
+		fams = t.cat.softwareOnly(fams)
+		fams = t.cat.focusFamilies(fams, qtext)
 		if dir := directionOf(r.Task); dir != "" && r.Vendor == "" {
 			fams = t.directionFamilies(fams, dir)
 		}
@@ -356,6 +373,12 @@ func (t *guideTurn) run(ctx context.Context, req in.GuideRequest) *out.GuideResp
 	}
 	if r.Use == "tls_server" {
 		fams = t.cat.withTLSFamilies(fams, r.Vendor)
+	}
+	fams = t.overLimitFallback(fams)
+	if len(r.RequiredFeatures) > 0 && !compare && !t.anyHasFeatures(fams) {
+		// Требуемой функции нет ни у одного кандидата — она может быть в другой редакции линейки (Стандартная →
+		// Расширенная).
+		fams = t.cat.lineFamilies(t.kb, fams)
 	}
 	fams = t.cat.demoteCompanions(fams, src+" "+req.Query)
 	if r.Vendor == "" && len(fams) > 0 && compare && !t.cross {
@@ -394,6 +417,11 @@ func (t *guideTurn) run(ctx context.Context, req in.GuideRequest) *out.GuideResp
 			t.meta.Fallback = guideFbNoNeed
 		}
 		return res
+	}
+	// Продукт назван: число мест спрашиваем, только если он продаётся на рабочие места или ступенями (CSP, Кибер
+	// Бэкап, KES), а не одной позицией на сервер или по запросу (Windows Server, Office на 1 ПК).
+	if askCount && len(r.Objects) == 0 && t.cat.soldPerSeat(fams, t.kb) {
+		return t.askCount()
 	}
 	if ctx.Err() != nil {
 		return nil
@@ -522,26 +550,16 @@ func (t *guideTurn) noData(notice string) *out.GuideResponse {
 // focusFamilies — запрос называет продукт («криптопро csp»): оставить семейства с наибольшим числом слов запроса в
 // названии; иначе порядок поиска как есть.
 func (c *guideCatalog) focusFamilies(fams []string, text string) []string {
-	words := []string{}
-	for _, w := range strings.Fields(guideNorm(text)) {
-		if len([]rune(w)) >= 3 && !guideStopWord(w) {
-			words = append(words, stemRU(w))
-		}
+	words := guideProductTokens(text)
+	if len(words) == 0 {
+		return fams
 	}
 	best, scores := 0, make([]int, len(fams))
 	for i, f := range fams {
-		nameWords := strings.Fields(guideNorm(c.famName[f]))
-		for _, w := range words {
-			for _, nw := range nameWords {
-				if strings.HasPrefix(nw, w) {
-					scores[i]++
-					break
-				}
-			}
-		}
+		scores[i] = guideNameScore(c.famName[f], words)
 		best = max(best, scores[i])
 	}
-	if best < 2 {
+	if best < 1 {
 		return fams
 	}
 	out := []string{}
@@ -551,6 +569,56 @@ func (c *guideCatalog) focusFamilies(fams []string, text string) []string {
 		}
 	}
 	return out
+}
+
+var (
+	reGuideSplit = regexp.MustCompile(`[^а-яёa-z0-9.]+`)
+	// reGuideCountPhrase — «на 3 компьютера», «на 256 ip», «16 хостов»: число мест — условие, а не название продукта.
+	reGuideCountPhrase = regexp.MustCompile(`(на\s+)?\d{1,6}\s*(пк|компьютер[а-яё]*|рабоч[а-яё]*(\s+мест[а-яё]*|\s+станц[а-яё]*)?|мест[а-яё]*|узл[а-яё]*|устройств[а-яё]*|машин[а-яё]*|сервер[а-яё]*|пользовател[а-яё]*|сотрудник[а-яё]*|человек|подключени[а-яё]*|лицензи[а-яё]*|шт[а-яё]*|хост[а-яё]*|ip|адрес[а-яё]*|ящик[а-яё]*|участник[а-яё]*)`)
+)
+
+// guideGenericWords — слова задачи, а не названия продукта: по ним сужать кандидатов нельзя.
+var guideGenericWords = map[string]bool{"защита": true, "защиты": true, "защиту": true, "антивирус": true, "решение": true,
+	"безопасности": true, "офиса": true, "офисе": true, "компании": true, "небольшой": true, "малого": true, "бизнеса": false,
+	"год": true, "года": true, "лет": true, "новая": true, "продление": true, "продлить": true, "купить": true, "нужна": true,
+	"нужен": true, "нужно": true, "подобрать": true, "подбери": true, "вебинара": true, "вебинар": true, "хостов": true}
+
+// guideProductTokens — слова названия продукта из запроса: без числа мест, служебных слов и слов задачи.
+func guideProductTokens(text string) []string {
+	q := reGuideCountPhrase.ReplaceAllString(guideNorm(text), " ")
+	out := []string{}
+	for _, w := range reGuideSplit.Split(q, -1) {
+		w = strings.Trim(w, ".")
+		if len([]rune(w)) < 2 || guideStopWord(w) || guideGenericWords[w] {
+			continue
+		}
+		switch w {
+		case "на", "и", "в", "с", "по", "от", "до", "для", "или", "мне", "нам", "это", "какой", "какая":
+			continue
+		}
+		out = append(out, w)
+	}
+	return out
+}
+
+// guideNameScore — сколько слов продукта есть в названии семейства (по началу слова названия).
+func guideNameScore(name string, words []string) int {
+	nameWords := reGuideSplit.Split(guideNorm(name), -1)
+	score := 0
+	for _, w := range words {
+		r := []rune(w)
+		stem := w
+		if len(r) > 5 {
+			stem = string(r[:len(r)-2])
+		}
+		for _, nw := range nameWords {
+			if nw != "" && strings.HasPrefix(strings.Trim(nw, "."), stem) {
+				score++
+				break
+			}
+		}
+	}
+	return score
 }
 
 func guideStopWord(w string) bool {
@@ -666,6 +734,11 @@ func (t *guideTurn) gather(fams []string) *guideData {
 		rejectedN += len(fd.rejected)
 		for _, axis := range r.RequiredFeatures {
 			f := t.kb.factOn(fid, axis, r.Variant)
+			if r.Variant == "" {
+				if y := t.kb.factYesAnyVariant(fid, axis); y != nil {
+					f = y // функция есть хотя бы в одной редакции внутри семейства (Сканер-ВС Enterprise)
+				}
+			}
 			switch {
 			case f.verified():
 				if k, _ := f.factValue(); k == "no" {
@@ -993,4 +1066,158 @@ func (t *guideTurn) renewalQuestion(res *out.GuideResponse, data *guideData) {
 	}
 	t.st.Pending, t.st.Questions = "family", t.st.Questions+1
 	res.Clarification = &out.GuideClarify{Key: "family", Question: "Какая редакция у вас сейчас?", Chips: chips}
+}
+
+// softwareOnly — подбор лицензий: оборудование (батареи, сканеры штрихкодов) в кандидаты не идёт.
+func (c *guideCatalog) softwareOnly(fams []string) []string {
+	out := fams[:0:0]
+	for _, f := range fams {
+		ps := c.byFamily[f]
+		if len(ps) > 0 && ps[0].Kind == "hardware" {
+			continue
+		}
+		out = append(out, f)
+	}
+	return out
+}
+
+// reNeedFeature — реплика называет требование («нужно …», «требуется …»).
+var reNeedFeature = regexp.MustCompile(`(нужн[а-яё]*|нужен|требу[а-яё]*|необходим[а-яё]*|обязательн[а-яё]*)`)
+
+// featuresFromKB — оси фактов кандидатов, подпись которых совпадает со словами реплики (лучшее совпадение).
+func (t *guideTurn) featuresFromKB(text string, fams []string) []string {
+	stems := featureStems(text, "")
+	if len(stems) == 0 {
+		return nil
+	}
+	best, axes := 0, []string{}
+	seen := map[string]bool{}
+	for _, f := range fams {
+		for _, fact := range t.kb.byFamily[f] {
+			if seen[fact.Axis] || !fact.verified() {
+				continue
+			}
+			label := guideNorm(fact.AxisLabel + " " + axisLabel(fact.Axis))
+			score := 0
+			for _, s := range stems {
+				if strings.Contains(label, s) {
+					score++
+				}
+			}
+			if score == 0 {
+				continue
+			}
+			seen[fact.Axis] = true
+			switch {
+			case score > best:
+				best, axes = score, []string{fact.Axis}
+			case score == best:
+				axes = append(axes, fact.Axis)
+			}
+		}
+	}
+	sort.Strings(axes)
+	if len(axes) > 1 {
+		return nil // неоднозначно — не угадываем
+	}
+	return axes
+}
+
+// lineFamilies — семейства и их соседи по линейке базы знаний (редакции одного продукта), порядок сохраняется.
+func (c *guideCatalog) lineFamilies(kb *guideKB, fams []string) []string {
+	out := append([]string{}, fams...)
+	lines := map[string]bool{}
+	for _, f := range fams {
+		if l := kb.lines[f].Line; l != "" {
+			lines[l] = true
+		}
+	}
+	extra := []string{}
+	for f, l := range kb.lines {
+		if lines[l.Line] && !containsStr(out, f) && len(c.byFamily[f]) > 0 {
+			extra = append(extra, f)
+		}
+	}
+	sort.Slice(extra, func(i, j int) bool {
+		return kb.lines[extra[i]].Rank < kb.lines[extra[j]].Rank || kb.lines[extra[i]].Rank == kb.lines[extra[j]].Rank && extra[i] < extra[j]
+	})
+	return append(out, extra...)
+}
+
+// guideNamesProduct — в запросе есть слово продукта сверх вендора («microsoft office», а не «kaspersky»).
+func guideNamesProduct(q string) bool {
+	vendorWord := func(w string) bool {
+		for _, v := range guideVendorStems {
+			if strings.HasPrefix(w, v.stem) || strings.HasPrefix(v.stem, w) && len([]rune(w)) >= 4 {
+				return true
+			}
+		}
+		return false
+	}
+	for _, w := range guideProductTokens(q) {
+		if !vendorWord(w) {
+			return true
+		}
+	}
+	return false
+}
+
+// overLimitFallback — все кандидаты меньше нужного числа мест (KSOS на 40): соседи по направлению того же вендора.
+func (t *guideTurn) overLimitFallback(fams []string) []string {
+	_, n := mainObject(t.st.Requirements)
+	if n == 0 || len(fams) == 0 {
+		return fams
+	}
+	for _, f := range fams {
+		if lim := t.cat.familyLimit(f, t.kb); lim == 0 || n <= lim {
+			return fams
+		}
+	}
+	vendor := t.cat.famVend[fams[0]]
+	out := append([]string{}, fams...)
+	for _, d := range t.kb.directions() {
+		if !slices.ContainsFunc(d.Families, func(f string) bool { return containsStr(fams, f) }) {
+			continue
+		}
+		for _, f := range d.Families {
+			// Только линейки базы знаний (KES для бизнеса), не облачные и EDR-продукты другого класса.
+			if t.cat.famVend[f] == vendor && !containsStr(out, f) && t.kb.lines[f].Line != "" {
+				out = append(out, f)
+			}
+		}
+	}
+	return out
+}
+
+// soldPerSeat — у первого семейства есть позиции с ценой на рабочее место, ступенью или пакетом мест.
+func (c *guideCatalog) soldPerSeat(fams []string, kb *guideKB) bool {
+	if len(fams) == 0 {
+		return false
+	}
+	for _, p := range c.byFamily[fams[0]] {
+		v := c.view(p, kb)
+		if !v.priced() || (v.kind != "base" && v.kind != "") {
+			continue
+		}
+		if v.tierMin > 1 || v.unit == "pack" || v.scope == "workstation" {
+			return true
+		}
+	}
+	return false
+}
+
+// anyHasFeatures — у кого-то из кандидатов есть все требуемые функции (по проверенным фактам).
+func (t *guideTurn) anyHasFeatures(fams []string) bool {
+	for _, f := range fams {
+		ok := true
+		for _, axis := range t.st.Requirements.RequiredFeatures {
+			if t.kb.factYesAnyVariant(f, axis) == nil {
+				ok = false
+			}
+		}
+		if ok {
+			return true
+		}
+	}
+	return false
 }

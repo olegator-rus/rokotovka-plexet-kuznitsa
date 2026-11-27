@@ -448,6 +448,8 @@ func countLabel(kind string, n int) string {
 		return fmt.Sprintf("%d %s", n, guidePlural(n, "пользователь", "пользователя", "пользователей"))
 	case "connection":
 		return fmt.Sprintf("%d %s", n, guidePlural(n, "подключение", "подключения", "подключений"))
+	case "host":
+		return fmt.Sprintf("%d %s", n, guidePlural(n, "хост", "хоста", "хостов"))
 	}
 	return fmt.Sprintf("%d %s", n, guidePlural(n, "место", "места", "мест"))
 }

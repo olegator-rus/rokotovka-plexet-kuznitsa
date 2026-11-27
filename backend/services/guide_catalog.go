@@ -145,8 +145,9 @@ func scopeFromTitle(t string) string {
 	switch {
 	case strings.Contains(t, "tls"):
 		return "tls_server"
-	case strings.Contains(t, "сервер") || strings.Contains(t, "server"):
-		return "server"
+	case (strings.Contains(t, "сервер") || strings.Contains(t, "server")) &&
+		!strings.Contains(t, "пк") && !strings.Contains(t, "рабоч") && !strings.Contains(t, "компьютер"):
+		return "server" // «для ПК, мобильных устройств и файловых серверов» — не серверная лицензия
 	case strings.Contains(t, "рабоч"):
 		return "workstation"
 	}
