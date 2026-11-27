@@ -213,6 +213,12 @@ func (p *hwPlan) parse(nr normResult, attrs *queryAttrs) {
 			hasSoftware = true
 		}
 	}
+	for _, t := range tokens {
+		// Слово — главное в названии категории ПО («антивирус на 20 компьютеров»): количество — места лицензии.
+		if !hasSoftware && !lexStopWords[t] && p.lx.softwareCategoryWord(t, p.hx.hwCats) {
+			hasSoftware = true
+		}
+	}
 	type catRun struct {
 		cat         string
 		start, size int
@@ -225,6 +231,9 @@ func (p *hwPlan) parse(nr normResult, attrs *queryAttrs) {
 		c := p.hx.categoryOfWord(t)
 		if p.lx.compoundNames[t] {
 			c = ""
+		}
+		if _, unit := metricOf(t); unit && licensed[i] {
+			c = "" // «антивирус на 20 компьютеров»: число мест лицензии, а не категория «Компьютеры»
 		}
 		if c == "" {
 			continue

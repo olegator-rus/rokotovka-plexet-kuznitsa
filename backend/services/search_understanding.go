@@ -761,7 +761,8 @@ func typoByContext(tokens []string, i int, lx *searchLexicon, rules *searchRules
 
 // stemEndings — окончания, которые снимает stemWord: прилагательные и существительные, длинные первыми.
 var stemEndings = func() []string {
-	es := append(append([]string{}, adjEndings...), nounEndings...)
+	// «-ия», «-ии», «-ию», «-ием»: «копирования» и «копирование» — одна основа «копирован».
+	es := append(append([]string{"ием", "иям", "иях", "ия", "ии", "ию"}, adjEndings...), nounEndings...)
 	sort.SliceStable(es, func(i, j int) bool { return utf8.RuneCountInString(es[i]) > utf8.RuneCountInString(es[j]) })
 	return es
 }()
@@ -833,6 +834,27 @@ func vendorsIn(lx *searchLexicon, vendors, cats []string) bool {
 	for _, f := range lx.familyOrder {
 		c := lx.familyCat[f]
 		if (in[c] || in[lx.categoryRoot[c]]) && contains(vendors, lx.familyVendor[f]) {
+			return true
+		}
+	}
+	return false
+}
+
+// softwareCategoryWord — слово — главное существительное названия категории не из оборудования (hw): «антивирус»,
+// «офис» нет («Офисные программы» — прилагательное), «бэкап» нет; «антивирусы для организаций» — да.
+func (lx *searchLexicon) softwareCategoryWord(w string, hw map[string]bool) bool {
+	if utf8.RuneCountInString(w) < 5 || !isCyrillicWord(w) || isAdjective(w) {
+		return false
+	}
+	hwRoot := map[string]bool{}
+	for id := range hw {
+		hwRoot[lx.categoryRoot[id]] = true
+	}
+	for id, name := range lx.categoryName {
+		if lx.categoryFamilies[id] == 0 || hw[id] || hwRoot[id] || hw[lx.categoryRoot[id]] {
+			continue // раздел, где есть оборудование («Серверы и опции»), — не ПО
+		}
+		if headScore(name, w) >= 2 {
 			return true
 		}
 	}

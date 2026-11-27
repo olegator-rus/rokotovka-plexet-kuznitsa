@@ -13,7 +13,7 @@ func TestStemWordDeclension(t *testing.T) {
 	same := [][2]string{
 		{"касперский", "касперского"}, {"касперский", "касперскому"}, {"сканер", "сканера"}, {"бэкап", "бэкапа"},
 		{"бэкап", "бэкапом"}, {"офис", "офиса"}, {"линк", "линка"}, {"патрол", "патрола"}, {"астра", "астры"},
-		{"эшелон", "эшелона"}, {"стандартная", "стандартного"}, {"сервер", "серверов"}, {"антивирус", "антивируса"},
+		{"эшелон", "эшелона"}, {"стандартная", "стандартного"}, {"сервер", "серверов"}, {"антивирус", "антивируса"}, {"копирование", "копирования"}, {"копирование", "копированием"},
 	}
 	for _, p := range same {
 		if stemWord(p[0]) != stemWord(p[1]) {
@@ -259,5 +259,26 @@ func TestLicenseMetricOrgTypeIsNotOrgLicense(t *testing.T) {
 	sanitizeQuantity(&p2)
 	if p2.License.Metric == nil {
 		t.Fatal("настоящая лицензия на организацию снята")
+	}
+}
+
+// Слова-команды подбора не меняют смысл запроса: «подбери антивирус» = «антивирус».
+func TestSelectionCommandWords(t *testing.T) {
+	lx := newSearchLexicon(understandingSnapshot())
+	rules := applyLexicon(newSearchRules(1, lx.baseAliases), lx, testLexicon())
+	pairs := [][2]string{{"подбери антивирус", "антивирус"}, {"помоги выбрать антивирус", "антивирус"},
+		{"что взять антивирус", "антивирус"}, {"посоветуй сервер", "сервер"}, {"хочу винда", "винда"}}
+	for _, p := range pairs {
+		a, b := intentOf(t, lx, rules, p[0]), intentOf(t, lx, rules, p[1])
+		if a == nil || b == nil || strings.Join(a.cats, ",") != strings.Join(b.cats, ",") {
+			t.Errorf("%q и %q: намерения %+v и %+v", p[0], p[1], a, b)
+		}
+		nr := normalizeFull(p[0], lx, rules, false)
+		if ent := findEntities(nr, extractAttrs(nr.tokens), lx, rules); len(ent.unknown) > 0 {
+			t.Errorf("%q: слова-команды не должны быть непонятными (маршрут D): %v", p[0], ent.unknown)
+		}
+	}
+	if !lx.softwareCategoryWord("антивирус", map[string]bool{"rack": true}) || lx.softwareCategoryWord("сервер", map[string]bool{"rack": true}) {
+		t.Error("антивирус — категория ПО, сервер — раздел с оборудованием")
 	}
 }

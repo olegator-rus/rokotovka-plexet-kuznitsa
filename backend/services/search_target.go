@@ -231,12 +231,25 @@ func (rc rankCtx) categoryQuery(words []string, cat string) bool {
 	if root := rc.lx.categoryRoot[cat]; root != "" && root != cat {
 		names = append(names, wordsOf(rc.lx.categoryName[root])...)
 	}
+	place := map[string]bool{}
+	head := false // до предлога уже назван предмет: «антивирус для офиса», а не «для астра линукс»
+	for i, t := range rc.ent.textTokens {
+		if i > 0 && head && placePrepositions[rc.ent.textTokens[i-1]] {
+			place[t] = true // «офиса» — место, категорию не меняет
+		}
+		head = head || !lexStopWords[t] && !placePrepositions[t]
+	}
+	n := 0
 	for _, w := range words {
+		if place[w] {
+			continue
+		}
+		n++
 		if !wordMatch(w, names) {
 			return false
 		}
 	}
-	return true
+	return n > 0
 }
 
 // selectTarget — цель ответа. nil — цели нет (пустая выдача, бессмыслица).
@@ -356,7 +369,9 @@ func selectTarget(in targetInput) targetDecision {
 		}
 	}
 	catQuery := rc.categoryQuery(in.words, in.category)
-	if single != "" && (!catQuery || rc.namedBy(single, in.words)) {
+	// Название семейства из одних слов его категории («Резервное копирование» в «ПО для резервного копирования») —
+	// это не название продукта: общее слово-категория ведёт на категорию, а не на такое семейство.
+	if single != "" && (!catQuery || rc.namedBy(single, in.words) && !rc.genericName(single)) {
 		return familyTarget(rc, dec, byID[single], "совпадение с названием семейства")
 	}
 	if catQuery {
@@ -797,4 +812,25 @@ func (rc rankCtx) relatesTo(fid string, words []string) bool {
 		}
 	}
 	return false
+}
+
+// genericName — все значимые слова названия семейства (без имени вендора) — слова названия его категории или раздела.
+func (rc rankCtx) genericName(fid string) bool {
+	cat := rc.lx.familyCat[fid]
+	names := wordsOf(rc.lx.categoryName[cat])
+	if root := rc.lx.categoryRoot[cat]; root != "" && root != cat {
+		names = append(names, wordsOf(rc.lx.categoryName[root])...)
+	}
+	vendor := rc.vendorWords(fid)
+	n := 0
+	for _, w := range wordsOf(rc.lx.familyName[fid]) {
+		if lexStopWords[w] || contains(vendor, w) {
+			continue
+		}
+		n++
+		if !wordMatch(w, names) {
+			return false
+		}
+	}
+	return n > 0
 }
