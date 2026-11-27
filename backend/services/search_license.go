@@ -87,3 +87,54 @@ func plural(n int, forms [3]string) string {
 	}
 	return forms[2]
 }
+
+// denseFilters — обязательные условия векторного списка. Вектор в индексе один на семейство (у позиции-представителя,
+// catalog_import.go embedRank), поэтому условие на вариант лицензии — «продление» — сюда не входит: с ним в списке
+// оставались только семейства, чей представитель случайно оказался продлением (несколько десятков на весь каталог),
+// и последняя из двух таких позиций получала в слиянии второе место — «продлить антивирус» открывался не антивирусом.
+// Условия уровня семейства (вендор, категория намерения, отечественное, характеристики оборудования) — те же, что у
+// текстового поиска.
+func denseFilters(attrs queryAttrs, ent queryEntities, hw *hwPlan) []any {
+	attrs.renewal = false
+	return append(strictFilters(attrs, ent), hw.filters()...)
+}
+
+// renewalDense — векторный список запроса с продлением: семейство, найденное по смыслу, представляет его
+// позиция-продление — та, которую выше всех поставил текстовый поиск (ранги двух списков складываются у одной
+// позиции: смысл найден у семейства, а не у случайного его варианта), иначе сам представитель, если он продление,
+// иначе первое продление семейства. Семейство без продлений из списка уходит; ранги пересчитаны подряд, скор —
+// скор представителя.
+func renewalDense(lx *searchLexicon, dense, bm25 []domain.RankedHit) []domain.RankedHit {
+	found := map[string]string{} // семейство → лучшая позиция текстового списка
+	for _, h := range bm25 {
+		if d, ok := lx.docs[h.ProductID]; ok && d.LicenseType == domain.LicenseRenewal && found[d.FamilyID] == "" {
+			found[d.FamilyID] = d.ProductID
+		}
+	}
+	res := make([]domain.RankedHit, 0, len(dense))
+	seen := map[string]bool{}
+	for _, h := range dense {
+		d, ok := lx.docs[h.ProductID]
+		if !ok {
+			continue
+		}
+		pid := found[d.FamilyID]
+		if pid == "" && d.LicenseType == domain.LicenseRenewal {
+			pid = d.ProductID
+		}
+		if pid == "" {
+			for _, v := range lx.families[d.FamilyID] {
+				if lx.docs[v].LicenseType == domain.LicenseRenewal {
+					pid = v
+					break
+				}
+			}
+		}
+		if pid == "" || seen[pid] {
+			continue
+		}
+		seen[pid] = true
+		res = append(res, domain.RankedHit{ProductID: pid, Rank: len(res) + 1, Score: h.Score})
+	}
+	return res
+}

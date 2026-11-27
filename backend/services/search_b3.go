@@ -209,7 +209,9 @@ func (s *Services) searchB3(ctx context.Context, requestID string, req in.Search
 	denseCh := make(chan retrieval, 1)
 	filters := strictFilters(attrs, ent)
 	filters = append(filters, hw.filters()...)
-	go func(f []any) { denseCh <- s.denseSafe(ctx, denseText, info, f...) }(filters)
+	// Вектор — один на семейство, поэтому векторный список отбирается без условия «продление» (denseFilters) и
+	// после поиска переводится в позиции-продления тех же семейств (renewalDense).
+	go func(f []any) { denseCh <- s.denseSafe(ctx, denseText, info, f...) }(denseFilters(attrs, ent, hw))
 	var bm retrieval
 	if ent.intent != nil {
 		bm = s.lexicalIntent(ctx, ent.intent, text, expansions, filters) // по семейству из категорий намерения
@@ -242,9 +244,12 @@ func (s *Services) searchB3(ctx context.Context, requestID string, req in.Search
 	s.exactRetrieve(ctx, hw, filters)
 	dn := <-denseCh
 	if intentDropped {
-		dn = s.denseSafe(ctx, denseText, info, filters...)
+		dn = s.denseSafe(ctx, denseText, info, denseFilters(attrs, ent, hw)...)
 	} else if ent.intent != nil {
 		dn.step.Top = ent.intent.keepHits(lx, dn.step.Top)
+	}
+	if attrs.renewal {
+		dn.step.Top = renewalDense(lx, dn.step.Top, bm.step.Top)
 	}
 	// Продление, а отдельной позиции продления у названного нет («продлить 1с итс», «продление veeam»): новый срок
 	// — это та же лицензия; показывается она с пояснением, а не «товара нет».
@@ -439,6 +444,11 @@ func (s *Services) searchB3(ctx context.Context, requestID string, req in.Search
 			if rel < relThreshold && vendorOnlyText && contains(ent.vendors, lx.familyVendor[f]) {
 				// назван только вендор — его семейства по тексту равны, порог по рангу их не различает;
 				// допустимость решают условия покупки (buildFamily), порядок — основная линейка (markVendorCore).
+				rel = relThreshold
+			}
+			if rel < relThreshold && attrs.renewal && rc.purchased["f:"+f] {
+				// Продление того, что клиент уже покупал: семейство найдено поиском, и порог по рангу его не снимает —
+				// иначе «Вы покупали» в «продлить антивирус» зависело бы от того, сколько мест заняли чужие продления.
 				rel = relThreshold
 			}
 			if rel < relThreshold {

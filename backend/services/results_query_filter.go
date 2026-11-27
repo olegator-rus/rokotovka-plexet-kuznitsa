@@ -3,6 +3,7 @@ package services
 import (
 	"fmt"
 	"sort"
+	"strings"
 
 	"kuznica/api/domain"
 	"kuznica/api/in"
@@ -118,4 +119,92 @@ func queryFilterLabel(chips []out.Chip) string {
 		}
 	}
 	return label
+}
+
+// queryOrg — тип организации, названный в запросе («для школы», «для вуза», «образовательная», «для
+// госучреждения»), у которого в фиде бывают свои варианты лицензий; "" — не назван или таких вариантов не бывает
+// (коммерческая лицензия — вариант по умолчанию).
+func queryOrg(chips []out.Chip) string {
+	for _, c := range chips {
+		if c.Field != FieldOrgType {
+			continue
+		}
+		for _, org := range feedOrg {
+			if org == c.Value {
+				return org
+			}
+		}
+	}
+	return ""
+}
+
+// orgVariant — вариант лицензии под тип организации org: License.org_type фида или атрибут org_type позиции.
+func orgVariant(d indexDoc, org string) bool {
+	return feedOrg[d.LicenseOrgType] == org || docAttr(d, "org_type") == org
+}
+
+// narrowByOrg — тип организации из запроса работает как срок и тип лицензии (narrowByQuery): у семейства, где есть
+// варианты под эту организацию («astra linux для школы» — лицензии для образовательных учреждений), остаются только
+// они, и карточка показывает такой вариант. Раньше слово только переставало скрывать эти варианты, а головой
+// оставалась коммерческая лицензия.
+//
+// Откат мягкий и по каждому семейству отдельно: нет у семейства такого варианта — его карточка прежняя, из выдачи оно
+// не уходит. Тип организации размечен в фиде не у всех («Альт Образование», «РЕД ОС для образовательных организаций»
+// идут без него), и убирать такие семейства по слову «школа» нельзя. Чип помечается strict, когда условие применено
+// к первому семейству страницы.
+func (p *resultsPlan) narrowByOrg(rc rankCtx, fams []*familyHit, chips []out.Chip, rejected *[]domain.RejectedHit) []*familyHit {
+	org := queryOrg(chips)
+	if org == "" || len(fams) == 0 || p.exact {
+		return fams
+	}
+	res := make([]*familyHit, 0, len(fams))
+	applied := map[string]bool{}
+	changed := false
+	for _, fh := range fams {
+		var heads []indexDoc
+		for _, d := range fh.heads {
+			if orgVariant(d, org) {
+				heads = append(heads, d)
+			}
+		}
+		if len(heads) == 0 {
+			res = append(res, fh)
+			continue
+		}
+		applied[fh.id] = true
+		if len(heads) == len(fh.heads) {
+			res = append(res, fh)
+			continue
+		}
+		for _, d := range fh.heads {
+			if rejected != nil && !orgVariant(d, org) {
+				addRejected(rejected, d.ProductID, rejectOffer, "в запросе назван покупатель: "+strings.ToLower(orgLabels[org]))
+			}
+		}
+		cp := *fh
+		cp.heads = heads
+		if heads[0].ProductID != fh.head.ProductID {
+			cp.head, cp.headOK = heads[0], fh.fits[heads[0].ProductID]
+			rc.score(&cp)
+			changed = true
+		}
+		res = append(res, &cp)
+	}
+	if len(applied) == 0 {
+		return fams
+	}
+	if changed {
+		sortFamilies(res)
+		sort.SliceStable(res, func(i, j int) bool { return !isFill(res[i]) && isFill(res[j]) })
+	}
+	top := append([]*familyHit(nil), res...)
+	p.sortFamilies(top)
+	if applied[top[0].id] {
+		for i := range chips {
+			if chips[i].Field == FieldOrgType {
+				chips[i].Strict = true
+			}
+		}
+	}
+	return res
 }

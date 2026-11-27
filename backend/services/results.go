@@ -132,6 +132,7 @@ func (p *resultsPlan) apply(rc rankCtx, fams []*familyHit, chips []out.Chip, que
 		p.filteredOut = len(res) == 0 && len(fams) > 0
 	}
 	res = p.narrowByQuery(rc, res, chips, rejected)
+	res = p.narrowByOrg(rc, res, chips, rejected)
 
 	taken := map[string]bool{}
 	for k := range named {
