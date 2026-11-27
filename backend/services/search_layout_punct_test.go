@@ -161,3 +161,15 @@ func TestNamedOutsideAliasCategory(t *testing.T) {
 		t.Fatal("продукт не назван — категория словаря остаётся")
 	}
 }
+
+// Категория словаря главнее категории оборудования, только если слово оборудования — внутри фразы словаря.
+func TestAliasNamesHardwareCategory(t *testing.T) {
+	svc, st := computerEnv(t)
+	p, _ := computerParse(svc, st, "компьютер")
+	if p == nil || p.category != "desk" {
+		t.Fatalf("нет категории оборудования: %+v", p)
+	}
+	if !p.aliasNamesCategory([]string{"системник"}) || p.aliasNamesCategory([]string{"офиса"}) {
+		t.Fatal("слово фразы словаря и категория оборудования")
+	}
+}

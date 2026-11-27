@@ -50,7 +50,7 @@ func (p *hwPlan) applyEntities(ent *queryEntities) {
 	if p == nil {
 		return
 	}
-	if ent.categoryByAlias && p.category != "" && p.category != ent.category {
+	if ent.categoryByAlias && p.category != "" && p.category != ent.category && p.aliasNamesCategory(ent.aliasWords) {
 		if p.hx.hwCats[ent.category] {
 			p.category = ent.category // «ssd» → SSD, а не «Жесткие диски» по синониму
 		} else {
@@ -647,3 +647,14 @@ func (p *hwPlan) unitTrace() []hwUnitTrace {
 
 // targetless — запрос оборудования без цели совместимости («память для r740»): там выдачу решает совместимость.
 func (p *hwPlan) targetless() bool { return p == nil || p.target == "" }
+
+// aliasNamesCategory — слово, давшее категорию оборудования, входит во фразу словаря («доступ» в «удаленный доступ»,
+// «ssd»): тогда фраза точнее. «мфу для небольшого офиса» — «мфу» вне фразы «офис», оборудование остаётся.
+func (p *hwPlan) aliasNamesCategory(words []string) bool {
+	for _, w := range words {
+		if p.hx.categoryOfWord(w) == p.category {
+			return true
+		}
+	}
+	return false
+}
