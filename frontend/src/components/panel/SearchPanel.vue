@@ -951,12 +951,13 @@ const popularCache = vueRef<Sugg[] | null>(null)
         <button
           v-if="text || chipShown"
           type="button"
-          class="btn btn--ghost btn--icon btn--sm sp__clear"
+          class="btn btn--ghost btn--icon sp__clear"
           :aria-label="chipShown ? TZ_TEXT.exit : 'Очистить строку'"
           data-testid="search-clear"
           @click="clearText"
         >
-          <X :size="16" aria-hidden="true" />
+          <!-- Крест в своём поле вдвое меньше рамки значка: крупнее, чтобы на вид был вровень со скрепкой. -->
+          <X :size="26" :stroke-width="1.5" absolute-stroke-width aria-hidden="true" />
         </button>
       </div>
       <UiTooltip :text="TZ_TEXT.tooltip" side="bottom">
@@ -1488,7 +1489,14 @@ const popularCache = vueRef<Sugg[] | null>(null)
   opacity: 1;
 }
 .sp__clear {
+  flex: none;
+  width: 40px;
+  height: 40px;
   margin-right: var(--space-1);
+  color: var(--text-2);
+}
+.sp__clear:hover {
+  color: var(--text);
 }
 .sp__submit {
   align-self: stretch;

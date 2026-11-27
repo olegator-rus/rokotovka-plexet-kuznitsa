@@ -104,169 +104,187 @@ async function copyQuote() {
     :data-state="row.state"
     :data-status="status ?? ''"
   >
-    <header class="tzp__head">
-      <h3 :id="headingId" class="tzp__title">
-        <RouterLink v-slot="{ href, navigate }" :to="searchTo" custom>
-          <a :href="href" class="tzp__title-link" @click="onOpen($event, navigate)">
-            {{ p.number }}. {{ p.title }}
-          </a>
-        </RouterLink>
-      </h3>
-      <span
-        :class="['tzp__status', `tzp__status--${row.state === 'ready' ? status : row.state}`]"
-        data-testid="tz-position-status"
-      >
-        <CircleCheck v-if="status === 'found'" :size="16" aria-hidden="true" />
-        <Layers v-else-if="status === 'similar'" :size="16" aria-hidden="true" />
-        <CircleMinus v-else-if="status === 'not_found'" :size="16" aria-hidden="true" />
-        <TriangleAlert v-else-if="row.state === 'error'" :size="16" aria-hidden="true" />
-        <LoaderCircle v-else :size="16" aria-hidden="true" class="tzp__spin" />
-        {{ label }}
-      </span>
-    </header>
+    <!-- Что просили в ТЗ — шапка общей рамки позиции; найденные товары — под ней, внутри той же рамки. -->
+    <div class="tzp__summary">
+      <header class="tzp__head">
+        <h3 :id="headingId" class="tzp__title">
+          <RouterLink v-slot="{ href, navigate }" :to="searchTo" custom>
+            <a :href="href" class="tzp__title-link" @click="onOpen($event, navigate)">
+              <span class="tzp__num">{{ p.number }}<span class="sr-only">.</span></span>
+              <span class="tzp__name">{{ p.title }}</span>
+            </a>
+          </RouterLink>
+        </h3>
+        <span
+          :class="['tzp__status', `tzp__status--${row.state === 'ready' ? status : row.state}`]"
+          data-testid="tz-position-status"
+        >
+          <CircleCheck v-if="status === 'found'" :size="16" aria-hidden="true" />
+          <Layers v-else-if="status === 'similar'" :size="16" aria-hidden="true" />
+          <CircleMinus v-else-if="status === 'not_found'" :size="16" aria-hidden="true" />
+          <TriangleAlert v-else-if="row.state === 'error'" :size="16" aria-hidden="true" />
+          <LoaderCircle v-else :size="16" aria-hidden="true" class="tzp__spin" />
+          {{ label }}
+        </span>
+      </header>
 
-    <ul v-if="p.attributes.length" class="tzp__attrs" aria-label="Условия позиции">
-      <li v-for="a in p.attributes" :key="a.key" class="tzp__attr t-xs" :title="a.label">
-        {{ a.value }}
-      </li>
-    </ul>
-
-    <div v-if="p.source_quote" class="tzp__quote">
-      <button
-        type="button"
-        class="tzp__quote-toggle"
-        :aria-expanded="quoteOpen"
-        :aria-controls="quoteId"
-        data-testid="tz-quote-toggle"
-        @click="emit('toggleQuote')"
-      >
-        <ChevronRight
-          :size="14"
-          aria-hidden="true"
-          :class="['tzp__chev', { 'tzp__chev--open': quoteOpen }]"
-        />
-        <span class="sr-only">{{ quoteOpen ? TZ_TEXT.quoteCollapse : TZ_TEXT.quoteExpand }}: </span>
-        <span v-if="!quoteOpen" class="tzp__quote-line">{{ p.source_quote }}</span>
-        <span v-else class="tzp__quote-line" aria-hidden="true">{{ TZ_TEXT.quoteCollapse }}</span>
-      </button>
-      <div v-if="quoteOpen" :id="quoteId" class="tzp__quote-body" data-testid="tz-quote">
-        <blockquote class="tzp__quote-text">
-          <p v-for="(para, i) in paragraphs" :key="i">{{ para }}</p>
-        </blockquote>
-        <button type="button" class="btn btn--ghost btn--sm" @click="copyQuote">
-          <Copy :size="14" aria-hidden="true" /> {{ TZ_TEXT.quoteCopy }}
-        </button>
-      </div>
-    </div>
-
-    <p v-if="status === 'similar'" class="tzp__similar t-sm">{{ TZ_TEXT.similarDescription }}</p>
-    <p
-      v-if="p.unverified_requirements.length"
-      class="tzp__unverified t-sm"
-      data-testid="tz-unverified"
-    >
-      <TriangleAlert :size="16" aria-hidden="true" />
-      <span>{{ unverifiedLabel(p.unverified_requirements) }}</span>
-    </p>
-
-    <!-- Заглушка высотой с плотную карточку: готовая карточка заменяет её без прыжка страницы. -->
-    <div
-      v-if="row.state === 'pending' || row.state === 'searching'"
-      class="tzp__placeholder"
-      data-testid="tz-placeholder"
-    >
-      <span class="skeleton tzp__ph-logo" aria-hidden="true" />
-      <span class="tzp__ph-lines" aria-hidden="true">
-        <span class="skeleton tzp__ph-line" />
-        <span class="skeleton tzp__ph-line tzp__ph-line--short" />
-      </span>
-      <span class="t-sm t-muted tzp__ph-label">{{ label }}</span>
-    </div>
-
-    <div v-else-if="row.state === 'error'" class="tzp__error" role="alert">
-      <TriangleAlert :size="16" aria-hidden="true" class="tzp__error-icon" />
-      <span class="t-sm">{{ TZ_TEXT.errPosition }}</span>
-      <button
-        type="button"
-        class="btn btn--secondary btn--sm"
-        data-testid="tz-position-retry"
-        @click="emit('retry')"
-      >
-        <RotateCcw :size="14" aria-hidden="true" /> {{ TZ_TEXT.retry }}
-      </button>
-    </div>
-
-    <template v-else-if="status === 'found' || status === 'similar'">
-      <ul class="tzp__cards">
-        <li v-for="(it, i) in shown.first" :key="it.product_id">
-          <FamilyCard
-            density="compact"
-            :item="it"
-            :position="i + 1"
-            :named="noNamed"
-            :in-spec="inSpec"
-            :purchase="purchase"
-            :quantity="positionQuantity(it, p)"
-            :request-id="row.requestId"
-            @spec="(t) => emit('spec', t)"
-            @price-request="(t) => emit('priceRequest', t)"
-          />
+      <ul v-if="p.attributes.length" class="tzp__attrs" aria-label="Условия позиции">
+        <li v-for="a in p.attributes" :key="a.key" class="tzp__attr t-xs" :title="a.label">
+          {{ a.value }}
         </li>
       </ul>
-      <ul v-if="variantsOpen && shown.more.length" :id="moreId" class="tzp__cards">
-        <li v-for="(it, i) in shown.more" :key="it.product_id">
-          <FamilyCard
-            density="compact"
-            :item="it"
-            :position="i + 2"
-            :named="noNamed"
-            :in-spec="inSpec"
-            :purchase="purchase"
-            :quantity="positionQuantity(it, p)"
-            :request-id="row.requestId"
-            @spec="(t) => emit('spec', t)"
-            @price-request="(t) => emit('priceRequest', t)"
-          />
-        </li>
-      </ul>
-      <div class="tzp__foot">
-        <button
-          v-if="shown.more.length"
-          type="button"
-          class="link tzp__more t-sm"
-          :aria-expanded="variantsOpen"
-          :aria-controls="moreId"
-          data-testid="tz-more"
-          @click="emit('toggleVariants')"
-        >
-          {{ variantsOpen ? TZ_TEXT.variantsCollapse : moreVariantsLabel(shown.more.length) }}
-        </button>
-        <RouterLink v-slot="{ href, navigate }" :to="searchTo" custom>
-          <a :href="href" class="link t-sm tzp__open" @click="onOpen($event, navigate)">
-            {{ TZ_TEXT.openSearch }}
-          </a>
-        </RouterLink>
-      </div>
-    </template>
 
-    <template v-else>
-      <p class="tzp__empty t-sm">{{ TZ_TEXT.empty }}</p>
-      <div class="tzp__foot">
-        <RouterLink v-slot="{ href, navigate }" :to="searchTo" custom>
-          <a :href="href" class="link t-sm" @click="onOpen($event, navigate)">
-            {{ TZ_TEXT.openSearch }}
-          </a>
-        </RouterLink>
+      <div v-if="p.source_quote" class="tzp__quote">
         <button
           type="button"
-          class="btn btn--secondary btn--sm tzp__manager"
-          data-testid="tz-manager"
-          @click="emit('manager')"
+          class="tzp__quote-toggle"
+          :aria-expanded="quoteOpen"
+          :aria-controls="quoteId"
+          data-testid="tz-quote-toggle"
+          @click="emit('toggleQuote')"
         >
-          {{ TZ_TEXT.manager }}
+          <ChevronRight
+            :size="14"
+            aria-hidden="true"
+            :class="['tzp__chev', { 'tzp__chev--open': quoteOpen }]"
+          />
+          <span class="sr-only"
+            >{{ quoteOpen ? TZ_TEXT.quoteCollapse : TZ_TEXT.quoteExpand }}:
+          </span>
+          <span class="tzp__quote-label" aria-hidden="true">Из документа</span>
+          <span v-if="!quoteOpen" class="tzp__quote-line">{{ p.source_quote }}</span>
+          <span v-else class="tzp__quote-line" aria-hidden="true">{{ TZ_TEXT.quoteCollapse }}</span>
+        </button>
+        <div v-if="quoteOpen" :id="quoteId" class="tzp__quote-body" data-testid="tz-quote">
+          <blockquote class="tzp__quote-text">
+            <p v-for="(para, i) in paragraphs" :key="i">{{ para }}</p>
+          </blockquote>
+          <button type="button" class="btn btn--ghost btn--sm" @click="copyQuote">
+            <Copy :size="14" aria-hidden="true" /> {{ TZ_TEXT.quoteCopy }}
+          </button>
+        </div>
+      </div>
+
+      <p v-if="status === 'similar'" class="tzp__similar t-sm">{{ TZ_TEXT.similarDescription }}</p>
+      <p
+        v-if="p.unverified_requirements.length"
+        class="tzp__unverified t-sm"
+        data-testid="tz-unverified"
+      >
+        <TriangleAlert :size="16" aria-hidden="true" />
+        <span>{{ unverifiedLabel(p.unverified_requirements) }}</span>
+      </p>
+    </div>
+
+    <div class="tzp__body">
+      <!-- Подпись связывает товары с позицией: видно, к какой строке ТЗ они подобраны. -->
+      <p
+        v-if="status === 'found' || status === 'similar'"
+        class="tzp__caption t-sm"
+        data-testid="tz-position-caption"
+      >
+        {{ status === 'found' ? 'Подобрано' : 'Похожее' }} по позиции {{ p.number }}
+      </p>
+
+      <!-- Заглушка высотой с плотную карточку: готовая карточка заменяет её без прыжка страницы. -->
+      <div
+        v-if="row.state === 'pending' || row.state === 'searching'"
+        class="tzp__placeholder"
+        data-testid="tz-placeholder"
+      >
+        <span class="skeleton tzp__ph-logo" aria-hidden="true" />
+        <span class="tzp__ph-lines" aria-hidden="true">
+          <span class="skeleton tzp__ph-line" />
+          <span class="skeleton tzp__ph-line tzp__ph-line--short" />
+        </span>
+        <span class="t-sm t-muted tzp__ph-label">{{ label }}</span>
+      </div>
+
+      <div v-else-if="row.state === 'error'" class="tzp__error" role="alert">
+        <TriangleAlert :size="16" aria-hidden="true" class="tzp__error-icon" />
+        <span class="t-sm">{{ TZ_TEXT.errPosition }}</span>
+        <button
+          type="button"
+          class="btn btn--secondary btn--sm"
+          data-testid="tz-position-retry"
+          @click="emit('retry')"
+        >
+          <RotateCcw :size="14" aria-hidden="true" /> {{ TZ_TEXT.retry }}
         </button>
       </div>
-    </template>
+
+      <template v-else-if="status === 'found' || status === 'similar'">
+        <ul class="tzp__cards">
+          <li v-for="(it, i) in shown.first" :key="it.product_id">
+            <FamilyCard
+              density="compact"
+              :item="it"
+              :position="i + 1"
+              :named="noNamed"
+              :in-spec="inSpec"
+              :purchase="purchase"
+              :quantity="positionQuantity(it, p)"
+              :request-id="row.requestId"
+              @spec="(t) => emit('spec', t)"
+              @price-request="(t) => emit('priceRequest', t)"
+            />
+          </li>
+        </ul>
+        <ul v-if="variantsOpen && shown.more.length" :id="moreId" class="tzp__cards">
+          <li v-for="(it, i) in shown.more" :key="it.product_id">
+            <FamilyCard
+              density="compact"
+              :item="it"
+              :position="i + 2"
+              :named="noNamed"
+              :in-spec="inSpec"
+              :purchase="purchase"
+              :quantity="positionQuantity(it, p)"
+              :request-id="row.requestId"
+              @spec="(t) => emit('spec', t)"
+              @price-request="(t) => emit('priceRequest', t)"
+            />
+          </li>
+        </ul>
+        <div class="tzp__foot">
+          <button
+            v-if="shown.more.length"
+            type="button"
+            class="link tzp__more t-sm"
+            :aria-expanded="variantsOpen"
+            :aria-controls="moreId"
+            data-testid="tz-more"
+            @click="emit('toggleVariants')"
+          >
+            {{ variantsOpen ? TZ_TEXT.variantsCollapse : moreVariantsLabel(shown.more.length) }}
+          </button>
+          <RouterLink v-slot="{ href, navigate }" :to="searchTo" custom>
+            <a :href="href" class="link t-sm tzp__open" @click="onOpen($event, navigate)">
+              {{ TZ_TEXT.openSearch }}
+            </a>
+          </RouterLink>
+        </div>
+      </template>
+
+      <template v-else>
+        <p class="tzp__empty t-sm">{{ TZ_TEXT.empty }}</p>
+        <div class="tzp__foot">
+          <RouterLink v-slot="{ href, navigate }" :to="searchTo" custom>
+            <a :href="href" class="link t-sm" @click="onOpen($event, navigate)">
+              {{ TZ_TEXT.openSearch }}
+            </a>
+          </RouterLink>
+          <button
+            type="button"
+            class="btn btn--secondary btn--sm tzp__manager"
+            data-testid="tz-manager"
+            @click="emit('manager')"
+          >
+            {{ TZ_TEXT.manager }}
+          </button>
+        </div>
+      </template>
+    </div>
     <span v-if="added" class="sr-only">{{ TZ_TEXT.added }}</span>
   </section>
 </template>
@@ -276,17 +294,42 @@ async function copyQuote() {
   container-type: inline-size;
   display: flex;
   flex-direction: column;
-  gap: var(--space-2);
   min-width: 0;
+  border: var(--border-w) solid var(--border-control);
+  border-radius: var(--radius-card);
+  background: var(--surface);
   /* Прокрутка к позиции — под закреплённой шапкой и селектором позиций. */
   scroll-margin-top: calc(var(--header-actual, var(--header-h)) + var(--tz-sticky, 0px) + 1rem);
+}
+.tzp__summary {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  min-width: 0;
+  padding: var(--space-4);
+  border-bottom: var(--border-w) solid var(--border);
+  border-radius: calc(var(--radius-card) - var(--border-w))
+    calc(var(--radius-card) - var(--border-w)) 0 0;
+  background: var(--surface-2);
+}
+.tzp__body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  min-width: 0;
+  padding: var(--space-3) var(--space-4);
+}
+.tzp__caption {
+  margin: 0;
+  color: var(--text-2);
+  font-weight: var(--fw-semibold);
 }
 .tzp__head {
   display: flex;
   flex-wrap: wrap;
-  align-items: baseline;
+  align-items: flex-start;
   justify-content: space-between;
-  gap: var(--space-1) var(--space-3);
+  gap: var(--space-2) var(--space-3);
 }
 .tzp__title {
   flex: 1 1 20rem;
@@ -298,10 +341,31 @@ async function copyQuote() {
   overflow-wrap: anywhere;
 }
 .tzp__title-link {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
   color: var(--text);
   text-decoration: none;
 }
-.tzp__title-link:hover {
+.tzp__num {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  border-radius: var(--radius-pill);
+  background: var(--text);
+  color: var(--surface);
+  font-size: var(--fs-sm);
+  font-variant-numeric: tabular-nums;
+}
+.tzp__name {
+  min-width: 0;
+  /* Первая строка названия — по центру кружка с номером. */
+  padding-top: calc((1.75rem - 1lh) / 2);
+}
+.tzp__title-link:hover .tzp__name {
   text-decoration: underline;
   text-underline-offset: 3px;
 }
@@ -310,14 +374,16 @@ async function copyQuote() {
   flex: none;
   align-items: center;
   gap: var(--space-1);
+  min-height: 1.75rem;
+  padding: 0 var(--space-3);
+  border-radius: var(--radius-pill);
+  background: var(--surface);
   color: var(--text-2);
   font-size: var(--fs-sm);
-  font-weight: var(--fw-medium);
-}
-.tzp__status svg {
-  align-self: center;
+  font-weight: var(--fw-semibold);
 }
 .tzp__status--found {
+  background: var(--status-accepted-bg);
   color: var(--status-accepted);
 }
 .tzp__spin {
@@ -331,26 +397,32 @@ async function copyQuote() {
 .tzp__attrs {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--space-1);
+  gap: var(--space-2);
   margin: 0;
   padding: 0;
   list-style: none;
 }
 .tzp__attr {
-  padding: 2px var(--space-2);
-  border: var(--border-w) solid var(--border);
-  border-radius: var(--radius-sm);
+  padding: var(--space-1) var(--space-3);
+  border-radius: var(--radius-pill);
   background: var(--surface);
+  font-weight: var(--fw-medium);
   overflow-wrap: anywhere;
+}
+.tzp__quote {
+  min-width: 0;
+  border-radius: var(--radius-control);
+  background: var(--surface);
 }
 .tzp__quote-toggle {
   display: flex;
   align-items: flex-start;
-  gap: var(--space-1);
+  gap: var(--space-2);
   width: 100%;
-  min-height: 28px;
-  padding: var(--space-1) 0;
+  min-height: 36px;
+  padding: var(--space-2) var(--space-3);
   border: 0;
+  border-radius: var(--radius-control);
   background: none;
   color: var(--text-2);
   font: inherit;
@@ -370,6 +442,11 @@ async function copyQuote() {
 .tzp__chev--open {
   transform: rotate(90deg);
 }
+.tzp__quote-label {
+  flex: none;
+  color: var(--text);
+  font-weight: var(--fw-semibold);
+}
 .tzp__quote-line {
   flex: 1;
   min-width: 0;
@@ -382,12 +459,10 @@ async function copyQuote() {
   flex-direction: column;
   align-items: flex-start;
   gap: var(--space-2);
-  padding-left: var(--space-5);
+  padding: 0 var(--space-3) var(--space-3) calc(var(--space-3) + 14px + var(--space-2));
 }
 .tzp__quote-text {
   margin: 0;
-  padding-left: var(--space-3);
-  border-left: 2px solid var(--border-control);
   color: var(--text);
   font-size: 13px;
   line-height: 20px;
@@ -409,6 +484,9 @@ async function copyQuote() {
   align-items: flex-start;
   gap: var(--space-2);
   margin: 0;
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-control);
+  background: var(--status-pending-bg);
   color: var(--status-pending);
   overflow-wrap: anywhere;
 }
@@ -487,9 +565,15 @@ async function copyQuote() {
 }
 /* Узкая колонка: статус — над заголовком позиции. */
 @container (max-width: 34rem) {
+  .tzp__summary,
+  .tzp__body {
+    padding: var(--space-3);
+  }
   .tzp__status {
     order: -1;
-    width: 100%;
+  }
+  .tzp__quote-label {
+    display: none;
   }
   .tzp__title {
     flex-basis: 100%;

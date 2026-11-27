@@ -601,7 +601,7 @@ function onRelatedSearch() {
   box-sizing: border-box;
   width: 100%;
   min-height: 52px;
-  padding: var(--space-1) var(--space-2);
+  padding: var(--space-2);
   border: 0;
   border-radius: var(--radius-control);
   background: transparent;
@@ -615,12 +615,26 @@ function onRelatedSearch() {
 }
 .tzr__nav-item.is-current {
   background: var(--surface-3);
-  box-shadow: inset 2px 0 0 var(--accent);
 }
+/* Номер — кружок по центру строки по высоте; левый край совпадает с заголовком списка. */
 .tzr__nav-num {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.5rem;
+  height: 1.5rem;
+  border-radius: var(--radius-pill);
+  background: var(--surface-2);
   color: var(--text-2);
-  font-size: var(--fs-sm);
-  text-align: right;
+  font-size: var(--fs-xs);
+  font-weight: var(--fw-semibold);
+}
+.tzr__nav-item:hover .tzr__nav-num {
+  background: var(--surface);
+}
+.tzr__nav-item.is-current .tzr__nav-num {
+  background: var(--text);
+  color: var(--surface);
 }
 .tzr__nav-text {
   display: flex;
@@ -630,6 +644,7 @@ function onRelatedSearch() {
 .tzr__nav-name {
   overflow: hidden;
   font-size: var(--fs-sm);
+  line-height: 1.5rem;
   font-weight: var(--fw-medium);
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -773,7 +788,7 @@ function onRelatedSearch() {
   align-items: center;
   gap: var(--space-2);
   min-height: 48px;
-  padding: var(--space-1) var(--space-2);
+  padding: var(--space-2);
   border-radius: var(--radius-control);
   color: var(--text);
   font-size: var(--fs-sm);
@@ -785,11 +800,23 @@ function onRelatedSearch() {
   background: var(--surface-3);
 }
 .tzr__select-item[data-state='checked'] {
-  box-shadow: inset 2px 0 0 var(--accent);
+  background: var(--surface-3);
 }
 .tzr__select-item .tzr__nav-num {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.5rem;
+  height: 1.5rem;
+  border-radius: var(--radius-pill);
+  background: var(--surface-2);
   color: var(--text-2);
-  text-align: right;
+  font-size: var(--fs-xs);
+  font-weight: var(--fw-semibold);
+}
+.tzr__select-item[data-state='checked'] .tzr__nav-num {
+  background: var(--text);
+  color: var(--surface);
 }
 .tzr__select-item .tzr__nav-text {
   display: flex;

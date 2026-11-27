@@ -1,5 +1,5 @@
 <script setup lang="ts">
-// Хост тостов (reka Toast): один на приложение. Внизу справа (на мобильном — снизу по центру),
+// Хост тостов (reka Toast): один на приложение. Внизу слева (на мобильном — снизу по центру),
 // ошибки объявляются срочно (foreground), остальное — фоном.
 import {
   ToastAction,
@@ -78,36 +78,19 @@ function onOpen(id: number, open: boolean) {
   outline: none;
   transform: translateX(-50%);
 }
+/* На широком экране — слева внизу: справа стоят кнопка и окно помощника и итог спецификации. */
 @media (min-width: 1024px) {
   .ui-toast-viewport {
-    left: auto;
-    right: var(--space-6);
+    left: var(--space-6);
     bottom: var(--space-6);
     transform: none;
   }
 }
-/* Кнопка помощника и его окно стоят в правом нижнем углу — уведомление их не закрывает. */
-@media (min-width: 1024px) {
-  body:has(.as-entry) .ui-toast-viewport {
-    right: calc(var(--fab-right) + var(--fab-size) + var(--space-4));
-    bottom: var(--fab-bottom);
-  }
-  body:has(.search-page__guide) .ui-toast-viewport {
-    right: calc(var(--gutter) + var(--chat-w) + var(--space-4));
-  }
-}
-/* Открыта спецификация — уведомление не должно закрывать итог и «Запросить КП»: на широком экране слева, на
-   затемнении, на узком — сверху, под шапкой панели. */
-body:has(.spec-sheet) .ui-toast-viewport {
-  top: calc(var(--header-h) + var(--space-2));
-  bottom: auto;
-}
-@media (min-width: 1024px) {
+/* Открыта спецификация на узком экране — уведомление сверху, под шапкой панели: внизу итог и «Запросить КП». */
+@media (max-width: 1023px) {
   body:has(.spec-sheet) .ui-toast-viewport {
-    top: auto;
-    right: auto;
-    bottom: var(--space-6);
-    left: var(--space-6);
+    top: calc(var(--header-h) + var(--space-2));
+    bottom: auto;
   }
 }
 .ui-toast {
