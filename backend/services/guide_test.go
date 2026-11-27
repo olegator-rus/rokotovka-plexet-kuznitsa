@@ -70,15 +70,19 @@ func guideTestKB(status string) *guideKB {
 	return newGuideKB(recs, "kb-test")
 }
 
-// fakeGuideModel — модель с заранее заданным ответом; calls — сколько раз вызвана.
+// fakeGuideModel — модель с заранее заданным ответом; calls — сколько раз вызвана; sent — что ушло в модель.
 type fakeGuideModel struct {
 	reply string
 	err   error
 	calls int
+	sent  []string
 }
 
-func (f *fakeGuideModel) Chat(_ context.Context, _ llm.Request) (*llm.Response, error) {
+func (f *fakeGuideModel) Chat(_ context.Context, req llm.Request) (*llm.Response, error) {
 	f.calls++
+	for _, m := range req.Messages {
+		f.sent = append(f.sent, m.Content)
+	}
 	if f.err != nil {
 		return nil, f.err
 	}
@@ -576,5 +580,26 @@ func TestGuideWebinarCapacity(t *testing.T) {
 	}
 	if len(r.State.QuoteNotes) != 1 || !strings.Contains(r.State.QuoteNotes[0], "Pro 150") {
 		t.Fatalf("тариф вне фида — в запрос КП: %+v", r.State.QuoteNotes)
+	}
+}
+
+// ПДн в реплике: в модель уходят метки, а не телефон и почта; в состояние подбора и журнал текст не пишется.
+func TestGuidePIIMaskedBeforeModel(t *testing.T) {
+	model := &fakeGuideModel{reply: `{"a":"selection","lead":"Подходит Расширенный: в нём есть шифрование данных.","claims":["kb_kes_adv_encryption"],"set":{}}`}
+	s := guideTestServices(t, kbVerified, model, llmModeOn)
+	r := guideTurnReq(t, s, in.GuideRequest{Message: "kaspersky на 50 пк, нужно шифрование, звоните +7 916 123-45-67, пишите ivan.petrov@example.com"})
+	if model.calls != 1 {
+		t.Fatalf("модель должна вызываться: %d", model.calls)
+	}
+	all := strings.Join(model.sent, "\n")
+	if strings.Contains(all, "916") || strings.Contains(all, "123-45-67") || strings.Contains(all, "ivan.petrov") || strings.Contains(all, "example.com") {
+		t.Fatalf("ПДн ушли в модель: %s", all)
+	}
+	if r.Meta.PIIMasked < 2 {
+		t.Fatalf("маскирование учтено: %+v", r.Meta)
+	}
+	raw, _ := json.Marshal(r)
+	if strings.Contains(string(raw), "ivan.petrov") || strings.Contains(string(raw), "123-45-67") {
+		t.Fatalf("ПДн в ответе или состоянии: %s", raw)
 	}
 }

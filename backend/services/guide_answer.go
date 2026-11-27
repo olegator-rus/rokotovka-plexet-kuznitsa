@@ -502,7 +502,10 @@ func (t *guideTurn) modelLead(ctx context.Context, text string, res *out.GuideRe
 	if t.calls >= guideMaxModelCalls {
 		return
 	}
-	in := guideModelInput{Query: text}
+	// Реплика в модель — только с замаскированными ПДн (телефон, почта, ИНН…), как у разбора поиска.
+	masked, n := maskPII(text)
+	t.meta.PIIMasked += n
+	in := guideModelInput{Query: masked}
 	for _, c := range conditionsOf(*t.st) {
 		in.Conditions = append(in.Conditions, c.Label)
 	}

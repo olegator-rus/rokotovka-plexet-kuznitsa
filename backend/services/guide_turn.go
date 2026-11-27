@@ -357,10 +357,15 @@ func (t *guideTurn) run(ctx context.Context, req in.GuideRequest) *out.GuideResp
 		stext := strings.TrimSpace(reGuideCountPhrase.ReplaceAllString(guideNorm(qtext), " "))
 		fams = t.g.searchCatalog(ctx, t.cat, stext, r.Vendor)
 		// Названный продукт должен быть среди кандидатов, даже если поиск его не поднял.
-		for _, f := range t.cat.nameMatch(stext, r.Vendor, 8) {
+		for _, f := range t.nameMatchIfProduct(stext, r.Vendor) {
 			if !containsStr(fams, f) {
 				fams = append(fams, f)
 			}
+		}
+		if r.Vendor != "" && !guideNamesProduct(qtext) {
+			// Назван только вендор: сначала его линейки из базы знаний (KES, KSOS), затем выдача поиска.
+			fams = append(t.vendorLines(r.Vendor), fams...)
+			fams = slices.Compact(fams)
 		}
 		fams = t.cat.softwareOnly(fams)
 		fams = t.cat.focusFamilies(fams, qtext)
@@ -1220,4 +1225,34 @@ func (t *guideTurn) anyHasFeatures(fams []string) bool {
 		}
 	}
 	return false
+}
+
+// nameMatchIfProduct — семейства по словам названия, только если назван продукт сверх вендора: «kaspersky на 50
+// пк» не должен тянуть Password Manager и курсы.
+func (t *guideTurn) nameMatchIfProduct(text, vendor string) []string {
+	if !guideNamesProduct(text) {
+		return nil
+	}
+	return t.cat.nameMatch(text, vendor, 8)
+}
+
+// vendorLines — семейства вендора из линеек базы знаний в порядке линейки и ранга.
+func (t *guideTurn) vendorLines(vendor string) []string {
+	var out []string
+	for f, l := range t.kb.lines {
+		if t.cat.famVend[f] == vendor && l.Line != "" && len(t.cat.byFamily[f]) > 0 {
+			out = append(out, f)
+		}
+	}
+	sort.Slice(out, func(i, j int) bool {
+		a, b := t.kb.lines[out[i]], t.kb.lines[out[j]]
+		if a.Line != b.Line {
+			return a.Line < b.Line
+		}
+		if a.Rank != b.Rank {
+			return a.Rank < b.Rank
+		}
+		return out[i] < out[j]
+	})
+	return out
 }

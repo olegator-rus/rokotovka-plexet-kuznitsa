@@ -179,6 +179,8 @@ type GuideMeta struct {
 	MsTotal      float64 `json:"ms_total"`
 	Fallback     string  `json:"fallback,omitempty"`
 	Removed      int     `json:"removed"`
+	// PIIMasked — сколько фрагментов ПДн замаскировано в тексте, ушедшем в модель.
+	PIIMasked int `json:"pii_masked"`
 }
 
 // GuideSpec — черновик спецификации подбора (POST /api/guide/spec): цена перечитана из каталога.

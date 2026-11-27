@@ -38,7 +38,7 @@ import TheoryDiagram from '../diagram/TheoryDiagram.vue'
       <DgNode :x="476" :y="110" :w="224" :h="54" title="Сервис моделей" sub="BGE-M3, реранкер" />
       <DgNode :x="476" :y="180" :w="224" :h="54" title="PostgreSQL" sub="журнал, трассы, кэш" />
       <DgArrow pts="291,234 291,307 476,307" tone="d" />
-      <DgLabel :x="384" :y="297" text="маска ПДн, кроме подбора" tone="d" />
+      <DgLabel :x="384" :y="297" text="маска ПДн" tone="d" />
       <DgLabel :x="384" :y="320" text="разбор D, подбор, агент" />
       <DgNode
         :x="476"
@@ -76,7 +76,7 @@ import TheoryDiagram from '../diagram/TheoryDiagram.vue'
       <DgNode :x="106" :y="234" :w="206" :h="48" title="Сервис моделей" sub="BGE-M3, реранкер" />
       <DgNode :x="106" :y="294" :w="206" :h="48" title="PostgreSQL" sub="журнал, трассы, кэш" />
       <DgArrow pts="40,318 40,412 106,412" tone="d" />
-      <DgLabel :x="70" :y="428" :text="['маска ПДн,', 'кроме подбора']" tone="d" />
+      <DgLabel :x="70" :y="428" text="маска ПДн" tone="d" />
       <DgNode
         :x="106"
         :y="388"

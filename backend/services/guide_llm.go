@@ -96,6 +96,7 @@ func (g *guideService) callModel(ctx context.Context, user string) (*guideReply,
 	cctx, cancel := context.WithTimeout(ctx, guideCallTimeout)
 	defer cancel()
 	zero := 0.0
+	user, _ = maskPII(user) // граница процесса: в модель — без ПДн, даже если вызывающий забыл
 	req := llm.Request{
 		Messages:  []llm.Message{{Role: "system", Content: prompts.Guide().Text}, {Role: "user", Content: user}},
 		MaxTokens: guideMaxTokens, Temperature: &zero, ResponseFormat: llm.JSONObject,
