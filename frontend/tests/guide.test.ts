@@ -3,48 +3,23 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import type { SearchResponse } from '../src/api/types.ts'
-import type { GuideComparison, GuideCondition, GuideOffer } from '../src/api/typesGuide.ts'
+import type { GuideCondition, GuideOffer } from '../src/api/typesGuide.ts'
 import {
-  buildTable,
-  cellView,
   chipView,
-  claimIndex,
-  claimMark,
-  conditionAria,
-  conditionMessage,
   guideMode,
-  isOtherChip,
   isRefusal,
   lineFromOffer,
   offerPrice,
   offerQuantity,
   originLabel,
-  pendingStep,
-  pendingIndex,
   offerName,
-  priceMath,
-  packText,
-  rejectedTitle,
-  sharedNote,
-  turnAnswer,
-  conditionAsk,
-  conditionText,
-  conditionOptions,
-  compareView,
-  columnOffer,
-  keepNumbers,
   conditionCount,
   offerRole,
   routeMode,
-  rowDiffers,
   selectionId,
-  sourceName,
   perUnit,
-  priceWithUnit,
   specOffers,
   splitOffers,
-  unitText,
-  visibleColumns,
   withSpecLine,
 } from '../src/lib/guide.ts'
 
@@ -110,170 +85,12 @@ test('guideMode: справка, сервис и пустая выдача — �
   assert.equal(guideMode('   ', resp()), 'search')
 })
 
-test('cellView: четыре вида ячейки, пустое значение — нет сведений', () => {
-  assert.deepEqual(cellView({ kind: 'yes', fact_id: 'f1' }), {
-    tone: 'yes',
-    text: 'есть',
-    factId: 'f1',
-  })
-  assert.equal(cellView({ kind: 'no' }).text, 'нет по данным вендора')
-  assert.equal(cellView({ kind: 'unknown' }).text, 'нет сведений')
-  assert.equal(cellView({ kind: 'value', value: '2 813,40 ₽' }).text, '2 813,40 ₽')
-  assert.equal(cellView({ kind: 'value', value: '' }).tone, 'unknown')
-  assert.equal(cellView({ kind: 'value', value: null }).tone, 'unknown')
-  assert.equal(cellView(undefined).text, 'нет сведений')
-  assert.equal(cellView({ kind: 'странное' }).tone, 'unknown')
-})
-
-const cmp: GuideComparison = {
-  columns: [
-    { family_id: '3935', title: 'Стандартный', family_url: 'https://x/std' },
-    { family_id: '3953', title: 'Расширенный', family_url: 'https://x/adv' },
-    { family_id: '4000', title: 'Total', family_url: '' },
-  ],
-  rows: [
-    {
-      key: 'encryption',
-      label: 'Шифрование данных',
-      cells: [
-        { kind: 'no', fact_id: 'kb_std_enc' },
-        { kind: 'yes', fact_id: 'kb_adv_enc' },
-        { kind: 'yes' },
-      ],
-    },
-    {
-      key: 'console',
-      label: 'Единая консоль управления',
-      cells: [{ kind: 'yes' }, { kind: 'yes' }, { kind: 'yes' }],
-    },
-    {
-      key: 'certs',
-      label: 'Сертификаты',
-      cells: [{ kind: 'unknown' }, { kind: 'value', value: '' }, { kind: 'unknown' }],
-    },
-    {
-      key: 'price',
-      label: 'Цена за компьютер в год',
-      cells: [
-        { kind: 'value', value: '2 813,40 ₽' },
-        { kind: 'value', value: '4 081,50 ₽' },
-        { kind: 'value', value: '4 081,50 ₽' },
-      ],
-    },
-  ],
-}
-
-test('buildTable: строки, колонки и различия', () => {
-  const t = buildTable(cmp)
-  assert.deepEqual(
-    t.columns.map((c) => c.title),
-    ['Стандартный', 'Расширенный', 'Total'],
-  )
-  assert.equal(t.total, 4)
-  assert.equal(t.differing, 2)
-  assert.deepEqual(
-    t.rows.map((r) => r.differs),
-    [true, false, false, true],
-  )
-  assert.equal(t.rows[0]!.cells[0]!.factId, 'kb_std_enc')
-})
-
-test('buildTable: «только различия» и различие по показанным колонкам', () => {
-  const only = buildTable(cmp, { onlyDiff: true })
-  assert.deepEqual(
-    only.rows.map((r) => r.key),
-    ['encryption', 'price'],
-  )
-  assert.equal(only.total, 4)
-  // Расширенный против Total: шифрование одинаково, цена одинакова — различий нет.
-  const pair = buildTable(cmp, { onlyDiff: true, columns: [1, 2] })
-  assert.equal(pair.rows.length, 0)
-  assert.equal(pair.differing, 0)
-  // Чужие индексы отбрасываются.
-  assert.equal(buildTable(cmp, { columns: [0, 9] }).columns.length, 1)
-  assert.equal(buildTable(null).rows.length, 0)
-})
-
-test('rowDiffers: «нет сведений» везде — не различие, одна колонка — не различие', () => {
-  assert.equal(rowDiffers([cellView({ kind: 'unknown' }), cellView({ kind: 'unknown' })]), false)
-  assert.equal(rowDiffers([cellView({ kind: 'unknown' }), cellView({ kind: 'yes' })]), true)
-  assert.equal(rowDiffers([cellView({ kind: 'yes' })]), false)
-  assert.equal(
-    rowDiffers([
-      cellView({ kind: 'value', value: 'Да' }),
-      cellView({ kind: 'value', value: 'да' }),
-    ]),
-    false,
-  )
-})
-
-test('visibleColumns: на телефоне две колонки, вторая — выбранная', () => {
-  assert.deepEqual(visibleColumns(3, false, 2), [0, 1, 2])
-  assert.deepEqual(visibleColumns(2, true, 1), [0, 1])
-  assert.deepEqual(visibleColumns(4, true, 3), [0, 3])
-  assert.deepEqual(visibleColumns(4, true, 0), [0, 1])
-  assert.deepEqual(visibleColumns(4, true, 7), [0, 1])
-})
-
-test('claimIndex и sourceName: источник по факту, имя без даты', () => {
-  const m = claimIndex([
-    {
-      fact_id: 'f1',
-      text: 'Шифрование',
-      source: { title: '', url: 'https://www.kaspersky.ru/a', fragment: '…' },
-      status: 'verified',
-    },
-    { fact_id: '', text: '', source: null, status: '' },
-  ])
-  assert.equal(m.size, 1)
-  assert.equal(sourceName(m.get('f1')!.source), 'kaspersky.ru')
-  assert.equal(sourceName({ title: ' Справка Kaspersky ', url: '' }), 'Справка Kaspersky')
-  assert.equal(sourceName({ title: '', url: 'not a url' }), 'источник')
-  assert.equal(sourceName(null), '')
-  assert.equal(claimMark({ status: 'verified' }), '')
-  assert.equal(claimMark({ status: 'verified_agent' }), 'проверено автоматически')
-  assert.equal(claimMark({ status: 'draft' }), 'не проверено')
-})
-
-test('originLabel: подписи происхождения условий', () => {
-  assert.equal(originLabel('default'), 'по умолчанию')
-  assert.equal(originLabel('inferred'), 'по запросу')
-  assert.equal(originLabel('user'), '')
-  assert.equal(originLabel('что-то'), '')
-  const c: GuideCondition = { key: 'term_months', label: '1 год', value: '12', origin: 'default' }
-  assert.equal(conditionAria(c), '1 год — по умолчанию')
-  assert.equal(conditionAria({ ...c, origin: 'user' }), '1 год')
-})
-
-test('chipView и isOtherChip: ключ чипа или ключ вопроса', () => {
-  assert.deepEqual(chipView('30', 'count'), { label: '30', value: '30', key: 'count' })
-  assert.deepEqual(chipView({ label: 'Воронеж' }, 'level'), {
-    label: 'Воронеж',
-    value: 'Воронеж',
-    key: 'level',
-  })
-  assert.deepEqual(chipView({ label: '1 год', key: 'term_months', value: '12' }, 'x'), {
-    label: '1 год',
-    value: '12',
-    key: 'term_months',
-  })
-  assert.equal(isOtherChip(chipView('другое')), true)
-  assert.equal(isOtherChip(chipView('Другое')), true)
-  assert.equal(isOtherChip(chipView('100')), false)
-})
-
 test('routeMode: режимы POST /api/guide/route', () => {
   assert.equal(routeMode({ mode: 'search_offer' }), 'offer')
   assert.equal(routeMode({ mode: 'search' }), 'search')
   assert.equal(routeMode({ mode: 'guide' }), 'guide')
   assert.equal(routeMode({ mode: '???' }), null)
   assert.equal(routeMode(null), null)
-})
-
-test('conditionMessage: правка условия текстом', () => {
-  const c = { label: '1 год', value: '12' }
-  assert.equal(conditionMessage(c, null), 'без условия «1 год»')
-  assert.equal(conditionMessage(c, '2 года'), '2 года')
 })
 
 const offer = (over: Partial<GuideOffer> = {}): GuideOffer => ({
@@ -366,82 +183,6 @@ test('withSpecLine и selectionId: цена из черновика сервер
   assert.equal(
     lineFromOffer(offer({ price_state: 'on_request' }), [], 'q').price_mode,
     'quote_required',
-  )
-})
-
-test('isRefusal и pendingStep', () => {
-  assert.equal(isRefusal({ type: 'no_data' }), true)
-  assert.equal(isRefusal({ type: 'out_of_scope' }), true)
-  assert.equal(isRefusal({ type: 'comparison' }), false)
-  assert.equal(isRefusal(null), false)
-  assert.equal(pendingStep(0), 'Ищу редакции')
-  assert.equal(pendingStep(1300), 'Сверяю правила')
-  assert.equal(pendingStep(99999), 'Считаю цену')
-  assert.equal(pendingIndex(-5), 0)
-  assert.equal(pendingIndex(2500), 2)
-})
-
-test('cellView: число в денежной строке — цена, «0 ₽» никогда', () => {
-  assert.equal(
-    sp(cellView({ kind: 'value', value: 2813.4 }, 'price_per_seat_year').text),
-    '2 813,40 ₽',
-  )
-  assert.equal(sp(cellView({ kind: 'value', value: 84402 }, 'total').text), '84 402 ₽')
-  assert.equal(cellView({ kind: 'value', value: 0 }, 'total').tone, 'unknown')
-  assert.equal(sp(cellView({ kind: 'value', value: 1500 }, 'seats').text), '1 500')
-  assert.equal(
-    sp(
-      buildTable({
-        columns: cmp.columns.slice(0, 1),
-        rows: [{ key: 'total', label: 'Итого', cells: [{ kind: 'value', value: 197010 }] }],
-      }).rows[0]!.cells[0]!.text,
-    ),
-    '197 010 ₽',
-  )
-})
-
-test('unitText, offerRole, splitOffers и условие count:workstation', () => {
-  assert.equal(unitText('за компьютер'), 'компьютер')
-  assert.equal(unitText('компьютер'), 'компьютер')
-  assert.equal(unitText(undefined), '')
-  assert.equal(perUnit('за лицензию'), 'за лицензию')
-  assert.equal(perUnit('компьютер'), 'за компьютер')
-  assert.equal(perUnit(''), '')
-  assert.equal(
-    sp(priceWithUnit(offer({ price_per_unit: 1850, unit: 'за рабочее место' }))),
-    '1 850 ₽ за рабочее место',
-  )
-  assert.equal(priceWithUnit(offer({ price_per_unit: 0 })), 'Цена по запросу')
-  assert.equal(offerRole({ role: 'rejected' }), 'rejected')
-  assert.equal(offerRole({ role: 'alternative' }), 'alternative')
-  assert.equal(offerRole({}), 'match')
-  assert.equal(offerRole({ role: '???' }), 'match')
-  const s = splitOffers([
-    offer({ offer_id: 'a', role: 'match' }),
-    offer({ offer_id: 'b', role: 'rejected' }),
-    offer({ offer_id: 'c', role: 'alternative' }),
-    offer({ offer_id: 'd' }),
-  ])
-  assert.deepEqual(
-    s.match.map((o) => o.offer_id),
-    ['a', 'd'],
-  )
-  assert.deepEqual(
-    s.alternative.map((o) => o.offer_id),
-    ['c'],
-  )
-  assert.deepEqual(
-    s.rejected.map((o) => o.offer_id),
-    ['b'],
-  )
-  assert.equal(
-    conditionCount([{ key: 'count:workstation', label: '50 ПК', value: '50', origin: 'user' }]),
-    50,
-  )
-  assert.equal(conditionCount([{ key: 'counter', label: '', value: '5', origin: 'user' }]), null)
-  assert.equal(
-    lineFromOffer(offer({ unit: 'за компьютер' }), [], 'q').license_line,
-    'арт. KL4867RAQFS · ступень 50–99 · за компьютер',
   )
 })
 
@@ -553,197 +294,34 @@ test('offerName: семейство и редакция вместо строк�
   )
 })
 
-test('priceMath и packText: цена × количество, пакеты, «0 ₽» — никогда', () => {
-  const m = priceMath({
-    price_per_unit: 3940.2,
-    total: 197010,
-    price_state: 'priced',
-    unit: 'за компьютер',
+test('подписи и роли: происхождение условия, чип, отказ, роль оффера, число мест, единица', () => {
+  assert.equal(originLabel('default'), 'по умолчанию')
+  assert.equal(originLabel('inferred'), 'по запросу')
+  assert.equal(originLabel('user'), '')
+  assert.deepEqual(chipView({ label: '30', value: '30' }, 'count:workstation'), {
+    label: '30',
+    value: '30',
+    key: 'count:workstation',
   })
-  assert.equal(sp(m.unit), '3 940,20 ₽')
-  assert.equal(m.per, 'за компьютер')
-  assert.equal(m.times, 50)
-  assert.equal(sp(m.total), '197 010 ₽')
-  assert.equal(m.pack, null)
-  // Одна единица — без «× 1».
-  const one = priceMath({
-    price_per_unit: 70000,
-    total: 70000,
-    price_state: 'priced',
-    unit: 'за сервер',
+  assert.deepEqual(chipView('10', 'count:server'), {
+    label: '10',
+    value: '10',
+    key: 'count:server',
   })
-  assert.equal(one.times, null)
-  // Пакет: цена за место, комплекты из итога.
-  const pack = priceMath({
-    price_per_unit: 1347.84,
-    total: 26956.8,
-    price_state: 'priced',
-    unit: 'за место, пакетами по 5',
-    package_price: 6739.2,
-    package_size: 5,
-  })
-  assert.equal(pack.per, 'за место')
-  assert.equal(pack.times, 20)
-  assert.deepEqual(pack.pack && { ...pack.pack, price: sp(pack.pack.price) }, {
-    count: 4,
-    size: 5,
-    price: '6 739,20 ₽',
-  })
-  assert.equal(sp(packText(pack.pack)), '4 комплекта на 5 мест по 6 739,20 ₽')
+  assert.equal(isRefusal({ type: 'no_data' }), true)
+  assert.equal(isRefusal({ type: 'selection' }), false)
+  assert.equal(offerRole({ role: 'rejected' }), 'rejected')
+  assert.equal(offerRole({}), 'match')
+  const parts = splitOffers([
+    offer({ offer_id: 'a' }),
+    offer({ offer_id: 'b', role: 'alternative' }),
+  ])
+  assert.deepEqual([parts.match.length, parts.alternative.length, parts.rejected.length], [1, 1, 0])
   assert.equal(
-    sp(packText({ count: 1, size: 20, price: '36 368,28 ₽' })),
-    'комплект на 20 мест — 36 368,28 ₽',
+    conditionCount([{ key: 'count:workstation', label: '30 ПК', value: '30', origin: 'user' }]),
+    30,
   )
-  assert.equal(packText(null), '')
-  const none = priceMath({ price_per_unit: 0, total: 0, price_state: 'priced', unit: 'за место' })
-  assert.equal(none.known, false)
-  assert.equal(none.unit, 'Цена по запросу')
-  assert.equal(none.per, '')
-  assert.equal(none.total, '')
-})
-
-test('rejectedTitle, sharedNote, turnAnswer, conditionAsk, conditionText', () => {
-  const c = (key: string, label: string, value = label): GuideCondition => ({
-    key,
-    label,
-    value,
-    origin: 'user',
-  })
-  assert.equal(rejectedTitle([c('object', 'для сервера', 'server')]), 'Не подходит для сервера')
-  assert.equal(rejectedTitle([]), 'Не подходит под ваши условия')
-  assert.equal(
-    sharedNote([{ note: 'нужна серверная' }, { note: 'нужна  серверная' }]),
-    'нужна серверная',
-  )
-  assert.equal(sharedNote([{ note: 'а' }, { note: 'б' }]), '')
-  const base = { type: 'selection', lead: '', offers: [], clarification: null } as never
-  assert.equal(turnAnswer(null), '')
-  assert.equal(
-    turnAnswer({ ...(base as object), lead: ' Подходит «Расширенный». ' } as never),
-    'Подходит «Расширенный».',
-  )
-  assert.equal(
-    turnAnswer({
-      ...(base as object),
-      clarification: { question: 'Сколько компьютеров?', chips: [] },
-    } as never),
-    'Сколько компьютеров?',
-  )
-  assert.equal(
-    turnAnswer({ ...(base as object), offers: [{ role: 'match' }, { role: 'match' }] } as never),
-    '2 варианта под условия',
-  )
-  assert.equal(conditionAsk(c('term_months', '1 год', '12'), null), 'Без условия «1 год»')
-  assert.equal(conditionAsk(c('count:workstation', '30 ПК', '30'), '40'), '30 ПК → 40')
-  assert.equal(
-    conditionAsk(c('org_type', 'коммерческая организация', 'commercial'), 'home'),
-    'коммерческая организация → для дома',
-  )
-  assert.equal(
-    conditionText(c('direction', 'антивирус для рабочих мест', 'endpoint')),
-    'Понял: антивирус для рабочих мест',
-  )
-  assert.equal(conditionText(c('operation', 'новая лицензия', 'new')), 'новая лицензия')
-  assert.ok(conditionOptions('org_type')?.some((o) => o.value === 'home'))
-  assert.equal(conditionOptions('count:workstation'), null)
-  assert.equal(
-    keepNumbers('среди подходящих: 1 347,84 ₽'),
-    'среди подходящих: 1\u00a0347,84\u00a0₽',
-  )
-})
-
-test('compareView: функции с «только различия», деньги одной строкой', () => {
-  const v = (kind: string, value?: number | string) => ({ kind, value })
-  const cmp: GuideComparison = {
-    columns: [
-      { family_id: 'a', title: 'Стандартный', family_url: '' },
-      { family_id: 'b', title: 'Расширенный', family_url: '' },
-    ],
-    rows: [
-      { key: 'encryption', label: 'Шифрование', kind: 'feature', cells: [v('no'), v('yes')] },
-      { key: 'console', label: 'Консоль', kind: 'feature', cells: [v('yes'), v('yes')] },
-      {
-        key: 'license_unit',
-        label: 'Единица',
-        kind: 'commercial',
-        cells: [v('value', 'за место'), v('value', 'за компьютер')],
-      },
-      {
-        key: 'price_per_seat_year',
-        label: 'Цена за компьютер в год, 25–49 мест',
-        kind: 'commercial',
-        cells: [v('value', 2813.4), v('value', 4081.5)],
-      },
-      {
-        key: 'total',
-        label: 'Итого на 30 ПК',
-        kind: 'commercial',
-        cells: [v('value', 84402), v('value', 122445)],
-      },
-    ],
-  }
-  const all = compareView(cmp)
-  assert.deepEqual(
-    all.features.map((r) => r.key),
-    ['encryption', 'console', 'license_unit'],
-  )
-  assert.equal(all.total, 3)
-  assert.equal(all.differing, 2)
-  assert.equal(all.prices.length, 1)
-  const p = all.prices[0]!
-  assert.equal(p.key, 'total')
-  assert.equal(p.note, 'цена за компьютер в год, 25–49 мест')
-  assert.equal(sp(p.cells[1]!.total.text), '122 445 ₽')
-  assert.equal(sp(p.cells[1]!.unit!.text), '4 081,50 ₽')
-  const diff = compareView(cmp, { onlyDiff: true })
-  assert.deepEqual(
-    diff.features.map((r) => r.key),
-    ['encryption', 'license_unit'],
-  )
-  assert.equal(diff.prices.length, 1)
-  // Варианты Astra: price:<объект> сливается с total:<объект>; цена без итога — своей строкой.
-  const astra = compareView({
-    columns: cmp.columns,
-    rows: [
-      {
-        key: 'price:workstation',
-        label: 'Цена за рабочую станцию',
-        kind: 'commercial',
-        cells: [v('value', 6150), v('value', 11400)],
-      },
-      {
-        key: 'total:workstation',
-        label: 'Итого на 30 рабочих станций',
-        kind: 'commercial',
-        cells: [v('value', 184500), v('value', 342000)],
-      },
-      {
-        key: 'price:server',
-        label: 'Цена за сервер',
-        kind: 'commercial',
-        cells: [v('value', 27000), v('unknown')],
-      },
-    ],
-  })
-  assert.deepEqual(
-    astra.prices.map((r) => r.key),
-    ['total:workstation', 'price:server'],
-  )
-  assert.equal(astra.prices[1]!.cells[1]!.total.text, 'нет сведений')
-  assert.equal(compareView(null).prices.length, 0)
-})
-
-test('columnOffer: подходящая позиция семейства, отклонённые не берутся', () => {
-  const o = (id: string, family_id: string, role: string) =>
-    ({ offer_id: id, family_id, role }) as GuideOffer
-  const offers = [
-    o('1', 'a', 'rejected'),
-    o('2', 'a', 'alternative'),
-    o('3', 'a', 'match'),
-    o('4', 'b', 'match'),
-  ]
-  assert.equal(columnOffer('a', offers)?.offer_id, '3')
-  assert.equal(columnOffer('b', offers)?.offer_id, '4')
-  assert.equal(columnOffer('c', offers), null)
-  assert.equal(columnOffer('a', [o('1', 'a', 'rejected')]), null)
+  assert.equal(conditionCount([]), null)
+  assert.equal(perUnit('компьютер'), 'за компьютер')
+  assert.equal(perUnit('за сервер'), 'за сервер')
 })

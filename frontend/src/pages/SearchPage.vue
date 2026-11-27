@@ -2,11 +2,11 @@
 // Экран «Поиск». Адрес — единственный источник состояния запроса
 // (lib/searchState.ts): строка, конфигурация, клиент, уточнения и открытая трасса. Любое изменение
 // адреса, кроме трассы, — новый POST /api/search; прошлый запрос отменяется.
-import { computed, nextTick, reactive, ref, shallowRef, watch } from 'vue'
+import { computed, nextTick, onBeforeUnmount, reactive, ref, shallowRef, watch } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useRoute, useRouter } from 'vue-router'
 import { DialogContent, DialogOverlay, DialogPortal, DialogRoot, DialogTitle } from 'reka-ui'
-import { Headset, Info, ShieldAlert } from 'lucide-vue-next'
+import { Headset, Info, ShieldAlert, SlidersHorizontal } from 'lucide-vue-next'
 import { postEvent } from '@/api/events'
 import { postSearch } from '@/api/search'
 import type {
@@ -95,14 +95,12 @@ import { usableFacet, withFilter } from '@/lib/facets'
 import { helpAnswerShown, helpHintShown, specPurchase, supplyShown } from '@/lib/procurement'
 import { type SpecLine, lineFromCompanion, lineFromItem, quantityForItem } from '@/lib/spec'
 import type { SlotChoice } from '@/lib/solution'
-import type { GuideCondition, GuideOffer } from '@/api/typesGuide'
+import type { GuideOffer } from '@/api/typesGuide'
 import GuideHint from '@/components/guide/GuideHint.vue'
 import GuidePanel from '@/components/guide/GuidePanel.vue'
 import { useGuide } from '@/composables/useGuide'
 import {
   type GuideMode,
-  conditionAsk,
-  conditionMessage,
   guideMode,
   lineFromOffer,
   offerRole,
@@ -110,6 +108,7 @@ import {
   specOffers,
 } from '@/lib/guide'
 import { postGuideRoute } from '@/api/guide'
+import { taskText } from '@/lib/guideView'
 
 const route = useRoute()
 const router = useRouter()
@@ -662,7 +661,8 @@ function submit(raw: string) {
 }
 
 /** Панель поиска (контур выдачи): Enter, подсказка, категория, производитель, товар — с условиями бейджей. */
-function onPanelSubmit(p: PanelSubmit) {
+async function onPanelSubmit(p: PanelSubmit) {
+  if (await guideTakesInput(p.q)) return
   pendingIntent = p.intentId
   const next = { ...withQuery(state.value, p.q), filters: p.filters }
   if (
@@ -778,12 +778,18 @@ function onComplement(type: 'add_to_cart' | 'price_request', c: Complement, inde
     )
 }
 
-// ── Контур подбора: режим подбора в поиске (SPEC §1). Блок над выдачей; выдача и спецификация живут отдельно. ──
+// ── Контур подбора–9: режим подбора в поиске (SPEC §1, UI.md). Рабочая область справа от выдачи на широком экране, блок над
+// выдачей на узком; выдача и спецификация живут отдельно. ──
 const guide = reactive(useGuide())
+/** Подбор справа от выдачи: ширина, где рядом умещаются 480–560 px области и рабочая выдача. */
+const guideWide = useMediaQuery('(min-width: 1100px)')
+const guideDocked = computed(() => guide.open && guideWide.value)
+/** Фильтры выдачи при открытом подборе свёрнуты в кнопку там, где колонке не хватает ширины. */
+const facetsOpen = ref(false)
 /**
  * Режим строки для показанной выдачи (SPEC §1). Порядок: признак в ответе поиска → POST /api/guide/route (правила
- * ядра, без модели) → правило фронта по цели и запросу (lib/guide.ts). Выдача не ждёт решения: строка-предложение
- * появляется, когда режим известен.
+ * ядра, без модели; `open_now` — раскрыть сразу) → правило фронта по цели и запросу (lib/guide.ts). Выдача не ждёт
+ * решения: строка-приглашение появляется, когда режим известен.
  */
 const routed = shallowRef<{ q: string; mode: GuideMode; offer: string } | null>(null)
 const mode = computed<GuideMode>(() =>
@@ -791,8 +797,18 @@ const mode = computed<GuideMode>(() =>
     ? routed.value.mode
     : 'search',
 )
+/** Свёрнутый подбор по этому же запросу: строка-приглашение возвращает к нему с сохранёнными условиями. */
+const guideResume = computed(() =>
+  !guide.open && guide.response && guide.query === response.value?.query
+    ? taskText(guide.response) || 'Подбор по запросу'
+    : '',
+)
 const guideHintShown = computed(
-  () => mode.value === 'offer' && !guide.open && !helpShown.value && !blocks.value.nothing,
+  () =>
+    !guide.open &&
+    !helpShown.value &&
+    !blocks.value.nothing &&
+    (mode.value === 'offer' || Boolean(guideResume.value)),
 )
 /** Вход со страницы семейства: /search?q=…&guide=1 или &guide=<вопрос-чип>. */
 const guideEntry = computed(() => {
@@ -801,27 +817,56 @@ const guideEntry = computed(() => {
 })
 let routeCtrl: AbortController | null = null
 
-async function decideMode(resp: SearchResponse): Promise<{ mode: GuideMode; offer: string }> {
-  const local = guideMode(resp.query, resp)
-  if (resp.guide?.mode) return { mode: local, offer: '' }
+async function askRoute(q: string, ms = 1500) {
   routeCtrl?.abort()
   const c = new AbortController()
   routeCtrl = c
-  const t = setTimeout(() => c.abort(), 1500)
+  const t = setTimeout(() => c.abort(), ms)
   try {
-    const r = await postGuideRoute(resp.query, { signal: c.signal, ignoreUnauthorized: true })
-    return { mode: routeMode(r) ?? local, offer: r.offer ?? '' }
-  } catch {
-    // Ядро без /api/guide/route или не ответило — правило фронта.
-    return { mode: local, offer: '' }
+    return await postGuideRoute(q, { signal: c.signal, ignoreUnauthorized: true })
   } finally {
     clearTimeout(t)
   }
 }
 
+async function decideMode(resp: SearchResponse): Promise<{ mode: GuideMode; offer: string }> {
+  const local = guideMode(resp.query, resp)
+  if (resp.guide?.mode) return { mode: local, offer: '' }
+  try {
+    const r = await askRoute(resp.query)
+    return { mode: routeMode(r) ?? local, offer: r.offer ?? '' }
+  } catch {
+    // Ядро без /api/guide/route или не ответило — правило фронта.
+    return { mode: local, offer: '' }
+  }
+}
+
+/**
+ * Ввод покупателя — в той же строке поиска (UI §3). Пока подбор открыт, реплика без нового товара и без новой
+ * задачи («компьютеров будет 50, и шифрование нужно») уточняет подбор: выдача слева не меняется, строка поиска
+ * возвращается к запросу выдачи. Новая задача («самый дешёвый криптопро для сервера»), название или артикул — новый
+ * поиск. Решает ядро (/api/guide/route); не ответило — обычный поиск.
+ */
+async function guideTakesInput(raw: string): Promise<boolean> {
+  const q = raw.trim()
+  if (!q || !guide.open || guide.collapsed || !guide.response) return false
+  if (q === guide.query || q === state.value.q) return false
+  try {
+    const r = await askRoute(q, 1200)
+    if (r.open_now || r.mode !== 'search_offer') return false
+  } catch {
+    return false
+  }
+  guide.say(q)
+  text.value = state.value.q
+  trackQuiet('click', { payload: { action: 'guide_say', place: 'search_line' } })
+  return true
+}
+
 watch(response, async (resp) => {
   if (!resp || !onSearchRoute()) return
   const q = resp.query
+  facetsOpen.value = false
   const entry = guideEntry.value
   if (entry) {
     routed.value = { q, mode: 'offer', offer: '' }
@@ -835,18 +880,18 @@ watch(response, async (resp) => {
   if (response.value !== resp) return
   routed.value = { q, ...decided }
   if (decided.mode === 'guide') {
-    // Вопрос в строке поиска — новый подбор со своим состоянием: условия прошлого запроса не переносятся
-    // (смена темы, SPEC §2). Уточнить текущий подбор — полем внутри блока.
-    if (!guide.open || guide.query !== q) guide.start(q)
+    // Явная просьба в строке поиска — подбор раскрывается сразу; новый запрос — новый подбор со своим состоянием
+    // (смена темы, SPEC §2), тот же — прежний подбор с сохранёнными условиями.
+    guide.start(q)
     return
   }
-  // Новый запрос другим текстом — подбор сворачивается, не мешает выдаче (закрыть можно кнопкой).
-  if (guide.open && guide.query !== q) guide.collapsed = true
+  // Новый запрос другим текстом — подбор скрывается и не мешает выдаче.
+  if (guide.open && guide.query !== q) guide.hide()
 })
 watch(
   () => state.value.q,
   (q) => {
-    if (!q) guide.close()
+    if (!q) guide.reset()
   },
 )
 
@@ -854,6 +899,37 @@ function onGuideStart() {
   trackQuiet('click', { payload: { action: 'guide_start' } })
   guide.start(response.value?.query ?? state.value.q)
 }
+
+/** «Изменить» задачу без списка направлений — уточнить её в строке поиска. */
+function onGuideRefine() {
+  box.value?.focus()
+}
+
+/** Рабочая область справа: высота — от её верха до низа окна, итоговая строка всегда видна. */
+const guideAside = ref<HTMLElement | null>(null)
+let fitFrame = 0
+function fitGuideAside() {
+  cancelAnimationFrame(fitFrame)
+  fitFrame = requestAnimationFrame(() => {
+    const el = guideAside.value
+    if (!el) return
+    const top = Math.max(0, el.getBoundingClientRect().top)
+    el.style.height = `${Math.max(320, window.innerHeight - top)}px`
+  })
+}
+watch(guideAside, (el) => {
+  window.removeEventListener('scroll', fitGuideAside)
+  window.removeEventListener('resize', fitGuideAside)
+  if (!el) return
+  window.addEventListener('scroll', fitGuideAside, { passive: true })
+  window.addEventListener('resize', fitGuideAside)
+  fitGuideAside()
+})
+onBeforeUnmount(() => {
+  window.removeEventListener('scroll', fitGuideAside)
+  window.removeEventListener('resize', fitGuideAside)
+  cancelAnimationFrame(fitFrame)
+})
 
 /** Офферы, которые сейчас уходят в черновик: повторный клик строку не дублирует. */
 const guideAdding = new Set<string>()
@@ -873,29 +949,31 @@ async function addGuideOffer(o: GuideOffer): Promise<boolean> {
   }
 }
 
+/** «В спецификацию»: подтверждение — в итоговой строке подбора, условия не сбрасываются. */
 async function onGuideSpec(o: GuideOffer) {
   if (spec.has(o.offer_id)) {
-    spec.open = true
+    guide.added = o.offer_id
     return
   }
   if (!(await addGuideOffer(o))) return
+  guide.added = o.offer_id
   trackQuiet('click', { productId: o.offer_id, payload: { action: 'spec', place: 'guide' } })
-  toast.add({
-    tone: 'ok',
-    title: 'Добавлено в спецификацию',
-    detail: o.title,
-    action: openSpecAction(),
-  })
 }
 
-/** «Запросить КП» в подборе: подобранная позиция с условиями — в спецификацию, панель КП открывается. */
-async function onGuideQuote() {
-  // Все строки подбора (рабочие станции и серверы) или первый подходящий оффер.
-  const list = specOffers(guide.response?.offers)
-  const o = list[0]
+/** «Запросить КП» в подборе: позиция с условиями — в спецификацию, панель КП открывается. */
+async function onGuideQuote(o: GuideOffer | null) {
+  const list = o ? [o] : specOffers(guide.response?.offers)
   for (const x of list) await addGuideOffer(x)
-  trackQuiet('click', { productId: o?.offer_id, payload: { action: 'quote', place: 'guide' } })
+  trackQuiet('click', {
+    productId: list[0]?.offer_id,
+    payload: { action: 'quote', place: 'guide' },
+  })
   spec.open = true
+}
+
+function onGuideContinue() {
+  guide.hide()
+  box.value?.focus()
 }
 
 function sendManagerRequest() {
@@ -963,38 +1041,40 @@ async function onSupply() {
       </div>
     </div>
 
-    <div :class="['search-page__cols', { 'search-page__cols--trace': state.trace && isDesktop }]">
+    <div
+      :class="[
+        'search-page__cols',
+        {
+          'search-page__cols--trace': state.trace && isDesktop,
+          'search-page__cols--guide': guideDocked,
+        },
+      ]"
+    >
       <div class="search-page__main">
         <Teleport defer to="#footer-tools">
           <UiSwitch label="Трасса" :model-value="state.trace" @update:model-value="setTrace" />
         </Teleport>
 
         <GuidePanel
-          v-if="guide.open"
+          v-if="guide.open && !guideWide"
           v-model:collapsed="guide.collapsed"
+          compact
           :status="guide.status"
           :response="guide.response"
           :error="guide.error"
-          :pending-text="guide.pendingText"
-          :pending-step="guide.pendingStepIndex"
-          :ask="guide.ask"
-          :pending-ask="guide.pendingAsk"
-          :turns="guide.turns"
+          :added="guide.added"
+          :said="guide.said"
           :in-spec="inSpec"
-          @close="guide.close()"
+          @hide="guide.hide()"
           @answer="guide.answer"
           @say="guide.say"
-          @edit="
-            (c: GuideCondition, value: string | null) =>
-              guide.editCondition(
-                { key: c.key, value },
-                conditionMessage(c, value),
-                conditionAsk(c, value),
-              )
-          "
+          @edit="(key: string, value: string | null) => guide.editCondition({ key, value })"
           @retry="guide.retry()"
           @spec="onGuideSpec"
           @quote="onGuideQuote"
+          @continue="onGuideContinue"
+          @open-spec="spec.open = true"
+          @refine="onGuideRefine"
         />
 
         <ResultSkeleton v-if="status === 'loading'" />
@@ -1018,7 +1098,7 @@ async function onSupply() {
             {{ formatFound(response.total, response.trace?.total_ms) }} · {{ response.config }}
           </p>
 
-          <GuideHint v-if="guideHintShown" :text="routed?.offer" @start="onGuideStart" />
+          <GuideHint v-if="guideHintShown" :resume="guideResume" @start="onGuideStart" />
 
           <TargetCard
             v-if="target && !helpShown"
@@ -1174,11 +1254,25 @@ async function onSupply() {
               'search-page__body',
               {
                 'search-page__body--facets': resultsOn ? showResultFacets : showFacets,
+                'search-page__body--fold': guideDocked,
+                'search-page__body--fold-open': guideDocked && facetsOpen,
                 'search-page__body--busy': refreshing,
               },
             ]"
             :aria-busy="refreshing || undefined"
           >
+            <button
+              v-if="guideDocked && (resultsOn ? showResultFacets : showFacets)"
+              type="button"
+              class="btn btn--secondary btn--sm search-page__filters-btn"
+              :aria-expanded="facetsOpen"
+              data-testid="filters-toggle"
+              @click="facetsOpen = !facetsOpen"
+            >
+              <SlidersHorizontal :size="16" aria-hidden="true" />
+              {{ facetsOpen ? 'Скрыть фильтры' : 'Фильтры' }}
+              <span v-if="filters.length" class="t-num">· {{ filters.length }}</span>
+            </button>
             <ResultsFacets
               v-if="resultsOn && showResultFacets"
               class="search-page__facets"
@@ -1579,6 +1673,33 @@ async function onSupply() {
         <SearchStart v-else @search="submit" />
       </div>
 
+      <aside
+        v-if="guideDocked"
+        ref="guideAside"
+        class="search-page__guide"
+        aria-label="Подбор лицензии"
+      >
+        <GuidePanel
+          class="search-page__guide-panel"
+          :status="guide.status"
+          :response="guide.response"
+          :error="guide.error"
+          :added="guide.added"
+          :said="guide.said"
+          :in-spec="inSpec"
+          @hide="guide.hide()"
+          @answer="guide.answer"
+          @say="guide.say"
+          @edit="(key: string, value: string | null) => guide.editCondition({ key, value })"
+          @retry="guide.retry()"
+          @spec="onGuideSpec"
+          @quote="onGuideQuote"
+          @continue="onGuideContinue"
+          @open-spec="spec.open = true"
+          @refine="onGuideRefine"
+        />
+      </aside>
+
       <aside v-if="state.trace && isDesktop" class="search-page__trace" aria-label="Трасса запроса">
         <TracePanel
           :trace="response?.trace ?? null"
@@ -1665,8 +1786,39 @@ async function onSupply() {
   margin-inline: auto;
   padding: var(--space-4) var(--gutter) var(--space-12);
 }
-.search-page__cols--trace .search-page__main {
+.search-page__cols--trace .search-page__main,
+.search-page__cols--guide .search-page__main {
   max-width: none;
+}
+/* Подбор справа от выдачи (UI §1, §5): 480–560 px, отступ 24 px, своя прокрутка, итоговая строка прилипает к низу. */
+.search-page__guide {
+  position: sticky;
+  top: var(--header-actual, var(--header-h));
+  align-self: flex-start;
+  flex: none;
+  box-sizing: border-box;
+  display: flex;
+  width: clamp(30rem, 36vw, 35rem);
+  height: calc(100dvh - var(--header-actual, var(--header-h)));
+  margin-left: var(--space-6);
+  border-left: var(--border-w) solid var(--border);
+  background: var(--surface);
+}
+.search-page__guide-panel {
+  flex: 1;
+}
+/* Кнопка «Фильтры» — только там, где при открытом подборе колонке не хватает ширины на панель фильтров. */
+.search-page__filters-btn {
+  display: none;
+  align-self: flex-start;
+}
+@container (max-width: 51.999rem) {
+  .search-page__body--fold > .search-page__filters-btn {
+    display: inline-flex;
+  }
+  .search-page__body--fold:not(.search-page__body--fold-open) > .search-page__facets {
+    display: none;
+  }
 }
 .search-page__found {
   min-height: var(--lh-sm);

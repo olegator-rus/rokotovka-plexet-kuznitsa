@@ -187,7 +187,7 @@ test.describe("QA покупателя: подбор D3", () => {
     const start = page.getByTestId("guide-start");
     if (await start.count()) await start.click();
     const panel = page.getByTestId("guide-panel");
-    await expect(panel.getByTestId("guide-offer")).toHaveCount(2);
+    await expect(panel.getByTestId("guide-line")).toHaveCount(2);
     await panel.getByTestId("guide-spec").click();
     await expect(
       page.getByRole("button", { name: /^Спецификация, позиций: 2/ }),

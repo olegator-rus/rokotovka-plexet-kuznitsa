@@ -1,9 +1,8 @@
-// Контур подбора режим подбора в поиске (DIALOGS.md D1 и D2).
-// По умолчанию /api/guide — заглушка по контракту (p8-guide-data.ts), поиск — живой. E2E_GUIDE_LIVE=1 — подбор
-// на живом API ядра. E2E_GUIDE_SHOTS=<папка> — снимки на 360, 768 и 1440. Демо-состояние не меняется: события и
-// заявки КП перехватываются общей обвязкой.
+// Режим подбора в поиске: контур подбора (поведение) и контур экрана (рабочая область). По умолчанию /api/guide и /api/guide/route — заглушки по контракту экрана (p8-guide-data.ts), поиск —
+// живой. E2E_GUIDE_LIVE=1 — подбор на живом API ядра. E2E_GUIDE_SHOTS=<папка> — снимки на 1440, 1280 и 360.
+// Демо-состояние не меняется: события и заявки КП перехватываются общей обвязкой.
 import type { Locator, Page, Response } from "@playwright/test";
-import { GUEST, expect, search, test } from "./fixtures";
+import { GUEST, expect, search, searchBox, test } from "./fixtures";
 import { GUIDE_LIVE, stubGuide, type GuideBody } from "./p8-guide-data";
 
 const SHOTS = process.env.E2E_GUIDE_SHOTS ?? "";
@@ -14,6 +13,9 @@ const resultsArea = (page: Page) =>
   page.locator(".search-page__results").getByRole("article");
 const isGuide = (r: Response) =>
   r.url().endsWith("/api/guide") && r.request().method() === "POST";
+/** Пробелы в числах — неразрывные: сравниваем по обычным. */
+const plain = (s: string) => s.replace(/[  ]/g, " ");
+const text = async (l: Locator) => plain(await l.innerText());
 
 /** Ход подбора: действие и ответ /api/guide. */
 async function turn(page: Page, action: () => Promise<unknown>) {
@@ -25,256 +27,353 @@ async function turn(page: Page, action: () => Promise<unknown>) {
   return resp;
 }
 
-async function say(page: Page, text: string) {
-  const box = panel(page).getByTestId("guide-text");
-  await box.fill(text);
-  return turn(page, () => box.press("Enter"));
+/** Поиск, после которого подбор раскрывается сам (явная просьба): ждём и выдачу, и первый ход. */
+async function searchGuide(page: Page, q: string) {
+  await turn(page, () => search(page, q));
 }
 
-const cond = (p: Locator, key: string) => p.locator(`[data-cond="${key}"]`);
+async function noHorizontalScroll(page: Page) {
+  const over = await page.evaluate(
+    () => document.documentElement.scrollWidth - window.innerWidth,
+  );
+  expect(over, "горизонтальной прокрутки нет").toBeLessThanOrEqual(0);
+}
 
-test.describe("режим подбора в поиске", () => {
+test.describe("рабочая область подбора", () => {
   test.use({ storageState: GUEST });
 
   test.describe("на заглушках", () => {
     test.skip(GUIDE_LIVE, "E2E_GUIDE_LIVE=1 — заглушки выключены");
 
-    test("D1: от запроса до спецификации", async ({ page }) => {
-      const calls = await stubGuide(page, { delayMs: 300 });
-      await page.goto("/");
-      await search(page, "защита для компьютеров в офисе");
-
-      // Ноль вопросов до первых карточек: выдача на экране, подбор не вызывался, над выдачей — предложение.
-      await expect(resultsArea(page).first()).toBeVisible();
-      await expect(page.getByTestId("guide-hint")).toContainText(
-        "Могу помочь выбрать редакцию и посчитать лицензии",
-      );
-      expect(calls).toHaveLength(0);
-
-      await turn(page, () => page.getByTestId("guide-start").click());
-      const p = panel(page);
-      await expect(p.getByTestId("guide-question")).toContainText(
-        "Сколько компьютеров",
-      );
-      await expect(page.getByTestId("guide-hint")).toHaveCount(0);
-      expect(calls[0]).toMatchObject({
-        query: "защита для компьютеров в офисе",
-      });
-      expect(calls[0]!.session_id).toBeTruthy();
-
-      // Чип «30»: условия по умолчанию видны и помечены.
-      await turn(page, () =>
-        p.getByRole("button", { name: "30", exact: true }).click(),
-      );
-      expect(calls[1]).toMatchObject({
-        chip: { key: "count:workstation", value: "30" },
-      });
-      await expect(cond(p, "count:workstation")).toContainText("30 ПК");
-      await expect(cond(p, "operation")).toContainText("по умолчанию");
-      await expect(cond(p, "term_months")).toContainText("1 год");
-      await expect(cond(p, "term_months")).toHaveAttribute(
-        "data-origin",
-        "default",
-      );
-      await expect(p.getByTestId("guide-offer")).toHaveCount(2);
-      // Выдача под блоком подбора остаётся.
-      await expect(resultsArea(page).first()).toBeVisible();
-
-      // Сравнение: таблица, четыре вида ячейки, источник с фрагментом и без даты.
-      await say(page, "чем расширенный касперский отличается от стандартного");
-      expect(calls[2]).toMatchObject({
-        message: "чем расширенный касперский отличается от стандартного",
-        state: { turn: 2 },
-      });
-      const table = p.getByTestId("guide-table");
-      await expect(table).toBeVisible();
-      await expect(
-        table.getByRole("columnheader", { name: "Расширенный" }),
-      ).toBeVisible();
-      // По умолчанию — только различия: одинаковые строки (консоль, сертификаты) скрыты, цена — одной строкой «Итого».
-      const features = table.locator('tr[data-kind="feature"]');
-      await expect(features).toHaveCount(2);
-      await expect(table.locator('tr[data-row="console"]')).toHaveCount(0);
-      const enc = table.locator('tr[data-row="encryption"]');
-      await expect(enc.locator("td").nth(0)).toHaveText(
-        "нет по данным вендора",
-      );
-      await expect(enc.locator("td").nth(1)).toHaveText("есть");
-      const total = table.locator('tr[data-row="total"]');
-      await expect(total.getByTestId("guide-cell-total").nth(1)).toHaveText(
-        "122 445 ₽",
-      );
-      await expect(total.locator("td").nth(1)).toContainText("4 081,50 ₽");
-      await expect(
-        table.locator('tr[data-row="price_per_seat_year"]'),
-      ).toHaveCount(0);
-      await enc.getByTestId("guide-source").click();
-      const pop = page.getByTestId("guide-source-pop");
-      await expect(pop).toContainText("Шифрование файлов и дисков");
-      await expect(
-        pop.getByRole("link", { name: /Открыть страницу/ }),
-      ).toHaveAttribute("href", /kaspersky\.ru/);
-      expect(await pop.innerText()).not.toMatch(DATE);
-      await page.keyboard.press("Escape");
-
-      // Все строки: одинаковые возвращаются, «нет сведений» подписано честно.
-      await table.getByRole("switch").click();
-      await expect(features).toHaveCount(4);
-      await expect(table.locator('tr[data-row="certs"] td').first()).toHaveText(
-        "нет сведений",
-      );
-
-      // 30 → 50 и шифрование: Расширенный, ступень 50–99, итог; «При изменении условий».
-      await say(page, "на самом деле компьютеров будет 50, и шифрование нужно");
-      expect(calls[3]!.state).toMatchObject({ turn: 3 });
-      await expect(cond(p, "count:workstation")).toContainText("50 ПК");
-      await expect(cond(p, "required_features")).toContainText(
-        "нужно шифрование",
-      );
-      const offer = p.getByTestId("guide-offer");
-      await expect(offer).toHaveCount(1);
-      await expect(offer.getByTestId("guide-offer-sku")).toHaveText(
-        "KL4867RAQFS",
-      );
-      await expect(offer).toContainText("50–99");
-      await expect(offer.getByTestId("guide-offer-unit")).toContainText(
-        "3 940,20 ₽",
-      );
-      await expect(offer.getByTestId("guide-offer-total")).toContainText(
-        "197 010 ₽",
-      );
-      await expect(p.getByTestId("guide-changes")).toContainText(
-        "Стандартный — 2 715,30 ₽",
-      );
-      await expect(p).not.toContainText(/\b0 ₽/);
-
-      // «Как подобрано»: свёрнуто, раскрывается.
-      const trace = p.getByTestId("guide-trace");
-      await expect(trace.locator("li").first()).toBeHidden();
-      await trace.locator("summary").click();
-      await expect(trace.locator("li")).toHaveCount(3);
-      await expect(trace).toContainText("Подобрана ступень 50–99");
-
-      // В спецификацию: одна строка, 50 шт., сумма; повторный клик строку не дублирует.
-      await p.getByTestId("guide-spec").click();
-      await expect(p.getByTestId("guide-spec")).toHaveText("В спецификации");
-      await p.getByTestId("guide-spec").click();
-      const dialog = page.getByRole("dialog", { name: "Спецификация" });
-      await expect(dialog).toBeVisible();
-      await expect(dialog).toContainText("KL4867RAQFS");
-      await expect(dialog).toContainText("197 010 ₽");
-      await expect(
-        dialog.getByRole("button", { name: "Запросить КП" }),
-      ).toBeVisible();
-      await page.keyboard.press("Escape");
-      await expect(
-        page.getByRole("button", { name: /^Спецификация, позиций: 1/ }),
-      ).toBeVisible();
-
-      // Свернуть и закрыть: выдача и спецификация на месте.
-      await p.getByTestId("guide-collapse").click();
-      await expect(p.getByTestId("guide-text")).toBeHidden();
-      await expect(p).toContainText("50 ПК");
-      await p.getByTestId("guide-close").click();
-      await expect(panel(page)).toHaveCount(0);
-      await expect(resultsArea(page).first()).toBeVisible();
-      await expect(
-        page.getByRole("button", { name: /^Спецификация, позиций: 1/ }),
-      ).toBeVisible();
-      await expect(page.getByTestId("guide-hint")).toBeVisible();
-    });
-
-    test("D2: серверная лицензия КриптоПро первой, рабочее место — «не подходит»", async ({
+    test("сценарий 1: «подбери антивирь» — справа от выдачи, вопрос о количестве, варианты, функция", async ({
       page,
     }) => {
       const calls = await stubGuide(page);
       await page.goto("/");
-      // Вопрос в строке поиска — сразу подбор; выдача тоже на экране.
-      await Promise.all([
-        page.waitForResponse(isGuide),
-        search(page, "самый дешёвый криптопро csp для сервера"),
+      await searchGuide(page, "подбери антивирь");
+      const p = panel(page);
+
+      // Справа от выдачи, 480–560 px; выдача слева видна и кликабельна.
+      await expect(p).toBeVisible();
+      const pb = (await p.boundingBox())!;
+      const rb = (await resultsArea(page).first().boundingBox())!;
+      expect(pb.x).toBeGreaterThan(rb.x + rb.width);
+      expect(pb.width).toBeGreaterThanOrEqual(479);
+      expect(pb.width).toBeLessThanOrEqual(561);
+      await expect(page.getByTestId("guide-hint")).toHaveCount(0);
+
+      // Задача понята, без «что вы имели в виду»; вопрос о количестве с быстрыми значениями.
+      await expect(p.getByTestId("guide-task")).toHaveText(
+        "Антивирус для рабочих мест",
+      );
+      await expect(p.getByTestId("guide-question")).toContainText(
+        "Сколько компьютеров нужно защитить?",
+      );
+      await expect(p.getByTestId("guide-quick")).toHaveText([
+        "10",
+        "20",
+        "30",
+        "50",
+        "100",
       ]);
-      const p = panel(page);
-      await expect(p.getByTestId("guide-lead")).toHaveText(
-        "Лицензия на рабочее место в серверной ОС не действует — нужна серверная.",
+      await expect(p.locator('[data-cond="operation"]')).toContainText(
+        "по умолчанию",
       );
-      const first = p.getByTestId("guide-offer").first();
-      await expect(first).toContainText("серверная лицензия");
-      await expect(first.getByTestId("guide-offer-unit")).toContainText(
-        "70 000 ₽",
-      );
-      // «Не подходит»: лицензии на рабочее место — отдельным блоком с причиной, без кнопок, ниже серверной.
-      const rejected = p.getByTestId("guide-rejected");
-      await expect(rejected).toContainText("Не подходит");
-      await expect(rejected).toContainText("1 850 ₽ за рабочее место");
-      await expect(rejected).toContainText("для сервера не подходит");
-      await expect(rejected.getByRole("button")).toHaveCount(0);
-      await expect(p.getByTestId("guide-offer")).toHaveCount(1);
-      await expect(p.getByTestId("guide-trace")).toContainText(
-        "не подходят по праву использования: 2",
-      );
-      await expect(p.getByTestId("guide-quote")).toBeVisible();
-      await expect(resultsArea(page).first()).toBeVisible();
-      expect(calls[0]).toMatchObject({
-        query: "самый дешёвый криптопро csp для сервера",
-      });
-
-      await say(page, "а для tls-сервера?");
-      await expect(p.getByTestId("guide-lead")).toHaveText(
-        "Для TLS-сервера у КриптоПро отдельная лицензия.",
-      );
-      await expect(p.getByTestId("guide-offer").first()).toContainText("TLS");
-
-      // «Запросить КП»: позиция с условиями — в спецификацию, панель КП открыта.
-      await p.getByTestId("guide-quote").click();
-      const dialog = page.getByRole("dialog", { name: "Спецификация" });
-      await expect(dialog).toContainText("КриптоПро CSP TLS");
-      await expect(
-        dialog.getByRole("button", { name: "Запросить КП" }),
-      ).toBeVisible();
-    });
-
-    test("ошибка хода — повтор; правка и снятие условия", async ({ page }) => {
-      const calls = await stubGuide(page, { fail: 1 });
-      await page.goto("/");
-      await search(page, "защита для компьютеров в офисе");
-      await page.getByTestId("guide-start").click();
-      const p = panel(page);
-      await expect(p.getByTestId("guide-error")).toContainText(
-        "Подобрать не получилось",
-      );
-      await expect(resultsArea(page).first()).toBeVisible();
-      await turn(page, () =>
-        p.getByRole("button", { name: "Повторить" }).click(),
-      );
-      await expect(p.getByTestId("guide-question")).toBeVisible();
-      expect(calls).toHaveLength(2);
+      await expect(p.getByTestId("guide-spec")).toHaveCount(0);
 
       await turn(page, () =>
-        p.getByRole("button", { name: "30", exact: true }).click(),
-      );
-      // Снять «1 год»: уходит condition с value null и прежнее состояние.
-      await turn(page, () =>
-        cond(p, "term_months")
-          .getByRole("button", { name: /Убрать условие/ })
-          .click(),
+        p.getByTestId("guide-quick").filter({ hasText: /^30$/ }).click(),
       );
       expect(calls.at(-1)).toMatchObject({
-        condition: { key: "term_months", value: null },
-        message: "без условия «1 год»",
-        state: { turn: 2 },
+        chip: { key: "count:workstation", value: "30" },
+        state: { selection_id: "e2e-guide" },
       });
-      // Изменить «30 ПК» → 40.
-      await cond(p, "count:workstation")
-        .getByRole("button", { name: /Изменить условие/ })
-        .click();
-      const input = cond(p, "count:workstation").getByRole("textbox");
-      await input.fill("40");
-      await turn(page, () => input.press("Enter"));
+      // Поле количества, несколько вендоров: полная стоимость задачи, без победителя и без главной кнопки.
+      await expect(p.getByTestId("guide-count")).toHaveValue("30");
+      const cost = p.getByTestId("guide-task-cost");
+      await expect(cost.getByTestId("guide-cost-row")).toHaveCount(3);
+      await expect(cost).toContainText(
+        "Состав функций и условия лицензирования различаются",
+      );
+      await expect(p.getByTestId("guide-choose")).toHaveText(
+        "Выберите вариант, чтобы добавить в спецификацию",
+      );
+      await expect(p.getByTestId("guide-spec")).toHaveCount(0);
+      // Выбор строки — появляется итог этой позиции и одна кнопка.
+      await cost.getByTestId("guide-cost-row").nth(1).click();
+      expect(await text(p.getByTestId("guide-sum"))).toBe("84 402 ₽");
+      await expect(p.getByTestId("guide-spec")).toHaveCount(1);
+
+      await turn(page, () =>
+        p
+          .getByTestId("guide-option")
+          .filter({ hasText: "Нужно шифрование данных" })
+          .click(),
+      );
+      const res = p.getByTestId("guide-result");
+      await expect(res.getByTestId("guide-pick-status")).toHaveText(
+        "Подходит под ваши условия",
+      );
+      await expect(res.getByTestId("guide-result-title")).toHaveText(
+        "Kaspersky Endpoint Security — Расширенный",
+      );
+      await expect(res).toContainText("Новая лицензия · 30 компьютеров · 1 год");
+      await expect(p.getByTestId("guide-feature")).toBeChecked();
+      await expect(p.getByTestId("guide-other")).toHaveCount(2);
+      await expect(p.getByTestId("guide-other").first()).toContainText(
+        "Нет шифрования данных",
+      );
+      expect(await text(p.getByTestId("guide-sum"))).toBe("122 445 ₽");
+      expect(await text(p.getByTestId("guide-formula"))).toBe(
+        "30 × 4 081,50 ₽",
+      );
+      // Ни ленты сообщений, ни дат.
+      expect(await p.innerText()).not.toMatch(DATE);
+      await expect(p.getByText("Вы", { exact: true })).toHaveCount(0);
+      // Выдача слева кликабельна при открытом подборе.
+      await resultsArea(page).first().getByRole("button").first().click({ trial: true });
+    });
+
+    test("сценарий 2: сравнение редакций, «Выбрано», уточнение строкой поиска, спецификация", async ({
+      page,
+    }) => {
+      const calls = await stubGuide(page);
+      await page.goto("/");
+      await searchGuide(
+        page,
+        "защита для компьютеров в офисе на 30 ПК, чем расширенный отличается от стандартного",
+      );
+      const p = panel(page);
+      await expect(p.getByTestId("guide-task")).toHaveText(
+        "Антивирус для организации · Kaspersky",
+      );
+      const table = p.getByTestId("guide-table");
+      await expect(table.getByTestId("guide-row")).toHaveCount(4);
+      await expect(table.locator('[data-row="encryption"] td').nth(0)).toContainText("Нет");
+      await expect(table.locator('[data-row="encryption"] td').nth(1)).toContainText("Есть");
+      await expect(table.getByTestId("guide-legend")).toContainText("Есть");
+      await table.getByTestId("guide-more-rows").click();
+      await expect(table.getByTestId("guide-row")).toHaveCount(5);
+      await expect(table.getByTestId("guide-legend")).toContainText("С условиями");
+      await expect(table).toContainText("Ещё 2 характеристики без сведений у вендора");
+      expect(await text(table.getByTestId("guide-difference"))).toBe(
+        "Меньшая стоимость закупки: Стандартный, на 38 043 ₽ дешевле.",
+      );
+      // Без назначенного победителя карточки нет; сумма — один раз, в итоговой строке.
+      await expect(p.getByTestId("guide-result")).toHaveCount(0);
+      expect(await text(p.getByTestId("guide-sum"))).toBe("84 402 ₽");
+      expect((await text(p)).split("84 402 ₽").length - 1).toBe(1);
+      // «Выбрано» меняет итоговую строку.
+      await table.getByTestId("guide-selected").nth(1).check();
+      expect(await text(p.getByTestId("guide-sum"))).toBe("122 445 ₽");
+      expect(await text(p.getByTestId("guide-formula"))).toBe("30 × 4 081,50 ₽");
+
+      // Реплика в строке поиска уточняет подбор: выдача не перезапрашивается, строка возвращается к запросу выдачи.
+      let searched = 0;
+      page.on("request", (r) => {
+        if (r.url().endsWith("/api/search") && r.method() === "POST") searched++;
+      });
+      const box = searchBox(page);
+      await box.fill("компьютеров будет 50, и шифрование нужно");
+      await turn(page, () => box.press("Enter"));
+      expect(calls.at(-1)).toMatchObject({
+        message: "компьютеров будет 50, и шифрование нужно",
+        state: { selection_id: "e2e-guide" },
+      });
+      expect(searched).toBe(0);
+      await expect(box).toHaveValue(/чем расширенный отличается/);
+
+      await expect(p.getByTestId("guide-changes")).toContainText(
+        "Изменено: 30 → 50 компьютеров, шифрование обязательно",
+      );
+      expect(await text(p.getByTestId("guide-price-change"))).toContain(
+        "25–49 компьютеров: 4 081,50 ₽ → 50–99 компьютеров: 3 940,20 ₽",
+      );
+      const res = p.getByTestId("guide-result");
+      await expect(res.getByTestId("guide-result-title")).toHaveText(
+        "Kaspersky Endpoint Security — Расширенный",
+      );
+      await expect(p.getByTestId("guide-other")).toContainText(
+        "Не подходит: нет шифрования данных",
+      );
+      // Источник: текстовая ссылка, фрагмент и документ вендора.
+      await res.getByTestId("guide-source").click();
+      const pop = page.getByTestId("guide-source-pop");
+      await expect(pop).toContainText("Шифрование файлов и дисков");
+      await expect(pop.getByRole("link", { name: /Открыть документ вендора/ })).toHaveAttribute(
+        "href",
+        /kaspersky\.ru/,
+      );
+      await page.keyboard.press("Escape");
+      // Сведения о лицензии — в раскрытии.
+      await res.getByRole("button", { name: /Сведения о лицензии/ }).click();
+      await expect(res.getByTestId("guide-details")).toContainText("Артикул");
+
+      expect(await text(p.getByTestId("guide-sum"))).toBe("197 010 ₽");
+      await p.getByTestId("guide-spec").click();
+      const added = p.getByTestId("guide-added");
+      await expect(added).toContainText("Добавлено в спецификацию");
+      expect(await text(added)).toContain("197 010 ₽");
+      await expect(added.getByRole("button", { name: "Открыть спецификацию" })).toBeVisible();
+      // Условия не сброшены.
+      await expect(p.getByTestId("guide-count")).toHaveValue("50");
+      await expect(p.getByTestId("guide-feature")).toBeChecked();
+      await expect(page.getByRole("button", { name: /^Спецификация, позиций: 1/ })).toBeVisible();
+    });
+
+    test("поле уточнения в рабочей области: тот же ход, «Вы: …» одной строкой, без ленты", async ({
+      page,
+    }) => {
+      const calls = await stubGuide(page);
+      await page.goto("/");
+      await searchGuide(
+        page,
+        "защита для компьютеров в офисе на 30 ПК, чем расширенный отличается от стандартного",
+      );
+      const p = panel(page);
+      const field = p.getByTestId("guide-text");
+      await expect(field).toHaveAttribute("placeholder", /Уточните: например, 50 компьютеров/);
+      await field.fill("компьютеров будет 50, и шифрование нужно");
+      await turn(page, () => field.press("Enter"));
+      expect(calls.at(-1)).toMatchObject({
+        message: "компьютеров будет 50, и шифрование нужно",
+        state: { selection_id: "e2e-guide" },
+      });
+      await expect(field).toHaveValue("");
+      await expect(p.getByTestId("guide-said")).toHaveText(
+        "Вы: компьютеров будет 50, и шифрование нужно",
+      );
+      await expect(p.getByTestId("guide-changes")).toContainText("Изменено: 30 → 50");
+      await expect(p.getByTestId("guide-said")).toHaveCount(1);
+      // Поле уточнения и итоговая строка видны без прокрутки области.
+      await expect(field).toBeInViewport();
+      await expect(p.getByTestId("guide-total")).toBeInViewport();
+    });
+
+    test("сценарий 3: серверная КриптоПро — подходящая, дешёвые на рабочее место с причиной", async ({
+      page,
+    }) => {
+      await stubGuide(page);
+      await page.goto("/");
+      await searchGuide(page, "самый дешёвый криптопро csp для сервера");
+      const p = panel(page);
+      await expect(p.getByTestId("guide-task")).toHaveText("КриптоПро CSP для серверной ОС");
+      const res = p.getByTestId("guide-result");
+      await expect(res.getByTestId("guide-pick-status")).toHaveText("Подходящая лицензия");
+      await expect(res.getByTestId("guide-result-title")).toHaveText("КриптоПро CSP 5.0");
+      await expect(res).toContainText("Серверная лицензия · бессрочная");
+      await expect(res.getByTestId("guide-source")).toHaveText("Правила лицензирования КриптоПро");
+      const others = p.getByTestId("guide-other");
+      await expect(others).toHaveCount(3);
+      await expect(others.nth(0)).toContainText("Не подходит для серверной ОС");
+      expect(await text(others.nth(0))).toContain("1 850 ₽");
+      await expect(others.nth(2)).toContainText("Отдельная лицензия для TLS-сервера");
+      expect(await text(p.getByTestId("guide-sum"))).toBe("70 000 ₽");
+      expect(await text(p.getByTestId("guide-formula"))).toBe("1 × 70 000 ₽");
+      await expect(p.getByTestId("guide-spec")).toHaveCount(1);
+    });
+
+    test("ожидание, пересчёт, ошибка с повтором, свернуть и вернуть без нового хода", async ({
+      page,
+    }) => {
+      const calls = await stubGuide(page, { fail: 1, delayMs: 600 });
+      await page.goto("/");
+      await search(page, "подбери антивирь");
+      const p = panel(page);
+      // Ожидание: скелетон на месте результата, выдача уже на экране.
+      await expect(p.getByTestId("guide-loading")).toContainText(
+        "Проверяем условия лицензирования",
+      );
+      await expect(resultsArea(page).first()).toBeVisible();
+      // Ошибка: условия и выдача целы, повтор.
+      await expect(p.getByTestId("guide-error")).toContainText(
+        "Не удалось завершить подбор. Результаты поиска доступны, ваши условия сохранены.",
+      );
+      await expect(resultsArea(page).first()).toBeVisible();
+      await turn(page, () => p.getByRole("button", { name: "Повторить подбор" }).click());
+      await expect(p.getByTestId("guide-question")).toBeVisible();
+
+      await turn(page, () => p.getByTestId("guide-quick").filter({ hasText: /^30$/ }).click());
+      // Пересчёт: прежний результат с пометкой, кнопка неактивна.
+      await p.getByTestId("guide-cost-row").first().click();
+      await expect(p.getByTestId("guide-spec")).toBeEnabled();
+      const pending = page.waitForResponse(isGuide);
+      await p.getByTestId("guide-op-renewal").click();
+      await expect(p.getByTestId("guide-updating")).toHaveText("Обновляем подбор");
+      await expect(p.getByTestId("guide-task-cost")).toBeVisible();
+      await pending;
+      expect(calls.at(-1)).toMatchObject({ condition: { key: "operation", value: "renewal" } });
+      await expect(p.getByTestId("guide-updating")).toHaveCount(0);
+
+      // Степпер: несколько нажатий — один ход.
+      const before = calls.length;
+      await p.getByTestId("guide-count-plus").click();
+      await p.getByTestId("guide-count-plus").click();
+      await turn(page, () => p.getByTestId("guide-count-plus").click());
+      expect(calls.length).toBe(before + 1);
       expect((calls.at(-1) as GuideBody).condition).toEqual({
         key: "count:workstation",
-        value: "40",
+        value: "33",
       });
+
+      // Свернуть: строка-приглашение возвращает подбор с теми же условиями без нового хода.
+      const n = calls.length;
+      await p.getByTestId("guide-close").click();
+      await expect(p).toHaveCount(0);
+      const hint = page.getByTestId("guide-hint");
+      await expect(hint).toContainText("условия сохранены");
+      await hint.getByTestId("guide-start").click();
+      await expect(panel(page).getByTestId("guide-count")).toHaveValue("30");
+      expect(calls.length).toBe(n);
+    });
+
+    test("1280 px: фильтры выдачи — кнопкой, подбор 480–560 px", async ({ page }) => {
+      await page.setViewportSize({ width: 1280, height: 800 });
+      await stubGuide(page);
+      await page.goto("/");
+      await searchGuide(page, "самый дешёвый криптопро csp для сервера");
+      const p = panel(page);
+      const box = (await p.boundingBox())!;
+      expect(box.width).toBeGreaterThanOrEqual(479);
+      expect(box.width).toBeLessThanOrEqual(561);
+      const toggle = page.getByTestId("filters-toggle");
+      await expect(toggle).toBeVisible();
+      await expect(page.locator(".search-page__facets")).toBeHidden();
+      await toggle.click();
+      await expect(page.locator(".search-page__facets")).toBeVisible();
+      await expect(p.getByTestId("guide-total")).toBeInViewport();
+      await noHorizontalScroll(page);
+    });
+
+    test("360 px: блок над выдачей, условия строкой, таблица строками, сворачивание", async ({
+      page,
+    }) => {
+      await page.setViewportSize({ width: 360, height: 760 });
+      await stubGuide(page);
+      await page.goto("/");
+      await searchGuide(
+        page,
+        "защита для компьютеров в офисе на 30 ПК, чем расширенный отличается от стандартного",
+      );
+      const p = panel(page);
+      const pb = (await p.boundingBox())!;
+      const rb = (await resultsArea(page).first().boundingBox())!;
+      expect(pb.y).toBeLessThan(rb.y);
+      expect(await text(p.getByTestId("guide-fields-line"))).toBe("30 ПК · Новая · 1 год");
+      await expect(p.getByTestId("guide-count")).toHaveCount(0);
+      await p.getByRole("button", { name: "Изменить условия" }).click();
+      await expect(p.getByTestId("guide-count")).toHaveValue("30");
+      await expect(p.getByTestId("guide-table").locator("table")).toHaveCount(0);
+      await expect(p.getByTestId("guide-row").first()).toContainText("Стандартный");
+      await noHorizontalScroll(page);
+      await p.getByTestId("guide-collapse").click();
+      await expect(p.getByTestId("guide-collapsed-title")).toHaveText(
+        "Kaspersky Endpoint Security — Стандартный",
+      );
+      await expect(p.getByTestId("guide-total")).toHaveCount(0);
+      await p.getByTestId("guide-collapse").click();
+      await expect(p.getByTestId("guide-table")).toBeVisible();
+      await noHorizontalScroll(page);
     });
 
     test("вход со страницы семейства: «Помочь выбрать лицензию» и чип-вопрос", async ({
@@ -291,24 +390,25 @@ test.describe("режим подбора в поиске", () => {
       await expect(panel(page)).toBeVisible();
       expect(calls[0]!.message).toBe("Чем отличаются редакции?");
       expect(calls[0]!.query.length).toBeGreaterThan(0);
-      // Признак входа снимается с адреса: перезагрузка не открывает подбор второй раз.
       await expect
         .poll(() => new URL(page.url()).searchParams.has("guide"))
         .toBe(false);
       await expect(resultsArea(page).first()).toBeVisible();
     });
 
-    test("режим строки от ядра: /api/guide/route главнее правила фронта", async ({
-      page,
-    }) => {
-      await stubGuide(page, {
-        route: { mode: "search_offer", offer: "Помогу подобрать лицензию." },
-      });
+    test("общий запрос — строка-приглашение, открытие по кнопке", async ({ page }) => {
+      const calls = await stubGuide(page);
       await page.goto("/");
-      await search(page, "криптопро csp 5.0");
-      await expect(page.getByTestId("guide-hint")).toContainText(
-        "Помогу подобрать лицензию.",
-      );
+      await search(page, "антивирус");
+      const hint = page.getByTestId("guide-hint");
+      await expect(hint).toContainText("Не знаете, какую лицензию выбрать?");
+      await expect(hint).toContainText("Сравните редакции и рассчитайте стоимость");
+      const h = (await hint.boundingBox())!.height;
+      expect(h).toBeGreaterThanOrEqual(71);
+      expect(h).toBeLessThanOrEqual(97);
+      expect(calls).toHaveLength(0);
+      await turn(page, () => hint.getByTestId("guide-start").click());
+      await expect(panel(page).getByTestId("guide-question")).toBeVisible();
     });
 
     test("точный запрос — обычный поиск без предложения", async ({ page }) => {
@@ -323,309 +423,74 @@ test.describe("режим подбора в поиске", () => {
   });
 
   test.describe("снимки", () => {
-    test.skip(
-      !SHOTS || GUIDE_LIVE,
-      "E2E_GUIDE_SHOTS=<папка> — снимки на заглушках",
-    );
-
-    for (const width of [360, 768, 1440]) {
-      test(`D1 на ${width}`, async ({ page }) => {
-        await page.setViewportSize({
-          width,
-          height: width === 360 ? 780 : 900,
-        });
+    test.skip(!SHOTS || GUIDE_LIVE, "E2E_GUIDE_SHOTS=<папка> — снимки на заглушках");
+    for (const width of [1440, 1280, 360]) {
+      test(`сценарии 2 и 3 на ${width}`, async ({ page }) => {
+        await page.setViewportSize({ width, height: width < 600 ? 760 : 900 });
         await stubGuide(page);
         await page.goto("/");
-        await search(page, "защита для компьютеров в офисе");
-        await expect(page.getByTestId("guide-hint")).toBeVisible();
-        await page.screenshot({ path: `${SHOTS}/${width}-1-hint.png` });
-        await turn(page, () => page.getByTestId("guide-start").click());
-        await turn(page, () =>
-          panel(page).getByRole("button", { name: "30", exact: true }).click(),
-        );
-        await page.screenshot({ path: `${SHOTS}/${width}-2-conditions.png` });
-        await say(
+        await searchGuide(
           page,
-          "чем расширенный касперский отличается от стандартного",
+          "защита для компьютеров в офисе на 30 ПК, чем расширенный отличается от стандартного",
         );
-        await panel(page)
-          .locator('tr[data-row="encryption"]')
-          .getByTestId("guide-source")
-          .click();
-        await expect(page.getByTestId("guide-source-pop")).toBeVisible();
-        await panel(page).screenshot({ path: `${SHOTS}/${width}-3-table.png` });
-        await page.keyboard.press("Escape");
-        await say(
-          page,
-          "на самом деле компьютеров будет 50, и шифрование нужно",
-        );
-        await panel(page).getByTestId("guide-trace").locator("summary").click();
-        await panel(page).screenshot({
-          path: `${SHOTS}/${width}-4-selection.png`,
-        });
-        await page.screenshot({ path: `${SHOTS}/${width}-5-page.png` });
-        // Страница не прокручивается вбок.
-        const overflow = await page.evaluate(
-          () =>
-            document.documentElement.scrollWidth -
-            document.documentElement.clientWidth,
-        );
-        expect(overflow).toBeLessThanOrEqual(0);
+        await page.screenshot({ path: `${SHOTS}/p9-s2-compare-${width}.png` });
+        const box = searchBox(page);
+        await box.fill("компьютеров будет 50, и шифрование нужно");
+        await turn(page, () => box.press("Enter"));
+        await page.screenshot({ path: `${SHOTS}/p9-s2-fifty-${width}.png` });
+        await searchGuide(page, "самый дешёвый криптопро csp для сервера");
+        await page.screenshot({ path: `${SHOTS}/p9-s3-${width}.png` });
       });
     }
   });
 
   test.describe("живой API", () => {
-    test.skip(!GUIDE_LIVE, "E2E_GUIDE_LIVE=1 — на ответах ядра");
-    // Мягкие проверки ждут каждая до своего таймаута: тесту нужен запас, чтобы дойти до спецификации.
+    test.skip(!GUIDE_LIVE, "E2E_GUIDE_LIVE=1 — подбор на живом API");
     test.describe.configure({ timeout: 180_000 });
-    // Проверки по DIALOGS.md. Что зависит от данных и правил ядра — expect.soft: прогон доходит до спецификации
-    // и показывает все расхождения сразу, а не первое. Условия не ослаблены — мягкая проверка тоже валит тест.
 
-    test("D1 на живом API: от запроса до спецификации", async ({ page }) => {
+    test("сценарий 2 вживую: сравнение, 30 → 50, спецификация", async ({ page }) => {
       await page.goto("/");
-      await search(page, "защита для компьютеров в офисе");
-      await expect(resultsArea(page).first()).toBeVisible();
-      const top4 = (await resultsArea(page).allInnerTexts())
-        .slice(0, 4)
-        .join("\n");
-      expect
-        .soft(top4, "в первых карточках выдачи — защита рабочих мест Kaspersky")
-        .toMatch(/Kaspersky/i);
-      await expect(page.getByTestId("guide-hint")).toBeVisible();
-
-      await turn(page, () => page.getByTestId("guide-start").click());
+      await searchGuide(
+        page,
+        "защита для компьютеров в офисе на 30 ПК, чем расширенный отличается от стандартного",
+      );
       const p = panel(page);
-      await expect(p.getByTestId("guide-question")).toContainText(
-        "Сколько компьютеров",
-      );
-      await turn(page, () =>
-        p
-          .getByTestId("guide-question")
-          .getByRole("button", { name: "30", exact: true })
-          .click(),
-      );
-      await expect(p.locator('[data-cond^="count"]')).toContainText("30 ПК");
-      await expect(cond(p, "operation")).toContainText("по умолчанию");
-      await expect(cond(p, "term_months")).toContainText("по умолчанию");
-      const titles30 = await p
-        .getByTestId("guide-offer")
-        .locator("h4")
-        .allInnerTexts();
-      expect(titles30.length).toBeGreaterThan(0);
-      for (const t of titles30)
-        expect
-          .soft(t, "на 30 ПК — только защита рабочих мест")
-          .not.toMatch(/для мобильных устройств|интернет-шлюз|Office 365/i);
-
-      await say(page, "чем расширенный касперский отличается от стандартного");
       const table = p.getByTestId("guide-table");
-      await expect(table).toBeVisible();
-      await expect
-        .soft(table.getByRole("columnheader", { name: "Стандартный" }))
-        .toBeVisible();
-      await expect
-        .soft(table.getByRole("columnheader", { name: "Расширенный" }))
-        .toBeVisible();
-      const enc = table.locator('tr[data-row="encryption"]');
-      await expect
-        .soft(enc, "строка «Шифрование» из базы знаний")
-        .toHaveCount(1);
-      if (await enc.count()) {
-        await expect
-          .soft(enc.locator("td").nth(0))
-          .toHaveText("нет по данным вендора");
-        await expect.soft(enc.locator("td").nth(1)).toHaveText("есть");
-        await expect.soft(enc.getByTestId("guide-source")).toBeVisible();
-      }
-      await expect(table).not.toContainText(/\b0 ₽/);
-
-      await say(page, "на самом деле компьютеров будет 50, и шифрование нужно");
-      await expect(p.locator('[data-cond^="count"]')).toContainText("50 ПК");
-      const offers = p.getByTestId("guide-offer");
-      await expect(offers.first()).toBeVisible();
-      // Подходит один Расширенный; Стандартный — не среди подходящих (альтернатива с причиной или «При изменении»).
-      await expect
-        .soft(
-          p.locator('[data-testid="guide-offer"][data-role="match"]'),
-          "подходит один Расширенный",
-        )
-        .toHaveCount(1);
-      await expect
-        .soft(p.locator('[data-testid="guide-offer"][data-role="match"]'))
-        .not.toContainText("Стандартный");
-      const first = offers.first();
-      await expect
-        .soft(first.getByTestId("guide-offer-sku"))
-        .toHaveText("KL4867RAQFS");
-      await expect
-        .soft(first.getByTestId("guide-offer-unit"))
-        .toContainText("3 940,20 ₽");
-      await expect
-        .soft(first.getByTestId("guide-offer-total"))
-        .toContainText("197 010 ₽");
-      await expect
-        .soft(p.getByTestId("guide-changes"))
-        .toContainText(/Стандартн/);
-      await expect.soft(p.getByTestId("guide-preliminary")).toHaveCount(0);
-      await expect(p).not.toContainText(/\b0 ₽/);
-      const sku = (
-        await first.getByTestId("guide-offer-sku").innerText()
-      ).trim();
-
-      await p.getByTestId("guide-trace").locator("summary").click();
-      await expect(
-        p.getByTestId("guide-trace").locator("li").first(),
-      ).toBeVisible();
-
+      await expect(table).toContainText("Стандартный");
+      const rows = await table.getByTestId("guide-row").count();
+      expect.soft(rows).toBeGreaterThanOrEqual(2);
+      expect.soft(rows).toBeLessThanOrEqual(6);
+      expect.soft(await text(p.getByTestId("guide-sum"))).toBe("84 402 ₽");
+      const box = searchBox(page);
+      await box.fill("компьютеров будет 50, и шифрование нужно");
+      await turn(page, () => box.press("Enter"));
+      await expect.soft(p.getByTestId("guide-changes")).toContainText("30 → 50");
+      expect.soft(await text(p.getByTestId("guide-sum"))).toBe("197 010 ₽");
+      await expect.soft(p.getByTestId("guide-result")).toContainText("Расширенный");
+      expect(await p.innerText()).not.toMatch(DATE);
       await p.getByTestId("guide-spec").click();
-      await expect(
-        page.getByRole("button", { name: /^Спецификация, позиций: 1/ }),
-      ).toBeVisible();
-      await page
-        .getByRole("button", { name: /^Спецификация, позиций: 1/ })
-        .click();
-      const dialog = page.getByRole("dialog", { name: "Спецификация" });
-      await expect(dialog).toContainText(sku);
-      await expect(
-        dialog.getByRole("button", { name: "Запросить КП" }),
-      ).toBeVisible();
+      await expect(p.getByTestId("guide-added")).toContainText("Добавлено в спецификацию");
     });
 
-    test("D2 на живом API: серверная первой, рабочее место — «Не подходит»", async ({
-      page,
-    }) => {
+    test("сценарий 3 вживую: серверная первой, рабочее место — с причиной", async ({ page }) => {
       await page.goto("/");
-      await Promise.all([
-        page.waitForResponse(isGuide),
-        search(page, "самый дешёвый криптопро csp для сервера"),
-      ]);
+      await searchGuide(page, "самый дешёвый криптопро csp для сервера");
       const p = panel(page);
-      const first = p.getByTestId("guide-offer").first();
-      await expect(first).toBeVisible();
-      await expect
-        .soft(first, "первой — серверная лицензия")
-        .toContainText(/серверн/i);
-      await expect
-        .soft(first.getByTestId("guide-offer-unit"))
-        .toContainText("70 000 ₽");
-      const rejected = p.getByTestId("guide-rejected");
-      await expect(rejected).toBeVisible();
-      await expect(rejected).toContainText(/рабоч\S* мест/i);
-      await expect(rejected).toContainText(/сервер/i);
-      await expect.soft(rejected).toContainText("1 850 ₽");
-
-      await say(page, "а для tls-сервера?");
-      await expect
-        .soft(
-          p.getByTestId("guide-offer").first(),
-          "семейство КриптоПро CSP TLS",
-        )
-        .toContainText("TLS");
+      await expect.soft(p.getByTestId("guide-pick-status")).toHaveText("Подходящая лицензия");
+      expect.soft(await text(p.getByTestId("guide-sum"))).toBe("70 000 ₽");
+      await expect.soft(p.getByTestId("guide-other").first()).toContainText(
+        "Не подходит для серверной ОС",
+      );
+      expect(await p.innerText()).not.toMatch(DATE);
     });
-  });
 
-  test.describe("живой API: практичные сценарии", () => {
-    test.skip(!GUIDE_LIVE, "E2E_GUIDE_LIVE=1 — на ответах ядра");
-    test.describe.configure({ timeout: 120_000 });
-
-    test("«подбери антивирус для офиса на 20 компьютеров»: рекомендация крупно, понятая задача чипом", async ({
-      page,
-    }) => {
+    test("сценарий 1 вживую: вопрос о количестве", async ({ page }) => {
       await page.goto("/");
-      await Promise.all([
-        page.waitForResponse(isGuide),
-        search(page, "подбери антивирус для офиса на 20 компьютеров"),
-      ]);
+      await searchGuide(page, "подбери антивирь");
       const p = panel(page);
-      await expect.soft(cond(p, "direction")).toContainText("Понял:");
-      await expect(p.locator('[data-cond^="count"]')).toContainText("20 ПК");
-      const first = p.getByTestId("guide-offer").first();
-      await expect(first).toBeVisible();
-      await expect
-        .soft(p.getByTestId("guide-pick-status"))
-        .toHaveText("Рекомендуем");
-      await expect.soft(p.getByTestId("guide-reason")).toContainText("₽");
-      await expect(first.getByTestId("guide-offer-total")).toContainText("₽");
-      await expect(p.getByTestId("guide-spec")).toHaveCount(1);
-      await expect(p).not.toContainText(/\b0 ₽/);
-      // Сравнение вариантов — по кнопке, на всю ширину блока.
-      const toggle = p.getByTestId("guide-compare-toggle");
-      if (await toggle.count()) {
-        await toggle.click();
-        await expect(p.getByTestId("guide-table")).toBeVisible();
-      }
+      await expect(p.getByTestId("guide-question")).toContainText("Сколько компьютеров");
+      await turn(page, () => p.getByTestId("guide-quick").filter({ hasText: /^30$/ }).click());
+      await expect(p.getByTestId("guide-count")).toHaveValue("30");
     });
-
-    test("«подбери антивирь»: вопрос о числе мест, задача и тип покупателя видны", async ({
-      page,
-    }) => {
-      await page.goto("/");
-      await Promise.all([
-        page.waitForResponse(isGuide),
-        search(page, "подбери антивирь"),
-      ]);
-      const p = panel(page);
-      await expect(p.getByTestId("guide-question")).toContainText("Сколько");
-      await expect.soft(cond(p, "direction")).toContainText("Понял:");
-      await expect.soft(cond(p, "org_type")).toBeVisible();
-    });
-  });
-
-  test.describe("снимки на живом API", () => {
-    test.skip(
-      !GUIDE_LIVE || !SHOTS,
-      "E2E_GUIDE_LIVE=1 и E2E_GUIDE_SHOTS=<папка>",
-    );
-
-    for (const width of [360, 1440]) {
-      test(`D1 и D2 вживую на ${width}`, async ({ page }) => {
-        await page.setViewportSize({
-          width,
-          height: width === 360 ? 780 : 900,
-        });
-        await page.goto("/");
-        await search(page, "защита для компьютеров в офисе");
-        await page.screenshot({ path: `${SHOTS}/live-${width}-1-hint.png` });
-        await turn(page, () => page.getByTestId("guide-start").click());
-        await turn(page, () =>
-          panel(page).getByRole("button", { name: "30", exact: true }).click(),
-        );
-        await panel(page).screenshot({
-          path: `${SHOTS}/live-${width}-2-thirty.png`,
-        });
-        await say(
-          page,
-          "чем расширенный касперский отличается от стандартного",
-        );
-        await panel(page).screenshot({
-          path: `${SHOTS}/live-${width}-3-compare.png`,
-        });
-        await say(
-          page,
-          "на самом деле компьютеров будет 50, и шифрование нужно",
-        );
-        await panel(page).getByTestId("guide-trace").locator("summary").click();
-        await panel(page).screenshot({
-          path: `${SHOTS}/live-${width}-4-fifty.png`,
-        });
-        await Promise.all([
-          page.waitForResponse(isGuide),
-          search(page, "самый дешёвый криптопро csp для сервера"),
-        ]);
-        await expect(
-          panel(page).getByTestId("guide-offer").first(),
-        ).toBeVisible();
-        await panel(page).screenshot({
-          path: `${SHOTS}/live-${width}-5-d2.png`,
-        });
-        const overflow = await page.evaluate(
-          () =>
-            document.documentElement.scrollWidth -
-            document.documentElement.clientWidth,
-        );
-        expect(overflow).toBeLessThanOrEqual(0);
-      });
-    }
   });
 });

@@ -1,23 +1,23 @@
 <script setup lang="ts">
-// Источник у строки о функции (SPEC §8): маленькая подпись «источник», по нажатию — фрагмент со страницы вендора и
-// ссылка на неё. Даты не пишем.
+// Источник под утверждением (UI 6.6): текстовая ссылка «Документация вендора» или «Правила лицензирования …»; по
+// нажатию — всплывающий блок с дословным фрагментом и ссылкой на документ. Дат нет.
 import { PopoverContent, PopoverPortal, PopoverRoot, PopoverTrigger } from 'reka-ui'
 import { ExternalLink } from 'lucide-vue-next'
-import type { GuideClaim } from '@/api/typesGuide'
-import { claimMark, sourceName } from '@/lib/guide'
+import type { GuideScreenSource } from '@/api/typesGuide'
 
-const props = defineProps<{ claim: GuideClaim; label: string }>()
-const name = () => sourceName(props.claim.source)
+defineProps<{
+  source: GuideScreenSource
+  /** Что подтверждает документ: «Шифрование данных». */
+  heading?: string
+  /** Где это есть: «Есть в Расширенной редакции». */
+  sub?: string
+}>()
 </script>
 
 <template>
-  <PopoverRoot v-if="claim.source">
-    <PopoverTrigger
-      class="gsrc__btn"
-      :aria-label="`Источник: ${label} — ${name()}`"
-      data-testid="guide-source"
-    >
-      <span aria-hidden="true">источник</span>
+  <PopoverRoot>
+    <PopoverTrigger class="gsrc__btn" data-testid="guide-source">
+      {{ source.label || 'Документация вендора' }}
     </PopoverTrigger>
     <PopoverPortal>
       <PopoverContent
@@ -28,22 +28,19 @@ const name = () => sourceName(props.claim.source)
         :collision-padding="12"
         data-testid="guide-source-pop"
       >
-        <p class="t-xs t-muted gsrc__head">
-          {{ name() }}
-          <span v-if="claimMark(claim)" class="gsrc__warn">· {{ claimMark(claim) }}</span>
-        </p>
-        <blockquote v-if="claim.source.fragment" class="gsrc__quote">
-          {{ claim.source.fragment }}
+        <p v-if="heading" class="gsrc__head">{{ heading }}</p>
+        <p v-if="sub" class="gsrc__sub">{{ sub }}</p>
+        <blockquote v-if="source.fragment" class="gsrc__quote">
+          «{{ source.fragment.replace(/^[«"]+|[»"]+$/g, '') }}»
         </blockquote>
-        <p v-if="claim.text" class="t-sm gsrc__text">{{ claim.text }}</p>
         <a
-          v-if="claim.source.url"
-          :href="claim.source.url"
-          class="link t-sm gsrc__link"
+          v-if="source.url"
+          :href="source.url"
+          class="link gsrc__link"
           target="_blank"
           rel="noopener noreferrer"
         >
-          Открыть страницу <ExternalLink :size="12" aria-hidden="true" />
+          Открыть документ вендора <ExternalLink :size="12" aria-hidden="true" />
           <span class="sr-only">(откроется в новой вкладке)</span>
         </a>
       </PopoverContent>
@@ -54,29 +51,27 @@ const name = () => sourceName(props.claim.source)
 <style>
 .gsrc__btn {
   display: inline;
-  margin-left: var(--space-1);
   padding: 0;
   border: 0;
   background: none;
-  color: var(--text-3);
+  color: var(--accent);
   font: inherit;
-  font-size: var(--fs-xs);
+  font-size: var(--fs-sm);
   line-height: inherit;
-  text-decoration: underline dotted;
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
   text-underline-offset: 3px;
-  white-space: nowrap;
   cursor: pointer;
 }
 .gsrc__btn:hover,
 .gsrc__btn[data-state='open'] {
-  color: var(--text);
-  text-decoration-style: solid;
+  color: var(--accent-hover);
 }
 .gsrc__pop {
   z-index: 60;
   box-sizing: border-box;
-  width: min(22rem, calc(100vw - 1.5rem));
-  padding: var(--space-3);
+  width: min(24rem, calc(100vw - 1.5rem));
+  padding: var(--space-4);
   border: var(--border-w) solid var(--border);
   border-radius: var(--radius-control);
   background: var(--surface);
@@ -84,25 +79,28 @@ const name = () => sourceName(props.claim.source)
   color: var(--text);
 }
 .gsrc__head {
-  margin: 0 0 var(--space-2);
+  margin: 0;
+  font-weight: var(--fw-semibold);
 }
-.gsrc__warn {
-  color: var(--status-pending);
+.gsrc__sub {
+  margin: 0;
+  color: var(--text-2);
+  font-size: var(--fs-sm);
 }
 .gsrc__quote {
-  margin: 0 0 var(--space-2);
-  padding-left: var(--space-3);
-  border-left: 3px solid var(--border-control);
+  margin: var(--space-3) 0;
+  padding: var(--space-3);
+  border: var(--border-w) solid var(--border);
+  border-radius: var(--radius-control);
+  background: var(--surface-2);
   font-size: var(--fs-sm);
   line-height: var(--lh-sm);
   overflow-wrap: anywhere;
-}
-.gsrc__text {
-  margin: 0 0 var(--space-2);
 }
 .gsrc__link {
   display: inline-flex;
   align-items: center;
   gap: var(--space-1);
+  font-size: var(--fs-sm);
 }
 </style>

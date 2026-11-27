@@ -1,6 +1,8 @@
-// Ход подбора (контур подбора, SPEC §2, §5): открытие, ответ чипом или текстом, правка условия, повтор, закрытие.
-// Состояние подбора хранит сервер; фронт возвращает его следующим ходом как есть. Прошлый ход отменяется новым.
-import { computed, onBeforeUnmount, ref, shallowRef } from 'vue'
+// Ход подбора (контур подбора, SPEC §2, §5; контур экрана, UI §3–§4): открытие, ответ на вопрос, правка условия, повтор, скрытие.
+// Одно актуальное состояние, без ленты сообщений: новый ответ заменяет прежний, пока ход идёт — прежний остаётся
+// с пометкой «Обновляем подбор». Состояние подбора хранит сервер; фронт возвращает его следующим ходом как есть.
+// Скрытие и сворачивание состояние не сбрасывают.
+import { onBeforeUnmount, ref, shallowRef } from 'vue'
 import { postGuide, postGuideSpec } from '@/api/guide'
 import type {
   GuideChipAnswer,
@@ -10,59 +12,40 @@ import type {
   GuideResponse,
 } from '@/api/typesGuide'
 import { type ApiError, isApiError, MSG_UNKNOWN } from '@/lib/apiError'
-import {
-  type GuideTurnView,
-  offerQuantity,
-  pendingIndex,
-  pendingStep,
-  selectionId,
-  turnAnswer,
-  withSpecLine,
-} from '@/lib/guide'
+import { offerQuantity, selectionId, withSpecLine } from '@/lib/guide'
 import { useAppStore } from '@/stores/app'
 
 export type GuideStatus = 'idle' | 'loading' | 'ready' | 'error'
 
 export function useGuide() {
   const app = useAppStore()
+  /** Рабочая область показана. */
   const open = ref(false)
+  /** Свёрнута в одну строку (телефон). */
   const collapsed = ref(false)
   const status = ref<GuideStatus>('idle')
   const response = shallowRef<GuideResponse | null>(null)
   const error = ref<ApiError | null>(null)
   /** Запрос строки поиска, к которому относится подбор. */
   const query = ref('')
-  const elapsed = ref(0)
-  /** Реплика покупателя, на которую отвечает показанный ход, и реплика хода, который идёт сейчас. */
-  const ask = ref('')
-  const pendingAsk = ref('')
-  /** Прошлые ходы подбора: реплика и короткий ответ. */
-  const turns = ref<GuideTurnView[]>([])
+  /** Позиция, добавленная в спецификацию из показанного ответа: «Добавлено в спецификацию» в итоговой строке. */
+  const added = ref<string | null>(null)
+  /** Последняя фраза покупателя, на которую отвечает показанное состояние: «Вы: …» одной строкой. */
+  const said = ref('')
+  let lastSaid = ''
   let last: Omit<GuideRequest, 'session_id'> | null = null
-  let lastAsk = ''
   let ctrl: AbortController | null = null
-  let timer: ReturnType<typeof setInterval> | null = null
 
-  function stopTimer() {
-    if (timer) clearInterval(timer)
-    timer = null
-  }
-
-  async function send(body: Omit<GuideRequest, 'session_id'>, said: string) {
+  async function send(body: Omit<GuideRequest, 'session_id'>, phrase = '') {
     ctrl?.abort()
     const c = new AbortController()
     ctrl = c
     last = body
-    lastAsk = said
-    pendingAsk.value = said
+    lastSaid = phrase
     open.value = true
     collapsed.value = false
     status.value = 'loading'
     error.value = null
-    elapsed.value = 0
-    const started = Date.now()
-    stopTimer()
-    timer = setInterval(() => (elapsed.value = Date.now() - started), 250)
     try {
       if (!app.sessionId) await app.loadMeta()
       if (ctrl !== c) return
@@ -71,60 +54,62 @@ export function useGuide() {
         { signal: c.signal, ignoreUnauthorized: true },
       )
       if (ctrl !== c) return
-      const prev = response.value
-      if (prev) turns.value = [...turns.value, { ask: ask.value, answer: turnAnswer(prev) }]
-      ask.value = said
       response.value = resp
+      said.value = phrase
+      added.value = null
       status.value = 'ready'
     } catch (e) {
       if (ctrl !== c) return
       if (e instanceof DOMException && e.name === 'AbortError') return
       error.value = isApiError(e) ? e : { status: 0, code: 'UNKNOWN', message: MSG_UNKNOWN }
       status.value = 'error'
-    } finally {
-      if (ctrl === c) stopTimer()
     }
   }
 
-  /** Новый подбор по запросу строки (кнопка «Помочь выбрать», вопрос в строке, вход со страницы семейства). */
+  /**
+   * Подбор по запросу строки (кнопка «Помочь выбрать», автораскрытие, вход со страницы семейства). Тот же запрос
+   * без реплики, если подбор уже есть, — просто показать его снова: условия сохраняются.
+   */
   function start(q: string, message?: string) {
+    if (!message && q === query.value && response.value && status.value !== 'error') {
+      open.value = true
+      collapsed.value = false
+      return
+    }
     query.value = q
     response.value = null
-    turns.value = []
-    ask.value = ''
-    void send({ query: q, ...(message ? { message } : {}) }, message || q)
+    added.value = null
+    said.value = ''
+    void send({ query: q, ...(message ? { message } : {}) }, message ?? '')
   }
 
   const prevState = () => response.value?.state ?? undefined
 
-  /** Ответ чипом на вопрос подбора; label — подпись чипа для истории. */
-  function answer(chip: GuideChipAnswer, label = chip.value) {
-    void send({ query: query.value, chip, state: prevState() }, label)
+  /** Ответ на вопрос подбора вариантом. */
+  function answer(chip: GuideChipAnswer) {
+    void send({ query: query.value, chip, state: prevState() })
   }
 
-  /** Ответ или вопрос текстом в поле подбора. */
+  /** Реплика покупателя (поле подбора или строка поиска): уточнение текущего подбора. */
   function say(message: string) {
     const m = message.trim()
     if (!m) return
     void send({ query: query.value, message: m, state: prevState() }, m)
   }
 
-  /**
-   * Убрать (value null) или изменить условие. message — тот же смысл текстом: ядро, которое ещё не принимает
-   * condition, разбирает правку как реплику покупателя.
-   */
-  function editCondition(edit: GuideConditionEdit, message: string, said = message) {
-    void send({ query: query.value, condition: edit, message, state: prevState() }, said)
+  /** Изменить (value — новое значение) или снять (null) условие; результат пересчитывается сразу. */
+  function editCondition(edit: GuideConditionEdit) {
+    void send({ query: query.value, condition: edit, state: prevState() })
   }
 
   /** Версия черновика спецификации подбора, которую видел покупатель (SPEC §4, update_spec). */
   let specVersion = 0
+  // Черновик версионный: две строки подряд (рабочие станции и серверы) идут по очереди, иначе вторая получает 409.
+  let specQueue: Promise<unknown> = Promise.resolve()
   /**
    * Строка в черновик подбора на сервере: цена перечитывается из каталога, ключ операции не даёт задвоить строку.
    * Сервер недоступен или не ответил за 3 с — оффер как есть (цена из ответа хода, тоже из каталога).
    */
-  // Черновик версионный: две строки подряд (рабочие станции и серверы) идут по очереди, иначе вторая получает 409.
-  let specQueue: Promise<unknown> = Promise.resolve()
   function toSpec(o: GuideOffer): Promise<GuideOffer> {
     const next = specQueue.then(() => toSpecNow(o))
     specQueue = next.catch(() => undefined)
@@ -163,30 +148,35 @@ export function useGuide() {
   }
 
   function retry() {
-    if (last) void send(last, lastAsk)
+    if (last) void send(last, lastSaid)
   }
 
-  /** Закрыть: выдача и спецификация остаются (SPEC §1). */
-  function close() {
+  /** Скрыть рабочую область: условия и результат сохраняются, «Помочь выбрать» вернёт их. */
+  function hide() {
+    if (status.value === 'loading') {
+      ctrl?.abort()
+      ctrl = null
+      status.value = response.value ? 'ready' : 'idle'
+    }
+    open.value = false
+  }
+
+  /** Сбросить подбор целиком: строка поиска очищена. */
+  function reset() {
     ctrl?.abort()
     ctrl = null
-    stopTimer()
     open.value = false
+    collapsed.value = false
     status.value = 'idle'
     response.value = null
     error.value = null
+    added.value = null
+    said.value = ''
     last = null
-    turns.value = []
-    ask.value = ''
+    query.value = ''
   }
 
-  onBeforeUnmount(() => {
-    ctrl?.abort()
-    stopTimer()
-  })
-
-  const pendingText = computed(() => pendingStep(elapsed.value))
-  const pendingStepIndex = computed(() => pendingIndex(elapsed.value))
+  onBeforeUnmount(() => ctrl?.abort())
 
   return {
     open,
@@ -195,18 +185,16 @@ export function useGuide() {
     response,
     error,
     query,
-    pendingText,
-    pendingStepIndex,
-    ask,
-    pendingAsk,
-    turns,
+    added,
+    said,
     start,
     answer,
     say,
     editCondition,
     toSpec,
     retry,
-    close,
+    hide,
+    reset,
   }
 }
 

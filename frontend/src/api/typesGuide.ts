@@ -1,10 +1,13 @@
 // Контур подбора (SPEC §6): режим подбора в поиске — POST /api/guide. Модель возвращает идентификаторы, код сервера
 // собирает из них фразу, таблицу, офферы и условия; фронт только рисует.
 
-export type GuideType = 'comparison' | 'selection' | 'clarification' | 'no_data' | 'out_of_scope'
+export type GuideType =
+  'comparison' | 'selection' | 'clarification' | 'no_data' | 'out_of_scope' | 'fallback'
 
 /** Источник факта: страница вендора и фрагмент с неё. Дату в интерфейсе не показываем. */
 export interface GuideSource {
+  /** Подпись ссылки (контур экрана): «Документация вендора», «Правила лицензирования {вендор}». */
+  label?: string
   title: string
   url: string
   fragment: string
@@ -76,6 +79,162 @@ export interface GuideOffer {
   /** Продаётся пакетом: price_per_unit — цена за место, package_price — цена пакета на package_size. */
   package_price?: number | null
   package_size?: number | null
+  // ── Поля экрана контура экрана: готовые тексты и числа, фронт не считает ──
+  display?: GuideOfferDisplay | null
+  /** Как продаётся: «за компьютер», «пакет на 20 компьютеров». */
+  sale_unit?: string
+  sale_unit_kind?: 'per_object' | 'package' | 'license' | string
+  /** Цена одной единицы продажи из каталога. */
+  unit_price?: number | null
+  /** Сколько единиц продажи к оплате. */
+  pay_quantity?: number
+  /** Расчёт итога: «50 × 3 940,20 ₽»; '' — цены нет. */
+  price_line?: string
+  /** «3 940,20 ₽ за компьютер» или «Цена по запросу». */
+  price_text?: string
+  package?: GuideOfferPack | null
+  reason?: GuideReason | null
+}
+
+/** Заголовок и подзаголовок лицензии (UI 6.1) и раскрытие «Сведения о лицензии». */
+export interface GuideOfferDisplay {
+  title: string
+  subtitle: string
+  details?: { label: string; value: string }[]
+}
+
+/** Пакет под задачу: text — «Пакет на 25 компьютеров: 5 мест в запасе». */
+export interface GuideOfferPack {
+  size: number
+  packs: number
+  seats: number
+  spare: number
+  text: string
+}
+
+/** Код причины и готовый текст («Не подходит для серверной ОС»). */
+export interface GuideReason {
+  code: string
+  text: string
+}
+
+/** Текстовая ссылка на источник с дословным фрагментом (UI 6.6). */
+export interface GuideScreenSource {
+  label: string
+  fragment: string
+  url: string
+}
+
+/** only_valid · required_feature · lowest_total · vendor_named · none (UI 6.2). */
+export type GuideBasis =
+  'only_valid' | 'required_feature' | 'lowest_total' | 'vendor_named' | 'none'
+
+export interface GuideScreenResult {
+  basis: GuideBasis | string
+  heading: string
+  /** '' при basis = none. */
+  offer_id: string
+  reason: string
+  source: GuideScreenSource | null
+}
+
+/** yes · no · unknown · conditional · value; text — готовый («Есть», «Нет сведений», «2 715,30 ₽»). */
+export interface GuideScreenCell {
+  mark: 'yes' | 'no' | 'unknown' | 'conditional' | 'value' | string
+  text: string
+  fact_id?: string
+}
+
+export interface GuideScreenRow {
+  key: string
+  label: string
+  priority: number
+  /** Функция из условий покупателя — видна всегда. */
+  asked: boolean
+  kind: 'feature' | 'commercial' | string
+  cells: GuideScreenCell[]
+}
+
+export interface GuideScreenTable {
+  title: string
+  columns: { offer_id: string; family_id: string; title: string }[]
+  rows: GuideScreenRow[]
+  more_rows?: GuideScreenRow[]
+  hidden_no_data?: number
+  hidden_label?: string
+  vendors_note?: string
+  difference?: string
+  source?: GuideScreenSource | null
+}
+
+export interface GuideTaskCostRow {
+  offer_id: string
+  title: string
+  how_sold: string
+  total: number | null
+  total_text: string
+  note: string
+}
+
+/** Полная стоимость одной задачи у нескольких вендоров (сценарий 4). */
+export interface GuideTaskCost {
+  title: string
+  columns: string[]
+  rows: GuideTaskCostRow[]
+  note: string
+  cheapest: string
+}
+
+export interface GuidePriceTier {
+  tier: string
+  unit_price: number
+  text: string
+}
+
+export interface GuideChanged {
+  text: string
+  items?: string[]
+  price_change?: {
+    offer_id: string
+    label: string
+    from: GuidePriceTier
+    to: GuidePriceTier
+  } | null
+}
+
+/** Строка «При изменении условий». */
+export interface GuideOther {
+  offer_id: string
+  title: string
+  subtitle: string
+  price_text: string
+  reason: GuideReason | null
+}
+
+export interface GuideSummary {
+  offer_id: string
+  label: string
+  total: number | null
+  total_text: string
+  formula: string
+  /** add_to_spec · request_quote · choose. */
+  action: 'add_to_spec' | 'request_quote' | 'choose' | string
+  hint: string
+}
+
+/** Экран подбора контура экрана: всё, что показывает рабочая область, кроме полей карточек. */
+export interface GuideScreen {
+  title: string
+  task: string
+  result: GuideScreenResult | null
+  /** Предвыбор для итоговой строки и «Выбрано»; '' — главной кнопки нет. */
+  selected_offer_id: string
+  options: string[]
+  comparison: GuideScreenTable | null
+  task_cost: GuideTaskCost | null
+  changed: GuideChanged | null
+  others: GuideOther[]
+  summary: GuideSummary | null
 }
 
 /** Рекомендованная карточка: в offers идёт первой; reason — причина с числом из каталога. */
@@ -140,6 +299,10 @@ export interface GuideResponse {
   gaps?: string[]
   /** Рекомендация среди подходящих; null — одна карточка или нет цен. */
   recommendation?: GuideRecommendation | null
+  /** Документация вендора у ответа «нет сведений». */
+  docs?: { title: string; url: string } | null
+  /** Экран контура экрана; null — у out_of_scope, fallback и вопроса без вариантов. */
+  screen?: GuideScreen | null
   meta?: GuideMeta
 }
 
@@ -160,6 +323,9 @@ export interface GuideRoute {
   reason?: string
   /** Текст строки-предложения над выдачей. */
   offer?: string
+  /** Раскрыть подбор сразу (контур экрана, UI §2). */
+  open_now?: boolean
+  open_reason?: 'ask' | 'compare' | 'use_limit' | ''
 }
 
 /** POST /api/guide/spec — строка подбора в черновик; цена перечитана из каталога. */

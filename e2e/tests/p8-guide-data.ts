@@ -1,51 +1,11 @@
-// Заглушки POST /api/guide для D1 и D2 по контракту ответа.
-// Числа — из эталонных диалогов (фид магазина), не измерения стенда. Живой API: E2E_GUIDE_LIVE=1 — заглушка не
-// ставится, тест идёт на ответах ядра.
+// Заглушки POST /api/guide и /api/guide/route для сценариев контура экрана по
+// контракту экрана. Числа — из текста сценариев (фид магазина), не измерения стенда.
+// Живой API: E2E_GUIDE_LIVE=1 — заглушки не ставятся, тест идёт на ответах ядра.
 import type { Page, Request } from '@playwright/test'
 
 export const GUIDE_LIVE = process.env.E2E_GUIDE_LIVE === '1'
 
 type Json = Record<string, unknown>
-
-const KES_STD = {
-  family_id: '3953',
-  title: 'Стандартный',
-  family_url:
-    'https://store.softline.ru/kaspersky/kaspersky-endpoint-security-dlya-biznesa-standartnyy/',
-}
-const KES_ADV = {
-  family_id: '3935',
-  title: 'Расширенный',
-  family_url:
-    'https://store.softline.ru/kaspersky/kaspersky-endpoint-security-dlya-biznesa-rasshirennyy/',
-}
-const KES_SRC = {
-  title: 'Kaspersky Endpoint Security для бизнеса — сравнение редакций',
-  url: 'https://www.kaspersky.ru/small-to-medium-business-security/endpoint-select',
-  fragment:
-    'Шифрование файлов и дисков, управление установкой исправлений — в редакции «Расширенный».',
-}
-
-const claims = [
-  {
-    fact_id: 'kb_kes_adv_encryption',
-    text: 'В Расширенном есть шифрование данных',
-    source: KES_SRC,
-    status: 'verified',
-  },
-  {
-    fact_id: 'kb_kes_std_no_encryption',
-    text: 'В Стандартном шифрования нет',
-    source: KES_SRC,
-    status: 'verified',
-  },
-  {
-    fact_id: 'kb_kes_adv_patch',
-    text: 'В Расширенном есть установка обновлений программ',
-    source: KES_SRC,
-    status: 'verified',
-  },
-]
 
 const cond = (key: string, label: string, value: string, origin: string) => ({
   key,
@@ -53,10 +13,73 @@ const cond = (key: string, label: string, value: string, origin: string) => ({
   value,
   origin,
 })
+const DIRECTION = cond('direction', 'антивирус для рабочих мест', 'endpoint', 'inferred')
 const defaults = [
   cond('operation', 'новая лицензия', 'new', 'default'),
   cond('term_months', '1 год', '12', 'default'),
 ]
+const count = (n: number) => cond('count:workstation', `${n} ПК`, String(n), 'user')
+
+const KES_DOC = {
+  label: 'Документация вендора',
+  fragment:
+    'Шифрование файлов и дисков, управление установкой исправлений — в редакции «Расширенный».',
+  url: 'https://www.kaspersky.ru/small-to-medium-business-security/endpoint-select',
+}
+const CRYPTO_RULES = {
+  label: 'Правила лицензирования КриптоПро',
+  fragment: 'Лицензия на рабочее место не может использоваться в серверной операционной системе.',
+  url: 'https://cryptopro.ru/buy/price',
+}
+
+interface OfferIn {
+  id: string
+  family: string
+  title: string
+  subtitle: string
+  unit: string
+  qty: number
+  price: number | null
+  total: number | null
+  line?: string
+  priceText: string
+  role?: string
+  reason?: { code: string; text: string }
+  pack?: { size: number; packs: number; seats: number; spare: number; text: string }
+}
+
+const offer = (o: OfferIn) => ({
+  offer_id: o.id,
+  family_id: o.family,
+  title: `${o.title} (позиция каталога)`,
+  family_title: o.title,
+  sku: `SKU-${o.id}`,
+  tier: '',
+  unit: o.unit,
+  quantity: o.qty,
+  price_per_unit: o.price,
+  total: o.total,
+  price_state: o.price ? 'priced' : 'on_request',
+  offer_url: `https://store.softline.ru/product/${o.id}/`,
+  term: '1 год',
+  role: o.role ?? 'match',
+  display: {
+    title: o.title,
+    subtitle: o.subtitle,
+    details: [
+      { label: 'Артикул', value: `SKU-${o.id}` },
+      { label: 'Позиция каталога', value: `${o.title} (позиция каталога)` },
+    ],
+  },
+  sale_unit: o.unit,
+  sale_unit_kind: o.pack ? 'package' : 'per_object',
+  unit_price: o.price,
+  pay_quantity: o.pack ? o.pack.packs : o.qty,
+  price_line: o.line ?? '',
+  price_text: o.priceText,
+  package: o.pack ?? null,
+  reason: o.reason ?? null,
+})
 
 const base = (over: Json): Json => ({
   type: 'selection',
@@ -68,289 +91,394 @@ const base = (over: Json): Json => ({
   conditions: [],
   changes: [],
   next: ['add_to_spec', 'change_conditions', 'request_quote'],
-  trace: [],
-  state: { selection_id: 'e2e-sel', turn: 0 },
+  trace: [{ step: 'Найдены семейства', tool: 'search_catalog', ms: 120, result: 'семейств: 2' }],
+  state: { selection_id: 'e2e-guide', turn: 1 },
+  preliminary: false,
+  notice: '',
+  gaps: [],
+  screen: null,
   ...over,
 })
 
-const kesOffer = (
-  id: string,
-  title: string,
-  sku: string,
-  tier: string,
-  price: number,
-  total: number,
-) => ({
+const summary = (id: string, total: number, text: string, formula: string) => ({
   offer_id: id,
-  title,
-  sku,
-  tier,
-  unit: 'за компьютер',
-  quantity: null as number | null,
-  role: 'match',
-  price_per_unit: price,
+  label: 'Стоимость закупки',
   total,
-  price_state: 'fixed',
-  offer_url: `https://store.softline.ru/product/${id}/`,
+  total_text: text,
+  formula,
+  action: 'add_to_spec',
+  hint: '',
 })
 
-/** D1, ход 1: «Помочь выбрать» — один вопрос с чипами. */
-export const D1_ASK = base({
+// ── Сценарий 1: «подбери антивирь» ──
+
+export const S1_ASK = base({
   type: 'clarification',
+  conditions: [DIRECTION, ...defaults],
   clarification: {
-    question: 'Сколько компьютеров нужно защитить?',
     key: 'count:workstation',
+    question: 'Сколько компьютеров нужно защитить?',
+    chips: ['10', '30', '50', '100'].map((v) => ({ label: v, key: 'count:workstation', value: v })),
     required: false,
+  },
+})
+
+const S1_OFFERS = [
+  offer({
+    id: 'drweb20',
+    family: '4069',
+    title: 'Dr.Web Desktop Security Suite',
+    subtitle: 'Новая лицензия · пакет на 30 компьютеров · 1 год',
+    unit: 'пакет на 30 компьютеров',
+    qty: 30,
+    price: 51521.73,
+    total: 51521.73,
+    line: '1 × 51 521,73 ₽',
+    priceText: '51 521,73 ₽ за пакет',
+  }),
+  offer({
+    id: 'kesstd30',
+    family: '3953',
+    title: 'Kaspersky Endpoint Security — Стандартный',
+    subtitle: 'Новая лицензия · 30 компьютеров · 1 год',
+    unit: 'за компьютер',
+    qty: 30,
+    price: 2813.4,
+    total: 84402,
+    line: '30 × 2 813,40 ₽',
+    priceText: '2 813,40 ₽ за компьютер',
+  }),
+  offer({
+    id: 'kesadv30',
+    family: '3935',
+    title: 'Kaspersky Endpoint Security — Расширенный',
+    subtitle: 'Новая лицензия · 30 компьютеров · 1 год',
+    unit: 'за компьютер',
+    qty: 30,
+    price: 4081.5,
+    total: 122445,
+    line: '30 × 4 081,50 ₽',
+    priceText: '4 081,50 ₽ за компьютер',
+  }),
+]
+
+export const S1_THIRTY = base({
+  conditions: [DIRECTION, count(30), ...defaults],
+  offers: S1_OFFERS,
+  clarification: {
+    key: 'feature',
+    question: 'Какие функции защиты обязательны?',
     chips: [
-      ...['10', '30', '50', '100'].map((v) => ({ label: v, key: 'count:workstation', value: v })),
-      { label: 'другое', key: 'count:workstation', value: '' },
+      { label: 'нужно: шифрование данных', key: 'feature', value: 'encryption' },
+      { label: 'нужно: установка обновлений программ', key: 'feature', value: 'patch_management' },
+      { label: 'ничего из этого', key: 'feature', value: '' },
     ],
+    required: false,
   },
-  conditions: defaults,
-  trace: [
-    {
-      step: 'Найдено семейство защиты рабочих мест',
-      tool: 'search_catalog',
-      ms: 210,
+  screen: {
+    title: 'Подбор лицензии',
+    task: 'Антивирус для организации',
+    result: {
+      basis: 'none',
+      heading: 'Выберите подходящий вариант',
+      offer_id: '',
+      reason: '',
+      source: null,
     },
-  ],
-})
-
-/** D1, ход 2: чип «30» — ступень 25–49, условия по умолчанию видны. */
-export const D1_THIRTY = base({
-  lead: 'Новые лицензии на год, ступень 25–49.',
-  conditions: [cond('count:workstation', '30 ПК', '30', 'user'), ...defaults],
-  offers: [
-    kesOffer(
-      '4980',
-      'Kaspersky Endpoint Security для бизнеса Стандартный',
-      '',
-      '25–49',
-      2813.4,
-      84402,
-    ),
-    kesOffer(
-      '4851',
-      'Kaspersky Endpoint Security для бизнеса Расширенный',
-      '',
-      '25–49',
-      4081.5,
-      122445,
-    ),
-  ],
-  trace: [
-    {
-      step: 'Найдено семейство защиты рабочих мест',
-      tool: 'search_catalog',
-      ms: 210,
+    selected_offer_id: '',
+    options: S1_OFFERS.map((o) => o.offer_id),
+    comparison: null,
+    task_cost: {
+      title: 'Стоимость защиты 30 компьютеров на 1 год',
+      columns: ['Как продаётся', 'За 30 компьютеров'],
+      rows: S1_OFFERS.map((o, i) => ({
+        offer_id: o.offer_id,
+        title: o.display.title,
+        how_sold: o.sale_unit,
+        total: o.total,
+        total_text: ['51 521,73 ₽', '84 402 ₽', '122 445 ₽'][i],
+        note: '',
+      })),
+      note: 'Состав функций и условия лицензирования различаются',
+      cheapest: 'Меньшая стоимость закупки: Dr.Web Desktop Security Suite.',
     },
-    { step: 'Подобрана ступень 25–49', tool: 'get_family_offers', ms: 95 },
-  ],
-  state: { selection_id: 'e2e-sel', turn: 2 },
-})
-
-/** D1, ход 3: «чем расширенный касперский отличается от стандартного» — таблица. */
-export const D1_COMPARE = base({
-  type: 'comparison',
-  lead: 'В Расширенном есть шифрование данных и установка обновлений программ; в Стандартном их нет.',
-  claims,
-  conditions: [cond('count:workstation', '30 ПК', '30', 'user'), ...defaults],
-  comparison: {
-    columns: [KES_STD, KES_ADV],
-    rows: [
-      {
-        key: 'encryption',
-        label: 'Шифрование данных',
-        cells: [
-          { kind: 'no', fact_id: 'kb_kes_std_no_encryption' },
-          { kind: 'yes', fact_id: 'kb_kes_adv_encryption' },
-        ],
-      },
-      {
-        key: 'patch_management',
-        label: 'Установка обновлений программ',
-        cells: [{ kind: 'no' }, { kind: 'yes', fact_id: 'kb_kes_adv_patch' }],
-      },
-      {
-        key: 'console',
-        label: 'Единая консоль управления',
-        cells: [{ kind: 'yes' }, { kind: 'yes' }],
-      },
-      {
-        key: 'certs',
-        label: 'Сертификаты',
-        cells: [{ kind: 'unknown' }, { kind: 'unknown' }],
-      },
-      {
-        key: 'price_per_seat_year',
-        label: 'Цена за компьютер в год, 25–49 мест',
-        cells: [
-          { kind: 'value', value: 2813.4 },
-          { kind: 'value', value: 4081.5 },
-        ],
-      },
-      {
-        key: 'total',
-        label: 'Итого на 30 ПК',
-        cells: [
-          { kind: 'value', value: 84402 },
-          { kind: 'value', value: 122445 },
-        ],
-      },
-    ],
+    changed: null,
+    others: [],
+    summary: {
+      offer_id: '',
+      label: 'Стоимость закупки',
+      total: null,
+      total_text: '',
+      formula: '',
+      action: 'choose',
+      hint: 'Выберите вариант, чтобы добавить в спецификацию',
+    },
   },
-  trace: [
-    {
-      step: 'Найдено семейство защиты рабочих мест',
-      tool: 'search_catalog',
-      ms: 210,
-    },
-    {
-      step: 'Проверены различия по документации вендора',
-      tool: 'get_facts',
-      ms: 140,
-    },
-  ],
-  state: { selection_id: 'e2e-sel', turn: 3 },
 })
 
-/** D1, ход 4: «на самом деле компьютеров будет 50, и шифрование нужно» — Расширенный, ступень 50–99. */
-export const D1_FIFTY = base({
-  lead: 'Подходит Расширенный. Стандартный убран — в нём нет шифрования.',
-  claims,
+export const S1_ENCRYPTION = base({
   conditions: [
-    cond('count:workstation', '50 ПК', '50', 'user'),
+    DIRECTION,
+    count(30),
     ...defaults,
-    cond('required_features', 'нужно шифрование', 'encryption', 'user'),
+    cond('feature:encryption', 'нужно шифрование данных', 'encryption', 'user'),
   ],
   offers: [
-    kesOffer(
-      '4986',
-      'Kaspersky Endpoint Security для бизнеса Расширенный',
-      'KL4867RAQFS',
-      '50–99',
-      3940.2,
-      197010,
-    ),
+    S1_OFFERS[2],
+    { ...S1_OFFERS[1], role: 'alternative', reason: { code: 'missing_feature', text: 'Нет шифрования данных' } },
+    { ...S1_OFFERS[0], role: 'alternative', reason: { code: 'feature_unknown', text: 'Нет сведений о шифровании' } },
   ],
-  changes: [
-    {
-      condition: 'Без шифрования',
-      effect: 'Стандартный — 2 715,30 ₽ за компьютер',
+  screen: {
+    title: 'Подбор лицензии',
+    task: 'Антивирус для организации',
+    result: {
+      basis: 'required_feature',
+      heading: 'Подходит под ваши условия',
+      offer_id: 'kesadv30',
+      reason: 'Включает шифрование данных. В Стандартной редакции этой функции нет.',
+      source: KES_DOC,
     },
-  ],
-  trace: [
-    {
-      step: 'Найдено семейство защиты рабочих мест',
-      tool: 'search_catalog',
-      ms: 210,
-    },
-    {
-      step: 'Проверена функция по документации вендора',
-      tool: 'get_facts',
-      ms: 140,
-    },
-    { step: 'Подобрана ступень 50–99', tool: 'get_family_offers', ms: 90 },
-  ],
-  state: { selection_id: 'e2e-sel', turn: 4 },
+    selected_offer_id: 'kesadv30',
+    options: ['kesadv30'],
+    comparison: null,
+    task_cost: null,
+    changed: { text: 'Изменено: шифрование обязательно', items: ['шифрование обязательно'], price_change: null },
+    others: [
+      {
+        offer_id: 'kesstd30',
+        title: 'Kaspersky Endpoint Security — Стандартный',
+        subtitle: '',
+        price_text: '2 813,40 ₽ за компьютер',
+        reason: { code: 'missing_feature', text: 'Нет шифрования данных' },
+      },
+      {
+        offer_id: 'drweb20',
+        title: 'Dr.Web Desktop Security Suite',
+        subtitle: '',
+        price_text: '51 521,73 ₽ за пакет',
+        reason: { code: 'feature_unknown', text: 'Нет сведений о шифровании' },
+      },
+    ],
+    summary: summary('kesadv30', 122445, '122 445 ₽', '30 × 4 081,50 ₽'),
+  },
 })
 
-const CRYPTO_SRC = {
-  title: 'КриптоПро — условия лицензирования CSP',
-  url: 'https://www.cryptopro.ru/products/csp/licensing',
-  fragment:
-    'Лицензия на рабочее место не даёт права использования в серверной операционной системе.',
-}
+// ── Сценарий 2: сравнение редакций и смена условий одной репликой ──
 
-/** D2, ход 1: «самый дешёвый криптопро csp для сервера» — серверная первой, рабочее место — ниже. */
-export const D2_SERVER = base({
-  lead: 'Лицензия на рабочее место в серверной ОС не действует — нужна серверная.',
-  claims: [
-    {
-      fact_id: 'kb_cryptopro_ws_not_server',
-      text: 'Лицензия на рабочее место не действует в серверной ОС',
-      source: CRYPTO_SRC,
-      status: 'verified',
+const STD30 = S1_OFFERS[1]!
+const ADV30 = S1_OFFERS[2]!
+const cell = (mark: string, text: string) => ({ mark, text })
+const row = (key: string, label: string, priority: number, cells: Json[], kind = 'feature') => ({
+  key,
+  label,
+  priority,
+  asked: false,
+  kind,
+  cells,
+})
+
+export const S2_COMPARE = base({
+  type: 'comparison',
+  conditions: [DIRECTION, cond('vendor', 'Kaspersky', 'kaspersky', 'inferred'), count(30), ...defaults],
+  offers: [STD30, ADV30],
+  screen: {
+    title: 'Подбор лицензии',
+    task: 'Антивирус для организации · Kaspersky',
+    result: {
+      basis: 'lowest_total',
+      heading: 'Меньшая стоимость закупки',
+      offer_id: 'kesstd30',
+      reason: 'Меньшая стоимость закупки: Стандартный, на 38 043 ₽ дешевле.',
+      source: null,
     },
-  ],
+    selected_offer_id: 'kesstd30',
+    options: ['kesstd30', 'kesadv30'],
+    comparison: {
+      title: 'Различия редакций',
+      columns: [
+        { offer_id: 'kesstd30', family_id: '3953', title: 'Стандартный' },
+        { offer_id: 'kesadv30', family_id: '3935', title: 'Расширенный' },
+      ],
+      rows: [
+        row('encryption', 'Шифрование данных', 1, [cell('no', 'Нет'), cell('yes', 'Есть')]),
+        row('patch', 'Установка обновлений', 1, [cell('no', 'Нет'), cell('yes', 'Есть')]),
+        row('console', 'Единая консоль', 4, [cell('yes', 'Есть'), cell('yes', 'Есть')]),
+        row(
+          'unit_price',
+          'За компьютер',
+          3,
+          [cell('value', '2 813,40 ₽'), cell('value', '4 081,50 ₽')],
+          'commercial',
+        ),
+      ],
+      more_rows: [
+        row('mobile', 'Защита мобильных устройств', 5, [cell('conditional', 'С условиями'), cell('yes', 'Есть')]),
+      ],
+      hidden_no_data: 2,
+      hidden_label: 'Ещё 2 характеристики без сведений у вендора',
+      vendors_note: '',
+      difference: 'Меньшая стоимость закупки: Стандартный, на 38 043 ₽ дешевле.',
+      source: KES_DOC,
+    },
+    task_cost: null,
+    changed: null,
+    others: [],
+    summary: summary('kesstd30', 84402, '84 402 ₽', '30 × 2 813,40 ₽'),
+  },
+})
+
+const STD50 = offer({
+  id: 'kesstd50',
+  family: '3953',
+  title: 'Kaspersky Endpoint Security — Стандартный',
+  subtitle: 'Новая лицензия · 50 компьютеров · 1 год',
+  unit: 'за компьютер',
+  qty: 50,
+  price: 2715.3,
+  total: 135765,
+  line: '50 × 2 715,30 ₽',
+  priceText: '2 715,30 ₽ за компьютер',
+  role: 'rejected',
+  reason: { code: 'missing_feature', text: 'Не подходит: нет шифрования данных' },
+})
+const ADV50 = offer({
+  id: 'kesadv50',
+  family: '3935',
+  title: 'Kaspersky Endpoint Security — Расширенный',
+  subtitle: 'Новая лицензия · 50 компьютеров · 1 год',
+  unit: 'за компьютер',
+  qty: 50,
+  price: 3940.2,
+  total: 197010,
+  line: '50 × 3 940,20 ₽',
+  priceText: '3 940,20 ₽ за компьютер',
+})
+
+export const S2_FIFTY = base({
   conditions: [
-    cond('object', 'сервер', 'server', 'user'),
-    cond('term_months', 'бессрочная', '0', 'inferred'),
+    DIRECTION,
+    cond('vendor', 'Kaspersky', 'kaspersky', 'inferred'),
+    count(50),
+    ...defaults,
+    cond('feature:encryption', 'нужно шифрование данных', 'encryption', 'user'),
   ],
-  offers: [
-    {
-      offer_id: '197958',
-      title: 'КриптоПро CSP 5.0: серверная лицензия СКЗИ',
-      sku: '',
-      tier: '',
-      unit: 'за сервер',
-      price_per_unit: 70000,
-      total: 70000,
-      price_state: 'priced',
-      offer_url: 'https://store.softline.ru/product/197958/',
-      role: 'match',
+  offers: [ADV50, STD50],
+  screen: {
+    title: 'Подбор лицензии',
+    task: 'Антивирус для организации · Kaspersky',
+    result: {
+      basis: 'required_feature',
+      heading: 'Подходит под ваши условия',
+      offer_id: 'kesadv50',
+      reason: 'Включает шифрование данных.',
+      source: KES_DOC,
     },
-    ...[
-      ['411620', 'КриптоПро CSP 5.0: годовая лицензия на 1 рабочее место', 1850],
-      ['25266', 'КриптоПро CSP: бессрочная лицензия на 1 рабочее место', 3700],
-    ].map(([id, title, price]) => ({
-      offer_id: id,
-      title,
-      sku: '',
-      tier: '',
-      unit: 'за рабочее место',
-      price_per_unit: price,
-      total: price,
-      price_state: 'priced',
-      offer_url: `https://store.softline.ru/product/${id}/`,
-      role: 'rejected',
-      note: 'Лицензия на рабочее место — для сервера не подходит',
-    })),
-  ],
-  trace: [
-    {
-      step: 'Найдено семейство КриптоПро CSP',
-      tool: 'search_catalog',
-      ms: 180,
+    selected_offer_id: 'kesadv50',
+    options: ['kesadv50'],
+    comparison: null,
+    task_cost: null,
+    changed: {
+      text: 'Изменено: 30 → 50 компьютеров, шифрование обязательно',
+      items: ['30 → 50 компьютеров', 'шифрование обязательно'],
+      price_change: {
+        offer_id: 'kesadv50',
+        label: 'Цена за компьютер изменилась',
+        from: { tier: '25–49 компьютеров', unit_price: 4081.5, text: '4 081,50 ₽' },
+        to: { tier: '50–99 компьютеров', unit_price: 3940.2, text: '3 940,20 ₽' },
+      },
     },
-    {
-      step: 'Проверено правило «рабочее место / сервер»',
-      tool: 'validate_license',
-      ms: 12,
-    },
-    {
-      step: 'Правила лицензирования',
-      ms: 3,
-      result: 'подходят: 1, не подходят по праву использования: 2',
-    },
-  ],
+    others: [
+      {
+        offer_id: 'kesstd50',
+        title: 'Kaspersky Endpoint Security — Стандартный',
+        subtitle: '',
+        price_text: '2 715,30 ₽ за компьютер',
+        reason: { code: 'missing_feature', text: 'Не подходит: нет шифрования данных' },
+      },
+    ],
+    summary: summary('kesadv50', 197010, '197 010 ₽', '50 × 3 940,20 ₽'),
+  },
 })
 
-/** D2, ход 2: «а для tls-сервера?». */
-export const D2_TLS = base({
-  lead: 'Для TLS-сервера у КриптоПро отдельная лицензия.',
-  claims: D2_SERVER.claims,
-  conditions: [cond('object', 'TLS-сервер', 'tls_server', 'user')],
+// ── Сценарий 3: «самый дешёвый криптопро csp для сервера» ──
+
+const SERVER = offer({
+  id: '197958',
+  family: '22268',
+  title: 'КриптоПро CSP 5.0',
+  subtitle: 'Серверная лицензия · бессрочная',
+  unit: 'за сервер',
+  qty: 1,
+  price: 70000,
+  total: 70000,
+  line: '1 × 70 000 ₽',
+  priceText: '70 000 ₽ за сервер',
+})
+const notServer = { code: 'not_for_server_os', text: 'Не подходит для серверной ОС' }
+
+export const S3_SERVER = base({
+  lead: 'Лицензия на рабочее место не действует в серверной ОС — нужна серверная.',
+  conditions: [
+    cond('vendor', 'КриптоПро', 'kripto-pro', 'user'),
+    cond('object', 'для сервера', 'server', 'user'),
+    cond('operation', 'новая лицензия', 'new', 'default'),
+  ],
   offers: [
-    {
-      offer_id: '365870',
-      title: 'КриптоПро CSP TLS, лицензия на право использования',
-      sku: '',
-      tier: '',
-      unit: 'сервер',
-      price_per_unit: 100000,
-      total: 100000,
-      price_state: 'fixed',
-      offer_url: 'https://store.softline.ru/product/365870/',
-    },
+    SERVER,
+    offer({
+      id: '411620',
+      family: '22268',
+      title: 'КриптоПро CSP 5.0',
+      subtitle: 'Рабочее место · 1 год',
+      unit: 'за рабочее место',
+      qty: 1,
+      price: 1850,
+      total: 1850,
+      priceText: '1 850 ₽',
+      role: 'rejected',
+      reason: notServer,
+    }),
   ],
-  trace: [
-    {
-      step: 'Найдено семейство КриптоПро CSP TLS',
-      tool: 'search_catalog',
-      ms: 160,
+  screen: {
+    title: 'Подбор лицензии',
+    task: 'КриптоПро CSP для серверной ОС',
+    result: {
+      basis: 'only_valid',
+      heading: 'Подходящая лицензия',
+      offer_id: '197958',
+      reason: 'Лицензия на рабочее место в серверной ОС не действует.',
+      source: CRYPTO_RULES,
     },
-  ],
+    selected_offer_id: '197958',
+    options: ['197958'],
+    comparison: null,
+    task_cost: null,
+    changed: null,
+    others: [
+      {
+        offer_id: '411620',
+        title: 'КриптоПро CSP 5.0',
+        subtitle: 'Рабочее место · 1 год',
+        price_text: '1 850 ₽',
+        reason: notServer,
+      },
+      {
+        offer_id: '410137',
+        title: 'КриптоПро CSP 5.0',
+        subtitle: 'Рабочее место · бессрочная',
+        price_text: '3 700 ₽',
+        reason: notServer,
+      },
+      {
+        offer_id: '365870',
+        title: 'КриптоПро CSP TLS',
+        subtitle: 'бессрочная',
+        price_text: '100 000 ₽',
+        reason: { code: 'tls_server_only', text: 'Отдельная лицензия для TLS-сервера' },
+      },
+    ],
+    summary: summary('197958', 70000, '70 000 ₽', '1 × 70 000 ₽'),
+  },
 })
 
 export interface GuideBody {
@@ -364,32 +492,47 @@ export interface GuideBody {
 
 /** Ответ заглушки по телу хода. */
 function reply(b: GuideBody): Json {
+  const q = b.query.toLowerCase()
   const m = (b.message ?? '').toLowerCase()
-  if (/криптопро/i.test(b.query)) return /tls/.test(m) ? D2_TLS : D2_SERVER
-  if (b.chip?.value === '30' || b.condition) return D1_THIRTY
-  if (/отлича/.test(m)) return D1_COMPARE
-  if (/50/.test(m)) return D1_FIFTY
-  return D1_ASK
+  if (/криптопро/.test(q)) return S3_SERVER
+  if (/отлича/.test(q)) {
+    if (/50/.test(m) || b.condition) return S2_FIFTY
+    return S2_COMPARE
+  }
+  if (b.chip?.key === 'feature' && b.chip.value === 'encryption') return S1_ENCRYPTION
+  if (b.chip?.key === 'count:workstation' || b.condition) return S1_THIRTY
+  return S1_ASK
+}
+
+/** Режим строки (POST /api/guide/route) по запросу — как правила ядра (UI §2). */
+function routeOf(q: string): Json {
+  const s = q.toLowerCase()
+  if (/подбер|отлича|самый дешёв|для сервера/.test(s))
+    return { mode: 'guide', reason: 'question', offer: '', open_now: true, open_reason: 'ask' }
+  if (/^kl\d|^криптопро csp 5\.0$/.test(s))
+    return { mode: 'search', reason: 'product_name', offer: '', open_now: false, open_reason: '' }
+  return { mode: 'search_offer', reason: 'general_request', offer: '', open_now: false, open_reason: '' }
 }
 
 /**
- * Поставить заглушку /api/guide; возвращает журнал тел запросов. delayMs — задержка ответа, чтобы увидеть статус
- * хода. fail: сколько первых ходов ответить 503 (ошибка с повтором).
+ * Поставить заглушки /api/guide и /api/guide/route; возвращает журнал тел ходов. delayMs — задержка ответа, чтобы
+ * увидеть ожидание и пересчёт. fail — сколько первых ходов ответить 503 (ошибка с повтором). route — постоянный
+ * ответ режима строки вместо правил по запросу.
  */
 export async function stubGuide(
   page: Page,
-  opts: { delayMs?: number; fail?: number; route?: { mode: string; offer?: string } } = {},
+  opts: { delayMs?: number; fail?: number; route?: Json } = {},
 ) {
   const calls: GuideBody[] = []
   const missing = { error: { code: 'NOT_FOUND', message: 'нет' } }
-  // Режим строки (POST /api/guide/route): route — ответ ядра; без него — 404, фронт решает своим правилом.
-  await page.route('**/api/guide/route', (r) =>
-    r.fulfill({
-      status: opts.route ? 200 : 404,
+  await page.route('**/api/guide/route', (r) => {
+    const body = r.request().postDataJSON() as { query: string }
+    return r.fulfill({
+      status: 200,
       contentType: 'application/json',
-      body: JSON.stringify(opts.route ?? missing),
-    }),
-  )
+      body: JSON.stringify(opts.route ?? routeOf(body.query)),
+    })
+  })
   // Черновик спецификации подбора (POST /api/guide/spec): нет — строка берётся из ответа хода.
   await page.route('**/api/guide/spec', (r) =>
     r.fulfill({ status: 404, contentType: 'application/json', body: JSON.stringify(missing) }),
@@ -405,9 +548,7 @@ export async function stubGuide(
       return route.fulfill({
         status: 503,
         contentType: 'application/json',
-        body: JSON.stringify({
-          error: { code: 'UNAVAILABLE', message: 'Подбор временно недоступен' },
-        }),
+        body: JSON.stringify({ error: { code: 'UNAVAILABLE', message: 'Подбор временно недоступен' } }),
       })
     }
     return route.fulfill({
